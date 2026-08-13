@@ -108,6 +108,12 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   /** Overrides the type-derived comparator. */
   comparator?: (a: TValue, b: TValue) => number
   filterable?: boolean
+  /**
+   * Whether the global search box looks at this column. Defaults to
+   * `filterable`, which is the usual intent, but the two are separable — an
+   * internal id column can stay filterable without polluting search hits.
+   */
+  searchable?: boolean
   /** Fixed option list for `enum` columns; otherwise facets come from the data. */
   options?: FilterValue[]
   /** Formats the value for display and for the filter checklist. */

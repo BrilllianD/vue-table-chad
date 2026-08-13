@@ -24,7 +24,7 @@ nvm use          # Node 24; pnpm crashes on Node 20 here
 pnpm install
 pnpm dev         # playground at http://localhost:5173
 pnpm demo        # full feature demo at http://localhost:5174
-pnpm test        # 117 tests
+pnpm test        # 137 tests
 pnpm typecheck
 pnpm build       # library -> dist/
 ```
@@ -64,6 +64,9 @@ const source = useLocalDataSource(rows, columns, state.query)
 operators the filter panel offers (`contains` for text, `between` for numbers, `before`/`after`
 for dates).
 
+Rows are identified by `row.id`. Pass `getRowId` when they are keyed by something else — it drives
+selection *and* the render keys, so editing a row patches it in place instead of replacing it.
+
 ## The two contracts
 
 Everything hangs off these. Learn them and the rest follows.
@@ -92,6 +95,7 @@ interface DataSource<TRow> {
   error: Ref<unknown>
   refresh(): void
   facets(columnId: string): Promise<FacetValue[]>
+  readonly remote: boolean   // lets the UI say facets come from the server
 }
 ```
 
@@ -148,6 +152,15 @@ Behaviours worth knowing, because they are easy to get wrong:
   table mid-keystroke.
 - **Dates compare by calendar day**, and bare `YYYY-MM-DD` strings parse as *local* midnight —
   `Date.parse` treats them as UTC, which shifts the day for anyone west of Greenwich.
+- **A filter that matches everything is not a filter.** No-op entries are pruned out of
+  `QueryState`, and neither the header funnel nor the chip row lights up for one.
+
+The filter panel is teleported to `<body>` and positioned from its trigger, so no ancestor's
+`overflow` can clip it. Pass `:teleport="false"` to `ColumnFilterPopover` if you are placing it
+yourself.
+
+The global search box covers every `filterable` column. Set `searchable: false` on a column to keep
+its filter panel but drop it from search hits.
 
 ## Selection
 
@@ -157,7 +170,8 @@ const source = /* … */
 ```
 
 Single or multiple (`selectable="single"`), shift-click ranges, a tri-state header checkbox, and
-selection that survives paging.
+selection that survives paging. `selectable` is reactive — switch it on, off, or between modes at
+runtime and the table follows without remounting.
 
 For server data, "select all 12,384 matching" cannot be an id list, so it is modelled as a
 predicate instead:
@@ -244,9 +258,14 @@ const columns = useColumns(defs, { … })
 columns.toggleVisibility('email')
 columns.moveColumn('salary', 0)
 columns.setPinned('name', 'left')
+columns.setPinned('name', false)   // explicitly unpinned, even if the def says pinned: 'left'
+columns.clearPinned('name')        // forget the override; the def's pin applies again
 columns.setWidth('email', 320)
 columns.resetLayout()
 ```
+
+`ColumnDef.pinned` is a *default*, not a lock: `setPinned(id, false)` records an explicit
+"unpinned" that outranks it, and `clearPinned` (or `resetLayout`) hands control back to the def.
 
 Sticky offsets for pinned columns are recomputed from live widths, so resizing a pinned column
 shifts the ones pinned after it.

@@ -29,7 +29,12 @@ export function filterRows<TRow>(
   }
 
   const search = (query.globalSearch ?? '').trim()
-  const searchable = search === '' ? [] : columns.filter((column) => column.filterable !== false)
+  // `searchable` wins when set; otherwise a column is searched if it is
+  // filterable, which is what callers expect without having to say so.
+  const searchable =
+    search === ''
+      ? []
+      : columns.filter((column) => column.searchable ?? column.filterable !== false)
 
   if (compiled.length === 0 && searchable.length === 0) return rows.slice()
 
@@ -98,8 +103,14 @@ export function computeFacets<TRow>(
   }
 
   if (column.options) {
+    // Declared options keep their declared order; anything the data turned up
+    // that was never declared sorts after them rather than jumping to the top.
     const order = new Map(column.options.map((option, index) => [facetKey(option), index]))
-    values.sort((a, b) => (order.get(facetKey(a.value)) ?? 0) - (order.get(facetKey(b.value)) ?? 0))
+    const undeclared = column.options.length
+    values.sort(
+      (a, b) =>
+        (order.get(facetKey(a.value)) ?? undeclared) - (order.get(facetKey(b.value)) ?? undeclared),
+    )
   } else {
     const compare = facetComparator(column as ColumnDef<unknown>)
     values.sort((a, b) => compare(a.value, b.value))

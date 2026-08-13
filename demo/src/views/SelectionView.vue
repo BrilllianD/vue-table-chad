@@ -8,7 +8,7 @@
  * — and deselecting a row inside it records an exclusion instead of collapsing
  * the whole thing back into ids. Watch the state panel while you click.
  */
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import {
   SelectionCheckbox,
   SortTrigger,
@@ -35,10 +35,6 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 
 const mode = ref<SelectionMode>('multiple')
 const onlyActiveSelectable = ref(true)
-
-// `useRowSelection` is created once inside TableRoot, so switching modes has to
-// remount it. Keying on the mode makes that explicit instead of silent.
-const rootKey = computed(() => `${mode.value}-${onlyActiveSelectable.value}`)
 
 const isRowSelectable = (row: Employee): boolean =>
   onlyActiveSelectable.value ? row.active : true
@@ -98,8 +94,8 @@ const shown = employeeColumns.filter((column) =>
       </div>
     </template>
 
+    <!-- No `:key` remount needed: `selectable` is reactive all the way down. -->
     <TableRoot
-      :key="rootKey"
       v-slot="{ rows: pageRows, columns: cols, selection, total, getCellText }"
       :columns="shown"
       :source="source"

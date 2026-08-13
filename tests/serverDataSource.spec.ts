@@ -246,6 +246,62 @@ describe('useServerDataSource', () => {
     dispose()
   })
 
+  // Sort reorders rows without changing which ones match, so it must not be
+  // part of the facet cache key — every header click would refetch otherwise.
+  it('does not refetch facets when only the sort changes', async () => {
+    const fetchFacets = vi.fn(async () => [{ value: 'Engineering', count: 3 }])
+    const fetcher = vi.fn(async () => ({ rows: [], total: 0 }))
+    const { state, source, dispose } = setup(fetcher, { fetchFacets })
+
+    await source.facets('department')
+    state.setSort('salary', 'desc')
+    await source.facets('department')
+    expect(fetchFacets).toHaveBeenCalledTimes(1)
+
+    // A filter change does invalidate them, because it changes what matches.
+    state.setFilter('active', valuesFilter([true]))
+    await source.facets('department')
+    expect(fetchFacets).toHaveBeenCalledTimes(2)
+    dispose()
+  })
+
+  it('gives facet requests a signal that refresh actually aborts', async () => {
+    const pending = deferred<Array<{ value: string; count: number }>>()
+    const signals: AbortSignal[] = []
+    const fetchFacets = vi.fn(async (_columnId: string, params: FetchParams) => {
+      signals.push(params.signal)
+      return pending.promise
+    })
+    const fetcher = vi.fn(async () => ({ rows: [], total: 0 }))
+    const { source, dispose } = setup(fetcher, { fetchFacets })
+
+    void source.facets('department').catch(() => {})
+    await nextTick()
+    expect(signals[0]!.aborted).toBe(false)
+
+    source.refresh()
+    expect(signals[0]!.aborted).toBe(true)
+    pending.resolve([])
+    dispose()
+  })
+
+  it('drops a failed facet request from the cache so it can be retried', async () => {
+    let attempt = 0
+    const fetchFacets = vi.fn(async () => {
+      attempt += 1
+      if (attempt === 1) throw new Error('facet endpoint down')
+      return [{ value: 'Engineering', count: 3 }]
+    })
+    const fetcher = vi.fn(async () => ({ rows: [], total: 0 }))
+    const { source, dispose } = setup(fetcher, { fetchFacets })
+
+    await expect(source.facets('department')).rejects.toThrow('facet endpoint down')
+    await expect(source.facets('department')).resolves.toEqual([
+      { value: 'Engineering', count: 3 },
+    ])
+    dispose()
+  })
+
   it('returns no facets when the caller supplied no facet fetcher', async () => {
     const fetcher = vi.fn(async () => ({ rows: [], total: 0 }))
     const { source, dispose } = setup(fetcher)

@@ -101,7 +101,7 @@ const context: TableContext<Employee> = {
   state,
   columns,
   source,
-  selection,
+  selection: computed(() => selection),
   pagination,
   rows,
   visibleColumns: columns.visible,

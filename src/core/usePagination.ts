@@ -1,8 +1,9 @@
 import { computed, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 
+
 export interface UsePaginationOptions {
   /** How many numbered links to show around the current page. */
-  siblingCount?: number
+  siblingCount?: MaybeRefOrGetter<number>
   onChange?: (page: number) => void
 }
 
@@ -39,7 +40,7 @@ export function usePagination(
   total: MaybeRefOrGetter<number>,
   options: UsePaginationOptions = {},
 ): UsePagination {
-  const siblingCount = options.siblingCount ?? 1
+  const siblingCount = computed(() => toValue(options.siblingCount) ?? 1)
 
   const size = computed(() => Math.max(1, toValue(pageSize) || 1))
   const totalCount = computed(() => Math.max(0, toValue(total) || 0))
@@ -55,20 +56,21 @@ export function usePagination(
 
   const items = computed<PageItem[]>(() => {
     const last = pageCount.value
+    const siblings = siblingCount.value
     // 2 edges + 2 ellipses + current + siblings on both sides
-    const maxVisible = siblingCount * 2 + 5
+    const maxVisible = siblings * 2 + 5
     if (last <= maxVisible) return range(1, last)
 
-    const left = Math.max(current.value - siblingCount, 1)
-    const right = Math.min(current.value + siblingCount, last)
+    const left = Math.max(current.value - siblings, 1)
+    const right = Math.min(current.value + siblings, last)
     const showLeftEllipsis = left > 2
     const showRightEllipsis = right < last - 1
 
     if (!showLeftEllipsis && showRightEllipsis) {
-      return [...range(1, siblingCount * 2 + 3), 'ellipsis', last]
+      return [...range(1, siblings * 2 + 3), 'ellipsis', last]
     }
     if (showLeftEllipsis && !showRightEllipsis) {
-      return [1, 'ellipsis', ...range(last - (siblingCount * 2 + 2), last)]
+      return [1, 'ellipsis', ...range(last - (siblings * 2 + 2), last)]
     }
     return [1, 'ellipsis', ...range(left, right), 'ellipsis', last]
   })

@@ -42,7 +42,7 @@ function goTo(next: number): void {
 }
 
 const pagination = usePagination(page, pageSize, total, {
-  siblingCount: props.siblingCount,
+  siblingCount: () => props.siblingCount,
   onChange: goTo,
 })
 

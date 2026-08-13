@@ -24,7 +24,7 @@ const summary = computed(() => {
         ? 'unsorted'
         : state.sort.value.map((rule) => `${rule.columnId} ${rule.direction}`).join(' → '),
     filters: state.activeFilterIds.value.length,
-    selected: selection?.count.value ?? 0,
+    selected: selection.value?.count.value ?? 0,
     hidden: columns.all.value.filter((column) => !column.visible).length,
     remote: source.remote,
   }

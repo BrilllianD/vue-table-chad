@@ -6,6 +6,7 @@ import TableRoot from '../src/components/primitives/TableRoot.vue'
 import TablePagination from '../src/components/primitives/TablePagination.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
+import { valuesFilter } from '../src/core/filters/model'
 import { people, personColumns, type Person } from './fixtures'
 
 const columns = personColumns.map((column) =>
@@ -158,67 +159,352 @@ describe('DataTable selection', () => {
     expect(wrapper.find('tbody input[type="checkbox"]').exists()).toBe(true)
     wrapper.unmount()
   })
+
+  // The mode string has to survive the trip through DataTable into
+  // `useRowSelection`; collapsing it to a boolean anywhere in between turns
+  // single-select into multi-select while still looking single (no header
+  // checkbox), which is the worst possible failure mode.
+  it('replaces the previous row in single-select mode', async () => {
+    const wrapper = mountTable({ selectable: 'single' })
+    const rows = () => wrapper.findAll('tbody tr')
+
+    await rows()[0]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+    await rows()[1]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+
+    expect(rows()[0]!.attributes('data-selected')).toBeUndefined()
+    expect(rows()[1]!.attributes('data-selected')).toBe('true')
+    expect(wrapper.text()).toContain('1 selected')
+    wrapper.unmount()
+  })
+
+  // The selection composable used to be created only when `selectable` was
+  // truthy at setup, so turning it on later rendered a checkbox column with
+  // nothing behind it.
+  it('starts working when selectable is switched on at runtime', async () => {
+    const selectable = ref<boolean | 'single'>(false)
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query)
+        return () => h(DataTable as never, { columns, source, state, selectable: selectable.value })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    expect(wrapper.find('tbody input[type="checkbox"]').exists()).toBe(false)
+
+    selectable.value = true
+    await nextTick()
+
+    const checkbox = wrapper.find('tbody input[type="checkbox"]')
+    expect(checkbox.exists()).toBe(true)
+    await checkbox.trigger('click')
+    await nextTick()
+
+    expect(wrapper.findAll('tbody tr')[0]!.attributes('data-selected')).toBe('true')
+    expect(wrapper.text()).toContain('1 selected')
+    wrapper.unmount()
+  })
+
+  it('switches selection mode without remounting', async () => {
+    const selectable = ref<boolean | 'single'>(true)
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query)
+        return () => h(DataTable as never, { columns, source, state, selectable: selectable.value })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    const rows = () => wrapper.findAll('tbody tr')
+
+    await rows()[0]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+    expect(wrapper.text()).toContain('1 selected')
+
+    selectable.value = 'single'
+    await nextTick()
+    await rows()[1]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+
+    // Single mode now applies to a selection that already existed.
+    expect(rows()[0]!.attributes('data-selected')).toBeUndefined()
+    expect(wrapper.text()).toContain('1 selected')
+    wrapper.unmount()
+  })
 })
 
-describe('DataTable filter popover', () => {
-  it('opens a facet list built from the data', async () => {
-    const wrapper = mountTable()
-    const departmentHeader = wrapper
+describe('DataTable filter indicators', () => {
+  /**
+   * B6: the header funnel tested `filters[id] !== undefined` while the chip row
+   * tested `pruneFilters`. A no-op filter arriving from `initialFilters` or a
+   * URL therefore lit up the header with no chip to explain or clear it.
+   */
+  it('does not flag a column whose filter matches everything', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({
+          pageSize: 3,
+          initialFilters: { department: valuesFilter(null) },
+        })
+        const source = useLocalDataSource<Person>(people, columns, state.query)
+        return () => h(DataTable as never, { columns, source, state })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    const header = wrapper
       .findAll('thead th')
       .find((th) => th.attributes('data-column') === 'department')!
 
-    await departmentHeader.find('.vt-filter-trigger').trigger('click')
-    await nextTick()
+    expect(header.attributes('data-filtered')).toBeUndefined()
+    expect(wrapper.find('.vt-chip').exists()).toBe(false)
+    expect(wrapper.findAll('tbody tr')).toHaveLength(3)
+    wrapper.unmount()
+  })
+
+  it('flags a column whose filter actually narrows the rows', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({
+          pageSize: 3,
+          initialFilters: { department: valuesFilter(['Engineering']) },
+        })
+        const source = useLocalDataSource<Person>(people, columns, state.query)
+        return () => h(DataTable as never, { columns, source, state })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    const header = wrapper
+      .findAll('thead th')
+      .find((th) => th.attributes('data-column') === 'department')!
+
+    expect(header.attributes('data-filtered')).toBe('true')
+    expect(wrapper.find('.vt-chip').text()).toContain('Department')
+    wrapper.unmount()
+  })
+})
+
+describe('DataTable checkbox state', () => {
+  /**
+   * B5: the input used to toggle itself before the handler ran. When the model
+   * then declined to change, the vnode prop was unchanged, Vue patched nothing,
+   * and the DOM kept a checked box the selection never contained.
+   */
+  it('never shows a checked box the model did not accept', async () => {
+    const wrapper = mountTable({ selectable: true, isRowSelectable: () => false })
+    const header = wrapper.find('thead input[type="checkbox"]')
+
+    await header.trigger('click')
     await nextTick()
 
-    const panel = departmentHeader.find('.vt-filter-panel')
-    expect(panel.exists()).toBe(true)
-    expect(panel.text()).toContain('Engineering')
-    expect(panel.text()).toContain('(Blanks)')
+    expect((header.element as HTMLInputElement).checked).toBe(false)
+    expect(wrapper.text()).not.toContain('selected')
     wrapper.unmount()
+  })
+
+  it('keeps the DOM in step with the model on a normal toggle', async () => {
+    const wrapper = mountTable({ selectable: true })
+    const box = () =>
+      wrapper.findAll('tbody tr')[0]!.find('input[type="checkbox"]').element as HTMLInputElement
+
+    await wrapper.findAll('tbody tr')[0]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+    expect(box().checked).toBe(true)
+
+    await wrapper.findAll('tbody tr')[0]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+    expect(box().checked).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+describe('DataTable row identity', () => {
+  interface Ticket extends Record<string, unknown> {
+    ref: string
+    title: string
+  }
+
+  const ticketColumns = [
+    { id: 'ref', header: 'Ref' },
+    { id: 'title', header: 'Title' },
+  ]
+
+  function mountTickets(rows: Ticket[], props: Record<string, unknown> = {}) {
+    const data = ref(rows)
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 10 })
+        const source = useLocalDataSource<Ticket>(data, ticketColumns, state.query)
+        return () => h(DataTable as never, { columns: ticketColumns, source, state, ...props })
+      },
+    })
+    return { wrapper: mount(Host, { attachTo: document.body }), data }
+  }
+
+  /**
+   * Keys used to come from `row.id ?? JSON.stringify(row)`, ignoring the
+   * documented `getRowId` prop. Serialising the row makes the key depend on the
+   * row's *contents*, so editing any field looks like a different row and Vue
+   * throws the DOM node away instead of patching it.
+   */
+  it('keys rows through getRowId, so editing a field patches in place', async () => {
+    const { wrapper, data } = mountTickets([{ ref: 'T-1', title: 'first' }], {
+      getRowId: (row: Ticket) => row.ref,
+    })
+
+    const before = wrapper.find('tbody tr').element
+    data.value = [{ ref: 'T-1', title: 'edited' }]
+    await nextTick()
+
+    expect(wrapper.find('tbody tr').text()).toContain('edited')
+    expect(wrapper.find('tbody tr').element).toBe(before)
+    wrapper.unmount()
+  })
+
+  it('still renders rows that have neither id nor getRowId', () => {
+    const { wrapper } = mountTickets([
+      { ref: 'T-1', title: 'first' },
+      { ref: 'T-2', title: 'second' },
+    ])
+    expect(wrapper.findAll('tbody tr')).toHaveLength(2)
+    wrapper.unmount()
+  })
+})
+
+describe('DataTable filter popover', () => {
+  /**
+   * The panel is teleported to `<body>`, so it is not a descendant of the
+   * header cell that owns it — look it up in the document instead.
+   */
+  function panel(): HTMLElement {
+    const element = document.querySelector('.vt-filter-panel')
+    if (!element) throw new Error('filter panel is not open')
+    return element as HTMLElement
+  }
+
+  function panelRows(): HTMLElement[] {
+    return [...panel().querySelectorAll('.vt-valuelist-row')] as HTMLElement[]
+  }
+
+  function click(element: Element | null | undefined): Promise<void> {
+    if (!element) throw new Error('element not found')
+    element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    return nextTick()
+  }
+
+  async function openDepartmentFilter(wrapper: ReturnType<typeof mountTable>) {
+    const header = () =>
+      wrapper.findAll('thead th').find((th) => th.attributes('data-column') === 'department')!
+    await header().find('.vt-filter-trigger').trigger('click')
+    await nextTick()
+    await nextTick()
+    return header
+  }
+
+  /** Uncheck "(Select All)", tick Engineering, Apply. */
+  async function filterToEngineering() {
+    const rows = panelRows()
+    await click(rows[0]?.querySelector('input'))
+    await click(rows.find((row) => row.textContent?.includes('Engineering'))?.querySelector('input'))
+    await click(panel().querySelector('.vt-btn-primary'))
+    await nextTick()
+  }
+
+  it('opens a facet list built from the data', async () => {
+    const wrapper = mountTable()
+    await openDepartmentFilter(wrapper)
+
+    expect(panel().textContent).toContain('Engineering')
+    expect(panel().textContent).toContain('(Blanks)')
+    wrapper.unmount()
+  })
+
+  // A3: `.vt-th` and `.vt-scroll` both clip their overflow, so a panel rendered
+  // in place is cropped to the header cell. It has to escape both.
+  it('renders the panel outside the scroll container', async () => {
+    const wrapper = mountTable()
+    await openDepartmentFilter(wrapper)
+
+    expect(panel().parentElement).toBe(document.body)
+    expect(wrapper.find('.vt-scroll').element.contains(panel())).toBe(false)
+    // And it carries the theme class, since the variables no longer inherit.
+    expect(panel().classList.contains('vt-portal')).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('removes the teleported panel when the table unmounts', async () => {
+    const wrapper = mountTable()
+    await openDepartmentFilter(wrapper)
+    expect(document.querySelectorAll('.vt-filter-panel')).toHaveLength(1)
+
+    wrapper.unmount()
+    expect(document.querySelectorAll('.vt-filter-panel')).toHaveLength(0)
   })
 
   it('applies a value filter and flags the column as filtered', async () => {
     const wrapper = mountTable()
-    const departmentHeader = () =>
-      wrapper.findAll('thead th').find((th) => th.attributes('data-column') === 'department')!
-
-    await departmentHeader().find('.vt-filter-trigger').trigger('click')
-    await nextTick()
-    await nextTick()
-
-    // Uncheck "Select All", then tick just Engineering.
-    const rows = departmentHeader().findAll('.vt-valuelist-row')
-    await rows[0]!.find('input').trigger('click') // (Select All) -> off
-    const engineering = rows.find((row) => row.text().includes('Engineering'))!
-    await engineering.find('input').trigger('click')
-    await departmentHeader().find('.vt-btn-primary').trigger('click')
-    await nextTick()
+    const header = await openDepartmentFilter(wrapper)
+    await filterToEngineering()
 
     expect(wrapper.findAll('tbody tr')).toHaveLength(2)
-    expect(departmentHeader().attributes('data-filtered')).toBe('true')
+    expect(header().attributes('data-filtered')).toBe('true')
     expect(wrapper.find('.vt-chip').text()).toContain('Department')
     wrapper.unmount()
   })
 
   it('clears a filter from its chip', async () => {
     const wrapper = mountTable()
-    const departmentHeader = () =>
-      wrapper.findAll('thead th').find((th) => th.attributes('data-column') === 'department')!
-
-    await departmentHeader().find('.vt-filter-trigger').trigger('click')
-    await nextTick()
-    await nextTick()
-    const rows = departmentHeader().findAll('.vt-valuelist-row')
-    await rows[0]!.find('input').trigger('click')
-    await rows.find((row) => row.text().includes('Engineering'))!.find('input').trigger('click')
-    await departmentHeader().find('.vt-btn-primary').trigger('click')
-    await nextTick()
+    await openDepartmentFilter(wrapper)
+    await filterToEngineering()
     expect(wrapper.findAll('tbody tr')).toHaveLength(2)
 
     await wrapper.find('.vt-chip-remove').trigger('click')
     await nextTick()
     expect(wrapper.findAll('tbody tr')).toHaveLength(3) // back to a full page
+    wrapper.unmount()
+  })
+
+  // B4: a rejecting facet source used to escape as an unhandled rejection and
+  // leave an unexplained empty checklist.
+  it('surfaces a facet fetch failure instead of rejecting unhandled', async () => {
+    const unhandled: unknown[] = []
+    const onUnhandled = (event: PromiseRejectionEvent) => {
+      unhandled.push(event.reason)
+      event.preventDefault()
+    }
+    window.addEventListener('unhandledrejection', onUnhandled)
+
+    let attempt = 0
+    const failing = {
+      ...useLocalDataSource<Person>(people, columns, useTableState().query),
+      facets: async () => {
+        attempt += 1
+        if (attempt === 1) throw new Error('facet endpoint down')
+        return [{ value: 'Engineering', count: 2 }]
+      },
+    }
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        return () => h(DataTable as never, { columns, source: failing, state })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    await openDepartmentFilter(wrapper)
+
+    expect(panel().querySelector('.vt-filter-error')).not.toBeNull()
+    expect(panel().textContent).toContain('Could not load filter values')
+
+    // And the panel offers a way back rather than staying broken.
+    await click(panel().querySelector('.vt-filter-error button'))
+    await nextTick()
+    expect(panel().querySelector('.vt-filter-error')).toBeNull()
+    expect(panel().textContent).toContain('Engineering')
+
+    await nextTick()
+    expect(unhandled).toEqual([])
+    window.removeEventListener('unhandledrejection', onUnhandled)
     wrapper.unmount()
   })
 })

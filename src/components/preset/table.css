@@ -4,7 +4,14 @@
  * or skip this file entirely and style the primitives themselves.
  */
 
-.vt-datatable {
+/*
+  The theme lives on both the table and `.vt-portal`, the wrapper the filter
+  popover teleports to `<body>`. Custom properties inherit through the DOM, and
+  a teleported panel is no longer a descendant of `.vt-datatable` — without this
+  it would render with every variable unresolved.
+*/
+.vt-datatable,
+.vt-portal {
   --vt-border: #dfe3e8;
   --vt-border-strong: #c4cad2;
   --vt-bg: #ffffff;
@@ -21,13 +28,17 @@
 
   font: var(--vt-font);
   color: var(--vt-text);
+}
+
+.vt-datatable {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 @media (prefers-color-scheme: dark) {
-  .vt-datatable {
+  .vt-datatable,
+  .vt-portal {
     --vt-border: #333a44;
     --vt-border-strong: #454d59;
     --vt-bg: #16191d;
@@ -104,9 +115,18 @@
   text-align: left;
   border-bottom: 1px solid var(--vt-border);
   background: var(--vt-bg);
+  white-space: nowrap;
+}
+
+/*
+  Body cells clip their own overflow to get the ellipsis. Header cells must NOT:
+  `overflow: hidden` here would clip the filter panel — an absolutely positioned
+  descendant — down to the header cell's box. Header text gets its ellipsis from
+  `.vt-th-label` / `.vt-sort-label` instead, which own no positioned children.
+*/
+.vt-td {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .vt-th {
@@ -255,12 +275,24 @@
 .vt-filter-trigger[data-active] { color: var(--vt-accent); }
 .vt-filter-trigger:focus-visible { outline: 2px solid var(--vt-accent); }
 
-.vt-filter-panel {
+/*
+  Fixed, not absolute: the panel is teleported out of the scroll container so
+  neither `.vt-scroll`'s overflow nor the table's stacking context can clip it.
+  `top`/`left` come from the trigger's rect, written inline by the component.
+*/
+.vt-filter-panel[data-inline] {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
+}
+
+.vt-filter-panel {
+  position: fixed;
   z-index: 20;
   width: 268px;
+  /* Never taller than the viewport, so positioning always has a solution. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
   background: var(--vt-bg);
   border: 1px solid var(--vt-border-strong);
   border-radius: var(--vt-radius);
@@ -331,6 +363,8 @@
 
 .vt-valuelist-count { color: var(--vt-text-muted); font-size: 12px; flex: none; }
 .vt-valuelist-status { padding: 10px; color: var(--vt-text-muted); text-align: center; }
+
+.vt-filter-error { margin: 0; padding: 8px 10px; color: #b42318; }
 
 .vt-valuelist-actions {
   display: flex;

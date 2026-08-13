@@ -4,7 +4,8 @@ import type { HeaderCheckboxState, RowId, SelectionMode, SelectionState } from '
 export interface UseRowSelectionOptions<TRow> {
   /** Stable identity for a row. Defaults to `row.id`. */
   getRowId?: (row: TRow) => RowId
-  mode?: SelectionMode
+  /** Accepts a ref or getter so a table can switch modes without remounting. */
+  mode?: MaybeRefOrGetter<SelectionMode>
   /** Rows the user may not toggle. */
   isSelectable?: (row: TRow) => boolean
   initial?: SelectionState
@@ -35,7 +36,8 @@ export interface UseRowSelection<TRow> {
   getRowId: (row: TRow) => RowId
 }
 
-function defaultRowId<TRow>(row: TRow): RowId {
+/** `row.id`, or a pointed error telling the caller to supply `getRowId`. */
+export function defaultRowId<TRow>(row: TRow): RowId {
   const id = (row as { id?: RowId }).id
   if (id === undefined) {
     throw new Error('[vue-table] Row has no `id`. Pass `getRowId` to useRowSelection.')
@@ -52,7 +54,7 @@ export function useRowSelection<TRow>(
   total: MaybeRefOrGetter<number>,
   options: UseRowSelectionOptions<TRow> = {},
 ): UseRowSelection<TRow> {
-  const mode = options.mode ?? 'multiple'
+  const mode = computed<SelectionMode>(() => toValue(options.mode) ?? 'multiple')
   const getRowId = options.getRowId ?? defaultRowId<TRow>
   const isSelectable = (row: TRow) => options.isSelectable?.(row) ?? true
 
@@ -106,7 +108,7 @@ export function useRowSelection<TRow>(
     const id = getRowId(row)
     const shouldSelect = selected ?? !isSelected(row)
 
-    if (mode === 'single') {
+    if (mode.value === 'single') {
       state.value = { mode: 'ids', ids: shouldSelect ? [id] : [] }
       anchorId = shouldSelect ? id : undefined
       return
@@ -133,8 +135,37 @@ export function useRowSelection<TRow>(
     select(row)
   }
 
+  /**
+   * Applies one decision to many rows with a single state write. Going through
+   * `select()` per row would rebuild the whole state object and its `Set` on
+   * every iteration — O(n²) across a large page.
+   */
+  function selectMany(targets: readonly TRow[], shouldSelect: boolean): void {
+    const selectable = targets.filter(isSelectable)
+    if (selectable.length === 0) return
+    const ids = selectable.map(getRowId)
+    const current = state.value
+
+    if (current.mode === 'all-matching') {
+      const excluded = new Set(current.excluded)
+      for (const id of ids) {
+        if (shouldSelect) excluded.delete(id)
+        else excluded.add(id)
+      }
+      state.value = { mode: 'all-matching', excluded: [...excluded] }
+    } else {
+      const next = new Set(current.ids)
+      for (const id of ids) {
+        if (shouldSelect) next.add(id)
+        else next.delete(id)
+      }
+      setIds(next)
+    }
+    anchorId = ids[ids.length - 1]
+  }
+
   function toggleRange(row: TRow): void {
-    if (mode === 'single' || anchorId === undefined) {
+    if (mode.value === 'single' || anchorId === undefined) {
       select(row)
       return
     }
@@ -146,25 +177,21 @@ export function useRowSelection<TRow>(
       return
     }
     const [start, end] = from <= to ? [from, to] : [to, from]
-    // Excel-style: the range takes the anchor's resulting state, applied to
-    // every selectable row it spans.
+    // Excel-style: the whole range takes the state the *clicked* row is moving
+    // to, so a shift-click that selects one row selects them all.
     const shouldSelect = !isSelected(row)
-    for (let i = start; i <= end; i += 1) {
-      const target = visible[i]!
-      if (isSelectable(target)) select(target, shouldSelect)
-    }
+    selectMany(visible.slice(start, end + 1), shouldSelect)
     anchorId = getRowId(row)
   }
 
   function toggleAllOnPage(selected?: boolean): void {
-    if (mode === 'single') return
-    const selectable = rows.value.filter(isSelectable)
+    if (mode.value === 'single') return
     const shouldSelect = selected ?? headerState.value !== 'all'
-    for (const row of selectable) select(row, shouldSelect)
+    selectMany(rows.value, shouldSelect)
   }
 
   function selectAllMatching(): void {
-    if (mode === 'single') return
+    if (mode.value === 'single') return
     state.value = { mode: 'all-matching', excluded: [] }
   }
 

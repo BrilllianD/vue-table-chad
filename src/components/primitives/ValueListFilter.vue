@@ -22,7 +22,7 @@ const emit = defineEmits<{ 'update:modelValue': [filter: ValuesFilter | undefine
 
 const search = ref('')
 
-/** Checked keys. `undefined` means "not initialised from props yet". */
+/** Checked facet keys, re-seeded from props by the watcher below. */
 const checked = ref<Set<string>>(new Set())
 const blanksChecked = ref(true)
 

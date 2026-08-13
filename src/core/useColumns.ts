@@ -6,7 +6,12 @@ export interface ColumnLayoutState {
   hidden: string[]
   order: string[]
   widths: Record<string, number>
-  pinned: Record<string, PinSide>
+  /**
+   * User overrides for `ColumnDef.pinned`. `false` is a real entry, not an
+   * absent one — a column declaring `pinned: 'left'` needs a way to say
+   * "unpinned" that outranks its own default.
+   */
+  pinned: Record<string, PinSide | false>
 }
 
 export interface UseColumnsOptions {
@@ -36,6 +41,8 @@ export interface UseColumnsResult<TRow> {
   resetWidths: () => void
 
   setPinned: (columnId: string, side: PinSide | false) => void
+  /** Forgets the override so the column's declared `pinned` applies again. */
+  clearPinned: (columnId: string) => void
   resetLayout: () => void
 }
 
@@ -99,7 +106,8 @@ export function useColumns<TRow>(
 
   function pinnedOf(column: ColumnDef<TRow>): PinSide | false {
     const override = layout.value.pinned[column.id]
-    if (override) return override
+    // `false` is a deliberate override; only an absent entry defers to the def.
+    if (override !== undefined) return override
     return column.pinned ?? false
   }
 
@@ -189,10 +197,22 @@ export function useColumns<TRow>(
     layout.value = { ...layout.value, widths: {} }
   }
 
+  /**
+   * Records the pin side, including `false`. To go back to whatever the column
+   * def declares, use `clearPinned` (or `resetLayout`) instead.
+   */
   function setPinned(columnId: string, side: PinSide | false): void {
+    layout.value = {
+      ...layout.value,
+      pinned: { ...layout.value.pinned, [columnId]: side },
+    }
+  }
+
+  /** Drops the override so the column falls back to its declared `pinned`. */
+  function clearPinned(columnId: string): void {
+    if (!(columnId in layout.value.pinned)) return
     const pinned = { ...layout.value.pinned }
-    if (side === false) delete pinned[columnId]
-    else pinned[columnId] = side
+    delete pinned[columnId]
     layout.value = { ...layout.value, pinned }
   }
 
@@ -212,6 +232,7 @@ export function useColumns<TRow>(
     setWidth,
     resetWidths,
     setPinned,
+    clearPinned,
     resetLayout,
   }
 }

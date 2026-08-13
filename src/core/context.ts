@@ -9,7 +9,11 @@ export interface TableContext<TRow = Record<string, unknown>> {
   state: TableState
   columns: UseColumnsResult<TRow>
   source: DataSource<TRow>
-  selection: UseRowSelection<TRow> | undefined
+  /**
+   * Computed, not a plain value: whether the table is selectable can change at
+   * runtime, and consumers must see that without the provider remounting.
+   */
+  selection: ComputedRef<UseRowSelection<TRow> | undefined>
   pagination: UsePagination
 
   rows: ComputedRef<TRow[]> | Readonly<Ref<TRow[]>>

@@ -62,6 +62,11 @@ defineEmits<{
   rowClick: [row: TRow, event: MouseEvent]
 }>()
 
+/**
+ * Whether to render the selection column at all. The *mode* is passed to
+ * `TableRoot` untouched — collapsing it to a boolean here would silently turn
+ * `selectable="single"` into multi-select.
+ */
 const selectable = computed(() => props.selectable !== false)
 </script>
 
@@ -76,13 +81,14 @@ const selectable = computed(() => props.selectable !== false)
       loading,
       error,
       total,
+      getRowKey: rowKey,
       getCellValue,
       getCellText,
     }"
     :columns="columns"
     :source="source"
     :state="state"
-    :selectable="selectable ? selectable : false"
+    :selectable="props.selectable"
     :get-row-id="getRowId"
     :is-row-selectable="isRowSelectable"
     :initial-layout="initialLayout"
@@ -200,9 +206,9 @@ const selectable = computed(() => props.selectable !== false)
             </tr>
 
             <tr
-              v-for="row in rows"
+              v-for="(row, rowIndex) in rows"
               v-else
-              :key="String((row as Record<string, unknown>).id ?? JSON.stringify(row))"
+              :key="rowKey(row, rowIndex)"
               class="vt-tr"
               :data-selected="selection?.isSelected(row) || undefined"
               @click="$emit('rowClick', row, $event)"

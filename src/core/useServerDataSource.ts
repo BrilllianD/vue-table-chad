@@ -44,6 +44,15 @@ function shapeKey(query: QueryState): string {
   return JSON.stringify([query.sort, query.filters, query.globalSearch])
 }
 
+/**
+ * What a facet list actually depends on. Sort is deliberately excluded: it
+ * reorders rows without changing which ones match, so keying facets on it would
+ * refetch an identical list every time a header is clicked.
+ */
+function facetShapeKey(query: QueryState): string {
+  return JSON.stringify([query.filters, query.globalSearch])
+}
+
 function pageKey(query: QueryState): string {
   return JSON.stringify([query.page, query.pageSize])
 }
@@ -150,9 +159,33 @@ export function useServerDataSource<TRow>(
 
   if (options.immediate ?? true) void run()
 
-  onScopeDispose(cancelPending)
+  onScopeDispose(() => {
+    cancelPending()
+    abortFacets()
+  })
 
   const facetCache = new Map<string, Promise<FacetValue[]>>()
+  const facetControllers = new Set<AbortController>()
+
+  /**
+   * Bounded so a long session filtering many columns cannot grow the cache
+   * without limit. Insertion order makes the oldest entry the first out.
+   */
+  const FACET_CACHE_LIMIT = 32
+
+  function cacheFacets(key: string, request: Promise<FacetValue[]>): void {
+    facetCache.set(key, request)
+    while (facetCache.size > FACET_CACHE_LIMIT) {
+      const oldest = facetCache.keys().next()
+      if (oldest.done) break
+      facetCache.delete(oldest.value)
+    }
+  }
+
+  function abortFacets(): void {
+    for (const controller of facetControllers) controller.abort()
+    facetControllers.clear()
+  }
 
   async function facets(columnId: string): Promise<FacetValue[]> {
     if (!options.fetchFacets) return []
@@ -161,18 +194,28 @@ export function useServerDataSource<TRow>(
     // values you just unchecked — same rule as the local source.
     const { [columnId]: _own, ...others } = snapshot.filters
     const scoped: QueryState = { ...snapshot, filters: others }
-    const key = `${columnId}|${shapeKey(scoped)}`
+    const key = `${columnId}|${facetShapeKey(scoped)}`
 
     const cached = facetCache.get(key)
     if (cached) return cached
 
+    // A real controller, retained so `refresh()` and scope disposal can cancel
+    // a facet request in flight the same way they cancel a row fetch.
+    const controller = new AbortController()
+    facetControllers.add(controller)
+
     const request = options
-      .fetchFacets(columnId, { query: scoped, signal: new AbortController().signal })
+      .fetchFacets(columnId, { query: scoped, signal: controller.signal })
+      .then((result) => {
+        facetControllers.delete(controller)
+        return result
+      })
       .catch((caught) => {
+        facetControllers.delete(controller)
         facetCache.delete(key)
         throw caught
       })
-    facetCache.set(key, request)
+    cacheFacets(key, request)
     return request
   }
 
@@ -183,6 +226,7 @@ export function useServerDataSource<TRow>(
     error,
     refresh: () => {
       facetCache.clear()
+      abortFacets()
       cancelPending()
       void run()
     },
