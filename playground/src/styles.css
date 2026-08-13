@@ -1,0 +1,60 @@
+:root {
+  --line: #dfe3e8;
+  color-scheme: light dark;
+  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { --line: #333a44; }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: Canvas;
+  color: CanvasText;
+}
+
+main { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 0 0 4px; font-size: 17px; }
+
+.hint { margin: 0; opacity: 0.7; font-size: 13px; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+
+.tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  padding: 8px 12px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.tabs button[data-active] { border-bottom-color: #2563eb; opacity: 1; font-weight: 600; }
+
+section { display: flex; flex-direction: column; gap: 10px; }
+
+pre {
+  background: rgb(127 127 127 / 0.12);
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+}
+
+.pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.pill-on { background: rgb(22 163 74 / 0.16); color: #15803d; }
+.pill-off { background: rgb(127 127 127 / 0.16); opacity: 0.75; }

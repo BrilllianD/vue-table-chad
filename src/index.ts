@@ -1,0 +1,142 @@
+/**
+ * Public surface. Three layers, each usable independently:
+ *
+ *   core/        composables and pure logic — no components
+ *   primitives/  headless, slot-driven components
+ *   preset/      DataTable + CSS, assembled from the primitives
+ */
+
+/* ------------------------------------------------------------------ core */
+
+export { useTableState, createQueryState } from './core/useTableState'
+export type { TableState, TableStateOptions } from './core/useTableState'
+
+export { useColumns } from './core/useColumns'
+export type { UseColumnsOptions, UseColumnsResult, ColumnLayoutState } from './core/useColumns'
+
+export { useLocalDataSource } from './core/useLocalDataSource'
+export type { LocalDataSource, LocalDataSourceOptions } from './core/useLocalDataSource'
+
+export { useServerDataSource } from './core/useServerDataSource'
+export type { ServerDataSource, ServerDataSourceOptions } from './core/useServerDataSource'
+
+export { useRowSelection } from './core/useRowSelection'
+export type { UseRowSelection, UseRowSelectionOptions } from './core/useRowSelection'
+
+export { usePagination } from './core/usePagination'
+export type { UsePagination, UsePaginationOptions, PageItem } from './core/usePagination'
+
+export {
+  provideTableContext,
+  useTableContext,
+  requireTableContext,
+  TableContextKey,
+} from './core/context'
+export type { TableContext } from './core/context'
+
+/* --------------------------------------------------------------- filters */
+
+export {
+  valuesFilter,
+  conditionsFilter,
+  isEmptyFilter,
+  isIncompleteRule,
+  isUnaryOperator,
+  isBinaryOperator,
+  normalizeFilter,
+  pruneFilters,
+  operatorsFor,
+  defaultOperator,
+  OPERATOR_LABELS,
+} from './core/filters/model'
+
+export { matchesFilter, matchesRule, matchesSearch, compileFilter } from './core/filters/predicates'
+export { computeFacets, filterRows } from './core/filters/facets'
+
+/* --------------------------------------------------------------- sorting */
+
+export {
+  sortRows,
+  applySortRule,
+  nextDirection,
+  comparatorFor,
+  compareText,
+  compareNumber,
+  compareDate,
+  compareBoolean,
+  readValue,
+} from './core/sorting'
+export type { SortOptions } from './core/sorting'
+
+/* ----------------------------------------------------------------- utils */
+
+export {
+  isBlank,
+  toNumber,
+  toTime,
+  toIsoDate,
+  toBoolean,
+  toFilterValue,
+  startOfDay,
+  facetKey,
+} from './core/utils/values'
+
+/* ------------------------------------------------------------ components */
+
+export { default as TableRoot } from './components/primitives/TableRoot.vue'
+export { default as TableGrid } from './components/primitives/TableGrid.vue'
+export { default as TableHeaderCell } from './components/primitives/TableHeaderCell.vue'
+export { default as TableCell } from './components/primitives/TableCell.vue'
+export { default as SortTrigger } from './components/primitives/SortTrigger.vue'
+export { default as ColumnFilterPopover } from './components/primitives/ColumnFilterPopover.vue'
+export { default as ValueListFilter } from './components/primitives/ValueListFilter.vue'
+export { default as ConditionFilter } from './components/primitives/ConditionFilter.vue'
+export { default as ColumnResizeHandle } from './components/primitives/ColumnResizeHandle.vue'
+export { default as ColumnVisibilityMenu } from './components/primitives/ColumnVisibilityMenu.vue'
+export { default as ActiveFilters } from './components/primitives/ActiveFilters.vue'
+export { default as TablePagination } from './components/primitives/TablePagination.vue'
+export { default as SelectionCheckbox } from './components/primitives/SelectionCheckbox.vue'
+
+/**
+ * The preset. It imports `table.css` itself, so using `DataTable` pulls the
+ * default theme in automatically.
+ *
+ * Using only the primitives pulls in no CSS at all — that is the point of a
+ * headless layer. To style them with the default theme anyway, import the
+ * stylesheet explicitly:
+ *
+ *   import '@sandbox/vue-table/style.css'
+ *
+ * (Note: the stylesheet is deliberately NOT imported from this barrel file.
+ * `package.json` declares `sideEffects: ["**\/*.css"]`, which marks every JS
+ * module as side-effect-free, so a bare CSS import here would be tree-shaken
+ * away for anyone importing named exports — silently shipping an unstyled
+ * table.)
+ */
+export { default as DataTable } from './components/preset/DataTable.vue'
+
+/* ----------------------------------------------------------------- types */
+
+export type {
+  RowId,
+  FilterValue,
+  ColumnDataType,
+  SortDirection,
+  SortRule,
+  ConditionOperator,
+  ConditionRule,
+  ValuesFilter,
+  ConditionsFilter,
+  ColumnFilter,
+  FacetValue,
+  QueryState,
+  PinSide,
+  ColumnDef,
+  ResolvedColumn,
+  FetchParams,
+  FetchResult,
+  DataSource,
+  SelectionMode,
+  SelectionState,
+  HeaderCheckboxState,
+} from './core/types'
