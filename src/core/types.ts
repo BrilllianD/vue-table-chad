@@ -123,6 +123,8 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   maxWidth?: number
   resizable?: boolean
   hideable?: boolean
+  /** Whether the column can be dragged to a new position. Defaults to true. */
+  reorderable?: boolean
   pinned?: PinSide | false
   align?: 'left' | 'center' | 'right'
 }

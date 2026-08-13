@@ -2,6 +2,7 @@ import { inject, provide, type ComputedRef, type InjectionKey, type Ref } from '
 import type { ColumnDef, DataSource, ResolvedColumn, RowId } from './types'
 import type { TableState } from './useTableState'
 import type { UseColumnsResult } from './useColumns'
+import type { UseColumnDnd } from './useColumnDnd'
 import type { UseRowSelection } from './useRowSelection'
 import type { UsePagination } from './usePagination'
 
@@ -15,6 +16,11 @@ export interface TableContext<TRow = Record<string, unknown>> {
    */
   selection: ComputedRef<UseRowSelection<TRow> | undefined>
   pagination: UsePagination
+  /**
+   * Column drag-and-drop. Optional: a hand-built context may omit it, and
+   * header cells then simply render as non-draggable.
+   */
+  dnd?: UseColumnDnd
 
   rows: ComputedRef<TRow[]> | Readonly<Ref<TRow[]>>
   visibleColumns: ComputedRef<ResolvedColumn<TRow>[]>

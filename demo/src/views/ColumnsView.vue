@@ -96,19 +96,23 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
     title="Column layout"
     blurb="Visibility, order, width and pinning — all in one serialisable object. The panel below
            drives a standalone useColumns; the table has its own, reachable through the built-in
-           columns menu and the drag handles on each header edge."
+           columns menu, the resize handles on each header edge, and dragging the headers
+           themselves."
     :api="[
       'useColumns',
       'toggleVisibility',
       'showAll',
       'moveColumn',
+      'moveColumnTo',
       'setOrder',
       'setWidth',
       'resetWidths',
       'setPinned',
       'resetLayout',
+      'useColumnDnd',
       'ColumnVisibilityMenu',
       'ColumnResizeHandle',
+      'ColumnDragGhost',
       'ResolvedColumn.pinOffset',
     ]"
   >
@@ -233,13 +237,17 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       :source="source"
       :state="state"
       :initial-layout="columns.layout.value"
+      @update:column-order="columns.setOrder($event)"
     />
 
     <p class="hint">
-      Drag any header's right edge to resize — that handle is
-      <code>&lt;ColumnResizeHandle&gt;</code>, and it writes straight into the table's own
-      <code>useColumns</code>. Components in use here:
-      <code>ColumnVisibilityMenu</code>, <code>ColumnResizeHandle</code>.
+      Drag a header <em>body</em> to move the column, or its right edge to resize it — two different
+      pointer gestures on the same cell, split by a 4px threshold so a plain click still sorts.
+      Dropping onto a pinned column pins the dragged one to that side. Keyboard: focus a header and
+      press <kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd>; <kbd>Esc</kbd> aborts a drag. The reorder is
+      reported through <code>@update:column-order</code>, which is what feeds it back into the
+      panel above. Components in use here: <code>ColumnVisibilityMenu</code>,
+      <code>ColumnResizeHandle</code>, <code>ColumnDragGhost</code>.
     </p>
   </DemoSection>
 </template>

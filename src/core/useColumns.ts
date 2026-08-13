@@ -36,6 +36,8 @@ export interface UseColumnsResult<TRow> {
 
   setOrder: (order: string[]) => void
   moveColumn: (columnId: string, toIndex: number) => void
+  /** Drops a column onto either edge of another one. */
+  moveColumnTo: (columnId: string, targetId: string, side?: 'before' | 'after') => void
 
   setWidth: (columnId: string, width: number) => void
   resetWidths: () => void
@@ -184,6 +186,26 @@ export function useColumns<TRow>(
     setOrder(current)
   }
 
+  /**
+   * The reorder a drop describes: "put this column immediately before/after
+   * that one". Anchoring to a *column* rather than an index is what keeps
+   * hidden columns in place — they hold their spot between their neighbours
+   * instead of being shuffled by an index computed from the visible list.
+   */
+  function moveColumnTo(columnId: string, targetId: string, side: 'before' | 'after' = 'before'): void {
+    if (columnId === targetId) return
+    const ids = ordered.value.map((column) => column.id)
+    const from = ids.indexOf(columnId)
+    if (from === -1 || !ids.includes(targetId)) return
+
+    ids.splice(from, 1)
+    // Re-read the anchor after the removal: taking the column out shifts every
+    // index behind it, so the position captured before the splice is stale.
+    const anchor = ids.indexOf(targetId)
+    ids.splice(side === 'after' ? anchor + 1 : anchor, 0, columnId)
+    setOrder(ids)
+  }
+
   function setWidth(columnId: string, width: number): void {
     const column = source.value.find((entry) => entry.id === columnId)
     if (!column) return
@@ -229,6 +251,7 @@ export function useColumns<TRow>(
     showAll,
     setOrder,
     moveColumn,
+    moveColumnTo,
     setWidth,
     resetWidths,
     setPinned,

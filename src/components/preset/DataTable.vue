@@ -18,6 +18,7 @@ import TableCell from '../primitives/TableCell.vue'
 import SortTrigger from '../primitives/SortTrigger.vue'
 import ColumnFilterPopover from '../primitives/ColumnFilterPopover.vue'
 import ColumnResizeHandle from '../primitives/ColumnResizeHandle.vue'
+import ColumnDragGhost from '../primitives/ColumnDragGhost.vue'
 import ColumnVisibilityMenu from '../primitives/ColumnVisibilityMenu.vue'
 import ActiveFilters from '../primitives/ActiveFilters.vue'
 import TablePagination from '../primitives/TablePagination.vue'
@@ -37,6 +38,8 @@ const props = withDefaults(
     isRowSelectable?: (row: TRow) => boolean
     initialLayout?: Partial<ColumnLayoutState>
     pageSize?: number
+    /** Drag column headers to reorder them. */
+    reorderable?: boolean
     showToolbar?: boolean
     showSearch?: boolean
     showColumnsMenu?: boolean
@@ -47,6 +50,7 @@ const props = withDefaults(
   {
     selectable: false,
     pageSize: 25,
+    reorderable: true,
     showToolbar: true,
     showSearch: true,
     showColumnsMenu: true,
@@ -59,6 +63,7 @@ const props = withDefaults(
 defineEmits<{
   'update:query': [query: QueryState]
   'update:selection': [ids: RowId[]]
+  'update:columnOrder': [order: string[]]
   rowClick: [row: TRow, event: MouseEvent]
 }>()
 
@@ -93,8 +98,10 @@ const selectable = computed(() => props.selectable !== false)
     :is-row-selectable="isRowSelectable"
     :initial-layout="initialLayout"
     :page-size="pageSize"
+    :reorderable="reorderable"
     @update:query="$emit('update:query', $event)"
     @update:selection="$emit('update:selection', $event)"
+    @update:column-order="$emit('update:columnOrder', $event)"
   >
     <div class="vt-datatable" :data-loading="loading || undefined">
       <div v-if="showToolbar" class="vt-toolbar">
@@ -246,6 +253,8 @@ const selectable = computed(() => props.selectable !== false)
           <slot name="loading"><span class="vt-spinner" aria-label="Loading" /></slot>
         </div>
       </div>
+
+      <ColumnDragGhost v-if="reorderable" />
 
       <slot name="pagination" :state="tableState" :total="total">
         <TablePagination v-if="showPagination" />

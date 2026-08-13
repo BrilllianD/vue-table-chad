@@ -4,6 +4,7 @@ import type { ColumnDef, DataSource, QueryState, RowId, SelectionMode } from '..
 import { provideTableContext, type TableContext } from '../../core/context'
 import { useTableState, type TableState } from '../../core/useTableState'
 import { useColumns, type ColumnLayoutState } from '../../core/useColumns'
+import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
 import { useRowSelection, defaultRowId } from '../../core/useRowSelection'
 import { usePagination } from '../../core/usePagination'
 import { readValue } from '../../core/sorting'
@@ -26,13 +27,17 @@ const props = withDefaults(
     initialLayout?: Partial<ColumnLayoutState>
     pageSize?: number
     siblingCount?: number
+    /** Turns column drag-to-reorder off for the whole table. */
+    reorderable?: boolean
   }>(),
-  { selectable: false, pageSize: 25, siblingCount: 1 },
+  { selectable: false, pageSize: 25, siblingCount: 1, reorderable: true },
 )
 
 const emit = defineEmits<{
   'update:query': [query: QueryState]
   'update:selection': [ids: RowId[]]
+  /** Fires on every order change — dragged, keyboard-moved or menu-moved. */
+  'update:columnOrder': [order: string[]]
 }>()
 
 const state = props.state ?? useTableState({ pageSize: props.pageSize })
@@ -48,6 +53,30 @@ const columns = useColumns<TRow>(
     initialLayout: props.initialLayout,
   },
 )
+
+/**
+ * Applies a drop. Landing on a pinned column adopts that column's pin side —
+ * without it, dragging into a pinned region would reorder the column but leave
+ * it rendered back in the middle group, since `visible` hoists pins to the
+ * edges regardless of order.
+ */
+function applyColumnMove(columnId: string, targetId: string, side: DropSide): void {
+  const all = columns.all.value
+  const dragged = all.find((column) => column.id === columnId)
+  const target = all.find((column) => column.id === targetId)
+  if (dragged && target && dragged.pinned !== target.pinned) {
+    columns.setPinned(columnId, target.pinned)
+  }
+  columns.moveColumnTo(columnId, targetId, side)
+}
+
+const dnd = useColumnDnd({
+  columnIds: () => columns.visible.value.map((column) => column.id),
+  move: applyColumnMove,
+  canDrag: (columnId) =>
+    props.reorderable &&
+    columns.all.value.find((column) => column.id === columnId)?.reorderable !== false,
+})
 
 const rows = computed(() => props.source.rows.value)
 
@@ -108,6 +137,7 @@ const context: TableContext<TRow> = {
   },
   selection,
   pagination,
+  dnd,
   rows,
   visibleColumns: columns.visible,
   columnDefs: computed(() => props.columns),
@@ -119,6 +149,12 @@ const context: TableContext<TRow> = {
 provideTableContext(context)
 
 watch(() => state.query.value, (query) => emit('update:query', query), { deep: true })
+// Watches the resolved order rather than `layout.order`, which stays empty
+// until something reorders and would report nothing for the first move.
+watch(
+  () => columns.all.value.map((column) => column.id).join(' '),
+  () => emit('update:columnOrder', columns.all.value.map((column) => column.id)),
+)
 watch(
   () => rowSelection.state.value,
   () => {
@@ -128,7 +164,7 @@ watch(
   { deep: true },
 )
 
-defineExpose({ state, columns, selection, pagination, source: toRef(props, 'source') })
+defineExpose({ state, columns, selection, pagination, dnd, source: toRef(props, 'source') })
 </script>
 
 <template>
@@ -143,6 +179,7 @@ defineExpose({ state, columns, selection, pagination, source: toRef(props, 'sour
     :state="state"
     :selection="selection"
     :pagination="pagination"
+    :dnd="dnd"
     :source="source"
     :loading="source.loading.value"
     :error="source.error.value"

@@ -14,6 +14,14 @@ export type { TableState, TableStateOptions } from './core/useTableState'
 export { useColumns } from './core/useColumns'
 export type { UseColumnsOptions, UseColumnsResult, ColumnLayoutState } from './core/useColumns'
 
+export { useColumnDnd } from './core/useColumnDnd'
+export type {
+  UseColumnDnd,
+  UseColumnDndOptions,
+  ColumnDropTarget,
+  DropSide,
+} from './core/useColumnDnd'
+
 export { useLocalDataSource } from './core/useLocalDataSource'
 export type { LocalDataSource, LocalDataSourceOptions } from './core/useLocalDataSource'
 
@@ -92,6 +100,7 @@ export { default as ColumnFilterPopover } from './components/primitives/ColumnFi
 export { default as ValueListFilter } from './components/primitives/ValueListFilter.vue'
 export { default as ConditionFilter } from './components/primitives/ConditionFilter.vue'
 export { default as ColumnResizeHandle } from './components/primitives/ColumnResizeHandle.vue'
+export { default as ColumnDragGhost } from './components/primitives/ColumnDragGhost.vue'
 export { default as ColumnVisibilityMenu } from './components/primitives/ColumnVisibilityMenu.vue'
 export { default as ActiveFilters } from './components/primitives/ActiveFilters.vue'
 export { default as TablePagination } from './components/primitives/TablePagination.vue'

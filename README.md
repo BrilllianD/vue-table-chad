@@ -24,7 +24,7 @@ nvm use          # Node 24; pnpm crashes on Node 20 here
 pnpm install
 pnpm dev         # playground at http://localhost:5173
 pnpm demo        # full feature demo at http://localhost:5174
-pnpm test        # 137 tests
+pnpm test        # 160 tests
 pnpm typecheck
 pnpm build       # library -> dist/
 ```
@@ -257,6 +257,7 @@ Visibility, ordering, resizing and pinning all live in `useColumns` and are driv
 const columns = useColumns(defs, { … })
 columns.toggleVisibility('email')
 columns.moveColumn('salary', 0)
+columns.moveColumnTo('salary', 'name', 'after')   // what a drop describes
 columns.setPinned('name', 'left')
 columns.setPinned('name', false)   // explicitly unpinned, even if the def says pinned: 'left'
 columns.clearPinned('name')        // forget the override; the def's pin applies again
@@ -269,6 +270,32 @@ columns.resetLayout()
 
 Sticky offsets for pinned columns are recomputed from live widths, so resizing a pinned column
 shifts the ones pinned after it.
+
+### Drag to reorder
+
+Header cells are drag sources out of the box. `useColumnDnd` owns the interaction; `TableRoot`
+wires it into the context, `TableHeaderCell` reports hits from its own box, and `ColumnDragGhost`
+renders the label that follows the pointer.
+
+```vue
+<DataTable :columns="columns" :source="source" @update:column-order="save" />
+<DataTable :columns="columns" :source="source" :reorderable="false" />   <!-- off -->
+```
+
+Per column: `{ id: 'actions', reorderable: false }`.
+
+- A press only becomes a drag after 4px, so clicking a header still sorts it — and the `click`
+  that follows a real drag is swallowed, so a drop never sorts.
+- Dropping on a pinned column adopts that column's pin side; otherwise the reorder would be
+  invisible, since pinned columns are hoisted to the edges regardless of order.
+- Hidden columns keep their place: a drop is stored as "before/after *this column*", not as an
+  index into the visible list.
+- Keyboard equivalent: `Alt` + `←`/`→` on a focused header. `Esc` cancels a drag in flight.
+- `@update:column-order` fires for every order change, dragged or not — persist it and feed it
+  back through `initialLayout.order`.
+
+Styling hooks: `[data-reorderable]`, `[data-dragging]` and `[data-drop='before'|'after']` on the
+`<th>`, plus `.vt-drag-ghost`.
 
 ## Not included
 

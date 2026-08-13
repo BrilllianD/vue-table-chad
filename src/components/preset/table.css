@@ -226,6 +226,58 @@
   flex: none;
 }
 
+/* --------------------------------------------------------------- reorder */
+
+/*
+  `pan-y` and not `none`: touch must still be able to scroll the page from a
+  header, but a horizontal pan has to reach the drag instead of scrolling the
+  table sideways out from under it.
+*/
+.vt-th[data-reorderable] {
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.vt-th[data-dragging] {
+  cursor: grabbing;
+  opacity: 0.45;
+}
+
+/*
+  The drop indicator. `inset-block` rather than a full-height border so it
+  reads as an insertion caret, and z-index 4 to clear the pinned-header stack.
+*/
+.vt-th[data-drop]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--vt-accent);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.vt-th[data-drop='before']::before { left: -1px; }
+.vt-th[data-drop='after']::before { right: -1px; }
+
+.vt-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  padding: 4px 10px;
+  border: 1px solid var(--vt-border-strong);
+  border-radius: var(--vt-radius);
+  background: var(--vt-bg-header);
+  color: var(--vt-text);
+  font: var(--vt-font);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+  pointer-events: none;
+}
+
 /* ----------------------------------------------------------------- resize */
 
 .vt-resize {
