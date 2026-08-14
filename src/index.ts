@@ -14,6 +14,16 @@ export type { TableState, TableStateOptions } from './core/useTableState'
 export { useColumns } from './core/useColumns'
 export type { UseColumnsOptions, UseColumnsResult, ColumnLayoutState } from './core/useColumns'
 
+export {
+  readColumnLayout,
+  writeColumnLayout,
+  clearColumnLayout,
+  sanitizeColumnLayout,
+  normalizeColumnStorage,
+  DEFAULT_COLUMN_LAYOUT_FIELDS,
+} from './core/columnStorage'
+export type { ColumnStorageOptions, ColumnLayoutField, StorageLike } from './core/columnStorage'
+
 export { useColumnDnd } from './core/useColumnDnd'
 export type {
   UseColumnDnd,

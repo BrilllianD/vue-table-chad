@@ -4,8 +4,8 @@
  *
  * `useColumns` folds hidden / reordered / resized / pinned state into the
  * declared defs and hands back the list to render. The layout object it owns is
- * plain JSON, which is the whole reason a "saved view" is a `localStorage.setItem`
- * away rather than a feature request — the persistence toggle below is four lines.
+ * plain JSON, so saving a view is `storage-key` on the table — or, when you want
+ * to own the writes (as the panel's toggle does), the exported read/write helpers.
  *
  * Sticky offsets for pinned columns are recomputed from live widths, so dragging
  * a pinned column's edge shifts everything pinned after it.
@@ -14,10 +14,12 @@ import { computed, ref, watch } from 'vue'
 import {
   ColumnResizeHandle,
   DataTable,
+  clearColumnLayout,
+  readColumnLayout,
   useColumns,
   useLocalDataSource,
   useTableState,
-  type ColumnLayoutState,
+  writeColumnLayout,
   type PinSide,
   type UseColumnsOptions,
   type UseColumnsResult,
@@ -27,23 +29,19 @@ import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 
-const STORAGE_KEY = 'vue-table-demo:layout'
+/**
+ * Two independent saved layouts, because this view has two independent
+ * `useColumns` instances: the panel's, saved by hand so its toggle can stop
+ * saving, and the table's, saved by the `storage-key` prop alone. Both keep
+ * the default field set — visibility, order, widths and pins.
+ */
+const PANEL_STORAGE = { key: 'vue-table-demo:panel-layout' }
+const TABLE_STORAGE = { key: 'vue-table-demo:table-layout' }
 
 const rows = ref(employees.slice(0, 300))
 // 10 so the preset pager's size dropdown has a matching option to show.
 const state = useTableState({ pageSize: 10 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
-
-function loadSaved(): Partial<ColumnLayoutState> | undefined {
-  const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) return undefined
-  try {
-    return JSON.parse(raw) as Partial<ColumnLayoutState>
-  } catch {
-    // A corrupt saved layout must not take the whole table down with it.
-    return undefined
-  }
-}
 
 /**
  * A second, standalone `useColumns` — not the one inside the table. It drives
@@ -55,7 +53,9 @@ const columnOptions: UseColumnsOptions = {
   sortIndexFor: state.sortIndexFor,
   hasFilter: (id) => state.filters.value[id] !== undefined,
   defaultWidth: 150,
-  initialLayout: loadSaved(),
+  // Restored by hand rather than via `storage`, because the toggle below has to
+  // be able to stop saving: `storage` wires the watcher for the whole lifetime.
+  initialLayout: readColumnLayout(PANEL_STORAGE),
 }
 
 const columns: UseColumnsResult<Employee> = useColumns<Employee>(
@@ -63,28 +63,44 @@ const columns: UseColumnsResult<Employee> = useColumns<Employee>(
   columnOptions,
 )
 
-const persist = ref(localStorage.getItem(STORAGE_KEY) !== null)
+/**
+ * On by default, so the panel behaves like the table below it: edit something,
+ * reload, and it is still there. Unticking it drops the saved entry — that is
+ * the whole point of owning the writes by hand instead of passing `storage`.
+ */
+const persist = ref(true)
 
 watch(
   () => columns.layout.value,
   (layout) => {
-    if (persist.value) localStorage.setItem(STORAGE_KEY, JSON.stringify(layout))
+    if (persist.value) writeColumnLayout(layout, PANEL_STORAGE)
   },
   { deep: true },
 )
 
 watch(persist, (on) => {
-  if (on) localStorage.setItem(STORAGE_KEY, JSON.stringify(columns.layout.value))
-  else localStorage.removeItem(STORAGE_KEY)
+  if (on) writeColumnLayout(columns.layout.value, PANEL_STORAGE)
+  else clearColumnLayout(PANEL_STORAGE)
 })
 
 function cyclePin(id: string, current: PinSide | false): void {
   columns.setPinned(id, current === false ? 'left' : current === 'left' ? 'right' : false)
 }
 
-/** Remounts the table so it picks up the panel's layout as its initial state. */
+/**
+ * Hands the panel's layout to the table through the table's own saved entry,
+ * then remounts it — `storage-key` is read once at setup, so the remount is
+ * what makes the new entry take effect.
+ */
 const tableKey = ref(0)
 function pushToTable(): void {
+  writeColumnLayout(columns.layout.value, TABLE_STORAGE)
+  tableKey.value += 1
+}
+
+/** Drops the table's saved layout and puts it back to the declared defs. */
+function forgetTableLayout(): void {
+  clearColumnLayout(TABLE_STORAGE)
   tableKey.value += 1
 }
 
@@ -109,6 +125,9 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       'resetWidths',
       'setPinned',
       'resetLayout',
+      'DataTable storageKey',
+      'readColumnLayout',
+      'writeColumnLayout',
       'useColumnDnd',
       'ColumnVisibilityMenu',
       'ColumnResizeHandle',
@@ -128,7 +147,9 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
           <input v-model="persist" type="checkbox" />
           Persist to localStorage
         </label>
+        <span class="hint">(the table below does the same with one prop)</span>
         <button type="button" @click="pushToTable()">Push layout into the table ↓</button>
+        <button type="button" @click="forgetTableLayout()">Forget the table's saved layout</button>
       </div>
     </template>
 
@@ -231,12 +252,17 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       </div>
     </div>
 
+    <!--
+      No `initial-layout` here: this table remembers its own layout under
+      `storage-key`, and "Push layout into the table ↓" writes the panel's
+      layout into that same entry before remounting.
+    -->
     <DataTable
       :key="tableKey"
       :columns="employeeColumns"
       :source="source"
       :state="state"
-      :initial-layout="columns.layout.value"
+      :storage-key="TABLE_STORAGE.key"
       @update:column-order="columns.setOrder($event)"
     />
 

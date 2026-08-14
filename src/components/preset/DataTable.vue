@@ -10,6 +10,7 @@
 import { computed } from 'vue'
 import type { ColumnDef, DataSource, QueryState, RowId, SelectionMode } from '../../core/types'
 import type { ColumnLayoutState } from '../../core/useColumns'
+import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
@@ -37,6 +38,10 @@ const props = withDefaults(
     getRowId?: (row: TRow) => RowId
     isRowSelectable?: (row: TRow) => boolean
     initialLayout?: Partial<ColumnLayoutState>
+    /** Remembers the column layout across reloads under this `localStorage` key. */
+    storageKey?: string
+    /** Which parts of the layout to remember. Defaults to visibility, order, widths and pins. */
+    storageFields?: ColumnLayoutField[]
     pageSize?: number
     /** Drag column headers to reorder them. */
     reorderable?: boolean
@@ -97,6 +102,8 @@ const selectable = computed(() => props.selectable !== false)
     :get-row-id="getRowId"
     :is-row-selectable="isRowSelectable"
     :initial-layout="initialLayout"
+    :storage-key="storageKey"
+    :storage-fields="storageFields"
     :page-size="pageSize"
     :reorderable="reorderable"
     @update:query="$emit('update:query', $event)"

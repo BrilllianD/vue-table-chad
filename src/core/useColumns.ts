@@ -1,6 +1,13 @@
-import { computed, ref, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
+import { computed, ref, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
 import { toValue } from 'vue'
 import type { ColumnDef, PinSide, ResolvedColumn, SortDirection } from './types'
+import {
+  clearColumnLayout,
+  normalizeColumnStorage,
+  readColumnLayout,
+  writeColumnLayout,
+  type ColumnStorageOptions,
+} from './columnStorage'
 
 export interface ColumnLayoutState {
   hidden: string[]
@@ -21,6 +28,15 @@ export interface UseColumnsOptions {
   hasFilter?: (columnId: string) => boolean
   defaultWidth?: number
   initialLayout?: Partial<ColumnLayoutState>
+  /**
+   * Persists the layout to `localStorage` (or any `StorageLike`) and restores
+   * it on the next mount. A bare string is shorthand for `{ key }`, which saves
+   * visibility, order, widths and pins; pass `fields` to save fewer.
+   *
+   * Read once at setup — a saved layout outranks `initialLayout`, which stays
+   * the fallback for a first visit.
+   */
+  storage?: string | ColumnStorageOptions
 }
 
 export interface UseColumnsResult<TRow> {
@@ -46,6 +62,12 @@ export interface UseColumnsResult<TRow> {
   /** Forgets the override so the column's declared `pinned` applies again. */
   clearPinned: (columnId: string) => void
   resetLayout: () => void
+  /**
+   * Drops the saved layout from storage without touching the current one. A
+   * no-op when no `storage` was configured; `resetLayout()` overwrites the
+   * saved entry with an empty layout, which is usually what you want instead.
+   */
+  clearStored: () => void
 }
 
 const DEFAULT_WIDTH = 160
@@ -66,12 +88,23 @@ export function useColumns<TRow>(
 ): UseColumnsResult<TRow> {
   const defaultWidth = options.defaultWidth ?? DEFAULT_WIDTH
 
+  const storage = normalizeColumnStorage(options.storage)
+  // Field by field, so persisting only `hidden` still lets `initialLayout`
+  // supply the order rather than being discarded wholesale.
+  const initial = { ...options.initialLayout, ...(storage ? readColumnLayout(storage) : undefined) }
+
   const layout = ref<ColumnLayoutState>({
-    hidden: options.initialLayout?.hidden ? [...options.initialLayout.hidden] : [],
-    order: options.initialLayout?.order ? [...options.initialLayout.order] : [],
-    widths: { ...(options.initialLayout?.widths ?? {}) },
-    pinned: { ...(options.initialLayout?.pinned ?? {}) },
+    hidden: initial.hidden ? [...initial.hidden] : [],
+    order: initial.order ? [...initial.order] : [],
+    widths: { ...(initial.widths ?? {}) },
+    pinned: { ...(initial.pinned ?? {}) },
   })
+
+  if (storage) {
+    // Batched (default flush), so a resize drag writes once per tick rather
+    // than once per pointermove.
+    watch(layout, (value) => writeColumnLayout(value, storage), { deep: true })
+  }
 
   const source = computed(() => toValue(columns))
 
@@ -242,6 +275,10 @@ export function useColumns<TRow>(
     layout.value = { hidden: [], order: [], widths: {}, pinned: {} }
   }
 
+  function clearStored(): void {
+    if (storage) clearColumnLayout(storage)
+  }
+
   return {
     all,
     visible,
@@ -257,5 +294,6 @@ export function useColumns<TRow>(
     setPinned,
     clearPinned,
     resetLayout,
+    clearStored,
   }
 }

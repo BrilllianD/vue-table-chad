@@ -9,6 +9,7 @@
 import { computed, ref } from 'vue'
 import {
   DataTable,
+  clearColumnLayout,
   useLocalDataSource,
   useTableState,
   type LocalDataSource,
@@ -66,6 +67,22 @@ const isRowSelectable = (row: Employee): boolean =>
   onlyActiveSelectable.value ? row.active : true
 
 const filteredCount = computed(() => source.total.value)
+
+/* ------------------------------------------------------------ persistence */
+
+/**
+ * One prop, and the columns this table shows — and the order they are in —
+ * survive a reload. Hide a column, drag a header, then refresh the page.
+ */
+const LAYOUT_KEY = 'vue-table-demo:overview'
+
+/** Remounts the table so it starts from the (now empty) saved layout. */
+const tableKey = ref(0)
+
+function forgetLayout(): void {
+  clearColumnLayout({ key: LAYOUT_KEY })
+  tableKey.value += 1
+}
 </script>
 
 <template>
@@ -82,6 +99,7 @@ const filteredCount = computed(() => source.total.value)
       'ColumnDef.comparator',
       'ColumnDef.format',
       'cell:* slots',
+      'DataTable storageKey',
     ]"
   >
     <template #controls>
@@ -106,10 +124,16 @@ const filteredCount = computed(() => source.total.value)
         </label>
 
         <button type="button" @click="state.reset()">state.reset()</button>
+        <button type="button" @click="forgetLayout()">forget saved layout</button>
+        <span class="hint">
+          columns are saved to localStorage via <code>storage-key</code> — hide one, drag a header,
+          then reload
+        </span>
       </div>
     </template>
 
     <DataTable
+      :key="tableKey"
       :columns="employeeColumns"
       :source="source"
       :state="state"
@@ -117,6 +141,7 @@ const filteredCount = computed(() => source.total.value)
       :get-row-id="getRowId"
       :is-row-selectable="isRowSelectable"
       :initial-layout="{ hidden: ['email'], widths: { name: 200 } }"
+      :storage-key="LAYOUT_KEY"
       :show-toolbar="showToolbar"
       :show-search="showSearch"
       :show-columns-menu="showColumnsMenu"

@@ -4,6 +4,7 @@ import type { ColumnDef, DataSource, QueryState, RowId, SelectionMode } from '..
 import { provideTableContext, type TableContext } from '../../core/context'
 import { useTableState, type TableState } from '../../core/useTableState'
 import { useColumns, type ColumnLayoutState } from '../../core/useColumns'
+import type { ColumnLayoutField } from '../../core/columnStorage'
 import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
 import { useRowSelection, defaultRowId } from '../../core/useRowSelection'
 import { usePagination } from '../../core/usePagination'
@@ -25,6 +26,14 @@ const props = withDefaults(
     getRowId?: (row: TRow) => RowId
     isRowSelectable?: (row: TRow) => boolean
     initialLayout?: Partial<ColumnLayoutState>
+    /**
+     * Saves the column layout under this key in `localStorage` and restores it
+     * on the next mount. Read once at setup, like `initialLayout` — a saved
+     * layout wins over it.
+     */
+    storageKey?: string
+    /** Which parts of the layout `storageKey` saves. Defaults to all four. */
+    storageFields?: ColumnLayoutField[]
     pageSize?: number
     siblingCount?: number
     /** Turns column drag-to-reorder off for the whole table. */
@@ -51,6 +60,9 @@ const columns = useColumns<TRow>(
     // can never disagree about whether a column is filtered.
     hasFilter: (id) => !isEmptyFilter(state.filters.value[id]),
     initialLayout: props.initialLayout,
+    storage: props.storageKey
+      ? { key: props.storageKey, fields: props.storageFields }
+      : undefined,
   },
 )
 

@@ -271,6 +271,48 @@ columns.resetLayout()
 Sticky offsets for pinned columns are recomputed from live widths, so resizing a pinned column
 shifts the ones pinned after it.
 
+### Remembering the layout
+
+One prop persists the layout — visibility, order, widths and pins — to `localStorage` and
+restores it on the next visit:
+
+```vue
+<DataTable :columns="columns" :source="source" storage-key="employees:layout" />
+
+<!-- let widths follow the viewport instead of the user -->
+<DataTable
+  :columns="columns"
+  :source="source"
+  storage-key="employees:layout"
+  :storage-fields="['hidden', 'order', 'pinned']"
+/>
+```
+
+Same thing from the composable, where a bare string is shorthand for `{ key }`:
+
+```ts
+const columns = useColumns(defs, { storage: 'employees:layout' })
+const columns = useColumns(defs, {
+  storage: { key: 'employees:layout', fields: ['hidden', 'order'], storage: sessionStorage },
+})
+
+columns.clearStored()   // forget the saved entry, keep the live layout
+```
+
+- All four parts of the layout are saved by default. Narrow it with `fields` when something is
+  per-screen rather than per-user — widths are the usual candidate.
+- A saved layout wins over `initialLayout`, field by field — `initialLayout` remains the first-visit
+  default for anything not saved.
+- Both are read once at setup, so changing `storage-key` on a mounted table does nothing; `:key`
+  the table if you need to switch saved views.
+- Corrupt, foreign or partially-malformed JSON is discarded rather than thrown; unavailable storage
+  (SSR, private mode, quota) degrades to an in-memory layout.
+- Ids that no longer exist in `columns` are kept in the saved entry, since `useColumns` ignores
+  unresolvable ids anyway — a column that comes back later keeps its place.
+
+The pieces are exported for hand-rolled cases (a "saved views" dropdown, syncing to a server):
+`readColumnLayout`, `writeColumnLayout`, `clearColumnLayout`, `sanitizeColumnLayout`.
+
 ### Drag to reorder
 
 Header cells are drag sources out of the box. `useColumnDnd` owns the interaction; `TableRoot`
