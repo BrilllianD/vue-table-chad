@@ -16,8 +16,58 @@
   --vt-border-strong: #c4cad2;
   --vt-bg: #ffffff;
   --vt-bg-header: #f6f7f9;
-  --vt-bg-hover: #f2f6fc;
-  --vt-bg-selected: #e6f0fd;
+  /*
+    Hover as a brightness delta rather than a colour: a wash of the text colour
+    over whatever is underneath, so it darkens a light theme and lightens a dark
+    one from one number, and it survives restyling the row beneath it. Set
+    `--vt-bg-hover` directly to opt out and name a colour instead.
+  */
+  --vt-hover-delta: 6%;
+  --vt-bg-hover: color-mix(in srgb, var(--vt-text) var(--vt-hover-clamped), transparent);
+  /* The single cell under the pointer, on top of the row's own hover. Off at 0. */
+  --vt-cell-hover-delta: 0%;
+  --vt-bg-cell-hover: color-mix(in srgb, var(--vt-text) var(--vt-cell-hover-clamped), transparent);
+  /*
+    `color-mix` rejects a percentage outside 0–100, and an invalid value here
+    does not degrade gracefully: it invalidates the layer, which invalidates the
+    whole `background-image` declaration and takes every *other* layer down with
+    it. Clamping keeps a stray `--vt-hover-delta: 120%` to a saturated hover
+    instead of a table that loses its stripes and column tints.
+  */
+  --vt-hover-clamped: clamp(0%, var(--vt-hover-delta), 100%);
+  --vt-cell-hover-clamped: clamp(0%, var(--vt-cell-hover-delta), 100%);
+  /* Translucent, so stripes and column tints stay visible through a selection. */
+  --vt-bg-selected: color-mix(in srgb, var(--vt-accent) 16%, transparent);
+  /*
+    Outlines on hover — the row gets a rule top and bottom, the cell a full
+    ring. Both are off at width 0, and both are drawn as inset shadows rather
+    than real borders: a border that only exists on hover would resize the cell
+    and shove the whole table around under the pointer. Give the widths a unit;
+    `0` on its own is not a length once it goes through `calc()`.
+  */
+  --vt-hover-border-width: 0px;
+  --vt-hover-border-color: var(--vt-accent);
+  --vt-cell-hover-border-width: 0px;
+  --vt-cell-hover-border-color: var(--vt-accent);
+  /*
+    Row striping, off by default: both stripes inherit the table background, so
+    setting just one of them is all a zebra table needs.
+  */
+  --vt-bg-row-odd: var(--vt-bg);
+  --vt-bg-row-even: var(--vt-bg);
+  /*
+    Body rules. Width 0 removes them — `--vt-body-border-width: 0` is the
+    borderless table. The vertical ones start off, since column separators are
+    a deliberate look rather than a default.
+  */
+  --vt-body-border-width: 1px;
+  --vt-body-border-vertical-width: 0px;
+  --vt-body-border-color: var(--vt-border);
+  /* The header underline is separate, so a borderless body can keep it. */
+  --vt-header-border-width: 1px;
+  --vt-header-border-color: var(--vt-border-strong);
+  /* The frame around the scroll box. Zero on all three = no rules at all. */
+  --vt-outer-border-width: 1px;
   --vt-text: #1f2933;
   --vt-text-muted: #66727f;
   --vt-accent: #2563eb;
@@ -43,8 +93,11 @@
     --vt-border-strong: #454d59;
     --vt-bg: #16191d;
     --vt-bg-header: #1e2228;
-    --vt-bg-hover: #232830;
-    --vt-bg-selected: #1d2c47;
+    /*
+      No hover or selected colour here: both are derived from `--vt-text` and
+      `--vt-accent`, which this block already swaps, so the deltas come out
+      light-on-dark without a second set of literals to keep in sync.
+    */
     --vt-text: #e6e8eb;
     --vt-text-muted: #9aa4b0;
     --vt-accent: #5b93f7;
@@ -91,7 +144,7 @@
   position: relative;
   overflow: auto;
   max-height: 70vh;
-  border: 1px solid var(--vt-border);
+  border: var(--vt-outer-border-width) solid var(--vt-border);
   border-radius: var(--vt-radius);
   background: var(--vt-bg);
 }
@@ -108,14 +161,64 @@
 
 /* ------------------------------------------------------------------ cells */
 
+/*
+  Cell backgrounds are stacked, not swapped.
+
+  `background-color` is the opaque base — the table background, or the row's
+  stripe. Everything else is a `background-image` layer painted over it, topmost
+  first, which is what lets any of them carry an alpha channel and blend with
+  what is underneath instead of replacing it:
+
+      cell hover  ┐ topmost
+      selected    │
+      row hover   │
+      column tint ┘ bottom
+      ────────────── background-color: stripe / --vt-bg
+
+  Each state sets its own layer variable, so none of them compete on specificity
+  and the order above is fixed here rather than emerging from source order.
+  Keep the base opaque: pinned cells are sticky, and rows scroll underneath them.
+*/
 .vt-th,
 .vt-td {
+  --vt-layer-cell-hover: none;
+  --vt-layer-selected: none;
+  --vt-layer-hover: none;
+  --vt-layer-column: none;
+
+  /*
+    Shadows compose the same way, for the same reason: `box-shadow` is one
+    property, so a hover ring written directly would wipe out the edge shadow
+    that separates a pinned column from what scrolls under it.
+  */
+  --vt-shadow-cell-hover: 0 0 #0000;
+  --vt-shadow-row-hover: 0 0 #0000;
+  --vt-shadow-pin: 0 0 #0000;
+
   padding: 0 10px;
   height: var(--vt-row-height);
   text-align: left;
-  border-bottom: 1px solid var(--vt-border);
-  background: var(--vt-bg);
+  border-bottom: var(--vt-body-border-width) solid var(--vt-body-border-color);
+  background-color: var(--vt-bg);
+  background-image:
+    var(--vt-layer-cell-hover),
+    var(--vt-layer-selected),
+    var(--vt-layer-hover),
+    var(--vt-layer-column);
+  box-shadow:
+    var(--vt-shadow-cell-hover),
+    var(--vt-shadow-row-hover),
+    var(--vt-shadow-pin);
   white-space: nowrap;
+}
+
+/*
+  Column separators. Off by default (width 0). `:not(:last-child)` keeps the
+  trailing edge to the scroll box's own border instead of doubling it up.
+*/
+.vt-th:not(:last-child),
+.vt-td:not(:last-child) {
+  border-right: var(--vt-body-border-vertical-width) solid var(--vt-body-border-color);
 }
 
 /*
@@ -131,9 +234,9 @@
 
 .vt-th {
   position: relative;
-  background: var(--vt-bg-header);
+  background-color: var(--vt-bg-header);
   font-weight: 600;
-  border-bottom-color: var(--vt-border-strong);
+  border-bottom: var(--vt-header-border-width) solid var(--vt-header-border-color);
   user-select: none;
 }
 
@@ -166,15 +269,48 @@
 .vt-scroll[data-sticky] .vt-thead .vt-th[data-pinned] { z-index: 3; }
 
 .vt-th[data-pinned='left'], .vt-td[data-pinned='left'] {
-  box-shadow: 1px 0 0 var(--vt-border);
+  --vt-shadow-pin: 1px 0 0 var(--vt-border);
 }
 
 .vt-th[data-pinned='right'], .vt-td[data-pinned='right'] {
-  box-shadow: -1px 0 0 var(--vt-border);
+  --vt-shadow-pin: -1px 0 0 var(--vt-border);
 }
 
-.vt-tr:hover .vt-td { background: var(--vt-bg-hover); }
-.vt-tr[data-selected] .vt-td { background: var(--vt-bg-selected); }
+/* The opaque base each layer sits on. */
+.vt-tbody .vt-tr:nth-child(odd) .vt-td { background-color: var(--vt-bg-row-odd); }
+.vt-tbody .vt-tr:nth-child(even) .vt-td { background-color: var(--vt-bg-row-even); }
+
+/*
+  Each state fills one layer. `linear-gradient(c, c)` is how a flat colour
+  becomes a background *image* — there is no `background-layer: <color>`.
+*/
+.vt-td[data-column-bg],
+.vt-th[data-column-bg] {
+  --vt-layer-column: linear-gradient(var(--vt-column-bg), var(--vt-column-bg));
+}
+
+/*
+  The row's outline is top and bottom only: every cell draws both edges, so they
+  join into two rules spanning the row. A full ring per cell would draw the
+  internal verticals too and turn a hovered row into a row of boxes.
+*/
+.vt-tbody .vt-tr:hover .vt-td {
+  --vt-layer-hover: linear-gradient(var(--vt-bg-hover), var(--vt-bg-hover));
+  --vt-shadow-row-hover:
+    inset 0 var(--vt-hover-border-width) 0 0 var(--vt-hover-border-color),
+    inset 0 calc(-1 * var(--vt-hover-border-width)) 0 0 var(--vt-hover-border-color);
+}
+
+.vt-tbody .vt-tr[data-selected] .vt-td {
+  --vt-layer-selected: linear-gradient(var(--vt-bg-selected), var(--vt-bg-selected));
+}
+
+/* The cell gets all four edges, from a single spread-only inset shadow. */
+.vt-tbody .vt-td:hover {
+  --vt-layer-cell-hover: linear-gradient(var(--vt-bg-cell-hover), var(--vt-bg-cell-hover));
+  --vt-shadow-cell-hover:
+    inset 0 0 0 var(--vt-cell-hover-border-width) var(--vt-cell-hover-border-color);
+}
 
 .vt-row-message td {
   padding: 24px 12px;

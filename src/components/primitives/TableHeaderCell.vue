@@ -24,11 +24,14 @@ const props = withDefaults(
 
 const context = useTableContext()
 
-const stickyStyle = computed(() => {
-  if (!props.column.pinned) return undefined
-  return props.column.pinned === 'left'
-    ? { left: `${props.column.pinOffset}px` }
-    : { right: `${props.column.pinOffset}px` }
+/** Pin offset plus the column's header background, as a custom property. */
+const cellStyle = computed(() => {
+  const style: Record<string, string> = {}
+  if (props.column.pinned) {
+    style[props.column.pinned === 'left' ? 'left' : 'right'] = `${props.column.pinOffset}px`
+  }
+  if (props.column.headerBackground) style['--vt-column-bg'] = props.column.headerBackground
+  return Object.keys(style).length > 0 ? style : undefined
 })
 
 const dnd = computed(() => context?.dnd)
@@ -79,10 +82,11 @@ function onKeydown(event: KeyboardEvent): void {
   <th
     class="vt-th"
     scope="col"
-    :style="stickyStyle"
+    :style="cellStyle"
     :data-column="column.id"
     :data-align="column.align ?? 'left'"
     :data-pinned="column.pinned || undefined"
+    :data-column-bg="column.headerBackground ? '' : undefined"
     :data-sorted="column.sortDirection || undefined"
     :data-filtered="column.hasFilter || undefined"
     :data-reorderable="draggable || undefined"

@@ -127,6 +127,15 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   reorderable?: boolean
   pinned?: PinSide | false
   align?: 'left' | 'center' | 'right'
+  /**
+   * Paints this column's body cells. Any CSS colour value, alpha included —
+   * it reaches the DOM as the `--vt-column-bg` custom property and the preset
+   * paints it as a layer over the row's stripe, so `rgb(37 99 235 / 0.08)`
+   * tints the column while hover and selection still read through it.
+   */
+  background?: string
+  /** Same for the header cell. Defaults to the preset's header background. */
+  headerBackground?: string
 }
 
 /** A column after user-driven layout state (width, pin, order) is folded in. */

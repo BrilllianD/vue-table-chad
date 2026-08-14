@@ -7,21 +7,30 @@ const props = defineProps<{
   column: ResolvedColumn<never>
 }>()
 
-const stickyStyle = computed(() => {
-  if (!props.column.pinned) return undefined
-  return props.column.pinned === 'left'
-    ? { left: `${props.column.pinOffset}px` }
-    : { right: `${props.column.pinOffset}px` }
+/**
+ * Pin offsets and the column's own background, in one object. The background
+ * travels as a custom property rather than `background:` directly, so the
+ * stylesheet decides where it sits in the cascade — an inline background would
+ * outrank hover and selection and leave the row looking dead.
+ */
+const cellStyle = computed(() => {
+  const style: Record<string, string> = {}
+  if (props.column.pinned) {
+    style[props.column.pinned === 'left' ? 'left' : 'right'] = `${props.column.pinOffset}px`
+  }
+  if (props.column.background) style['--vt-column-bg'] = props.column.background
+  return Object.keys(style).length > 0 ? style : undefined
 })
 </script>
 
 <template>
   <td
     class="vt-td"
-    :style="stickyStyle"
+    :style="cellStyle"
     :data-column="column.id"
     :data-align="column.align ?? 'left'"
     :data-pinned="column.pinned || undefined"
+    :data-column-bg="column.background ? '' : undefined"
   >
     <slot />
   </td>
