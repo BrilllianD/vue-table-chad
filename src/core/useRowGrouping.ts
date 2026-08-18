@@ -1,9 +1,10 @@
 import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
-import type { ColumnDef, DisplayRow, RowGroup, SortRule } from './types'
-import { flattenGroups, groupSortRules } from './grouping'
+import type { AggregateResult, ColumnDef, DisplayRow, RowGroup, SortRule } from './types'
+import { ROOT_GROUP_KEY, flattenGroups, groupSortRules } from './grouping'
+import { aggregateRow } from './aggregation'
 import { sortRows } from './sorting'
 
-export interface UseRowGroupingOptions {
+export interface UseRowGroupingOptions<TRow = Record<string, unknown>> {
   /** Column ids to group by, outermost first. Usually `state.groupBy`. */
   groupBy: MaybeRefOrGetter<string[]>
   /**
@@ -17,6 +18,14 @@ export interface UseRowGroupingOptions {
    * to counting the rows they were handed.
    */
   totals?: MaybeRefOrGetter<Map<string, number> | undefined>
+  /**
+   * True per-group aggregates across the whole filtered dataset. Wire it to
+   * `DataSource.groupAggregates` — where a source cannot answer, each band
+   * aggregates the rows it was handed.
+   */
+  aggregates?: MaybeRefOrGetter<
+    Map<string, Record<string, AggregateResult<TRow>>> | undefined
+  >
   /** Groups that start folded shut. */
   initialCollapsed?: string[]
   /** Fold every group on first sight instead. */
@@ -29,6 +38,11 @@ export interface UseRowGrouping<TRow> {
   displayRows: ComputedRef<DisplayRow<TRow>[]>
   /** The rows it was handed, gathered into bands. Leaf order of `displayRows`. */
   orderedRows: ComputedRef<TRow[]>
+  /**
+   * Aggregates over every row it was handed, ignoring the grouping — what a
+   * footer shows. Populated whether or not anything is grouped.
+   */
+  overallAggregates: ComputedRef<Record<string, AggregateResult<TRow>>>
   /** Just the group headers, in display order. */
   groups: ComputedRef<RowGroup<TRow>[]>
   isGrouped: ComputedRef<boolean>
@@ -58,7 +72,7 @@ export interface UseRowGrouping<TRow> {
 export function useRowGrouping<TRow>(
   rows: MaybeRefOrGetter<TRow[]>,
   columns: MaybeRefOrGetter<ColumnDef<TRow>[]>,
-  options: UseRowGroupingOptions,
+  options: UseRowGroupingOptions<TRow>,
 ): UseRowGrouping<TRow> {
   const allRows = computed(() => toValue(rows) ?? [])
   const allColumns = computed(() => toValue(columns) ?? [])
@@ -93,13 +107,30 @@ export function useRowGrouping<TRow>(
     return sortRows(allRows.value, groupSortRules(toValue(options.sort) ?? [], ids), allColumns.value)
   })
 
+  /** Only the columns that declared one, so the common case costs a filter. */
+  const aggregated = computed(() => allColumns.value.filter((column) => column.aggregate))
+
+  const suppliedAggregates = computed(() => toValue(options.aggregates))
+
   const displayRows = computed<DisplayRow<TRow>[]>(() =>
     flattenGroups(orderedRows.value, groupBy.value, allColumns.value, {
       isCollapsed,
       totals: toValue(options.totals),
+      aggregates: suppliedAggregates.value,
+      computeAggregates:
+        aggregated.value.length > 0
+          ? (rows) => aggregateRow(rows, aggregated.value)
+          : undefined,
       blankLabel: options.blankLabel,
     }),
   )
+
+  const overallAggregates = computed<Record<string, AggregateResult<TRow>>>(() => {
+    if (aggregated.value.length === 0) return {}
+    // A source that computed the bands has already computed the whole set too,
+    // and its answer covers rows this page never received.
+    return suppliedAggregates.value?.get(ROOT_GROUP_KEY) ?? aggregateRow(allRows.value, aggregated.value)
+  })
 
   const groups = computed<RowGroup<TRow>[]>(() => {
     const result: RowGroup<TRow>[] = []
@@ -132,6 +163,7 @@ export function useRowGrouping<TRow>(
   return {
     displayRows,
     orderedRows,
+    overallAggregates,
     groups,
     isGrouped,
     collapsed,

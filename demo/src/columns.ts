@@ -71,6 +71,11 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     maxWidth: 240,
     align: 'right',
     format: (value) => (value === null || value === undefined ? '—' : money.format(Number(value))),
+    // `format` cannot dress a total up — it wants a row, and a sum has none —
+    // so the aggregate gets its own formatter.
+    aggregate: 'sum',
+    aggregateFormat: (result) =>
+      result.value === null ? '—' : money.format(Number(result.value)),
   },
   {
     id: 'hiredAt',
@@ -78,6 +83,9 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     type: 'date',
     width: 130,
     format: (value) => (value ? new Date(String(value)).toLocaleDateString() : '—'),
+    // `min`/`max` know the row they came from, so `format` renders them and no
+    // `aggregateFormat` is needed here.
+    aggregate: 'min',
   },
   {
     id: 'rating',
@@ -86,6 +94,9 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     width: 110,
     align: 'right',
     format: (value) => `${Number(value).toFixed(1)} ★`,
+    aggregate: 'avg',
+    aggregateFormat: (result) =>
+      result.value === null ? '—' : `${Number(result.value).toFixed(2)} ★`,
   },
   {
     id: 'tags',

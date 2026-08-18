@@ -35,6 +35,7 @@ import {
   type UseColumnsResult,
   type UsePagination,
   type UsePaginationOptions,
+  type UseRowGrouping,
   type UseRowGroupingOptions,
   type UseRowSelectionOptions,
 } from '@sandbox/vue-table'
@@ -73,15 +74,23 @@ const rows = computed(() => source.rows.value)
 
 // Grouping is a layer over whatever rows the source produced, so a hand-built
 // root wires it in exactly the way `TableRoot` does.
-const groupingOptions: UseRowGroupingOptions = {
+const groupingOptions: UseRowGroupingOptions<Employee> = {
   groupBy: () => state.groupBy.value,
   sort: () => state.sort.value,
   // Dataset-wide counts only when the source is the one grouping; under the
   // default client mode a band describes the loaded rows and nothing beyond.
   totals: () =>
     state.groupMode.value === 'server' ? source.groupCounts?.(state.groupBy.value) : undefined,
+  aggregates: () =>
+    state.groupMode.value === 'server'
+      ? source.groupAggregates?.(state.groupBy.value)
+      : undefined,
 }
-const grouping = useRowGrouping<Employee>(rows, () => props.columns, groupingOptions)
+const grouping: UseRowGrouping<Employee> = useRowGrouping<Employee>(
+  rows,
+  () => props.columns,
+  groupingOptions,
+)
 
 const selectionOptions: UseRowSelectionOptions<Employee> = {
   mode: 'multiple',

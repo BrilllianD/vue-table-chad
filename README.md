@@ -96,7 +96,8 @@ interface DataSource<TRow> {
   error: Ref<unknown>
   refresh(): void
   facets(columnId: string): Promise<FacetValue[]>
-  groupCounts?(groupBy: string[]): Map<string, number>   // only if it holds every row
+  groupCounts?(groupBy: string[]): Map<string, number>       // only if it holds every row
+  groupAggregates?(groupBy: string[]): Map<string, ...>     // likewise
   readonly remote: boolean   // lets the UI say facets come from the server
 }
 ```
@@ -262,6 +263,67 @@ Two mechanics behind that split:
   set; in `'client'` mode a band counts the rows it actually holds, so the number never contradicts
   what is on screen. Either way it reaches the header as `group.totalCount`, with `group.count`
   always describing the loaded rows.
+
+### Aggregates
+
+A column declares what its group rows should show, and the value lands under that column:
+
+```ts
+{ id: 'salary', header: 'Salary', type: 'number',
+  aggregate: 'sum',
+  aggregateFormat: (r) => money.format(Number(r.value)) },
+
+{ id: 'rating', header: 'Rating', type: 'number', aggregate: 'avg' },
+
+{ id: 'hiredAt', header: 'Hired', type: 'date', aggregate: 'min' },
+```
+
+```
+▾ DEPARTMENT Engineering  2 │         │ $265,000 │ 4.4 ★ │
+    Ada Lovelace           │ Canada  │ $120,000 │ 4.1 ★ │
+    Grace Hopper           │ USA     │ $145,000 │ 4.7 ★ │
+▾ DEPARTMENT Research     2 │         │ $130,000 │ 3.9 ★ │
+```
+
+`sum` and `avg` coerce cells through `toNumber` and **skip whatever will not coerce** — a
+`null` salary is not a zero, so it changes neither the total nor the average's denominator
+(`result.sampleCount` is what the mean was divided by). A group with nothing aggregable reports
+`null`, not `0`.
+
+`min` and `max` use the column's comparator — its own `comparator` if it has one, otherwise the
+one its `type` implies — and report the winning cell's **own value**, so a date column yields a
+date rather than a timestamp. They also carry the row they came from, which is why they need no
+`aggregateFormat`: `format` can render them in context. A sum has no row to hand `format`, so a
+column that needs its totals dressed up declares `aggregateFormat` instead.
+
+The group row splits into cells only as far as it must: the label spans everything up to the
+first aggregated column, and columns after it get a cell each. **Declare no aggregates and the
+group row is the plain single-cell banner it has always been.**
+
+### Whole-table totals
+
+```vue
+<DataTable :columns="columns" :source="source" show-footer footer-label="All staff" />
+```
+
+Off by default — declaring an aggregate should not add a row nobody asked for. The `<tfoot>`
+uses the same per-column declarations, works with grouping switched off, and sticks to the
+bottom of the scroll box when you give it a height. The label yields its cell to a first column
+that aggregates something of its own.
+
+### Where the numbers come from
+
+Same rule as the group counts, for the same reason:
+
+- **`groupMode: 'client'`** — a band aggregates the rows loaded under it. What you see is what
+  was added up.
+- **`groupMode: 'server'`** — figures come from `DataSource.groupAggregates`, so a group split
+  across a page boundary still totals its whole self. `useLocalDataSource` implements it; a
+  server source that does not falls back to the loaded rows.
+
+Pure functions underneath, usable with no component at all: `aggregateValue`, `aggregateRow`,
+`aggregateGroups` (keyed like `RowGroup.key`, with the whole set under `ROOT_GROUP_KEY`), and
+`formatAggregate`.
 
 ### Headless
 
@@ -566,6 +628,6 @@ Styling hooks: `[data-reorderable]`, `[data-dragging]` and `[data-drop='before'|
 ## Not included
 
 Row virtualization, tree rows (parent/child hierarchies, as opposed to the value-based grouping
-above), editable cells, and column-level aggregation — group headers count their rows and nothing
-more. The core is structured so virtualization slots in at the rendering layer without touching the
-pipeline — `filteredRows` on the local source is the hook for it.
+above), editable cells, and pivoting. Aggregation covers `sum`/`avg`/`min`/`max` and no custom
+reducer. The core is structured so virtualization slots in at the rendering layer without touching
+the pipeline — `filteredRows` on the local source is the hook for it.

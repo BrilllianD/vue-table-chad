@@ -149,6 +149,20 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   groupValue?: (row: TRow) => FilterValue
   /** Labels a group header. Defaults to `format`, then `String(value)`. */
   groupLabel?: (value: FilterValue) => string
+  /**
+   * Aggregation shown for this column in group rows and in the footer.
+   *
+   * `sum` and `avg` coerce cells with `toNumber` and skip whatever will not
+   * coerce; `min` and `max` use the column's comparator and report the winning
+   * cell's own value, so a date column yields a date rather than a timestamp.
+   */
+  aggregate?: AggregateFn
+  /**
+   * Formats an aggregate for display. Defaults to `format` for a `min`/`max`
+   * (which knows the row it came from), and to a plain number format otherwise
+   * — `format` cannot stand in for a sum, having no row to be handed.
+   */
+  aggregateFormat?: (result: AggregateResult<TRow>) => string
   pinned?: PinSide | false
   align?: 'left' | 'center' | 'right'
   /**
@@ -179,6 +193,34 @@ export interface ResolvedColumn<TRow = Record<string, unknown>> extends ColumnDe
 /* ------------------------------------------------------------------ *
  * Grouping
  * ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ *
+ * Aggregation
+ * ------------------------------------------------------------------ */
+
+/** The aggregations a column can declare. */
+export type AggregateFn = 'sum' | 'avg' | 'min' | 'max'
+
+/** One computed aggregate, ready to render. */
+export interface AggregateResult<TRow = Record<string, unknown>> {
+  fn: AggregateFn
+  /**
+   * A number for `sum` and `avg`; the winning cell's own value for `min` and
+   * `max`; `null` when no row carried anything aggregable.
+   */
+  value: unknown
+  /**
+   * The row a `min`/`max` came from, so the column's `format` can render the
+   * value in the context it belongs to. Absent for `sum` and `avg`, which
+   * describe a set rather than a row.
+   */
+  row?: TRow
+  /**
+   * How many rows actually contributed. Blanks are skipped, so this is the
+   * denominator an `avg` was divided by — and `0` means the result is `null`.
+   */
+  sampleCount: number
+}
 
 /**
  * Who performs the grouping.
@@ -222,6 +264,11 @@ export interface RowGroup<TRow = Record<string, unknown>> {
    * correctly whenever the true total is available.
    */
   totalCount: number
+  /**
+   * Per-column aggregates, keyed by column id — only the columns that declared
+   * an `aggregate`, so `{}` when none did.
+   */
+  aggregates: Record<string, AggregateResult<TRow>>
 }
 
 /**
@@ -280,6 +327,16 @@ export interface DataSource<TRow = Record<string, unknown>> {
    * goes unanswered.
    */
   groupCounts?: (groupBy: string[]) => Map<string, number>
+  /**
+   * Per-group aggregates across the entire filtered set, keyed the way
+   * `RowGroup.key` is, plus the whole-set total under `ROOT_GROUP_KEY`.
+   * Optional for the same reason as `groupCounts`: only a source holding every
+   * row can answer it, and a group row falls back to aggregating the rows it
+   * was handed when it goes unanswered.
+   */
+  groupAggregates?: (
+    groupBy: string[],
+  ) => Map<string, Record<string, AggregateResult<TRow>>>
   /** True for server sources; lets the UI warn that facets are remote. */
   readonly remote: boolean
 }

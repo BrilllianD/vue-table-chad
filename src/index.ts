@@ -100,8 +100,18 @@ export {
   groupKeys,
   countGroups,
   BLANK_GROUP_LABEL,
+  ROOT_GROUP_KEY,
 } from './core/grouping'
 export type { GroupingOptions } from './core/grouping'
+
+/* ----------------------------------------------------------- aggregation */
+
+export {
+  aggregateValue,
+  aggregateRow,
+  aggregateGroups,
+  formatAggregate,
+} from './core/aggregation'
 
 /* ----------------------------------------------------------------- utils */
 
@@ -174,6 +184,8 @@ export type {
   RowGroup,
   DisplayRow,
   GroupMode,
+  AggregateFn,
+  AggregateResult,
   FetchParams,
   FetchResult,
   DataSource,

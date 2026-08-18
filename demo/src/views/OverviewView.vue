@@ -50,6 +50,7 @@ const showToolbar = ref(true)
 const showSearch = ref(true)
 const showColumnsMenu = ref(true)
 const showPagination = ref(true)
+const showFooter = ref(false)
 const stickyHeader = ref(true)
 const customToolbar = ref(false)
 const onlyActiveSelectable = ref(false)
@@ -99,6 +100,8 @@ function forgetLayout(): void {
       'ColumnDef.comparator',
       'ColumnDef.format',
       'cell:* slots',
+      'ColumnDef.aggregate',
+      'DataTable showFooter',
       'DataTable storageKey',
     ]"
   >
@@ -117,6 +120,7 @@ function forgetLayout(): void {
         <label><input v-model="showSearch" type="checkbox" /> showSearch</label>
         <label><input v-model="showColumnsMenu" type="checkbox" /> showColumnsMenu</label>
         <label><input v-model="showPagination" type="checkbox" /> showPagination</label>
+        <label><input v-model="showFooter" type="checkbox" /> showFooter</label>
         <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
         <label><input v-model="customToolbar" type="checkbox" /> custom #toolbar slot</label>
         <label>
@@ -146,6 +150,7 @@ function forgetLayout(): void {
       :show-search="showSearch"
       :show-columns-menu="showColumnsMenu"
       :show-pagination="showPagination"
+      :show-footer="showFooter"
       :sticky-header="stickyHeader"
       empty-message="Nothing matches those filters — try clearing one."
       @update:query="lastQuery = $event"

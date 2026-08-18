@@ -151,6 +151,11 @@ const grouping = useRowGrouping<TRow>(
       state.groupMode.value === 'server'
         ? props.source.groupCounts?.(state.groupBy.value)
         : undefined,
+    /** Same gate, same reason: a band's figures must describe the rows under it. */
+    aggregates: () =>
+      state.groupMode.value === 'server'
+        ? props.source.groupAggregates?.(state.groupBy.value)
+        : undefined,
     collapsedByDefault: props.groupsCollapsed,
     blankLabel: props.blankGroupLabel,
   },
@@ -271,6 +276,7 @@ defineExpose({
   <slot
     :rows="rows"
     :display-rows="grouping.displayRows.value"
+    :overall-aggregates="grouping.overallAggregates.value"
     :grouping="grouping"
     :columns="columns.visible.value"
     :all-columns="columns.all.value"

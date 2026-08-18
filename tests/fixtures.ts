@@ -27,6 +27,17 @@ export const personColumns: ColumnDef<Person>[] = [
   { id: 'active', header: 'Active', type: 'boolean' },
 ]
 
+/**
+ * The same columns with aggregates declared. A separate export rather than a
+ * change to `personColumns`: declaring an aggregate changes the group row's
+ * markup, and every existing spec asserts against the plain shape.
+ */
+export const aggregatedPersonColumns: ColumnDef<Person>[] = personColumns.map((column) => {
+  if (column.id === 'salary') return { ...column, aggregate: 'sum' as const }
+  if (column.id === 'hiredAt') return { ...column, aggregate: 'min' as const }
+  return column
+})
+
 export function names(rows: Person[]): string[] {
   return rows.map((row) => row.name)
 }

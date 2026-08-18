@@ -59,6 +59,8 @@
   /* Group header bands, and how far each nesting level indents. */
   --vt-bg-group: var(--vt-bg-header);
   --vt-group-indent-step: 16px;
+  /* The aggregate row under the table. */
+  --vt-bg-footer: var(--vt-bg-header);
   /*
     Body rules. Width 0 removes them — `--vt-body-border-width: 0` is the
     borderless table. The vertical ones start off, since column separators are
@@ -718,6 +720,37 @@
   display: inline-block;
   width: calc(var(--vt-group-depth, 0) * var(--vt-group-indent-step));
 }
+
+/*
+  Aggregate cells in a band. They come through `TableCell`, so they arrive as
+  `.vt-td` and would otherwise sit on the body background while the label half
+  of the same row sits on the band background.
+
+  Safe against the stripe rules above: those key on `.vt-tr`, and a band row
+  carries `.vt-group-row`.
+*/
+.vt-group-row .vt-td {
+  background-color: var(--vt-bg-group);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- footer */
+
+.vt-tfoot .vt-td {
+  background-color: var(--vt-bg-footer);
+  font-weight: 600;
+  border-top: var(--vt-header-border-width) solid var(--vt-header-border-color);
+  /*
+    Holds at the bottom of the scroll box, mirroring the sticky header. Inert
+    until `.vt-scroll` is height-constrained, which is the caller's call.
+  */
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+/* A pinned column's footer cell has to clear its unpinned neighbours. */
+.vt-tfoot .vt-td[data-pinned] { z-index: 3; }
 
 /* ----------------------------------------------------------- group menu */
 

@@ -1,4 +1,5 @@
 import type {
+  AggregateResult,
   ColumnDef,
   DisplayRow,
   FilterValue,
@@ -23,6 +24,15 @@ const KEY_SEPARATOR = '\u001F'
 
 /** What a blank group is called when the column says nothing better. */
 export const BLANK_GROUP_LABEL = 'Blank'
+
+/**
+ * The key an empty group path produces — `groupPathKey([])` — and so the key
+ * anything covering the whole set rather than one band is filed under.
+ *
+ * Named rather than written as `''` at each use, so that "the root is the empty
+ * path" is a contract instead of a coincidence two modules happen to share.
+ */
+export const ROOT_GROUP_KEY = ''
 
 /**
  * The bucket a row falls into for one column. Runs the value through
@@ -97,11 +107,25 @@ function labelFor<TRow>(
   return String(value)
 }
 
-export interface GroupingOptions {
+export interface GroupingOptions<TRow = Record<string, unknown>> {
   /** Group keys the user has folded shut. Their rows and subgroups are skipped. */
   isCollapsed?: (key: string) => boolean
   /** True per-group totals across the full dataset, from `DataSource.groupCounts`. */
   totals?: Map<string, number>
+  /**
+   * Per-group aggregates across the full dataset, from
+   * `DataSource.groupAggregates`. Takes precedence over `computeAggregates`.
+   */
+  aggregates?: Map<string, Record<string, AggregateResult<TRow>>>
+  /**
+   * Aggregates a band's own rows, for every band `aggregates` does not cover.
+   *
+   * Injected rather than imported: aggregation needs `groupPathKey` from this
+   * module, and reaching back for the aggregator would close a cycle whose
+   * evaluation order decides whether a `const` is still in its temporal dead
+   * zone. `useRowGrouping` supplies it.
+   */
+  computeAggregates?: (rows: readonly TRow[]) => Record<string, AggregateResult<TRow>>
   /** Header text for the blank bucket. Defaults to `"Blank"`. */
   blankLabel?: string
 }
@@ -140,7 +164,7 @@ export function flattenGroups<TRow>(
   rows: readonly TRow[],
   groupBy: readonly string[],
   columns: readonly ColumnDef<TRow>[],
-  options: GroupingOptions = {},
+  options: GroupingOptions<TRow> = {},
 ): DisplayRow<TRow>[] {
   const byId = new Map(columns.map((column) => [column.id, column]))
   // Grouping by a column that is not declared (or was removed) is ignored
@@ -185,6 +209,9 @@ export function flattenGroups<TRow>(
         rows: entry.rows,
         count: entry.rows.length,
         totalCount: options.totals?.get(key) ?? entry.rows.length,
+        // A collapsed band keeps its rows — collapse only skips the recursion —
+        // so its figures survive being folded shut.
+        aggregates: options.aggregates?.get(key) ?? options.computeAggregates?.(entry.rows) ?? {},
       }
       out.push({ kind: 'group', group })
       if (!options.isCollapsed?.(key)) walk(entry.rows, depth + 1, nextPath)

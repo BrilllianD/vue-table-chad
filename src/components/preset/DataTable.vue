@@ -8,11 +8,14 @@
  * `playground/src/examples/ComposedCustom.vue`).
  */
 import { computed } from 'vue'
+import { formatAggregate } from '../../core/aggregation'
 import type {
+  AggregateResult,
   ColumnDef,
   DataSource,
   GroupMode,
   QueryState,
+  ResolvedColumn,
   RowId,
   SelectionMode,
 } from '../../core/types'
@@ -70,6 +73,14 @@ const props = withDefaults(
     groupsCollapsed?: boolean
     /** Header text for the band holding rows with no value. */
     blankGroupLabel?: string
+    /**
+     * Renders a footer row aggregating every loaded row, using the same
+     * per-column `aggregate` declarations the group rows use. Off by default:
+     * declaring an aggregate should not add a row nobody asked for.
+     */
+    showFooter?: boolean
+    /** Text for the footer's leading cell. */
+    footerLabel?: string
     showToolbar?: boolean
     showSearch?: boolean
     showColumnsMenu?: boolean
@@ -82,6 +93,8 @@ const props = withDefaults(
     selectable: false,
     pageSize: 25,
     reorderable: true,
+    showFooter: false,
+    footerLabel: 'Total',
     showToolbar: true,
     showSearch: true,
     showColumnsMenu: true,
@@ -105,6 +118,14 @@ defineEmits<{
  * `selectable="single"` into multi-select.
  */
 const selectable = computed(() => props.selectable !== false)
+
+function footerText(
+  aggregates: Record<string, AggregateResult<TRow>>,
+  column: ResolvedColumn<TRow>,
+): string {
+  const result = aggregates[column.id]
+  return result ? formatAggregate(result, column) : ''
+}
 </script>
 
 <template>
@@ -119,6 +140,7 @@ const selectable = computed(() => props.selectable !== false)
       error,
       total,
       displayRows,
+      overallAggregates,
       getRowKey: rowKey,
       getCellValue,
       getCellText,
@@ -262,7 +284,8 @@ const selectable = computed(() => props.selectable !== false)
                 v-if="item.kind === 'group'"
                 :key="`group:${item.group.key}`"
                 :group="item.group"
-                :colspan="cols.length + (selectable ? 1 : 0)"
+                :columns="cols"
+                :leading="selectable ? 1 : 0"
               >
                 <template #default="slotProps">
                   <slot name="group" v-bind="slotProps">
@@ -270,6 +293,9 @@ const selectable = computed(() => props.selectable !== false)
                     <span class="vt-group-label">{{ slotProps.group.label }}</span>
                     <span class="vt-group-count">{{ slotProps.group.totalCount }}</span>
                   </slot>
+                </template>
+                <template #aggregate="slotProps">
+                  <slot name="groupAggregate" v-bind="slotProps">{{ slotProps.text }}</slot>
                 </template>
               </TableGroupRow>
 
@@ -323,6 +349,34 @@ const selectable = computed(() => props.selectable !== false)
               </tr>
             </template>
           </tbody>
+
+          <!--
+            After `</tbody>`, which is where HTML wants it, and inside the same
+            `TableGrid` slot — the grid is a bare `<slot />`, so a footer needs
+            nothing from it but the `<colgroup>` widths it already applies.
+          -->
+          <tfoot v-if="showFooter" class="vt-tfoot">
+            <tr class="vt-footer-row">
+              <td v-if="selectable" class="vt-td vt-td-selection" />
+              <TableCell v-for="(column, columnIndex) in cols" :key="column.id" :column="column">
+                <slot
+                  name="footer"
+                  :column="column"
+                  :result="overallAggregates[column.id]"
+                  :text="footerText(overallAggregates, column)"
+                >
+                  <!--
+                    The label only appears where it displaces nothing: a first
+                    column that aggregates shows its own number instead.
+                  -->
+                  <span v-if="columnIndex === 0 && !overallAggregates[column.id]">
+                    {{ footerLabel }}
+                  </span>
+                  <template v-else>{{ footerText(overallAggregates, column) }}</template>
+                </slot>
+              </TableCell>
+            </tr>
+          </tfoot>
         </TableGrid>
 
         <div v-if="loading" class="vt-loading-overlay" role="status" aria-live="polite">

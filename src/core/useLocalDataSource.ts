@@ -1,8 +1,15 @@
 import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
-import type { ColumnDef, DataSource, FacetValue, QueryState } from './types'
+import type {
+  AggregateResult,
+  ColumnDef,
+  DataSource,
+  FacetValue,
+  QueryState,
+} from './types'
 import { computeFacets, filterRows } from './filters/facets'
 import { sortRows, type SortOptions } from './sorting'
 import { countGroups, groupedSort } from './grouping'
+import { aggregateGroups } from './aggregation'
 
 export interface LocalDataSourceOptions extends SortOptions {}
 
@@ -13,6 +20,8 @@ export interface LocalDataSource<TRow> extends DataSource<TRow> {
   facetsSync: (columnId: string) => FacetValue[]
   /** Always present here: a local source holds every row, so it can count them. */
   groupCounts: (groupBy: string[]) => Map<string, number>
+  /** Likewise: it can aggregate them, per band and over the whole set. */
+  groupAggregates: (groupBy: string[]) => Map<string, Record<string, AggregateResult<TRow>>>
 }
 
 /**
@@ -85,6 +94,13 @@ export function useLocalDataSource<TRow>(
     return countGroups(filtered.value, groupBy, allColumns.value)
   }
 
+  /** Same set as `groupCounts`, for the same reason: the page is not the group. */
+  function groupAggregates(
+    groupBy: string[],
+  ): Map<string, Record<string, AggregateResult<TRow>>> {
+    return aggregateGroups(filtered.value, groupBy, allColumns.value)
+  }
+
   return {
     rows,
     total,
@@ -96,6 +112,7 @@ export function useLocalDataSource<TRow>(
     facets: (columnId: string) => Promise.resolve(facetsSync(columnId)),
     facetsSync,
     groupCounts,
+    groupAggregates,
     filteredRows: sorted,
     remote: false,
   }

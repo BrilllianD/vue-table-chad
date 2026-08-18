@@ -6,7 +6,13 @@ import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useRowGrouping } from '../src/core/useRowGrouping'
 import { useTableState } from '../src/core/useTableState'
 import { groupPathKey } from '../src/core/grouping'
-import { names, people, personColumns, type Person } from './fixtures'
+import {
+  aggregatedPersonColumns,
+  names,
+  people,
+  personColumns,
+  type Person,
+} from './fixtures'
 
 describe('useTableState grouping', () => {
   it('starts ungrouped and reports no levels', () => {
@@ -298,9 +304,16 @@ describe('useRowGrouping', () => {
  * one is handed in, that state is the authority — same rule as `pageSize`.
  */
 function mountTable(
-  options: { groupBy?: string[]; pageSize?: number; groupMode?: 'client' | 'server' } = {},
+  options: {
+    groupBy?: string[]
+    pageSize?: number
+    groupMode?: 'client' | 'server'
+    /** Defaults to the plain columns; pass the aggregated set to exercise totals. */
+    columns?: typeof personColumns
+  } = {},
   props: Record<string, unknown> = {},
 ) {
+  const columns = options.columns ?? personColumns
   const Host = defineComponent({
     setup() {
       const state = useTableState({
@@ -308,8 +321,8 @@ function mountTable(
         initialGroupBy: options.groupBy,
         groupMode: options.groupMode,
       })
-      const source = useLocalDataSource<Person>(people, personColumns, state.query)
-      return () => h(DataTable as never, { columns: personColumns, source, state, ...props })
+      const source = useLocalDataSource<Person>(people, columns, state.query)
+      return () => h(DataTable as never, { columns, source, state, ...props })
     },
   })
   return mount(Host, { attachTo: document.body })
@@ -450,6 +463,140 @@ describe('DataTable grouping', () => {
     const depths = wrapper.findAll('.vt-group-row').map((row) => row.attributes('data-depth'))
     expect(depths).toContain('0')
     expect(depths).toContain('1')
+    wrapper.unmount()
+  })
+})
+
+/* ------------------------------------------------------------ aggregates */
+
+/** `[label colspan, ...trailing cell texts]` for each band, in order. */
+function bands(wrapper: ReturnType<typeof mountTable>): { span: string; cells: string[] }[] {
+  return wrapper.findAll('.vt-group-row').map((row) => ({
+    span: row.find('.vt-group-cell').attributes('colspan')!,
+    cells: row.findAll('.vt-td').map((cell) => cell.text()),
+  }))
+}
+
+describe('group aggregates', () => {
+  it('renders nothing extra when no column declares one', () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    const row = wrapper.find('.vt-group-row')
+    // One spanning cell, exactly as before aggregation existed.
+    expect(row.find('.vt-group-cell').attributes('colspan')).toBe(String(personColumns.length))
+    expect(row.findAll('.vt-td')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('shrinks the label span to the columns before the first aggregate', () => {
+    const wrapper = mountTable({ groupBy: ['department'], columns: aggregatedPersonColumns })
+    // name, department, | salary, hiredAt, active
+    expect(bands(wrapper)[0]!.span).toBe('2')
+    expect(bands(wrapper)[0]!.cells).toHaveLength(3)
+    wrapper.unmount()
+  })
+
+  it('counts the selection column into the label span', () => {
+    const wrapper = mountTable(
+      { groupBy: ['department'], columns: aggregatedPersonColumns },
+      { selectable: true },
+    )
+    expect(wrapper.find('.vt-group-cell').attributes('colspan')).toBe('3')
+    wrapper.unmount()
+  })
+
+  it('puts each aggregate under the column it describes', () => {
+    const wrapper = mountTable({ groupBy: ['department'], columns: aggregatedPersonColumns })
+    const engineering = bands(wrapper)[0]!
+    // salary summed, hiredAt at its minimum, active left blank — no aggregate.
+    expect(engineering.cells[0]!.replace(/\D/g, '')).toBe('265000')
+    expect(engineering.cells[1]).toBe('2019-11-20')
+    expect(engineering.cells[2]).toBe('')
+    wrapper.unmount()
+  })
+
+  it('keeps a band’s figures visible once it is folded shut', async () => {
+    const wrapper = mountTable({ groupBy: ['department'], columns: aggregatedPersonColumns })
+    await wrapper.find('.vt-group-toggle').trigger('click')
+    expect(wrapper.find('.vt-group-row').attributes('data-collapsed')).toBeDefined()
+    expect(bands(wrapper)[0]!.cells[0]!.replace(/\D/g, '')).toBe('265000')
+    wrapper.unmount()
+  })
+
+  it('aggregates nested bands at their own level', () => {
+    const wrapper = mountTable({
+      groupBy: ['department', 'active'],
+      columns: aggregatedPersonColumns,
+    })
+    const rows = bands(wrapper)
+    // Research: 130000 across both, all of it under `active: false`.
+    const research = rows.find((row) => row.cells[0]!.replace(/\D/g, '') === '130000')
+    expect(research).toBeDefined()
+    wrapper.unmount()
+  })
+
+  it('aggregates only the loaded rows by default', () => {
+    const wrapper = mountTable({
+      groupBy: ['department'],
+      columns: aggregatedPersonColumns,
+      pageSize: 1,
+    })
+    // One Engineering row is loaded, so the band sums that row alone.
+    expect(bands(wrapper)[0]!.cells[0]!.replace(/\D/g, '')).toBe('120000')
+    wrapper.unmount()
+  })
+
+  it('takes whole-group figures from the source when grouping is delegated', () => {
+    const wrapper = mountTable({
+      groupBy: ['department'],
+      columns: aggregatedPersonColumns,
+      pageSize: 1,
+      groupMode: 'server',
+    })
+    // Still one row on the page, but the source aggregated the whole group.
+    expect(wrapper.findAll('tbody tr.vt-tr')).toHaveLength(1)
+    expect(bands(wrapper)[0]!.cells[0]!.replace(/\D/g, '')).toBe('265000')
+    wrapper.unmount()
+  })
+})
+
+describe('footer totals', () => {
+  it('renders no footer unless asked', () => {
+    const wrapper = mountTable({ columns: aggregatedPersonColumns })
+    expect(wrapper.find('tfoot').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('totals every loaded row, with grouping switched off', () => {
+    const wrapper = mountTable({ columns: aggregatedPersonColumns }, { showFooter: true })
+    const cells = wrapper.findAll('tfoot .vt-td').map((cell) => cell.text())
+    expect(cells[0]).toBe('Total')
+    expect(cells[2]!.replace(/\D/g, '')).toBe('670000')
+    expect(cells[3]).toBe('2018-05-09')
+    wrapper.unmount()
+  })
+
+  it('takes a custom label, and yields the cell to a first-column aggregate', () => {
+    const columns = aggregatedPersonColumns.map((column) =>
+      column.id === 'name' ? { ...column, aggregate: 'max' as const } : column,
+    )
+    const wrapper = mountTable({ columns }, { showFooter: true, footerLabel: 'All staff' })
+    const cells = wrapper.findAll('tfoot .vt-td').map((cell) => cell.text())
+    expect(cells[0]).not.toContain('All staff')
+    expect(cells[0]).toBe('Katherine Johnson')
+    wrapper.unmount()
+  })
+
+  it('matches the sum of the bands when grouping is on', () => {
+    const wrapper = mountTable(
+      { groupBy: ['department'], columns: aggregatedPersonColumns },
+      { showFooter: true },
+    )
+    const banded = bands(wrapper).reduce(
+      (total, band) => total + Number(band.cells[0]!.replace(/\D/g, '')),
+      0,
+    )
+    const footer = wrapper.findAll('tfoot .vt-td').map((cell) => cell.text())
+    expect(Number(footer[2]!.replace(/\D/g, ''))).toBe(banded)
     wrapper.unmount()
   })
 })
