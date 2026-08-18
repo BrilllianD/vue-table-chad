@@ -8,7 +8,14 @@
  * `playground/src/examples/ComposedCustom.vue`).
  */
 import { computed } from 'vue'
-import type { ColumnDef, DataSource, QueryState, RowId, SelectionMode } from '../../core/types'
+import type {
+  ColumnDef,
+  DataSource,
+  GroupMode,
+  QueryState,
+  RowId,
+  SelectionMode,
+} from '../../core/types'
 import type { ColumnLayoutState } from '../../core/useColumns'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
@@ -52,6 +59,13 @@ const props = withDefaults(
      * Ignored when `state` is supplied — seed that state's `initialGroupBy`.
      */
     initialGroupBy?: string[]
+    /**
+     * Who performs the grouping. `'client'` (the default) bands the rows that
+     * are already loaded and never touches the query, so nothing refetches and
+     * no server hears about it. `'server'` puts it in `QueryState.groupBy` for
+     * the data source to perform, keeping groups whole across pages.
+     */
+    groupMode?: GroupMode
     /** Renders every band folded shut until the user opens it. */
     groupsCollapsed?: boolean
     /** Header text for the band holding rows with no value. */
@@ -121,6 +135,7 @@ const selectable = computed(() => props.selectable !== false)
     :page-size="pageSize"
     :reorderable="reorderable"
     :initial-group-by="initialGroupBy"
+    :group-mode="groupMode"
     :groups-collapsed="groupsCollapsed"
     :blank-group-label="blankGroupLabel"
     @update:query="$emit('update:query', $event)"

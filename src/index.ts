@@ -93,6 +93,7 @@ export type { SortOptions } from './core/sorting'
 
 export {
   groupedSort,
+  groupSortRules,
   flattenGroups,
   groupValueOf,
   groupPathKey,
@@ -172,6 +173,7 @@ export type {
   ResolvedColumn,
   RowGroup,
   DisplayRow,
+  GroupMode,
   FetchParams,
   FetchResult,
   DataSource,

@@ -3,12 +3,13 @@ import {
   countGroups,
   flattenGroups,
   groupPathKey,
+  groupSortRules,
   groupValueOf,
   groupedSort,
 } from '../src/core/grouping'
 import { sortRows } from '../src/core/sorting'
 import type { ColumnDef, DisplayRow } from '../src/core/types'
-import { people, personColumns, type Person } from './fixtures'
+import { names, people, personColumns, type Person } from './fixtures'
 
 /** The shape a grouped body renders as, flattened to strings for comparison. */
 function outline(items: DisplayRow<Person>[]): string[] {
@@ -56,6 +57,38 @@ describe('groupedSort', () => {
     )
     expect(result.filter((rule) => rule.columnId === 'department')).toHaveLength(1)
     expect(result[0]).toEqual({ columnId: 'department', direction: 'asc' })
+  })
+})
+
+describe('groupSortRules', () => {
+  it('is the leading part of groupedSort, without the user keys', () => {
+    const sort = [
+      { columnId: 'department', direction: 'desc' as const },
+      { columnId: 'salary', direction: 'asc' as const },
+    ]
+    expect(groupSortRules(sort, ['department'])).toEqual([
+      { columnId: 'department', direction: 'desc' },
+    ])
+    // Dropping the user keys is the point: sorting by these alone gathers rows
+    // into bands and leaves the order inside each band as it arrived.
+    expect(groupedSort(sort, ['department']).slice(0, 1)).toEqual(
+      groupSortRules(sort, ['department']),
+    )
+  })
+
+  it('gathers bands while preserving the incoming order inside them', () => {
+    const byName = sortRows(people, [{ columnId: 'name', direction: 'asc' }], personColumns)
+    const banded = sortRows(byName, groupSortRules([], ['department']), personColumns)
+    expect(banded.map((row) => row.department)).toEqual([
+      'Engineering',
+      'Engineering',
+      'Research',
+      'Research',
+      'Support',
+      'Support',
+      '',
+    ])
+    expect(names(banded).slice(0, 2)).toEqual(['Ada Lovelace', 'Grace Hopper'])
   })
 })
 

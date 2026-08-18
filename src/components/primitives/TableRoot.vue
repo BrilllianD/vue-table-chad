@@ -1,6 +1,13 @@
 <script setup lang="ts" generic="TRow extends Record<string, unknown>">
 import { computed, toRef, watch } from 'vue'
-import type { ColumnDef, DataSource, QueryState, RowId, SelectionMode } from '../../core/types'
+import type {
+  ColumnDef,
+  DataSource,
+  GroupMode,
+  QueryState,
+  RowId,
+  SelectionMode,
+} from '../../core/types'
 import { provideTableContext, type TableContext } from '../../core/context'
 import { useTableState, type TableState } from '../../core/useTableState'
 import { useColumns, type ColumnLayoutState } from '../../core/useColumns'
@@ -46,6 +53,22 @@ const props = withDefaults(
      * `useTableState` call instead.
      */
     initialGroupBy?: string[]
+    /**
+     * Who performs the grouping.
+     *
+     *  - `'client'` (the default) bands the rows the source already returned.
+     *    Nothing enters `QueryState`, so no refetch is triggered and a server
+     *    never sees it; a band shows the part of its group that is loaded.
+     *  - `'server'` puts it in `QueryState.groupBy` and lets the data source
+     *    perform it — `useServerDataSource` sends it and refetches,
+     *    `useLocalDataSource` sorts the whole dataset by it — so groups stay
+     *    whole across pages and counts describe the entire group.
+     *
+     * Bound through to the state on every change, so it works with a `state`
+     * supplied from outside too. Leave it unset to keep whatever that state
+     * was built with.
+     */
+    groupMode?: GroupMode
     /** Renders every group folded shut until the user opens it. */
     groupsCollapsed?: boolean
     /** Header text for the bucket holding rows with no value. */
@@ -118,10 +141,29 @@ const grouping = useRowGrouping<TRow>(
   () => props.columns,
   {
     groupBy: () => state.groupBy.value,
-    totals: () => props.source.groupCounts?.(state.groupBy.value),
+    sort: () => state.sort.value,
+    /**
+     * True group sizes, but only when the source is the one grouping. Under
+     * `'client'` the bands describe the loaded rows and nothing else, so a
+     * count reaching past them would contradict what is on screen.
+     */
+    totals: () =>
+      state.groupMode.value === 'server'
+        ? props.source.groupCounts?.(state.groupBy.value)
+        : undefined,
     collapsedByDefault: props.groupsCollapsed,
     blankLabel: props.blankGroupLabel,
   },
+)
+
+// Written through rather than read at setup, so the prop still governs a state
+// the caller built. Left alone when unset, so that state keeps its own setting.
+watch(
+  () => props.groupMode,
+  (mode) => {
+    if (mode) state.groupMode.value = mode
+  },
+  { immediate: true },
 )
 
 /**

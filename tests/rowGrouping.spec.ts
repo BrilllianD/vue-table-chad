@@ -39,24 +39,73 @@ describe('useTableState grouping', () => {
     expect(state.groupBy.value).toEqual(['department', 'active'])
   })
 
-  it('resets to page 1, because grouping reorders which rows land where', () => {
+  it('keeps client-side grouping out of the query, so nothing refetches', () => {
+    const state = useTableState({ initialGroupBy: ['department'] })
+    expect(state.groupMode.value).toBe('client')
+    expect(state.groupBy.value).toEqual(['department'])
+    // The query is the instruction to the data source. The client is doing the
+    // grouping, so the source is told nothing about it.
+    expect(state.query.value.groupBy).toEqual([])
+  })
+
+  it('leaves paging alone when the client groups, because no rows move pages', () => {
     const state = useTableState()
     state.setPage(4)
     state.addGroup('department')
+    expect(state.page.value).toBe(4)
+  })
+
+  it('publishes groupBy and resets the page when the source groups', () => {
+    const state = useTableState({ groupMode: 'server', initialGroupBy: ['department'] })
+    expect(state.query.value.groupBy).toEqual(['department'])
+
+    state.setPage(4)
+    state.addGroup('active')
+    expect(state.query.value.groupBy).toEqual(['department', 'active'])
     expect(state.page.value).toBe(1)
   })
 
-  it('carries groupBy in the query, so a server fetcher sees it', () => {
+  it('carries the grouping across a mode change rather than dropping it', () => {
     const state = useTableState({ initialGroupBy: ['department'] })
+
+    state.groupMode.value = 'server'
+    expect(state.groupBy.value).toEqual(['department'])
     expect(state.query.value.groupBy).toEqual(['department'])
+
+    state.groupMode.value = 'client'
+    expect(state.groupBy.value).toEqual(['department'])
+    expect(state.query.value.groupBy).toEqual([])
+  })
+
+  it('never leaves a client grouping behind in an external state ref', () => {
+    const scope = effectScope()
+    const external = ref({
+      sort: [],
+      filters: {},
+      groupBy: [],
+      page: 1,
+      pageSize: 10,
+      globalSearch: '',
+    })
+    const state = scope.run(() => useTableState({ state: external }))!
+    state.addGroup('department')
+    expect(state.groupBy.value).toEqual(['department'])
+    // The hoisted query — a URL, a store — is the source's view of the world,
+    // and must not imply a grouping the source is not performing.
+    expect(external.value.groupBy).toEqual([])
+    scope.stop()
   })
 })
 
-describe('useLocalDataSource with grouping', () => {
+describe('useLocalDataSource with delegated grouping', () => {
   it('sorts by the grouped column first, so groups arrive contiguous', () => {
     const scope = effectScope()
     const result = scope.run(() => {
-      const state = useTableState({ pageSize: 100, initialSort: [{ columnId: 'name', direction: 'asc' }] })
+      const state = useTableState({
+        pageSize: 100,
+        groupMode: 'server',
+        initialSort: [{ columnId: 'name', direction: 'asc' }],
+      })
       state.setGroupBy(['department'])
       const source = useLocalDataSource<Person>(people, personColumns, state.query)
       return source.rows.value.map((row) => row.department)
@@ -72,6 +121,7 @@ describe('useLocalDataSource with grouping', () => {
     const rows = scope.run(() => {
       const state = useTableState({
         pageSize: 100,
+        groupMode: 'server',
         initialSort: [{ columnId: 'salary', direction: 'desc' }],
       })
       state.setGroupBy(['department'])
@@ -84,7 +134,7 @@ describe('useLocalDataSource with grouping', () => {
   it('counts groups over the whole filtered set, not the page', () => {
     const scope = effectScope()
     const counts = scope.run(() => {
-      const state = useTableState({ pageSize: 2 })
+      const state = useTableState({ pageSize: 2, groupMode: 'server' })
       state.setGroupBy(['department'])
       const source = useLocalDataSource<Person>(people, personColumns, state.query)
       // The page holds two rows; the count must still describe all seven.
@@ -99,13 +149,89 @@ describe('useLocalDataSource with grouping', () => {
   it('narrows those counts with the active filters', () => {
     const scope = effectScope()
     const counts = scope.run(() => {
-      const state = useTableState({ pageSize: 100 })
+      const state = useTableState({ pageSize: 100, groupMode: 'server' })
       state.setGroupBy(['department'])
       state.setSearch('Item')
       return useLocalDataSource<Person>(people, personColumns, state.query).groupCounts(['department'])
     })!
     expect(counts.get(groupPathKey(['Support']))).toBe(2)
     expect(counts.has(groupPathKey(['Engineering']))).toBe(false)
+    scope.stop()
+  })
+})
+
+describe('client-side grouping over loaded rows', () => {
+  it('bands the page without the source reordering anything', () => {
+    const scope = effectScope()
+    const result = scope.run(() => {
+      // Page 1 of an unsorted dataset: departments are interleaved, and no
+      // source has gathered them, because the client is doing the grouping.
+      const state = useTableState({ pageSize: 4 })
+      state.addGroup('department')
+      const source = useLocalDataSource<Person>(people, personColumns, state.query)
+      expect(source.rows.value.map((row) => row.department)).toEqual([
+        'Engineering',
+        'Engineering',
+        'Research',
+        'Research',
+      ])
+      const grouping = useRowGrouping<Person>(
+        () => source.rows.value,
+        personColumns,
+        { groupBy: () => state.groupBy.value, sort: () => state.sort.value },
+      )
+      return grouping.groups.value.map((group) => `${group.label}:${group.count}`)
+    })!
+    expect(result).toEqual(['Engineering:2', 'Research:2'])
+    scope.stop()
+  })
+
+  it('gathers a band that the source left scattered across the page', () => {
+    const scope = effectScope()
+    const result = scope.run(() => {
+      // Sorted by name, so departments are interleaved inside the page.
+      const state = useTableState({
+        pageSize: 100,
+        initialSort: [{ columnId: 'name', direction: 'asc' }],
+      })
+      state.addGroup('department')
+      const source = useLocalDataSource<Person>(people, personColumns, state.query)
+      const grouping = useRowGrouping<Person>(
+        () => source.rows.value,
+        personColumns,
+        { groupBy: () => state.groupBy.value, sort: () => state.sort.value },
+      )
+      return grouping
+    })!
+    // One band per department, not one per run of them.
+    expect(result.groups.value.map((group) => group.label)).toEqual([
+      'Engineering',
+      'Research',
+      'Support',
+      'Blank',
+    ])
+    // Order inside a band is the order the source produced — the name sort.
+    expect(names(result.groups.value[0]!.rows)).toEqual(['Ada Lovelace', 'Grace Hopper'])
+    scope.stop()
+  })
+
+  it('follows the sort direction of a grouped column when ordering bands', () => {
+    const scope = effectScope()
+    const labels = scope.run(() => {
+      const state = useTableState({
+        pageSize: 100,
+        initialSort: [{ columnId: 'department', direction: 'desc' }],
+      })
+      state.addGroup('department')
+      const source = useLocalDataSource<Person>(people, personColumns, state.query)
+      const grouping = useRowGrouping<Person>(
+        () => source.rows.value,
+        personColumns,
+        { groupBy: () => state.groupBy.value, sort: () => state.sort.value },
+      )
+      return grouping.groups.value.map((group) => group.label)
+    })!
+    expect(labels.slice(0, 3)).toEqual(['Support', 'Research', 'Engineering'])
     scope.stop()
   })
 })
@@ -172,7 +298,7 @@ describe('useRowGrouping', () => {
  * one is handed in, that state is the authority — same rule as `pageSize`.
  */
 function mountTable(
-  options: { groupBy?: string[]; pageSize?: number } = {},
+  options: { groupBy?: string[]; pageSize?: number; groupMode?: 'client' | 'server' } = {},
   props: Record<string, unknown> = {},
 ) {
   const Host = defineComponent({
@@ -180,6 +306,7 @@ function mountTable(
       const state = useTableState({
         pageSize: options.pageSize ?? 100,
         initialGroupBy: options.groupBy,
+        groupMode: options.groupMode,
       })
       const source = useLocalDataSource<Person>(people, personColumns, state.query)
       return () => h(DataTable as never, { columns: personColumns, source, state, ...props })
@@ -236,8 +363,8 @@ describe('DataTable grouping', () => {
     wrapper.unmount()
   })
 
-  it('counts the whole group, not the slice of it on this page', () => {
-    const wrapper = mountTable({ groupBy: ['department'], pageSize: 1 })
+  it('counts the whole group, not the slice of it on this page, when delegated', () => {
+    const wrapper = mountTable({ groupBy: ['department'], pageSize: 1, groupMode: 'server' })
     expect(wrapper.findAll('tbody tr.vt-tr')).toHaveLength(1)
     // One Engineering row is visible; the header still reports both.
     expect(wrapper.find('.vt-group-count').text()).toBe('2')
@@ -266,6 +393,55 @@ describe('DataTable grouping', () => {
     const clear = wrapper.findAll('.vt-group-actions .vt-btn').at(-1)!
     await clear.trigger('click')
     expect(wrapper.findAll('.vt-group-row')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('bands only what is loaded by default, counting the rows in view', () => {
+    const wrapper = mountTable({ groupBy: ['department'], pageSize: 2 })
+    // Two Engineering rows are loaded; the band says two, not the four the
+    // dataset holds elsewhere.
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(1)
+    expect(wrapper.find('.vt-group-count').text()).toBe('2')
+    wrapper.unmount()
+  })
+
+  it('binds the groupMode prop through to a state supplied from outside', async () => {
+    const state = useTableState({ initialGroupBy: ['department'] })
+    const mode = ref<'client' | 'server'>('client')
+    const Host = defineComponent({
+      setup() {
+        const source = useLocalDataSource<Person>(people, personColumns, state.query)
+        return () =>
+          h(DataTable as never, {
+            columns: personColumns,
+            source,
+            state,
+            groupMode: mode.value,
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    expect(state.query.value.groupBy).toEqual([])
+
+    mode.value = 'server'
+    await nextTick()
+    expect(state.query.value.groupBy).toEqual(['department'])
+    // The grouping survived the switch rather than being dropped.
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(4)
+    wrapper.unmount()
+  })
+
+  it('leaves a state built for delegated grouping alone when the prop is unset', () => {
+    const state = useTableState({ groupMode: 'server', initialGroupBy: ['department'] })
+    const Host = defineComponent({
+      setup() {
+        const source = useLocalDataSource<Person>(people, personColumns, state.query)
+        return () => h(DataTable as never, { columns: personColumns, source, state })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    expect(state.groupMode.value).toBe('server')
+    expect(state.query.value.groupBy).toEqual(['department'])
     wrapper.unmount()
   })
 

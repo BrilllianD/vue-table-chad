@@ -1,6 +1,7 @@
-import { computed, reactive, toRaw, toRefs, watch, type ComputedRef, type Ref } from 'vue'
+import { computed, reactive, ref, toRaw, toRefs, watch, type ComputedRef, type Ref } from 'vue'
 import type {
   ColumnFilter,
+  GroupMode,
   QueryState,
   SortDirection,
   SortRule,
@@ -13,6 +14,13 @@ export interface TableStateOptions {
   initialFilters?: Record<string, ColumnFilter>
   /** Column ids to group rows by on first render, outermost level first. */
   initialGroupBy?: string[]
+  /**
+   * Who performs the grouping. Defaults to `'client'` — the table bands rows
+   * that are already loaded and `query.groupBy` stays empty, so no source ever
+   * refetches over a grouping change. `'server'` publishes it into the query
+   * instead. Settable later through `groupMode`.
+   */
+  groupMode?: GroupMode
   initialPage?: number
   pageSize?: number
   initialSearch?: string
@@ -29,6 +37,12 @@ export interface TableState {
   sort: Ref<SortRule[]>
   filters: Ref<Record<string, ColumnFilter>>
   groupBy: Ref<string[]>
+  /**
+   * Who performs the grouping. Writable: `<TableRoot>` binds its `groupMode`
+   * prop through this, so the switch reaches a state built outside too.
+   * Flipping it carries the current grouping across rather than dropping it.
+   */
+  groupMode: Ref<GroupMode>
   page: Ref<number>
   pageSize: Ref<number>
   globalSearch: Ref<string>
@@ -121,10 +135,67 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   const refs = toRefs(internal)
   const sort = refs.sort as Ref<SortRule[]>
   const filters = refs.filters as Ref<Record<string, ColumnFilter>>
-  const groupBy = refs.groupBy as Ref<string[]>
   const page = refs.page as Ref<number>
   const pageSize = refs.pageSize as Ref<number>
   const globalSearch = refs.globalSearch as Ref<string>
+
+  /* --------------------------------------------------------------- grouping */
+
+  const groupMode = ref<GroupMode>(options.groupMode ?? 'client')
+
+  /**
+   * Where a client-side grouping lives. It cannot live in `internal`, because
+   * everything there is the query — mirrored to an external ref and handed to
+   * the data source — and a grouping the client performs must reach neither.
+   */
+  const clientGroupBy = ref<string[]>([])
+
+  // `initialGroupBy` seeded the query object; under the default mode that is
+  // the wrong home for it, so move it before anything can observe it there.
+  if (groupMode.value === 'client' && internal.groupBy.length > 0) {
+    clientGroupBy.value = internal.groupBy
+    internal.groupBy = []
+  }
+
+  /** Reads and writes whichever home the current mode designates. */
+  const groupBy = computed<string[]>({
+    get: () => (groupMode.value === 'server' ? internal.groupBy : clientGroupBy.value),
+    set: (value) => {
+      // De-duplicated: the same column twice would nest a group inside itself,
+      // producing a second level in which every group holds exactly one bucket.
+      const next = [...new Set(value)]
+      if (groupMode.value !== 'server') {
+        clientGroupBy.value = next
+        return
+      }
+      internal.groupBy = next
+      // Delegated grouping reorders the result set, so — like a filter change —
+      // it invalidates the current page rather than just redecorating it. A
+      // client-side grouping rearranges what is already on screen and leaves
+      // paging alone.
+      internal.page = 1
+    },
+  })
+
+  // `sync`, like the external-state mirrors above: a caller flipping the mode
+  // and reading `groupBy` on the next line must see the grouping it kept, not
+  // the empty home it is about to be moved out of.
+  watch(
+    groupMode,
+    (mode, previous) => {
+      if (mode === previous) return
+      const carried = previous === 'server' ? internal.groupBy : clientGroupBy.value
+      if (mode === 'server') {
+        clientGroupBy.value = []
+        internal.groupBy = [...carried]
+        internal.page = 1
+      } else {
+        internal.groupBy = []
+        clientGroupBy.value = [...carried]
+      }
+    },
+    { flush: 'sync' },
+  )
 
   const query = computed<QueryState>(() => ({
     sort: internal.sort,
@@ -185,31 +256,24 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   )
   const hasActiveFilters = computed(() => activeFilterIds.value.length > 0)
 
-  /**
-   * Grouping reorders rows (grouped columns sort first), so like a filter
-   * change it invalidates the current page rather than just redecorating it.
-   */
   function setGroupBy(columnIds: string[]): void {
-    // De-duplicated: the same column twice would nest a group inside itself,
-    // producing a second level in which every group holds exactly one bucket.
-    internal.groupBy = [...new Set(columnIds)]
-    internal.page = 1
+    groupBy.value = columnIds
   }
 
   function isGrouped(columnId: string): boolean {
-    return internal.groupBy.includes(columnId)
+    return groupBy.value.includes(columnId)
   }
 
   function groupIndexFor(columnId: string): number {
-    return internal.groupBy.indexOf(columnId) + 1
+    return groupBy.value.indexOf(columnId) + 1
   }
 
   function addGroup(columnId: string): void {
-    setGroupBy([...internal.groupBy.filter((id) => id !== columnId), columnId])
+    setGroupBy([...groupBy.value.filter((id) => id !== columnId), columnId])
   }
 
   function removeGroup(columnId: string): void {
-    setGroupBy(internal.groupBy.filter((id) => id !== columnId))
+    setGroupBy(groupBy.value.filter((id) => id !== columnId))
   }
 
   function toggleGroup(columnId: string): void {
@@ -221,7 +285,7 @@ export function useTableState(options: TableStateOptions = {}): TableState {
     setGroupBy([])
   }
 
-  const hasGrouping = computed(() => internal.groupBy.length > 0)
+  const hasGrouping = computed(() => groupBy.value.length > 0)
 
   function setPage(value: number): void {
     internal.page = Math.max(1, Math.floor(value))
@@ -241,6 +305,8 @@ export function useTableState(options: TableStateOptions = {}): TableState {
 
   function reset(): void {
     Object.assign(internal, createQueryState(options))
+    clientGroupBy.value = groupMode.value === 'client' ? [...(options.initialGroupBy ?? [])] : []
+    if (groupMode.value === 'client') internal.groupBy = []
   }
 
   return {
@@ -248,6 +314,7 @@ export function useTableState(options: TableStateOptions = {}): TableState {
     sort,
     filters,
     groupBy,
+    groupMode,
     page,
     pageSize,
     globalSearch,

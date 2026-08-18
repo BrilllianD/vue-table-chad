@@ -75,7 +75,11 @@ const rows = computed(() => source.rows.value)
 // root wires it in exactly the way `TableRoot` does.
 const groupingOptions: UseRowGroupingOptions = {
   groupBy: () => state.groupBy.value,
-  totals: () => source.groupCounts?.(state.groupBy.value),
+  sort: () => state.sort.value,
+  // Dataset-wide counts only when the source is the one grouping; under the
+  // default client mode a band describes the loaded rows and nothing beyond.
+  totals: () =>
+    state.groupMode.value === 'server' ? source.groupCounts?.(state.groupBy.value) : undefined,
 }
 const grouping = useRowGrouping<Employee>(rows, () => props.columns, groupingOptions)
 

@@ -77,7 +77,7 @@ Everything hangs off these. Learn them and the rest follows.
 interface QueryState {
   sort: SortRule[]                      // ordered array = multi-sort
   filters: Record<string, ColumnFilter>
-  groupBy: string[]                     // ordered array = nested grouping
+  groupBy: string[]                     // only when grouping is delegated — see below
   page: number                          // 1-based
   pageSize: number
   globalSearch: string
@@ -222,22 +222,46 @@ Per column:
 land in one bucket rather than three. Define `groupLabel` whenever you define `groupValue` —
 `format` is deliberately skipped then, since it describes a cell and the bucket is no longer one.
 
-### How it works with paging
+### Who does the grouping — `groupMode`
 
-Grouping is a layer over the rows the source hands back, not a second pipeline. Two consequences
-worth knowing:
+```vue
+<DataTable :columns="columns" :source="source" group-mode="client" />   <!-- the default -->
+<DataTable :columns="columns" :source="source" group-mode="server" />
+```
+
+**`'client'` (default) — group the loaded data.** The table bands the rows the source already
+returned. Nothing enters `QueryState`, so no refetch is triggered and a server never hears about
+it; `query.groupBy` stays empty however you group. Bands are gathered client-side, so a group is
+whole *within the page* even when the rows arrived interleaved, and its count is the rows you can
+see. A group larger than the page shows the part that is loaded, and the rest appears on later
+pages under their own header.
+
+**`'server'` — put it in the request.** The grouping goes into `QueryState.groupBy`, and the data
+source performs it:
+
+- `useServerDataSource` includes it in the request, refetches when it changes, and your fetcher
+  receives `query.groupBy`.
+- `useLocalDataSource` sorts the whole dataset by it.
+
+Groups then stay whole *across* pages, and counts describe the entire group rather than the visible
+slice. Grouping also resets to page 1, since it decides which rows land on which page.
+
+The prop is bound through on every change, so it governs a `state` you built yourself too. Leave it
+unset and the state keeps whatever it was constructed with — `useTableState({ groupMode: 'server' })`.
+
+Two mechanics behind that split:
 
 - **The grouped columns sort first.** `groupedSort(sort, groupBy)` prepends them to the sort rules,
-  which is what makes a group contiguous rather than scattered across the dataset. The local source
-  does this for you; a server fetcher should apply the same helper (it is exported) or sort by
-  `query.groupBy` before `query.sort`.
-- **Counts come from the whole result set where the source can supply them.** `groupCounts` is
-  optional on `DataSource` and implemented by `useLocalDataSource`, so a group split across a page
-  boundary still reports its real size. A server source that does not implement it falls back to
-  counting the rows on the page.
-
-Paging still counts rows, not bands, so a large group can straddle two pages — its header simply
-reappears at the top of the next one.
+  which is what makes a group contiguous. The local source applies it in `'server'` mode; a server
+  fetcher should apply the same helper (it is exported) or sort by `query.groupBy` before
+  `query.sort`. In `'client'` mode the table applies `groupSortRules` to the page instead — the
+  grouped keys *only*, so the order inside a band is left exactly as the source produced it and a
+  server's own collation is never fought client-side.
+- **Counts follow the mode.** `groupCounts` is optional on `DataSource` and implemented by
+  `useLocalDataSource`. It is consulted only in `'server'` mode, where the source ordered the whole
+  set; in `'client'` mode a band counts the rows it actually holds, so the number never contradicts
+  what is on screen. Either way it reaches the header as `group.totalCount`, with `group.count`
+  always describing the loaded rows.
 
 ### Headless
 
@@ -254,13 +278,15 @@ reappears at the top of the next one.
 </TableRoot>
 ```
 
-`grouping.toggle(key)`, `grouping.collapseAll()` and `grouping.expandAll()` drive it;
+`useRowGrouping` also gathers the rows it is handed into bands (`orderedRows`), which is what makes
+`'client'` mode work — pass it the active `sort` so the bands come out the way the grouped column is
+sorted. `grouping.toggle(key)`, `grouping.collapseAll()` and `grouping.expandAll()` drive collapse;
 `collapsedByDefault` (`:groups-collapsed` on the preset) flips the starting state, and applies to
 groups that only appear later — after a filter change, or on page 4 — rather than only to the ones
 visible at mount.
 
-Below that sit the pure functions, usable with no component at all: `groupedSort`, `flattenGroups`,
-`countGroups`, `groupValueOf`, `groupPathKey`.
+Below that sit the pure functions, usable with no component at all: `groupedSort`,
+`groupSortRules`, `flattenGroups`, `countGroups`, `groupValueOf`, `groupPathKey`.
 
 Styling hooks: `.vt-group-row[data-depth][data-collapsed]`, `.vt-group-cell`, `.vt-group-toggle`,
 `.vt-group-label`, `.vt-group-count`, plus `--vt-bg-group` and `--vt-group-indent-step`.

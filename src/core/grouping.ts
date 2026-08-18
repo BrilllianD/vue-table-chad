@@ -54,11 +54,30 @@ export function groupPathKey(path: readonly FilterValue[]): string {
  */
 export function groupedSort(sort: readonly SortRule[], groupBy: readonly string[]): SortRule[] {
   if (groupBy.length === 0) return sort.slice()
-  const leading = groupBy.map<SortRule>((columnId) => ({
+  return [
+    ...groupSortRules(sort, groupBy),
+    ...sort.filter((rule) => !groupBy.includes(rule.columnId)),
+  ]
+}
+
+/**
+ * Just the leading part of `groupedSort` — one rule per grouped column, in
+ * grouping order, carrying whatever direction that column was sorted by.
+ *
+ * Sorting by these *alone* gathers rows into bands while leaving the order
+ * inside each band exactly as it arrived. That is what client-side grouping
+ * needs: it must not re-apply the user's sort keys over rows a source has
+ * already ordered, because a server's collation is not reproducible here and
+ * redoing it would shuffle rows within a page.
+ */
+export function groupSortRules(
+  sort: readonly SortRule[],
+  groupBy: readonly string[],
+): SortRule[] {
+  return groupBy.map<SortRule>((columnId) => ({
     columnId,
     direction: sort.find((rule) => rule.columnId === columnId)?.direction ?? 'asc',
   }))
-  return [...leading, ...sort.filter((rule) => !groupBy.includes(rule.columnId))]
 }
 
 function labelFor<TRow>(

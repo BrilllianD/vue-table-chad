@@ -1,10 +1,16 @@
 import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
-import type { ColumnDef, DisplayRow, RowGroup } from './types'
-import { flattenGroups } from './grouping'
+import type { ColumnDef, DisplayRow, RowGroup, SortRule } from './types'
+import { flattenGroups, groupSortRules } from './grouping'
+import { sortRows } from './sorting'
 
 export interface UseRowGroupingOptions {
   /** Column ids to group by, outermost first. Usually `state.groupBy`. */
   groupBy: MaybeRefOrGetter<string[]>
+  /**
+   * The active sort. Only the rules on grouped columns are read, and only to
+   * decide which way round the bands come out.
+   */
+  sort?: MaybeRefOrGetter<SortRule[]>
   /**
    * True per-group counts across the whole filtered dataset. Wire it to
    * `DataSource.groupCounts` — where a source cannot answer, headers fall back
@@ -21,6 +27,8 @@ export interface UseRowGroupingOptions {
 export interface UseRowGrouping<TRow> {
   /** Group headers and rows interleaved, ready to render. */
   displayRows: ComputedRef<DisplayRow<TRow>[]>
+  /** The rows it was handed, gathered into bands. Leaf order of `displayRows`. */
+  orderedRows: ComputedRef<TRow[]>
   /** Just the group headers, in display order. */
   groups: ComputedRef<RowGroup<TRow>[]>
   isGrouped: ComputedRef<boolean>
@@ -67,8 +75,26 @@ export function useRowGrouping<TRow>(
 
   const isGrouped = computed(() => groupBy.value.length > 0)
 
+  /**
+   * Rows gathered so each band is one contiguous run, in group-key order.
+   *
+   * Client-side grouping has no one else to do this: the source handed over a
+   * page ordered by the user's sort, in which two rows of the same department
+   * may sit ten rows apart. Sorting by the grouped columns *only* leaves the
+   * order inside each band untouched, so whatever the source decided — a
+   * server's own collation included — still holds row to row.
+   *
+   * When the source did order by the grouped columns (`groupMode: 'server'`),
+   * this is a stable no-op.
+   */
+  const orderedRows = computed<TRow[]>(() => {
+    const ids = groupBy.value
+    if (ids.length === 0) return allRows.value
+    return sortRows(allRows.value, groupSortRules(toValue(options.sort) ?? [], ids), allColumns.value)
+  })
+
   const displayRows = computed<DisplayRow<TRow>[]>(() =>
-    flattenGroups(allRows.value, groupBy.value, allColumns.value, {
+    flattenGroups(orderedRows.value, groupBy.value, allColumns.value, {
       isCollapsed,
       totals: toValue(options.totals),
       blankLabel: options.blankLabel,
@@ -105,6 +131,7 @@ export function useRowGrouping<TRow>(
 
   return {
     displayRows,
+    orderedRows,
     groups,
     isGrouped,
     collapsed,

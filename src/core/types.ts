@@ -84,9 +84,14 @@ export interface QueryState {
   sort: SortRule[]
   filters: Record<string, ColumnFilter>
   /**
-   * Column ids to group rows by, outermost level first. Part of the query
-   * rather than of the column layout because it changes *which rows come back
-   * in which order* — a server has to honour it exactly as it honours `sort`.
+   * Column ids to group rows by, outermost level first — but only when
+   * grouping is delegated to the data source (`groupMode: 'server'`).
+   *
+   * It sits in the query rather than in the column layout because delegated
+   * grouping changes *which rows come back in which order*, so a server has to
+   * honour it exactly as it honours `sort`. Client-side grouping never lands
+   * here: it rearranges rows that are already loaded and is none of the
+   * source's business, so this stays empty and nothing refetches.
    */
   groupBy: string[]
   /** 1-based. */
@@ -174,6 +179,20 @@ export interface ResolvedColumn<TRow = Record<string, unknown>> extends ColumnDe
 /* ------------------------------------------------------------------ *
  * Grouping
  * ------------------------------------------------------------------ */
+
+/**
+ * Who performs the grouping.
+ *
+ *  - `'client'` — the table bands the rows it already has. Nothing enters the
+ *    query, so no refetch happens and a server never hears about it. Bands
+ *    describe the loaded rows, and a group larger than the page shows only the
+ *    part that is loaded. This is the default.
+ *  - `'server'` — the grouping goes into `QueryState.groupBy`, and the data
+ *    source performs it: `useServerDataSource` sends it and refetches,
+ *    `useLocalDataSource` sorts the whole dataset by it. Groups then stay whole
+ *    across pages, and counts describe the entire group.
+ */
+export type GroupMode = 'client' | 'server'
 
 /** One bucket of rows sharing the same value on a grouped column. */
 export interface RowGroup<TRow = Record<string, unknown>> {
