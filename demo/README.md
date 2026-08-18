@@ -39,6 +39,7 @@ demo/
 | Everything at once | preset | Every `DataTable` prop and slot wired to a live control |
 | Server data | preset | Debounce, race-safety, facets, errors — with a request log as proof |
 | Filters | preset | The filter model taken apart, plus the three filter primitives standalone |
+| Grouping | preset | Client vs server grouping, nesting, and per-column aggregates |
 | Hoisted state | preset | `QueryState` owned by a ref, mirrored into the URL, driven imperatively |
 | Theming | preset | The `--vt-*` palette and the `data-*` state hooks |
 | Selection | primitives | Modes, ranges, tri-state header, "select all matching" as a predicate |
@@ -67,10 +68,24 @@ demo/
 
 ## Coverage
 
-All 96 names exported from `src/index.ts` are referenced somewhere in `demo/src` — checked by
-diffing the export list against the sources, not by eye. Most are called or rendered; the
-remainder are types that appear as explicit annotations (`ServerDataSourceOptions`,
-`UseColumnsResult`, `PageItem`, `SelectionState`, …) so the demo doubles as a typed reference
-rather than leaning on inference.
+118 of the 135 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
+checked by diffing the export list against the sources, not by eye. Most are called or
+rendered; the remainder are types that appear as explicit annotations
+(`ServerDataSourceOptions`, `UseColumnsResult`, `PageItem`, `SelectionState`, `GroupingOptions`,
+…) so the demo doubles as a typed reference rather than leaning on inference.
+
+The seventeen that are not referenced, and why:
+
+- **Column storage and drag-and-drop internals** — `ColumnLayoutState`, `ColumnLayoutField`,
+  `ColumnStorageOptions`, `StorageLike`, `DEFAULT_COLUMN_LAYOUT_FIELDS`, `sanitizeColumnLayout`,
+  `normalizeColumnStorage`, `UseColumnDnd`, `UseColumnDndOptions`, `ColumnDropTarget`,
+  `DropSide`. The Column layout view drives all of this through `DataTable` props and
+  `useColumns`, so the plumbing types never need naming.
+- **Grouping internals** — `aggregateValue`, `aggregateRow`, `groupValueOf`, `groupPathKey`,
+  `groupSortRules`. The Grouping view uses the whole-dataset entry points (`aggregateGroups`,
+  `countGroups`, `flattenGroups`, `groupKeys`) instead; these five are the single-column and
+  single-row pieces those are built from.
+- **`TableGroupRow`** — reaching it means hand-building a `<tbody>`, which is the Composed
+  view's business, not the Grouping view's.
 
 Each view also lists the exports it uses in the chips under its title.
