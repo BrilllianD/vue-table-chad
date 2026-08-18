@@ -7,6 +7,7 @@
 import {
   computeFacets,
   filterRows,
+  groupedSort,
   sortRows,
   type ColumnDef,
   type FacetValue,
@@ -112,7 +113,10 @@ export async function fetchEmployees(
     filters: query.filters,
     globalSearch: query.globalSearch,
   })
-  const ordered = sortRows(matched, query.sort, columns)
+  // A grouped table needs its groups contiguous *across pages*, which is a
+  // server-side ordering concern: the grouped columns sort ahead of the
+  // user's sort. `groupedSort` is the same helper the local source uses.
+  const ordered = sortRows(matched, groupedSort(query.sort, query.groupBy), columns)
   const start = (query.page - 1) * query.pageSize
 
   return { rows: ordered.slice(start, start + query.pageSize), total: matched.length }

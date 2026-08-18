@@ -77,6 +77,7 @@ Everything hangs off these. Learn them and the rest follows.
 interface QueryState {
   sort: SortRule[]                      // ordered array = multi-sort
   filters: Record<string, ColumnFilter>
+  groupBy: string[]                     // ordered array = nested grouping
   page: number                          // 1-based
   pageSize: number
   globalSearch: string
@@ -95,6 +96,7 @@ interface DataSource<TRow> {
   error: Ref<unknown>
   refresh(): void
   facets(columnId: string): Promise<FacetValue[]>
+  groupCounts?(groupBy: string[]): Map<string, number>   // only if it holds every row
   readonly remote: boolean   // lets the UI say facets come from the server
 }
 ```
@@ -181,6 +183,87 @@ predicate instead:
 ```
 
 `DataTable` offers this escalation only once the visible page is fully checked.
+
+## Grouping rows
+
+```vue
+<DataTable :columns="columns" :source="source" :initial-group-by="['department']" />
+```
+
+Or from the toolbar's **Group by** menu, which is on by default (`:show-group-menu="false"` to
+drop it). Pick a second column to nest inside the first — `groupBy` is an ordered array, exactly
+like `sort`.
+
+Group headers are collapsible, count their rows, and name the blank bucket rather than rendering
+an empty band:
+
+```
+▾ DEPARTMENT  Engineering  2
+    Ada Lovelace      120,000
+    Grace Hopper      145,000
+▸ DEPARTMENT  Research     2
+▾ DEPARTMENT  Blank        1
+    Barbara Liskov    150,000
+```
+
+Per column:
+
+```ts
+{
+  id: 'hiredAt',
+  type: 'date',
+  groupable: true,                                  // default; false to keep it out of the menu
+  groupValue: (row) => row.hiredAt?.slice(0, 7),    // group by month, not by day
+  groupLabel: (value) => `Hired ${value}`,          // header text for the band
+}
+```
+
+`groupValue` defaults to the cell run through `toFilterValue`, so `null`, `undefined` and `''`
+land in one bucket rather than three. Define `groupLabel` whenever you define `groupValue` —
+`format` is deliberately skipped then, since it describes a cell and the bucket is no longer one.
+
+### How it works with paging
+
+Grouping is a layer over the rows the source hands back, not a second pipeline. Two consequences
+worth knowing:
+
+- **The grouped columns sort first.** `groupedSort(sort, groupBy)` prepends them to the sort rules,
+  which is what makes a group contiguous rather than scattered across the dataset. The local source
+  does this for you; a server fetcher should apply the same helper (it is exported) or sort by
+  `query.groupBy` before `query.sort`.
+- **Counts come from the whole result set where the source can supply them.** `groupCounts` is
+  optional on `DataSource` and implemented by `useLocalDataSource`, so a group split across a page
+  boundary still reports its real size. A server source that does not implement it falls back to
+  counting the rows on the page.
+
+Paging still counts rows, not bands, so a large group can straddle two pages — its header simply
+reappears at the top of the next one.
+
+### Headless
+
+`useRowGrouping` owns the collapse state and the flattening, and `TableRoot` exposes both:
+
+```vue
+<TableRoot v-slot="{ displayRows, grouping }" :columns="columns" :source="source">
+  <tbody>
+    <template v-for="item in displayRows">
+      <TableGroupRow v-if="item.kind === 'group'" :key="item.group.key" :group="item.group" />
+      <tr v-else :key="item.row.id"><!-- your cells --></tr>
+    </template>
+  </tbody>
+</TableRoot>
+```
+
+`grouping.toggle(key)`, `grouping.collapseAll()` and `grouping.expandAll()` drive it;
+`collapsedByDefault` (`:groups-collapsed` on the preset) flips the starting state, and applies to
+groups that only appear later — after a filter change, or on page 4 — rather than only to the ones
+visible at mount.
+
+Below that sit the pure functions, usable with no component at all: `groupedSort`, `flattenGroups`,
+`countGroups`, `groupValueOf`, `groupPathKey`.
+
+Styling hooks: `.vt-group-row[data-depth][data-collapsed]`, `.vt-group-cell`, `.vt-group-toggle`,
+`.vt-group-label`, `.vt-group-count`, plus `--vt-bg-group` and `--vt-group-indent-step`.
 
 ## Composing your own
 
@@ -456,6 +539,7 @@ Styling hooks: `[data-reorderable]`, `[data-dragging]` and `[data-drop='before'|
 
 ## Not included
 
-Row virtualization, grouping/tree rows, editable cells, and column-level aggregation. The core is
-structured so virtualization slots in at the rendering layer without touching the pipeline —
-`filteredRows` on the local source is the hook for it.
+Row virtualization, tree rows (parent/child hierarchies, as opposed to the value-based grouping
+above), editable cells, and column-level aggregation — group headers count their rows and nothing
+more. The core is structured so virtualization slots in at the rendering layer without touching the
+pipeline — `filteredRows` on the local source is the hook for it.

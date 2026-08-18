@@ -55,6 +55,10 @@
   */
   --vt-bg-row-odd: var(--vt-bg);
   --vt-bg-row-even: var(--vt-bg);
+
+  /* Group header bands, and how far each nesting level indents. */
+  --vt-bg-group: var(--vt-bg-header);
+  --vt-group-indent-step: 16px;
   /*
     Body rules. Width 0 removes them — `--vt-body-border-width: 0` is the
     borderless table. The vertical ones start off, since column separators are
@@ -279,6 +283,16 @@
 /* The opaque base each layer sits on. */
 .vt-tbody .vt-tr:nth-child(odd) .vt-td { background-color: var(--vt-bg-row-odd); }
 .vt-tbody .vt-tr:nth-child(even) .vt-td { background-color: var(--vt-bg-row-even); }
+
+/*
+  Grouping interleaves header rows into the same `<tbody>`, so `nth-child`
+  parity stops tracking the rows and the stripes start flickering per band.
+  `data-parity` carries the row's position among *rows*, counted before the
+  headers were folded in. Same specificity as the rules above, declared after,
+  so it wins wherever it is present.
+*/
+.vt-tbody .vt-tr[data-parity='odd'] .vt-td { background-color: var(--vt-bg-row-odd); }
+.vt-tbody .vt-tr[data-parity='even'] .vt-td { background-color: var(--vt-bg-row-even); }
 
 /*
   Each state fills one layer. `linear-gradient(c, c)` is how a flat colour
@@ -619,6 +633,164 @@
 }
 
 .vt-chip-remove:hover { background: var(--vt-border); color: var(--vt-text); }
+
+/* ---------------------------------------------------------------- groups */
+
+.vt-group-row .vt-group-cell {
+  /* Not `.vt-td`, so none of the hover, stripe or pin layering applies here. */
+  padding: 0;
+  background-color: var(--vt-bg-group);
+  border-bottom: var(--vt-body-border-width) solid var(--vt-body-border-color);
+}
+
+/* Full width, so the whole band is one click target. */
+.vt-group-toggle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The part that actually holds the label — and the part that stays put. */
+.vt-group-sticky {
+  position: sticky;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--vt-row-height);
+  /* Indent lives here rather than on the cell, so nesting reads as depth. */
+  padding: 0 12px 0 calc(12px + var(--vt-group-depth, 0) * var(--vt-group-indent-step));
+}
+
+.vt-group-toggle:hover { background: var(--vt-bg-hover); }
+.vt-group-toggle:focus-visible { outline: 2px solid var(--vt-accent); outline-offset: -2px; }
+
+.vt-group-caret {
+  flex: none;
+  /* Fixed box, so the rotation cannot nudge the label sideways. */
+  width: 12px;
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  color: var(--vt-text-muted);
+  transform: rotate(90deg);
+  transition: transform 120ms ease;
+}
+
+.vt-group-row[data-collapsed] .vt-group-caret { transform: rotate(0deg); }
+
+.vt-group-column {
+  color: var(--vt-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vt-group-label {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vt-group-count {
+  flex: none;
+  font-size: 11px;
+  color: var(--vt-text-muted);
+  background: var(--vt-bg);
+  border: 1px solid var(--vt-border);
+  border-radius: 8px;
+  padding: 0 6px;
+}
+
+/*
+  Indents a grouped row's first cell to line up inside its band. An inline
+  spacer rather than cell padding: padding would also shift the header cell,
+  which is not indented, and knock the columns out of alignment.
+*/
+.vt-group-indent {
+  display: inline-block;
+  width: calc(var(--vt-group-depth, 0) * var(--vt-group-indent-step));
+}
+
+/* ----------------------------------------------------------- group menu */
+
+.vt-group-menu { position: relative; }
+
+.vt-group-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 240px;
+  padding: 6px;
+  background: var(--vt-bg);
+  border: 1px solid var(--vt-border-strong);
+  border-radius: var(--vt-radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+.vt-group-badge {
+  display: inline-block;
+  min-width: 16px;
+  font-size: 10px;
+  text-align: center;
+  background: var(--vt-accent);
+  color: var(--vt-accent-contrast);
+  border-radius: 8px;
+  padding: 0 4px;
+}
+
+.vt-group-hint {
+  margin: 0;
+  padding: 4px 6px 8px;
+  color: var(--vt-text-muted);
+  font-size: 12px;
+}
+
+.vt-group-levels {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0 0 4px;
+  border-bottom: 1px solid var(--vt-border);
+}
+
+.vt-group-level { display: flex; align-items: center; gap: 6px; padding: 3px 4px; }
+
+.vt-group-level-index {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--vt-text-muted);
+  border: 1px solid var(--vt-border);
+  border-radius: 4px;
+}
+
+.vt-group-level-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vt-group-option { display: flex; align-items: center; gap: 6px; padding: 3px 4px; }
+.vt-group-option-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vt-group-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--vt-border);
+  margin-top: 4px;
+  padding-top: 4px;
+}
 
 /* --------------------------------------------------------- columns menu */
 

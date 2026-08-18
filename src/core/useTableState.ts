@@ -11,6 +11,8 @@ import { isEmptyFilter, pruneFilters } from './filters/model'
 export interface TableStateOptions {
   initialSort?: SortRule[]
   initialFilters?: Record<string, ColumnFilter>
+  /** Column ids to group rows by on first render, outermost level first. */
+  initialGroupBy?: string[]
   initialPage?: number
   pageSize?: number
   initialSearch?: string
@@ -26,6 +28,7 @@ export interface TableState {
   query: ComputedRef<QueryState>
   sort: Ref<SortRule[]>
   filters: Ref<Record<string, ColumnFilter>>
+  groupBy: Ref<string[]>
   page: Ref<number>
   pageSize: Ref<number>
   globalSearch: Ref<string>
@@ -44,6 +47,18 @@ export interface TableState {
   activeFilterIds: ComputedRef<string[]>
   hasActiveFilters: ComputedRef<boolean>
 
+  setGroupBy: (columnIds: string[]) => void
+  /** Adds a grouping level, or moves an existing one to the end. */
+  addGroup: (columnId: string) => void
+  removeGroup: (columnId: string) => void
+  /** Adds the column if it is not grouped, removes it if it is. */
+  toggleGroup: (columnId: string) => void
+  clearGrouping: () => void
+  isGrouped: (columnId: string) => boolean
+  /** 1-based grouping level for a column, or 0 when it is not grouped. */
+  groupIndexFor: (columnId: string) => number
+  hasGrouping: ComputedRef<boolean>
+
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSearch: (search: string) => void
@@ -54,6 +69,7 @@ export function createQueryState(options: TableStateOptions = {}): QueryState {
   return {
     sort: options.initialSort ? [...options.initialSort] : [],
     filters: options.initialFilters ? { ...options.initialFilters } : {},
+    groupBy: options.initialGroupBy ? [...options.initialGroupBy] : [],
     page: options.initialPage ?? 1,
     pageSize: options.pageSize ?? 25,
     globalSearch: options.initialSearch ?? '',
@@ -105,6 +121,7 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   const refs = toRefs(internal)
   const sort = refs.sort as Ref<SortRule[]>
   const filters = refs.filters as Ref<Record<string, ColumnFilter>>
+  const groupBy = refs.groupBy as Ref<string[]>
   const page = refs.page as Ref<number>
   const pageSize = refs.pageSize as Ref<number>
   const globalSearch = refs.globalSearch as Ref<string>
@@ -112,6 +129,7 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   const query = computed<QueryState>(() => ({
     sort: internal.sort,
     filters: internal.filters,
+    groupBy: internal.groupBy,
     page: internal.page,
     pageSize: internal.pageSize,
     globalSearch: internal.globalSearch,
@@ -167,6 +185,44 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   )
   const hasActiveFilters = computed(() => activeFilterIds.value.length > 0)
 
+  /**
+   * Grouping reorders rows (grouped columns sort first), so like a filter
+   * change it invalidates the current page rather than just redecorating it.
+   */
+  function setGroupBy(columnIds: string[]): void {
+    // De-duplicated: the same column twice would nest a group inside itself,
+    // producing a second level in which every group holds exactly one bucket.
+    internal.groupBy = [...new Set(columnIds)]
+    internal.page = 1
+  }
+
+  function isGrouped(columnId: string): boolean {
+    return internal.groupBy.includes(columnId)
+  }
+
+  function groupIndexFor(columnId: string): number {
+    return internal.groupBy.indexOf(columnId) + 1
+  }
+
+  function addGroup(columnId: string): void {
+    setGroupBy([...internal.groupBy.filter((id) => id !== columnId), columnId])
+  }
+
+  function removeGroup(columnId: string): void {
+    setGroupBy(internal.groupBy.filter((id) => id !== columnId))
+  }
+
+  function toggleGroup(columnId: string): void {
+    if (isGrouped(columnId)) removeGroup(columnId)
+    else addGroup(columnId)
+  }
+
+  function clearGrouping(): void {
+    setGroupBy([])
+  }
+
+  const hasGrouping = computed(() => internal.groupBy.length > 0)
+
   function setPage(value: number): void {
     internal.page = Math.max(1, Math.floor(value))
   }
@@ -191,6 +247,7 @@ export function useTableState(options: TableStateOptions = {}): TableState {
     query,
     sort,
     filters,
+    groupBy,
     page,
     pageSize,
     globalSearch,
@@ -205,6 +262,14 @@ export function useTableState(options: TableStateOptions = {}): TableState {
     filterFor,
     activeFilterIds,
     hasActiveFilters,
+    setGroupBy,
+    addGroup,
+    removeGroup,
+    toggleGroup,
+    clearGrouping,
+    isGrouped,
+    groupIndexFor,
+    hasGrouping,
     setPage,
     setPageSize,
     setSearch,

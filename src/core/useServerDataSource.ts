@@ -39,9 +39,13 @@ function cloneQuery(query: QueryState): QueryState {
   return JSON.parse(JSON.stringify(query)) as QueryState
 }
 
-/** Everything except paging — a change here has to reset to page 1 server-side. */
+/**
+ * Everything except paging — a change here has to reset to page 1 server-side.
+ * `groupBy` belongs in it because grouping is a sort: it decides which rows
+ * land on which page, so changing it has to refetch.
+ */
 function shapeKey(query: QueryState): string {
-  return JSON.stringify([query.sort, query.filters, query.globalSearch])
+  return JSON.stringify([query.sort, query.filters, query.globalSearch, query.groupBy])
 }
 
 /**

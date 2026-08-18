@@ -16,11 +16,13 @@ import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
 import TableHeaderCell from '../primitives/TableHeaderCell.vue'
 import TableCell from '../primitives/TableCell.vue'
+import TableGroupRow from '../primitives/TableGroupRow.vue'
 import SortTrigger from '../primitives/SortTrigger.vue'
 import ColumnFilterPopover from '../primitives/ColumnFilterPopover.vue'
 import ColumnResizeHandle from '../primitives/ColumnResizeHandle.vue'
 import ColumnDragGhost from '../primitives/ColumnDragGhost.vue'
 import ColumnVisibilityMenu from '../primitives/ColumnVisibilityMenu.vue'
+import RowGroupMenu from '../primitives/RowGroupMenu.vue'
 import ActiveFilters from '../primitives/ActiveFilters.vue'
 import TablePagination from '../primitives/TablePagination.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
@@ -45,9 +47,19 @@ const props = withDefaults(
     pageSize?: number
     /** Drag column headers to reorder them. */
     reorderable?: boolean
+    /**
+     * Bands rows by these columns on first render, outermost level first.
+     * Ignored when `state` is supplied — seed that state's `initialGroupBy`.
+     */
+    initialGroupBy?: string[]
+    /** Renders every band folded shut until the user opens it. */
+    groupsCollapsed?: boolean
+    /** Header text for the band holding rows with no value. */
+    blankGroupLabel?: string
     showToolbar?: boolean
     showSearch?: boolean
     showColumnsMenu?: boolean
+    showGroupMenu?: boolean
     showPagination?: boolean
     stickyHeader?: boolean
     emptyMessage?: string
@@ -59,6 +71,7 @@ const props = withDefaults(
     showToolbar: true,
     showSearch: true,
     showColumnsMenu: true,
+    showGroupMenu: true,
     showPagination: true,
     stickyHeader: true,
     emptyMessage: 'No rows match the current filters.',
@@ -91,6 +104,7 @@ const selectable = computed(() => props.selectable !== false)
       loading,
       error,
       total,
+      displayRows,
       getRowKey: rowKey,
       getCellValue,
       getCellText,
@@ -106,6 +120,9 @@ const selectable = computed(() => props.selectable !== false)
     :storage-fields="storageFields"
     :page-size="pageSize"
     :reorderable="reorderable"
+    :initial-group-by="initialGroupBy"
+    :groups-collapsed="groupsCollapsed"
+    :blank-group-label="blankGroupLabel"
     @update:query="$emit('update:query', $event)"
     @update:selection="$emit('update:selection', $event)"
     @update:column-order="$emit('update:columnOrder', $event)"
@@ -129,6 +146,7 @@ const selectable = computed(() => props.selectable !== false)
             </button>
           </span>
           <span class="vt-toolbar-spacer" />
+          <RowGroupMenu v-if="showGroupMenu" />
           <ColumnVisibilityMenu v-if="showColumnsMenu" />
         </slot>
       </div>
@@ -219,40 +237,76 @@ const selectable = computed(() => props.selectable !== false)
               </td>
             </tr>
 
-            <tr
-              v-for="(row, rowIndex) in rows"
-              v-else
-              :key="rowKey(row, rowIndex)"
-              class="vt-tr"
-              :data-selected="selection?.isSelected(row) || undefined"
-              @click="$emit('rowClick', row, $event)"
-            >
-              <td v-if="selectable" class="vt-td vt-td-selection">
-                <SelectionCheckbox
-                  v-if="selection"
-                  :checked="selection.isSelected(row)"
-                  :disabled="!selection.isSelectable(row)"
-                  label="Select row"
-                  @change="
-                    (_checked, event) =>
-                      event.shiftKey ? selection.toggleRange(row) : selection.toggle(row)
-                  "
-                />
-              </td>
+            <!--
+              Iterates the display list, not `rows`: with nothing grouped the
+              two hold the same rows in the same order, so there is only one
+              code path to keep correct.
+            -->
+            <template v-for="item in displayRows" v-else>
+              <TableGroupRow
+                v-if="item.kind === 'group'"
+                :key="`group:${item.group.key}`"
+                :group="item.group"
+                :colspan="cols.length + (selectable ? 1 : 0)"
+              >
+                <template #default="slotProps">
+                  <slot name="group" v-bind="slotProps">
+                    <span class="vt-group-column">{{ slotProps.columnLabel }}</span>
+                    <span class="vt-group-label">{{ slotProps.group.label }}</span>
+                    <span class="vt-group-count">{{ slotProps.group.totalCount }}</span>
+                  </slot>
+                </template>
+              </TableGroupRow>
 
-              <TableCell v-for="column in cols" :key="column.id" :column="column">
-                <!-- Reads through the column's accessor and format, not row[id]. -->
-                <slot
-                  :name="`cell:${column.id}`"
-                  :row="row"
+              <tr
+                v-else
+                :key="rowKey(item.row, item.index)"
+                class="vt-tr"
+                :data-selected="selection?.isSelected(item.row) || undefined"
+                :data-parity="item.index % 2 === 0 ? 'odd' : 'even'"
+                @click="$emit('rowClick', item.row, $event)"
+              >
+                <td v-if="selectable" class="vt-td vt-td-selection">
+                  <SelectionCheckbox
+                    v-if="selection"
+                    :checked="selection.isSelected(item.row)"
+                    :disabled="!selection.isSelectable(item.row)"
+                    label="Select row"
+                    @change="
+                      (_checked, event) =>
+                        event.shiftKey ? selection.toggleRange(item.row) : selection.toggle(item.row)
+                    "
+                  />
+                </td>
+
+                <TableCell
+                  v-for="(column, columnIndex) in cols"
+                  :key="column.id"
                   :column="column"
-                  :value="getCellValue(row, column)"
-                  :text="getCellText(row, column)"
                 >
-                  {{ getCellText(row, column) }}
-                </slot>
-              </TableCell>
-            </tr>
+                  <!--
+                    The first cell carries the group indent, so rows sit visibly
+                    inside their band without an extra spacer column.
+                  -->
+                  <span
+                    v-if="columnIndex === 0 && item.depth > 0"
+                    class="vt-group-indent"
+                    :style="{ '--vt-group-depth': item.depth }"
+                    aria-hidden="true"
+                  />
+                  <!-- Reads through the column's accessor and format, not row[id]. -->
+                  <slot
+                    :name="`cell:${column.id}`"
+                    :row="item.row"
+                    :column="column"
+                    :value="getCellValue(item.row, column)"
+                    :text="getCellText(item.row, column)"
+                  >
+                    {{ getCellText(item.row, column) }}
+                  </slot>
+                </TableCell>
+              </tr>
+            </template>
           </tbody>
         </TableGrid>
 

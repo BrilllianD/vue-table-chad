@@ -75,6 +75,7 @@ function setFromOutside(): void {
   external.value = {
     sort: [{ columnId: 'rating', direction: 'desc' }],
     filters: { department: valuesFilter(['Design']) },
+    groupBy: [],
     page: 2,
     pageSize: 5,
     globalSearch: 'a',

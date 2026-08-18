@@ -83,6 +83,12 @@ export interface FacetValue {
 export interface QueryState {
   sort: SortRule[]
   filters: Record<string, ColumnFilter>
+  /**
+   * Column ids to group rows by, outermost level first. Part of the query
+   * rather than of the column layout because it changes *which rows come back
+   * in which order* — a server has to honour it exactly as it honours `sort`.
+   */
+  groupBy: string[]
   /** 1-based. */
   page: number
   pageSize: number
@@ -125,6 +131,19 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   hideable?: boolean
   /** Whether the column can be dragged to a new position. Defaults to true. */
   reorderable?: boolean
+  /** Whether the column may be grouped by. Defaults to true. */
+  groupable?: boolean
+  /**
+   * The key rows are bucketed under when grouping by this column. Defaults to
+   * the cell value collapsed through `toFilterValue`, which is what makes
+   * `null`, `undefined` and `''` land in one "blank" bucket.
+   *
+   * Override it to group by something coarser than the cell — a date column
+   * grouped by month, a number column grouped into bands.
+   */
+  groupValue?: (row: TRow) => FilterValue
+  /** Labels a group header. Defaults to `format`, then `String(value)`. */
+  groupLabel?: (value: FilterValue) => string
   pinned?: PinSide | false
   align?: 'left' | 'center' | 'right'
   /**
@@ -151,6 +170,55 @@ export interface ResolvedColumn<TRow = Record<string, unknown>> extends ColumnDe
   sortIndex: number
   hasFilter: boolean
 }
+
+/* ------------------------------------------------------------------ *
+ * Grouping
+ * ------------------------------------------------------------------ */
+
+/** One bucket of rows sharing the same value on a grouped column. */
+export interface RowGroup<TRow = Record<string, unknown>> {
+  /**
+   * Stable identity, derived from the values of every level down to this one.
+   * Collapse state is keyed by it, so it must not change when the page does.
+   */
+  key: string
+  /** The grouped column at this level. */
+  columnId: string
+  /** This level's value, already collapsed through `toFilterValue`. */
+  value: FilterValue
+  /** The values of every level down to and including this one. */
+  path: FilterValue[]
+  /** 0 for the outermost level. */
+  depth: number
+  /** Display text for the header — `groupLabel`, then `format`, then the value. */
+  label: string
+  /** Leaf rows beneath this group, among the rows that were grouped. */
+  rows: TRow[]
+  /** `rows.length` — how many landed here out of what was handed in. */
+  count: number
+  /**
+   * Rows in this group across the *whole* filtered dataset, when the data
+   * source can say (local ones can; a server one only if it reports it).
+   * Falls back to `count`, so a group split across two pages still reads
+   * correctly whenever the true total is available.
+   */
+  totalCount: number
+}
+
+/**
+ * A rendered line: either a group header or an actual row. Flattening the tree
+ * into one list is what lets the table stay a plain `<tbody>` of `<tr>`s.
+ */
+export type DisplayRow<TRow = Record<string, unknown>> =
+  | { kind: 'group'; group: RowGroup<TRow> }
+  | {
+      kind: 'row'
+      row: TRow
+      /** Position in the array that was grouped — survives regrouping, so it is a stable stripe parity. */
+      index: number
+      /** How many group levels sit above this row; 0 when grouping is off. */
+      depth: number
+    }
 
 /* ------------------------------------------------------------------ *
  * Data sources
@@ -186,6 +254,13 @@ export interface DataSource<TRow = Record<string, unknown>> {
    * the Excel checklist narrow as you filter elsewhere.
    */
   facets: (columnId: string) => Promise<FacetValue[]>
+  /**
+   * Row counts per group path across the entire filtered set, keyed the way
+   * `RowGroup.key` is. Optional on purpose: only a source holding all the rows
+   * can answer it, and a group header degrades to its per-page count when it
+   * goes unanswered.
+   */
+  groupCounts?: (groupBy: string[]) => Map<string, number>
   /** True for server sources; lets the UI warn that facets are remote. */
   readonly remote: boolean
 }

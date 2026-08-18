@@ -2,6 +2,7 @@ import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter } from 
 import type { ColumnDef, DataSource, FacetValue, QueryState } from './types'
 import { computeFacets, filterRows } from './filters/facets'
 import { sortRows, type SortOptions } from './sorting'
+import { countGroups, groupedSort } from './grouping'
 
 export interface LocalDataSourceOptions extends SortOptions {}
 
@@ -10,6 +11,8 @@ export interface LocalDataSource<TRow> extends DataSource<TRow> {
   filteredRows: ComputedRef<TRow[]>
   /** Facets computed synchronously — local data needs no await. */
   facetsSync: (columnId: string) => FacetValue[]
+  /** Always present here: a local source holds every row, so it can count them. */
+  groupCounts: (groupBy: string[]) => Map<string, number>
 }
 
 /**
@@ -39,8 +42,17 @@ export function useLocalDataSource<TRow>(
     })
   })
 
+  /**
+   * Grouped columns sort first, ahead of whatever the user sorted by. Without
+   * that, rows sharing a group value are scattered across the dataset and the
+   * page slice hands the grouper interleaved runs rather than whole buckets.
+   */
+  const effectiveSort = computed(() =>
+    groupedSort(currentQuery.value.sort, currentQuery.value.groupBy ?? []),
+  )
+
   const sorted = computed<TRow[]>(() =>
-    sortRows(filtered.value, currentQuery.value.sort, allColumns.value, options),
+    sortRows(filtered.value, effectiveSort.value, allColumns.value, options),
   )
 
   const total = computed(() => filtered.value.length)
@@ -65,6 +77,14 @@ export function useLocalDataSource<TRow>(
     })
   }
 
+  /**
+   * Counts over the full filtered set, not the page — so a group straddling a
+   * page boundary still reports how many rows it really holds.
+   */
+  function groupCounts(groupBy: string[]): Map<string, number> {
+    return countGroups(filtered.value, groupBy, allColumns.value)
+  }
+
   return {
     rows,
     total,
@@ -75,6 +95,7 @@ export function useLocalDataSource<TRow>(
     },
     facets: (columnId: string) => Promise.resolve(facetsSync(columnId)),
     facetsSync,
+    groupCounts,
     filteredRows: sorted,
     remote: false,
   }

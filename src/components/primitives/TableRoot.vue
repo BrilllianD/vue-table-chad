@@ -6,6 +6,7 @@ import { useTableState, type TableState } from '../../core/useTableState'
 import { useColumns, type ColumnLayoutState } from '../../core/useColumns'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
+import { useRowGrouping } from '../../core/useRowGrouping'
 import { useRowSelection, defaultRowId } from '../../core/useRowSelection'
 import { usePagination } from '../../core/usePagination'
 import { readValue } from '../../core/sorting'
@@ -38,6 +39,17 @@ const props = withDefaults(
     siblingCount?: number
     /** Turns column drag-to-reorder off for the whole table. */
     reorderable?: boolean
+    /**
+     * Groups rows by these columns on first render, outermost level first.
+     * Seeds the state this component owns, so — like `pageSize` — it is
+     * ignored when `state` is supplied; put `initialGroupBy` on your own
+     * `useTableState` call instead.
+     */
+    initialGroupBy?: string[]
+    /** Renders every group folded shut until the user opens it. */
+    groupsCollapsed?: boolean
+    /** Header text for the bucket holding rows with no value. */
+    blankGroupLabel?: string
   }>(),
   { selectable: false, pageSize: 25, siblingCount: 1, reorderable: true },
 )
@@ -49,7 +61,8 @@ const emit = defineEmits<{
   'update:columnOrder': [order: string[]]
 }>()
 
-const state = props.state ?? useTableState({ pageSize: props.pageSize })
+const state =
+  props.state ?? useTableState({ pageSize: props.pageSize, initialGroupBy: props.initialGroupBy })
 
 const columns = useColumns<TRow>(
   () => props.columns,
@@ -91,6 +104,25 @@ const dnd = useColumnDnd({
 })
 
 const rows = computed(() => props.source.rows.value)
+
+/**
+ * Grouping sits above the source and below the markup: it groups the page the
+ * source produced, which is why it works the same for local and server data.
+ *
+ * `groupCounts` is what a source offers when it holds every row, so a header
+ * can say "Engineering (240)" rather than "Engineering (12 of them on page 3)".
+ * Server sources leave it undefined and the count falls back to the page.
+ */
+const grouping = useRowGrouping<TRow>(
+  rows,
+  () => props.columns,
+  {
+    groupBy: () => state.groupBy.value,
+    totals: () => props.source.groupCounts?.(state.groupBy.value),
+    collapsedByDefault: props.groupsCollapsed,
+    blankLabel: props.blankGroupLabel,
+  },
+)
 
 /**
  * Strict identity, for selection: a wrong id there silently corrupts the
@@ -150,7 +182,9 @@ const context: TableContext<TRow> = {
   selection,
   pagination,
   dnd,
+  grouping,
   rows,
+  displayRows: grouping.displayRows,
   visibleColumns: columns.visible,
   columnDefs: computed(() => props.columns),
   getRowId,
@@ -176,7 +210,15 @@ watch(
   { deep: true },
 )
 
-defineExpose({ state, columns, selection, pagination, dnd, source: toRef(props, 'source') })
+defineExpose({
+  state,
+  columns,
+  selection,
+  pagination,
+  dnd,
+  grouping,
+  source: toRef(props, 'source'),
+})
 </script>
 
 <template>
@@ -186,6 +228,8 @@ defineExpose({ state, columns, selection, pagination, dnd, source: toRef(props, 
   -->
   <slot
     :rows="rows"
+    :display-rows="grouping.displayRows.value"
+    :grouping="grouping"
     :columns="columns.visible.value"
     :all-columns="columns.all.value"
     :state="state"

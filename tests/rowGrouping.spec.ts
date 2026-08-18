@@ -1,0 +1,279 @@
+import { describe, expect, it } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { defineComponent, effectScope, h, nextTick, ref } from 'vue'
+import DataTable from '../src/components/preset/DataTable.vue'
+import { useLocalDataSource } from '../src/core/useLocalDataSource'
+import { useRowGrouping } from '../src/core/useRowGrouping'
+import { useTableState } from '../src/core/useTableState'
+import { groupPathKey } from '../src/core/grouping'
+import { names, people, personColumns, type Person } from './fixtures'
+
+describe('useTableState grouping', () => {
+  it('starts ungrouped and reports no levels', () => {
+    const state = useTableState()
+    expect(state.groupBy.value).toEqual([])
+    expect(state.hasGrouping.value).toBe(false)
+    expect(state.groupIndexFor('department')).toBe(0)
+  })
+
+  it('adds, reports and removes levels', () => {
+    const state = useTableState()
+    state.toggleGroup('department')
+    state.toggleGroup('active')
+    expect(state.groupBy.value).toEqual(['department', 'active'])
+    expect(state.isGrouped('active')).toBe(true)
+    expect(state.groupIndexFor('active')).toBe(2)
+
+    state.toggleGroup('department')
+    expect(state.groupBy.value).toEqual(['active'])
+    state.clearGrouping()
+    expect(state.hasGrouping.value).toBe(false)
+  })
+
+  it('never nests a column inside itself', () => {
+    const state = useTableState()
+    state.setGroupBy(['department', 'department'])
+    expect(state.groupBy.value).toEqual(['department'])
+    state.addGroup('active')
+    state.addGroup('active')
+    expect(state.groupBy.value).toEqual(['department', 'active'])
+  })
+
+  it('resets to page 1, because grouping reorders which rows land where', () => {
+    const state = useTableState()
+    state.setPage(4)
+    state.addGroup('department')
+    expect(state.page.value).toBe(1)
+  })
+
+  it('carries groupBy in the query, so a server fetcher sees it', () => {
+    const state = useTableState({ initialGroupBy: ['department'] })
+    expect(state.query.value.groupBy).toEqual(['department'])
+  })
+})
+
+describe('useLocalDataSource with grouping', () => {
+  it('sorts by the grouped column first, so groups arrive contiguous', () => {
+    const scope = effectScope()
+    const result = scope.run(() => {
+      const state = useTableState({ pageSize: 100, initialSort: [{ columnId: 'name', direction: 'asc' }] })
+      state.setGroupBy(['department'])
+      const source = useLocalDataSource<Person>(people, personColumns, state.query)
+      return source.rows.value.map((row) => row.department)
+    })!
+    // Each department appears as one unbroken run.
+    expect(new Set(result).size).toBe([...result].filter((d, i) => result[i - 1] !== d).length)
+    expect(result[0]).toBe('Engineering')
+    scope.stop()
+  })
+
+  it('keeps the user sort as the tiebreak inside each group', () => {
+    const scope = effectScope()
+    const rows = scope.run(() => {
+      const state = useTableState({
+        pageSize: 100,
+        initialSort: [{ columnId: 'salary', direction: 'desc' }],
+      })
+      state.setGroupBy(['department'])
+      return useLocalDataSource<Person>(people, personColumns, state.query).rows.value
+    })!
+    expect(names(rows).slice(0, 2)).toEqual(['Grace Hopper', 'Ada Lovelace'])
+    scope.stop()
+  })
+
+  it('counts groups over the whole filtered set, not the page', () => {
+    const scope = effectScope()
+    const counts = scope.run(() => {
+      const state = useTableState({ pageSize: 2 })
+      state.setGroupBy(['department'])
+      const source = useLocalDataSource<Person>(people, personColumns, state.query)
+      // The page holds two rows; the count must still describe all seven.
+      expect(source.rows.value).toHaveLength(2)
+      return source.groupCounts(['department'])
+    })!
+    expect(counts.get(groupPathKey(['Engineering']))).toBe(2)
+    expect(counts.get(groupPathKey(['Support']))).toBe(2)
+    scope.stop()
+  })
+
+  it('narrows those counts with the active filters', () => {
+    const scope = effectScope()
+    const counts = scope.run(() => {
+      const state = useTableState({ pageSize: 100 })
+      state.setGroupBy(['department'])
+      state.setSearch('Item')
+      return useLocalDataSource<Person>(people, personColumns, state.query).groupCounts(['department'])
+    })!
+    expect(counts.get(groupPathKey(['Support']))).toBe(2)
+    expect(counts.has(groupPathKey(['Engineering']))).toBe(false)
+    scope.stop()
+  })
+})
+
+describe('useRowGrouping', () => {
+  function setup(groupBy: string[]) {
+    const scope = effectScope()
+    const ids = ref(groupBy)
+    const grouping = scope.run(() =>
+      useRowGrouping<Person>(people, personColumns, { groupBy: () => ids.value }),
+    )!
+    return { scope, ids, grouping }
+  }
+
+  it('is a plain row list until something is grouped', () => {
+    const { scope, ids, grouping } = setup([])
+    expect(grouping.isGrouped.value).toBe(false)
+    expect(grouping.displayRows.value).toHaveLength(people.length)
+
+    ids.value = ['department']
+    expect(grouping.isGrouped.value).toBe(true)
+    expect(grouping.groups.value).toHaveLength(4)
+    scope.stop()
+  })
+
+  it('toggles one group without touching the others', () => {
+    const { scope, grouping } = setup(['department'])
+    const key = grouping.groups.value[0]!.key
+    expect(grouping.isCollapsed(key)).toBe(false)
+
+    grouping.toggle(key)
+    expect(grouping.isCollapsed(key)).toBe(true)
+    expect(grouping.isCollapsed(grouping.groups.value[1]!.key)).toBe(false)
+
+    grouping.toggle(key)
+    expect(grouping.isCollapsed(key)).toBe(false)
+    scope.stop()
+  })
+
+  it('collapses every group, including ones it has not rendered yet', () => {
+    const { scope, grouping } = setup(['department'])
+    grouping.collapseAll()
+    expect(grouping.groups.value.every((group) => grouping.isCollapsed(group.key))).toBe(true)
+    // Nothing but headers survives.
+    expect(grouping.displayRows.value.every((item) => item.kind === 'group')).toBe(true)
+
+    // A group that only appears now must follow the default rather than
+    // reverting to expanded because no one listed its key.
+    grouping.toggle(grouping.groups.value[0]!.key, false)
+    expect(grouping.isCollapsed(grouping.groups.value[0]!.key)).toBe(false)
+    expect(grouping.isCollapsed(grouping.groups.value[1]!.key)).toBe(true)
+
+    grouping.expandAll()
+    expect(grouping.groups.value.every((group) => !grouping.isCollapsed(group.key))).toBe(true)
+    scope.stop()
+  })
+})
+
+/* ------------------------------------------------------------- rendering */
+
+/**
+ * The state is built here rather than left to `DataTable`, so `groupBy` starts
+ * where each test needs it. `initialGroupBy` seeds a state the table owns; once
+ * one is handed in, that state is the authority — same rule as `pageSize`.
+ */
+function mountTable(
+  options: { groupBy?: string[]; pageSize?: number } = {},
+  props: Record<string, unknown> = {},
+) {
+  const Host = defineComponent({
+    setup() {
+      const state = useTableState({
+        pageSize: options.pageSize ?? 100,
+        initialGroupBy: options.groupBy,
+      })
+      const source = useLocalDataSource<Person>(people, personColumns, state.query)
+      return () => h(DataTable as never, { columns: personColumns, source, state, ...props })
+    },
+  })
+  return mount(Host, { attachTo: document.body })
+}
+
+describe('DataTable grouping', () => {
+  it('renders no group rows until a column is grouped', () => {
+    const wrapper = mountTable()
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('renders one header per group, labelled with the column and the value', () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    const headers = wrapper.findAll('.vt-group-row')
+    expect(headers).toHaveLength(4)
+    expect(headers[0]!.text()).toContain('Department')
+    expect(headers[0]!.text()).toContain('Engineering')
+    // The blank bucket is named rather than rendered as an empty header.
+    expect(headers[3]!.text()).toContain('Blank')
+    wrapper.unmount()
+  })
+
+  it('spans the whole table, selection column included', () => {
+    const wrapper = mountTable({ groupBy: ['department'] }, { selectable: true })
+    const cell = wrapper.find('.vt-group-cell')
+    expect(cell.attributes('colspan')).toBe(String(personColumns.length + 1))
+    wrapper.unmount()
+  })
+
+  it('folds a group shut when its header is clicked, and opens it again', async () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    const rowCount = () => wrapper.findAll('tbody tr.vt-tr').length
+    expect(rowCount()).toBe(people.length)
+
+    await wrapper.find('.vt-group-toggle').trigger('click')
+    expect(rowCount()).toBe(people.length - 2)
+    expect(wrapper.find('.vt-group-row').attributes('data-collapsed')).toBeDefined()
+    // The header itself stays, or there would be no way back.
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(4)
+
+    await wrapper.find('.vt-group-toggle').trigger('click')
+    expect(rowCount()).toBe(people.length)
+    wrapper.unmount()
+  })
+
+  it('starts every group folded when asked to', () => {
+    const wrapper = mountTable({ groupBy: ['department'] }, { groupsCollapsed: true })
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(4)
+    expect(wrapper.findAll('tbody tr.vt-tr')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('counts the whole group, not the slice of it on this page', () => {
+    const wrapper = mountTable({ groupBy: ['department'], pageSize: 1 })
+    expect(wrapper.findAll('tbody tr.vt-tr')).toHaveLength(1)
+    // One Engineering row is visible; the header still reports both.
+    expect(wrapper.find('.vt-group-count').text()).toBe('2')
+    wrapper.unmount()
+  })
+
+  it('indents rows under their group and keeps stripe parity across headers', () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    expect(wrapper.find('tbody tr.vt-tr .vt-group-indent').exists()).toBe(true)
+    const parities = wrapper.findAll('tbody tr.vt-tr').map((row) => row.attributes('data-parity'))
+    expect(parities.slice(0, 4)).toEqual(['odd', 'even', 'odd', 'even'])
+    wrapper.unmount()
+  })
+
+  it('groups from the toolbar menu, and clears from it again', async () => {
+    const wrapper = mountTable()
+    await wrapper.find('.vt-group-menu .vt-btn').trigger('click')
+
+    const boxes = wrapper.findAll('.vt-group-option input')
+    // Grouping by Department — the second column.
+    await boxes[1]!.trigger('click')
+    await nextTick()
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(4)
+    expect(wrapper.find('.vt-group-badge').text()).toBe('1')
+
+    const clear = wrapper.findAll('.vt-group-actions .vt-btn').at(-1)!
+    await clear.trigger('click')
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('nests a second level and indents it further', async () => {
+    const wrapper = mountTable({ groupBy: ['department', 'active'] })
+    const depths = wrapper.findAll('.vt-group-row').map((row) => row.attributes('data-depth'))
+    expect(depths).toContain('0')
+    expect(depths).toContain('1')
+    wrapper.unmount()
+  })
+})

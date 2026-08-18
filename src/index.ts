@@ -32,6 +32,9 @@ export type {
   DropSide,
 } from './core/useColumnDnd'
 
+export { useRowGrouping } from './core/useRowGrouping'
+export type { UseRowGrouping, UseRowGroupingOptions } from './core/useRowGrouping'
+
 export { useLocalDataSource } from './core/useLocalDataSource'
 export type { LocalDataSource, LocalDataSourceOptions } from './core/useLocalDataSource'
 
@@ -86,6 +89,19 @@ export {
 } from './core/sorting'
 export type { SortOptions } from './core/sorting'
 
+/* -------------------------------------------------------------- grouping */
+
+export {
+  groupedSort,
+  flattenGroups,
+  groupValueOf,
+  groupPathKey,
+  groupKeys,
+  countGroups,
+  BLANK_GROUP_LABEL,
+} from './core/grouping'
+export type { GroupingOptions } from './core/grouping'
+
 /* ----------------------------------------------------------------- utils */
 
 export {
@@ -105,6 +121,7 @@ export { default as TableRoot } from './components/primitives/TableRoot.vue'
 export { default as TableGrid } from './components/primitives/TableGrid.vue'
 export { default as TableHeaderCell } from './components/primitives/TableHeaderCell.vue'
 export { default as TableCell } from './components/primitives/TableCell.vue'
+export { default as TableGroupRow } from './components/primitives/TableGroupRow.vue'
 export { default as SortTrigger } from './components/primitives/SortTrigger.vue'
 export { default as ColumnFilterPopover } from './components/primitives/ColumnFilterPopover.vue'
 export { default as ValueListFilter } from './components/primitives/ValueListFilter.vue'
@@ -112,6 +129,7 @@ export { default as ConditionFilter } from './components/primitives/ConditionFil
 export { default as ColumnResizeHandle } from './components/primitives/ColumnResizeHandle.vue'
 export { default as ColumnDragGhost } from './components/primitives/ColumnDragGhost.vue'
 export { default as ColumnVisibilityMenu } from './components/primitives/ColumnVisibilityMenu.vue'
+export { default as RowGroupMenu } from './components/primitives/RowGroupMenu.vue'
 export { default as ActiveFilters } from './components/primitives/ActiveFilters.vue'
 export { default as TablePagination } from './components/primitives/TablePagination.vue'
 export { default as SelectionCheckbox } from './components/primitives/SelectionCheckbox.vue'
@@ -152,6 +170,8 @@ export type {
   PinSide,
   ColumnDef,
   ResolvedColumn,
+  RowGroup,
+  DisplayRow,
   FetchParams,
   FetchResult,
   DataSource,

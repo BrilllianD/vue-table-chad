@@ -205,7 +205,7 @@ describe('useTableState', () => {
 
   it('mirrors an external state ref both ways', () => {
     const scope = effectScope()
-    const external = ref({ sort: [], filters: {}, page: 2, pageSize: 10, globalSearch: '' })
+    const external = ref({ sort: [], filters: {}, groupBy: [], page: 2, pageSize: 10, globalSearch: '' })
     const state = scope.run(() => useTableState({ state: external }))!
     expect(state.page.value).toBe(2)
 

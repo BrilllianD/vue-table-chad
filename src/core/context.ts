@@ -1,8 +1,9 @@
 import { inject, provide, type ComputedRef, type InjectionKey, type Ref } from 'vue'
-import type { ColumnDef, DataSource, ResolvedColumn, RowId } from './types'
+import type { ColumnDef, DataSource, DisplayRow, ResolvedColumn, RowId } from './types'
 import type { TableState } from './useTableState'
 import type { UseColumnsResult } from './useColumns'
 import type { UseColumnDnd } from './useColumnDnd'
+import type { UseRowGrouping } from './useRowGrouping'
 import type { UseRowSelection } from './useRowSelection'
 import type { UsePagination } from './usePagination'
 
@@ -21,8 +22,18 @@ export interface TableContext<TRow = Record<string, unknown>> {
    * header cells then simply render as non-draggable.
    */
   dnd?: UseColumnDnd
+  /**
+   * Row grouping. Optional for the same reason as `dnd`: a hand-built context
+   * may leave it out, and consumers then render `rows` flat.
+   */
+  grouping?: UseRowGrouping<TRow>
 
   rows: ComputedRef<TRow[]> | Readonly<Ref<TRow[]>>
+  /**
+   * `rows` with group headers folded in. Identical in content to `rows` when
+   * nothing is grouped, so a renderer can read only this one.
+   */
+  displayRows: ComputedRef<DisplayRow<TRow>[]>
   visibleColumns: ComputedRef<ResolvedColumn<TRow>[]>
   columnDefs: ComputedRef<ColumnDef<TRow>[]>
   getRowId: (row: TRow) => RowId

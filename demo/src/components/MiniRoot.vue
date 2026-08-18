@@ -22,6 +22,7 @@ import {
   useColumns,
   useLocalDataSource,
   usePagination,
+  useRowGrouping,
   useRowSelection,
   useTableState,
   type ColumnDef,
@@ -34,6 +35,7 @@ import {
   type UseColumnsResult,
   type UsePagination,
   type UsePaginationOptions,
+  type UseRowGroupingOptions,
   type UseRowSelectionOptions,
 } from '@sandbox/vue-table'
 import type { Employee } from '../data/dataset'
@@ -69,6 +71,14 @@ const columns: UseColumnsResult<Employee> = useColumns<Employee>(
 
 const rows = computed(() => source.rows.value)
 
+// Grouping is a layer over whatever rows the source produced, so a hand-built
+// root wires it in exactly the way `TableRoot` does.
+const groupingOptions: UseRowGroupingOptions = {
+  groupBy: () => state.groupBy.value,
+  totals: () => source.groupCounts?.(state.groupBy.value),
+}
+const grouping = useRowGrouping<Employee>(rows, () => props.columns, groupingOptions)
+
 const selectionOptions: UseRowSelectionOptions<Employee> = {
   mode: 'multiple',
   getRowId: (row) => row.id,
@@ -103,7 +113,9 @@ const context: TableContext<Employee> = {
   source,
   selection: computed(() => selection),
   pagination,
+  grouping,
   rows,
+  displayRows: grouping.displayRows,
   visibleColumns: columns.visible,
   columnDefs: computed(() => props.columns),
   getRowId: selection.getRowId,
