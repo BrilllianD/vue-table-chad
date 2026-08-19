@@ -23,6 +23,7 @@
     "build:demo": "vite build --config vite.demo.config.ts",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
+    "bench": "vitest bench --run",
     "test:watch": "vitest"
   },
   "peerDependencies": {

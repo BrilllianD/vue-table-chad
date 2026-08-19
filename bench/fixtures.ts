@@ -1,7 +1,11 @@
 /**
- * The one dataset. Benches, perf-invariant tests and the demo all generate rows
- * from here, so a number measured in `bench/` describes the same data a reader
- * sees on screen — and a regression cannot hide behind a friendlier fixture.
+ * The one workload — rows and the columns that read them.
+ *
+ * Benches, perf-invariant tests and the demo all build from here, so a number
+ * measured in `bench/` describes the same data a reader sees on screen, and a
+ * regression cannot hide behind a friendlier fixture.
+ *
+ * Rows first, then the column set at the bottom.
  *
  * Shaped to exercise every `ColumnDef` capability rather than to look tidy:
  *
@@ -13,6 +17,8 @@
  *   - `department` is blank in ~4% of rows, which is a different kind of blank
  *     (empty string, not null) and must land in the same bucket
  */
+
+import type { ColumnDef } from '@sandbox/vue-table'
 
 export interface Employee extends Record<string, unknown> {
   id: number
@@ -127,3 +133,136 @@ export function makeRows(count = 10_000): Employee[] {
 
 /** The previous name for `makeRows`, kept so the demo reads the way it always did. */
 export const generateEmployees = makeRows
+
+/* ------------------------------------------------------------------ *
+ * The workload's column set
+ *
+ * Rows alone do not define a benchmark: what the pipeline actually costs
+ * depends on the accessors it reads through, the comparators it sorts by, the
+ * formats the search box stringifies with and the aggregates the group rows
+ * reduce. So the columns live beside the rows, and the demo renders the very
+ * set the benches measure.
+ *
+ * It uses every field `ColumnDef` offers, annotated with why.
+ * ------------------------------------------------------------------ */
+
+const money = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+})
+
+export const employeeColumns: ColumnDef<Employee>[] = [
+  {
+    id: 'name',
+    header: 'Name',
+    type: 'text',
+    width: 190,
+    minWidth: 140,
+    // Pinned and unhideable: the row's identity must never scroll away or be
+    // switched off, or the rest of the row stops meaning anything.
+    pinned: 'left',
+    hideable: false,
+  },
+  { id: 'email', header: 'Email', type: 'text', width: 250 },
+  {
+    id: 'department',
+    header: 'Department',
+    type: 'enum',
+    width: 150,
+    // Fixed options keep every choice in the checklist even at count 0, so the
+    // list does not reshuffle underneath the pointer as you filter.
+    options: DEPARTMENTS,
+  },
+  {
+    id: 'role',
+    header: 'Role',
+    type: 'enum',
+    width: 130,
+    options: SENIORITY,
+    // Seniority is not alphabetical. Without this, "Junior" sorts above
+    // "Senior" and the column is worse than useless.
+    comparator: (a, b) => SENIORITY.indexOf(String(a)) - SENIORITY.indexOf(String(b)),
+  },
+  {
+    id: 'city',
+    header: 'City',
+    type: 'text',
+    width: 140,
+    // The value lives at `row.location.city`, not `row.city` — this is what
+    // `accessor` is for. Sorting, filtering and facets all read through it.
+    accessor: (row) => row.location.city,
+  },
+  {
+    id: 'country',
+    header: 'Country',
+    type: 'enum',
+    width: 130,
+    accessor: (row) => row.location.country,
+    options: COUNTRIES,
+  },
+  {
+    id: 'salary',
+    header: 'Salary',
+    type: 'number',
+    width: 130,
+    minWidth: 100,
+    maxWidth: 240,
+    align: 'right',
+    format: (value) => (value === null || value === undefined ? '—' : money.format(Number(value))),
+    // `format` cannot dress a total up — it wants a row, and a sum has none —
+    // so the aggregate gets its own formatter.
+    aggregate: 'sum',
+    aggregateFormat: (result) =>
+      result.value === null ? '—' : money.format(Number(result.value)),
+  },
+  {
+    id: 'hiredAt',
+    header: 'Hired',
+    type: 'date',
+    width: 130,
+    format: (value) => (value ? new Date(String(value)).toLocaleDateString() : '—'),
+    // `min`/`max` know the row they came from, so `format` renders them and no
+    // `aggregateFormat` is needed here.
+    aggregate: 'min',
+  },
+  {
+    id: 'rating',
+    header: 'Rating',
+    type: 'number',
+    width: 110,
+    align: 'right',
+    format: (value) => `${Number(value).toFixed(1)} ★`,
+    aggregate: 'avg',
+    aggregateFormat: (result) =>
+      result.value === null ? '—' : `${Number(result.value).toFixed(2)} ★`,
+  },
+  {
+    id: 'tags',
+    header: 'Tags',
+    width: 170,
+    // A list has no sensible ordering and no useful facet list, so both are
+    // switched off rather than left to produce nonsense. The width is fixed to
+    // stop the chips reflowing mid-drag.
+    sortable: false,
+    filterable: false,
+    resizable: false,
+    accessor: (row) => row.tags.join(', '),
+  },
+  {
+    id: 'active',
+    header: 'Active',
+    type: 'boolean',
+    width: 100,
+    align: 'center',
+    pinned: 'right',
+    format: (value) => (value ? 'Yes' : 'No'),
+  },
+]
+
+/** Look a column up by id — several views need this to label their controls. */
+export function columnFor(id: string): ColumnDef<Employee> {
+  const column = employeeColumns.find((entry) => entry.id === id)
+  if (!column) throw new Error(`[demo] no column "${id}"`)
+  return column
+}
