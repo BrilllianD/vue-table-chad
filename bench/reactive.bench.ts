@@ -1,6 +1,8 @@
 import { bench, describe } from 'vitest'
-import { effectScope } from 'vue'
+import { effectScope, ref, shallowRef } from 'vue'
 import {
+  filterRows,
+  sortRows,
   useColumns,
   useLocalDataSource,
   useRowGrouping,
@@ -139,5 +141,34 @@ describe(`interaction · ${SIZE / 1000}k rows, grouped two levels`, () => {
     page = page === 2 ? 3 : 2
     groupedPaging.state.setPage(page)
     groupedPaging.grouping.displayRows.value
+  })
+})
+
+/**
+ * What holding rows in a `ref` costs, versus a `shallowRef`.
+ *
+ * `ref(rows)` proxies the array and every object in it, so each `readValue`
+ * during a filter or a sort goes through a Proxy trap — once per row per
+ * column. The README recommends `shallowRef` on the strength of these two
+ * numbers rather than on principle.
+ */
+describe(`how rows are held · ${SIZE / 1000}k rows`, () => {
+  const deep = ref(rows)
+  const shallow = shallowRef(rows)
+
+  bench('filter · deep ref', () => {
+    filterRows(deep.value, employeeColumns, { filters: {}, globalSearch: 'ada' })
+  })
+
+  bench('filter · shallowRef', () => {
+    filterRows(shallow.value, employeeColumns, { filters: {}, globalSearch: 'ada' })
+  })
+
+  bench('sort · deep ref', () => {
+    sortRows(deep.value, [{ columnId: 'name', direction: 'asc' }], employeeColumns)
+  })
+
+  bench('sort · shallowRef', () => {
+    sortRows(shallow.value, [{ columnId: 'name', direction: 'asc' }], employeeColumns)
   })
 })

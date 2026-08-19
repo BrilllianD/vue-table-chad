@@ -7,7 +7,7 @@
  * the table does to the rows it was handed, or a thing it asks the data source
  * to do — and therefore whether a band describes the page or the whole group.
  */
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import {
   BLANK_GROUP_LABEL,
   DataTable,
@@ -34,7 +34,7 @@ import { employees, type Employee } from '../data/dataset'
 import { columnFor, employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 
-const rows = ref(employees.slice(0, 800))
+const rows = shallowRef(employees.slice(0, 800))
 
 const state: TableState = useTableState({
   pageSize: 10,

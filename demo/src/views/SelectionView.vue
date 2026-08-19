@@ -8,7 +8,7 @@
  * — and deselecting a row inside it records an exclusion instead of collapsing
  * the whole thing back into ids. Watch the state panel while you click.
  */
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import {
   SelectionCheckbox,
   SortTrigger,
@@ -29,7 +29,7 @@ import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 
-const rows = ref(employees.slice(0, 400))
+const rows = shallowRef(employees.slice(0, 400))
 const state = useTableState({ pageSize: 8 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 

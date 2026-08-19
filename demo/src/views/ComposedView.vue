@@ -12,7 +12,7 @@
  * context alongside the built-ins — which is the actual test of whether the
  * context is a public seam or an implementation detail.
  */
-import { ref } from 'vue'
+import { shallowRef } from 'vue'
 import {
   ActiveFilters,
   ColumnFilterPopover,
@@ -30,7 +30,7 @@ import DemoSection from '../components/DemoSection.vue'
 import TableStatus from '../components/TableStatus.vue'
 import MiniRoot from '../components/MiniRoot.vue'
 
-const rows = ref(employees.slice(0, 240))
+const rows = shallowRef(employees.slice(0, 240))
 const state = useTableState({ pageSize: 6 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 

@@ -10,7 +10,7 @@
  * Sticky offsets for pinned columns are recomputed from live widths, so dragging
  * a pinned column's edge shifts everything pinned after it.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import {
   ColumnResizeHandle,
   DataTable,
@@ -38,7 +38,7 @@ import StateInspector from '../components/StateInspector.vue'
 const PANEL_STORAGE = { key: 'vue-table-demo:panel-layout' }
 const TABLE_STORAGE = { key: 'vue-table-demo:table-layout' }
 
-const rows = ref(employees.slice(0, 300))
+const rows = shallowRef(employees.slice(0, 300))
 // 10 so the preset pager's size dropdown has a matching option to show.
 const state = useTableState({ pageSize: 10 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)

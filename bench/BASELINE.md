@@ -44,6 +44,19 @@ Two outliers stand out, and both have a named cause in the plan:
   the group path and reduces each bucket (`src/core/aggregation.ts:126-158`) — and under
   `groupMode: 'client'` nothing asks for it at all.
 
+## What holding rows in a `ref` costs
+
+Not a regression — a choice the caller makes. `ref(people)` proxies the array and every object in
+it, so each cell read during a pass goes through a Proxy trap. 10k rows:
+
+| | `ref` | `shallowRef` |
+| --- | ---: | ---: |
+| `filterRows` with a global search | 56.6 | 36.4 |
+| `sortRows` on one text column | 49.3 | 23.7 |
+
+Between 1.6× and 2.1×, for one word in the caller's code. This is why the README's quick start
+says `shallowRef` (P1-7).
+
 ## Reading these honestly
 
 `bench/` measures JavaScript. It does not measure layout, paint, or Vue's patch — `PerfView` (P1-9)

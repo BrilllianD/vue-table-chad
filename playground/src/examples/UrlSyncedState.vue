@@ -6,7 +6,7 @@
  * — reload the page and the sort, filters and page all come back. The same
  * mechanism works for a Pinia store or a router query.
  */
-import { ref, watch } from 'vue'
+import { ref, shallowRef, watch } from 'vue'
 import {
   DataTable,
   createQueryState,
@@ -30,7 +30,7 @@ function readHash(): QueryState {
 const external = ref<QueryState>(readHash())
 const state = useTableState({ state: external })
 
-const rows = ref(employees.slice(0, 400))
+const rows = shallowRef(employees.slice(0, 400))
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 
 watch(

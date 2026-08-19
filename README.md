@@ -36,10 +36,10 @@ per feature area, each listing the API it uses. See [`demo/README.md`](demo/READ
 
 ```vue
 <script setup lang="ts">
-import { ref } from 'vue'
+import { shallowRef } from 'vue'
 import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@sandbox/vue-table'
 
-const rows = ref(people)
+const rows = shallowRef(people)
 
 const columns: ColumnDef<Person>[] = [
   { id: 'name', header: 'Name', type: 'text', pinned: 'left' },
@@ -66,6 +66,28 @@ for dates).
 
 Rows are identified by `row.id`. Pass `getRowId` when they are keyed by something else — it drives
 selection *and* the render keys, so editing a row patches it in place instead of replacing it.
+
+### Hold rows in a `shallowRef`
+
+`shallowRef`, not `ref`, and it is the single highest-leverage line in that example.
+
+`ref(people)` deep-proxies the array *and* every object in it. Filtering, sorting, grouping and
+aggregating then read each cell through a Proxy trap — once per row per column per pass, which at
+10k rows and ten columns is 100 000 trap hits for one keystroke. A `shallowRef` proxies the array
+reference alone and hands the pipeline the raw objects.
+
+You give up nothing the table uses. It never mutates a row, and it re-runs whenever the ref is
+*reassigned*:
+
+```ts
+rows.value = [...rows.value, newPerson]   // seen
+rows.value.push(newPerson)                // not seen — call source.refresh()
+```
+
+`source.refresh()` exists for exactly that case: mutate the array in place, then say so.
+
+If rows are large and you never reassign individual ones, `markRaw` on each row opts them out of
+reactivity permanently, which also stops a cell slot from accidentally making one reactive later.
 
 ## The two contracts
 

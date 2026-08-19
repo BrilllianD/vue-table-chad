@@ -241,7 +241,17 @@ const context: TableContext<TRow> = {
 
 provideTableContext(context)
 
-watch(() => state.query.value, (query) => emit('update:query', query), { deep: true })
+/*
+ * Both watchers below are shallow on purpose.
+ *
+ * `state.query` is a computed that mints a fresh object on every write, so its
+ * identity already changes whenever anything inside it does — a deep traversal
+ * of the filters and sort rules on top of that is pure cost. The selection
+ * state is replaced wholesale by every write for the same reason (see
+ * `useRowSelection`), so traversing an id list per checkbox click bought
+ * nothing either.
+ */
+watch(() => state.query.value, (query) => emit('update:query', query))
 // Watches the resolved order rather than `layout.order`, which stays empty
 // until something reorders and would report nothing for the first move.
 watch(
@@ -254,7 +264,6 @@ watch(
     if (props.selectable === false) return
     emit('update:selection', rowSelection.selectedIds.value)
   },
-  { deep: true },
 )
 
 defineExpose({

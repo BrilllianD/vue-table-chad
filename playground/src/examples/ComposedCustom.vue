@@ -7,7 +7,7 @@
  * primitives the preset uses, just arranged completely differently. Nothing
  * here reaches into internals or reimplements filtering.
  */
-import { ref } from 'vue'
+import { shallowRef } from 'vue'
 import {
   ColumnFilterPopover,
   SortTrigger,
@@ -19,7 +19,7 @@ import {
 import { employees, type Employee } from '../../mock/fakeApi'
 import { employeeColumns } from '../columns'
 
-const rows = ref(employees.slice(0, 300))
+const rows = shallowRef(employees.slice(0, 300))
 const state = useTableState({ pageSize: 6 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 

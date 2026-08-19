@@ -3,12 +3,12 @@
  * The batteries-included case: local array in, full table out.
  * Sorting, Excel filters, pagination, selection and column layout — 6 lines.
  */
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { DataTable, useLocalDataSource, useTableState } from '@sandbox/vue-table'
 import { employees, type Employee } from '../../mock/fakeApi'
 import { employeeColumns } from '../columns'
 
-const rows = ref(employees.slice(0, 500))
+const rows = shallowRef(employees.slice(0, 500))
 const state = useTableState({ pageSize: 25 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 

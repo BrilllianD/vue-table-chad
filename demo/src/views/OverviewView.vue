@@ -6,7 +6,7 @@
  * layout. Everything below the `<DataTable>` tag is the demo's own chrome, not
  * the table's requirement.
  */
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import {
   DataTable,
   clearColumnLayout,
@@ -25,7 +25,7 @@ import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 import TableStatus from '../components/TableStatus.vue'
 
-const rows = ref(employees.slice(0, 800))
+const rows = shallowRef(employees.slice(0, 800))
 
 // Initial sort and page size come from the state, not from a prop on the
 // component — so the same starting point works for any of the three layers.

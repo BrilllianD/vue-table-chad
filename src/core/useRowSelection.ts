@@ -1,4 +1,11 @@
-import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
+import {
+  computed,
+  shallowRef,
+  toValue,
+  type ComputedRef,
+  type MaybeRefOrGetter,
+  type Ref,
+} from 'vue'
 import type { HeaderCheckboxState, RowId, SelectionMode, SelectionState } from './types'
 
 export interface UseRowSelectionOptions<TRow> {
@@ -58,7 +65,14 @@ export function useRowSelection<TRow>(
   const getRowId = options.getRowId ?? defaultRowId<TRow>
   const isSelectable = (row: TRow) => options.isSelectable?.(row) ?? true
 
-  const state = ref<SelectionState>(options.initial ?? { mode: 'ids', ids: [] })
+  /**
+   * `shallowRef`, not `ref`: every write below replaces the whole state object
+   * rather than mutating the id list in place, so deep reactivity buys nothing
+   * and costs a Proxy over an array that can hold one entry per selected row.
+   * Selecting 12k rows would otherwise proxy 12k ids to notice a change that
+   * the reassignment already announced.
+   */
+  const state = shallowRef<SelectionState>(options.initial ?? { mode: 'ids', ids: [] })
   const rows = computed(() => toValue(pageRows) ?? [])
   const totalCount = computed(() => toValue(total) ?? 0)
 

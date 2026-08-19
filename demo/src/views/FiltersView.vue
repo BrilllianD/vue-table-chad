@@ -6,7 +6,7 @@
  * values, and operator rules — plus the pure functions that decide whether a
  * filter is complete, empty, or worth serialising at all.
  */
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import {
   ColumnFilterPopover,
   ConditionFilter,
@@ -39,7 +39,7 @@ import { columnFor, employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 
-const rows = ref(employees.slice(0, 1200))
+const rows = shallowRef(employees.slice(0, 1200))
 // 10 to match the preset pager's own size options — DataTable renders
 // `TablePagination` with its defaults, and an unlisted size shows as blank.
 const state = useTableState({ pageSize: 10 })
