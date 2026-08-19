@@ -24,8 +24,9 @@ nvm use          # Node 24; pnpm crashes on Node 20 here
 pnpm install
 pnpm dev         # playground at http://localhost:5173
 pnpm demo        # full feature demo at http://localhost:5174
-pnpm test        # 160 tests
+pnpm test        # 299 tests
 pnpm typecheck
+pnpm bench       # pipeline and interaction benchmarks
 pnpm build       # library -> dist/
 ```
 
