@@ -135,7 +135,7 @@ describe('what an interaction is allowed to recompute', () => {
    * P1-4 lands this file demands to be updated instead of silently agreeing
    * with whatever the code now does. A skip would just rot.
    */
-  it.fails('P1-4: setPage redoes neither the filter nor the sort', () => {
+  it('setPage redoes neither the filter nor the sort', () => {
     const h = harness()
     h.state.setPage(2)
     h.source.rows.value

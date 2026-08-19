@@ -13,6 +13,9 @@ import { aggregateGroups } from './aggregation'
 
 export interface LocalDataSourceOptions extends SortOptions {}
 
+/** One shared empty grouping, so an absent `groupBy` is a stable reference. */
+const NO_GROUPS: string[] = []
+
 export interface LocalDataSource<TRow> extends DataSource<TRow> {
   /** Rows after filtering and sorting, before the page slice. */
   filteredRows: ComputedRef<TRow[]>
@@ -27,6 +30,15 @@ export interface LocalDataSource<TRow> extends DataSource<TRow> {
 /**
  * Client-side pipeline: filter → sort → slice, each stage its own computed so
  * paging does not redo the filter and sorting does not redo the search.
+ *
+ * The stages depend on the *fields* of the query rather than on the query
+ * object, and that is load-bearing rather than stylistic. `useTableState`
+ * builds a fresh query object on every write, page changes included, so a stage
+ * reading the object would re-run whenever anything at all moved — which is
+ * exactly the promise in the paragraph above, broken. The narrow computeds
+ * below recompute just as often, but a computed returning the same reference
+ * does not propagate, so a page change stops there instead of reaching the
+ * filter.
  */
 export function useLocalDataSource<TRow>(
   data: MaybeRefOrGetter<TRow[]>,
@@ -38,16 +50,25 @@ export function useLocalDataSource<TRow>(
   const allColumns = computed(() => toValue(columns) ?? [])
   const currentQuery = computed(() => toValue(query))
 
+  /* The query, one field at a time — see the note above the function. */
+  const filtersOf = computed(() => currentQuery.value.filters)
+  const searchOf = computed(() => currentQuery.value.globalSearch)
+  const sortOf = computed(() => currentQuery.value.sort)
+  // The shared empty array matters: `?? []` would mint a new one per read and
+  // hand every downstream stage a fresh identity to react to.
+  const groupByOf = computed(() => currentQuery.value.groupBy ?? NO_GROUPS)
+  const pageOf = computed(() => currentQuery.value.page)
+  const pageSizeOf = computed(() => currentQuery.value.pageSize)
+
   // Bumping this re-runs the pipeline for callers holding a mutable array
   // that Vue cannot see through (e.g. rows pushed in place).
   const revision = ref(0)
 
   const filtered = computed<TRow[]>(() => {
     void revision.value
-    const q = currentQuery.value
     return filterRows(allRows.value, allColumns.value, {
-      filters: q.filters,
-      globalSearch: q.globalSearch,
+      filters: filtersOf.value,
+      globalSearch: searchOf.value,
     })
   })
 
@@ -55,10 +76,12 @@ export function useLocalDataSource<TRow>(
    * Grouped columns sort first, ahead of whatever the user sorted by. Without
    * that, rows sharing a group value are scattered across the dataset and the
    * page slice hands the grouper interleaved runs rather than whole buckets.
+   *
+   * `groupedSort` mints a new array per call, so this must recompute only when
+   * the sort or the grouping genuinely changes — which, reading the two narrow
+   * refs rather than the query, is what it now does.
    */
-  const effectiveSort = computed(() =>
-    groupedSort(currentQuery.value.sort, currentQuery.value.groupBy ?? []),
-  )
+  const effectiveSort = computed(() => groupedSort(sortOf.value, groupByOf.value))
 
   const sorted = computed<TRow[]>(() =>
     sortRows(filtered.value, effectiveSort.value, allColumns.value, options),
@@ -67,11 +90,10 @@ export function useLocalDataSource<TRow>(
   const total = computed(() => filtered.value.length)
 
   const rows = computed<TRow[]>(() => {
-    const q = currentQuery.value
-    const size = Math.max(1, q.pageSize)
+    const size = Math.max(1, pageSizeOf.value)
     // Guard against a page index left over from a larger result set.
     const lastPage = Math.max(1, Math.ceil(sorted.value.length / size))
-    const page = Math.min(Math.max(1, q.page), lastPage)
+    const page = Math.min(Math.max(1, pageOf.value), lastPage)
     const start = (page - 1) * size
     return sorted.value.slice(start, start + size)
   })
@@ -79,10 +101,9 @@ export function useLocalDataSource<TRow>(
   function facetsSync(columnId: string): FacetValue[] {
     const column = allColumns.value.find((entry) => entry.id === columnId)
     if (!column) return []
-    const q = currentQuery.value
     return computeFacets(allRows.value, allColumns.value, column, {
-      filters: q.filters,
-      globalSearch: q.globalSearch,
+      filters: filtersOf.value,
+      globalSearch: searchOf.value,
     })
   }
 
