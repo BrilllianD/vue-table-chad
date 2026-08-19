@@ -94,6 +94,8 @@ export type { SortOptions } from './core/sorting'
 export {
   groupedSort,
   groupSortRules,
+  buildGroupTree,
+  flattenTree,
   flattenGroups,
   groupValueOf,
   groupPathKey,
@@ -102,7 +104,12 @@ export {
   BLANK_GROUP_LABEL,
   ROOT_GROUP_KEY,
 } from './core/grouping'
-export type { GroupingOptions } from './core/grouping'
+export type {
+  GroupingOptions,
+  GroupTreeOptions,
+  GroupTree,
+  GroupNode,
+} from './core/grouping'
 
 /* ----------------------------------------------------------- aggregation */
 

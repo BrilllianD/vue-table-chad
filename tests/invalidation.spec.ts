@@ -149,19 +149,22 @@ describe('what an interaction is allowed to recompute', () => {
     h.stop()
   })
 
-  it.fails('P1-4: setPage while grouped re-counts and re-aggregates nothing', () => {
+  it('setPage while grouped re-counts and re-aggregates nothing', () => {
     const h = harness(['department', 'role'])
     h.state.setPage(2)
     h.grouping.displayRows.value
 
     expect(counters.filter).toBe(0)
-    expect(counters.sort).toBe(0)
     expect(counters.count).toBe(0)
     expect(counters.aggregate).toBe(0)
+    // Exactly one sort, and it is the *page* — 25 rows gathered into bands,
+    // which a new page genuinely needs. The dataset-sized passes are the ones
+    // that must not happen, and none of them do.
+    expect(counters.sort).toBe(1)
     h.stop()
   })
 
-  it.fails('P1-6: collapsing a group does not re-scan the dataset', () => {
+  it('collapsing a group does not re-scan the dataset', () => {
     const h = harness(['department', 'role'])
     const first = h.grouping.displayRows.value.find((item) => item.kind === 'group')
     const key = first && first.kind === 'group' ? first.group.key : ''

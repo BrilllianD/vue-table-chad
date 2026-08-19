@@ -1,6 +1,6 @@
 import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
 import type { AggregateResult, ColumnDef, DisplayRow, RowGroup, SortRule } from './types'
-import { ROOT_GROUP_KEY, flattenGroups, groupSortRules } from './grouping'
+import { ROOT_GROUP_KEY, buildGroupTree, flattenTree, groupSortRules } from './grouping'
 import { aggregateRow } from './aggregation'
 import { sortRows } from './sorting'
 
@@ -110,12 +110,25 @@ export function useRowGrouping<TRow>(
   /** Only the columns that declared one, so the common case costs a filter. */
   const aggregated = computed(() => allColumns.value.filter((column) => column.aggregate))
 
+  /*
+   * Both getters are memoized, and `totals` especially so.
+   *
+   * It resolves to `DataSource.groupCounts`, which walks the entire filtered
+   * dataset — far more rows than the page being grouped. Read inline inside
+   * `displayRows`, which depends on `collapsed`, that walk ran again every time
+   * a user folded a single band shut.
+   */
+  const suppliedTotals = computed(() => toValue(options.totals))
   const suppliedAggregates = computed(() => toValue(options.aggregates))
 
-  const displayRows = computed<DisplayRow<TRow>[]>(() =>
-    flattenGroups(orderedRows.value, groupBy.value, allColumns.value, {
-      isCollapsed,
-      totals: toValue(options.totals),
+  /**
+   * The bands themselves. Deliberately free of any dependency on `collapsed`:
+   * folding a band shut changes which rows are listed, not which bands exist or
+   * what they contain, so it must not cost a rebuild.
+   */
+  const tree = computed(() =>
+    buildGroupTree(orderedRows.value, groupBy.value, allColumns.value, {
+      totals: suppliedTotals.value,
       aggregates: suppliedAggregates.value,
       computeAggregates:
         aggregated.value.length > 0
@@ -124,6 +137,9 @@ export function useRowGrouping<TRow>(
       blankLabel: options.blankLabel,
     }),
   )
+
+  /** The cheap half: a walk of the tree above under the current collapse state. */
+  const displayRows = computed<DisplayRow<TRow>[]>(() => flattenTree(tree.value, isCollapsed))
 
   const overallAggregates = computed<Record<string, AggregateResult<TRow>>>(() => {
     if (aggregated.value.length === 0) return {}

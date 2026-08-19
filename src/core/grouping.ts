@@ -152,20 +152,54 @@ function bucket<TRow>(
   return [...buckets.values()]
 }
 
+/** One node of the tree: a band, and the bands nested inside it. */
+export interface GroupNode<TRow = Record<string, unknown>> {
+  group: RowGroup<TRow>
+  /** Subgroups, empty at the innermost grouped level. */
+  children: GroupNode<TRow>[]
+}
+
 /**
- * Flattens rows into the list a `<tbody>` renders: a group header, then its
- * contents, recursively. With no grouping it is the rows themselves, so a
- * caller can render `displayRows` unconditionally.
+ * The grouping, before anything is folded shut.
  *
- * `index` on a leaf is its position in the *input* array, not in the output —
- * so it stays a usable stripe parity no matter how many headers interleave.
+ * This exists so that collapsing a band is not a reason to rebuild it. The tree
+ * depends on the rows, the grouping and the columns; the collapse state does
+ * not appear in it at all, which is what lets a caller keep one tree across
+ * many toggles and pay only for the walk (see `useRowGrouping`).
  */
-export function flattenGroups<TRow>(
+export interface GroupTree<TRow = Record<string, unknown>> {
+  /** Top-level bands. Empty when nothing is grouped. */
+  nodes: GroupNode<TRow>[]
+  /** The rows the tree was built from, in the order they arrived. */
+  rows: readonly TRow[]
+  /**
+   * Each row's position in `rows`, resolved once. First occurrence wins: a row
+   * object appearing twice would otherwise report the parity of its last copy.
+   */
+  indexOf: Map<TRow, number>
+  /** How many levels the grouping goes; `0` when nothing is grouped. */
+  depth: number
+}
+
+/** Everything `flattenGroups` takes except the part that folds bands shut. */
+export type GroupTreeOptions<TRow = Record<string, unknown>> = Omit<
+  GroupingOptions<TRow>,
+  'isCollapsed'
+>
+
+/**
+ * Builds the group tree: buckets the rows level by level and resolves each
+ * band's label, count and aggregates.
+ *
+ * This is the expensive half of grouping, and the half that has nothing to do
+ * with what the user has folded shut.
+ */
+export function buildGroupTree<TRow>(
   rows: readonly TRow[],
   groupBy: readonly string[],
   columns: readonly ColumnDef<TRow>[],
-  options: GroupingOptions<TRow> = {},
-): DisplayRow<TRow>[] {
+  options: GroupTreeOptions<TRow> = {},
+): GroupTree<TRow> {
   const byId = new Map(columns.map((column) => [column.id, column]))
   // Grouping by a column that is not declared (or was removed) is ignored
   // rather than fatal — a stale `groupBy` from a URL must not break the table.
@@ -174,29 +208,23 @@ export function flattenGroups<TRow>(
     .filter((column): column is ColumnDef<TRow> => column !== undefined)
 
   if (levels.length === 0) {
-    return rows.map((row, index) => ({ kind: 'row', row, index, depth: 0 }))
+    // No map: the ungrouped flatten reads positions straight off the array.
+    return { nodes: [], rows, indexOf: new Map(), depth: 0 }
   }
 
   const blankLabel = options.blankLabel ?? BLANK_GROUP_LABEL
   const indexOf = new Map<TRow, number>()
   rows.forEach((row, index) => {
-    // First wins: a row object appearing twice would otherwise report the
-    // parity of its last occurrence for every copy.
     if (!indexOf.has(row)) indexOf.set(row, index)
   })
 
-  const out: DisplayRow<TRow>[] = []
-
-  function walk(subset: readonly TRow[], depth: number, path: readonly FilterValue[]): void {
-    if (depth >= levels.length) {
-      for (const row of subset) {
-        out.push({ kind: 'row', row, index: indexOf.get(row) ?? 0, depth: levels.length })
-      }
-      return
-    }
-
+  function build(
+    subset: readonly TRow[],
+    depth: number,
+    path: readonly FilterValue[],
+  ): GroupNode<TRow>[] {
     const column = levels[depth]!
-    for (const entry of bucket(subset, column)) {
+    return bucket(subset, column).map((entry) => {
       const nextPath = [...path, entry.value]
       const key = groupPathKey(nextPath)
       const group: RowGroup<TRow> = {
@@ -209,17 +237,72 @@ export function flattenGroups<TRow>(
         rows: entry.rows,
         count: entry.rows.length,
         totalCount: options.totals?.get(key) ?? entry.rows.length,
-        // A collapsed band keeps its rows — collapse only skips the recursion —
-        // so its figures survive being folded shut.
+        // A collapsed band keeps its rows — collapse only skips the walk — so
+        // its figures survive being folded shut.
         aggregates: options.aggregates?.get(key) ?? options.computeAggregates?.(entry.rows) ?? {},
       }
-      out.push({ kind: 'group', group })
-      if (!options.isCollapsed?.(key)) walk(entry.rows, depth + 1, nextPath)
+      return {
+        group,
+        children: depth + 1 < levels.length ? build(entry.rows, depth + 1, nextPath) : [],
+      }
+    })
+  }
+
+  return { nodes: build(rows, 0, []), rows, indexOf, depth: levels.length }
+}
+
+/**
+ * Walks a built tree into the list a `<tbody>` renders, skipping the contents
+ * of whatever is folded shut. Cheap by construction — it allocates the output
+ * and nothing else, which is the point of having built the tree separately.
+ */
+export function flattenTree<TRow>(
+  tree: GroupTree<TRow>,
+  isCollapsed?: (key: string) => boolean,
+): DisplayRow<TRow>[] {
+  if (tree.depth === 0) {
+    return tree.rows.map((row, index) => ({ kind: 'row', row, index, depth: 0 }))
+  }
+
+  const out: DisplayRow<TRow>[] = []
+
+  function walk(nodes: readonly GroupNode<TRow>[]): void {
+    for (const node of nodes) {
+      out.push({ kind: 'group', group: node.group })
+      if (isCollapsed?.(node.group.key)) continue
+      if (node.children.length > 0) {
+        walk(node.children)
+        continue
+      }
+      for (const row of node.group.rows) {
+        out.push({ kind: 'row', row, index: tree.indexOf.get(row) ?? 0, depth: tree.depth })
+      }
     }
   }
 
-  walk(rows, 0, [])
+  walk(tree.nodes)
   return out
+}
+
+/**
+ * Flattens rows into the list a `<tbody>` renders: a group header, then its
+ * contents, recursively. With no grouping it is the rows themselves, so a
+ * caller can render `displayRows` unconditionally.
+ *
+ * `index` on a leaf is its position in the *input* array, not in the output —
+ * so it stays a usable stripe parity no matter how many headers interleave.
+ *
+ * Build-then-walk in one call, for callers doing it once. A caller that folds
+ * bands open and shut should hold a `buildGroupTree` result and call
+ * `flattenTree` on each toggle instead.
+ */
+export function flattenGroups<TRow>(
+  rows: readonly TRow[],
+  groupBy: readonly string[],
+  columns: readonly ColumnDef<TRow>[],
+  options: GroupingOptions<TRow> = {},
+): DisplayRow<TRow>[] {
+  return flattenTree(buildGroupTree(rows, groupBy, columns, options), options.isCollapsed)
 }
 
 /**
