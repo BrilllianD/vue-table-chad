@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       '@sandbox/vue-table': fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@fixtures': fileURLToPath(new URL('./bench/fixtures.ts', import.meta.url)),
     },
   },
   test: {

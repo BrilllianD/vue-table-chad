@@ -22,7 +22,8 @@
     "baseUrl": ".",
     "paths": {
       "@sandbox/vue-table": ["./src/index.ts"],
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@fixtures": ["./bench/fixtures.ts"]
     }
   },
   "include": [
@@ -33,6 +34,7 @@
     "playground/**/*.vue",
     "demo/**/*.ts",
     "demo/**/*.vue",
+    "bench/**/*.ts",
     "*.config.ts"
   ]
 }
