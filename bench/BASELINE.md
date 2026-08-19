@@ -12,7 +12,7 @@ The load-bearing table. A table with a filter and a sort applied, 10k rows, page
 | `setPage` | **13.2** | ~0 | Redoes the whole filter and the whole sort to slice 25 rows (P1-4) |
 | `setPage`, grouped 2 levels | **33.7** | ~0 | The above, plus a re-count and a re-aggregate of the dataset (P1-4, P1-6) |
 | group collapse toggle | **3.7** | ~0 | Re-counts every filtered row because `totals` is read inside `displayRows` (P1-6) |
-| one search keystroke | 21.8 | 21.8, but once | The work is real; paying it per keystroke is not (P1-5) |
+| one search keystroke | 21.8 | 21.8, but once per burst | The work is real; paying it per keystroke is not (P1-5) |
 | `toggleSort` on text | 9.6 | 9.6 | Legitimate — a sort was asked for |
 | selection toggle | 0.009 | — | Already right: `Set`-backed, one write per range |
 | column resize | 0.070 | — | Already right: never reaches the pipeline |

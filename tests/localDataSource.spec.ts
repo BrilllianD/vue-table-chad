@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { computed, effectScope, ref } from 'vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
@@ -10,7 +10,9 @@ function setup() {
   const scope = effectScope()
   const result = scope.run(() => {
     const state = useTableState({ pageSize: 3 })
-    const source = useLocalDataSource(people, personColumns, state.query)
+    // Synchronous: these assert what the pipeline produces, not when. The
+    // debounce has its own block at the bottom of the file.
+    const source = useLocalDataSource(people, personColumns, state.query, { debounceMs: 0 })
     return { state, source }
   })!
   return { ...result, dispose: () => scope.stop() }
@@ -224,6 +226,65 @@ describe('useTableState', () => {
     expect(seen.value).toBe(5)
     state.setPageSize(50)
     expect(seen.value).toBe(50)
+    scope.stop()
+  })
+})
+
+describe('debounced search', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('coalesces a burst of keystrokes into one pass', () => {
+    vi.useFakeTimers()
+    const scope = effectScope()
+    const { state, source } = scope.run(() => {
+      const state = useTableState({ pageSize: 100 })
+      const source = useLocalDataSource(people, personColumns, state.query, { debounceMs: 150 })
+      return { state, source }
+    })!
+
+    for (const term of ['r', 're', 'res', 'rese', 'resea', 'research']) state.setSearch(term)
+    // Still showing everything: nothing has settled yet.
+    expect(source.total.value).toBe(7)
+    // The query is truthful throughout — only the filter lags.
+    expect(state.globalSearch.value).toBe('research')
+
+    vi.advanceTimersByTime(150)
+    expect(source.total.value).toBe(2)
+    scope.stop()
+  })
+
+  it('restores every row the moment the box is cleared', () => {
+    vi.useFakeTimers()
+    const scope = effectScope()
+    const { state, source } = scope.run(() => {
+      const state = useTableState({ pageSize: 100 })
+      const source = useLocalDataSource(people, personColumns, state.query, { debounceMs: 150 })
+      return { state, source }
+    })!
+
+    state.setSearch('research')
+    vi.advanceTimersByTime(150)
+    expect(source.total.value).toBe(2)
+
+    // No wait: emptying can only widen the result, so there is nothing to
+    // coalesce and nothing that could flash.
+    state.setSearch('')
+    expect(source.total.value).toBe(7)
+    scope.stop()
+  })
+
+  it('is genuinely absent at debounceMs: 0, not merely brief', () => {
+    const scope = effectScope()
+    const { state, source } = scope.run(() => {
+      const state = useTableState({ pageSize: 100 })
+      const source = useLocalDataSource(people, personColumns, state.query, { debounceMs: 0 })
+      return { state, source }
+    })!
+
+    state.setSearch('research')
+    expect(source.total.value).toBe(2)
     scope.stop()
   })
 })

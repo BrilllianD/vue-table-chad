@@ -91,7 +91,11 @@ function harness(groupBy: string[] = []) {
   const scope = effectScope()
   const built = scope.run(() => {
     const state = useTableState({ pageSize: 25, initialGroupBy: groupBy })
-    const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value)
+    // Counting synchronous passes, so the debounce is switched off here; that
+    // it coalesces at all is asserted separately below.
+    const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
+      debounceMs: 0,
+    })
     const columns = useColumns<Employee>(employeeColumns, {
       sortFor: state.sortFor,
       sortIndexFor: state.sortIndexFor,
@@ -212,6 +216,33 @@ describe('what an interaction is allowed to recompute', () => {
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)
     h.stop()
+  })
+
+  it('P1-5: a burst of keystrokes costs one filter pass, not one each', () => {
+    vi.useFakeTimers()
+    const scope = effectScope()
+    const built = scope.run(() => {
+      const state = useTableState({ pageSize: 25 })
+      const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
+        debounceMs: 150,
+      })
+      return { state, source }
+    })!
+    built.source.rows.value
+    reset()
+
+    for (const term of ['a', 'ad', 'ada', 'adam']) {
+      built.state.setSearch(term)
+      built.source.rows.value
+    }
+    expect(counters.filter).toBe(0)
+
+    vi.advanceTimersByTime(150)
+    built.source.rows.value
+    expect(counters.filter).toBe(1)
+
+    scope.stop()
+    vi.useRealTimers()
   })
 
   it('changing the sort does redo the sort, and only once', () => {

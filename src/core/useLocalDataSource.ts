@@ -1,4 +1,12 @@
-import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
+import {
+  computed,
+  onScopeDispose,
+  ref,
+  toValue,
+  watch,
+  type ComputedRef,
+  type MaybeRefOrGetter,
+} from 'vue'
 import type {
   AggregateResult,
   ColumnDef,
@@ -11,7 +19,21 @@ import { sortRows, type SortOptions } from './sorting'
 import { countGroups, groupedSort } from './grouping'
 import { aggregateGroups } from './aggregation'
 
-export interface LocalDataSourceOptions extends SortOptions {}
+export interface LocalDataSourceOptions extends SortOptions {
+  /**
+   * Coalesces the global search, in milliseconds. Every keystroke otherwise
+   * re-filters and re-sorts the entire dataset synchronously, on the input
+   * event — at 10k rows that is ~22ms of blocked main thread per character.
+   *
+   * Only the search is debounced. A filter checkbox or a header click is one
+   * deliberate act and must land at once; a delay there reads as a broken
+   * table rather than a smooth one.
+   *
+   * `0` disables it and restores fully synchronous behaviour, which is the
+   * right choice for small datasets and for tests that assert on the next line.
+   */
+  debounceMs?: number
+}
 
 /** One shared empty grouping, so an absent `groupBy` is a stable reference. */
 const NO_GROUPS: string[] = []
@@ -64,11 +86,50 @@ export function useLocalDataSource<TRow>(
   // that Vue cannot see through (e.g. rows pushed in place).
   const revision = ref(0)
 
+  /**
+   * The search the filter actually runs, trailing the one the user is typing.
+   *
+   * It lags `searchOf` rather than replacing it, so `QueryState` stays the
+   * truthful record of what was asked for — a URL or a store mirroring the
+   * query still sees every keystroke — while the dataset is only walked once
+   * the typing settles. `useServerDataSource` coalesces its fetches the same
+   * way and for the same reason.
+   */
+  const debounceMs = options.debounceMs ?? 150
+  const settledSearch = ref(searchOf.value)
+  let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+  watch(
+    searchOf,
+    (next) => {
+      if (searchTimer !== undefined) clearTimeout(searchTimer)
+      searchTimer = undefined
+      // Clearing the box restores every row, and nobody waits to be given back
+      // what they already had. Emptying is also the one search change that can
+      // only ever widen the result, so nothing flashes.
+      if (debounceMs <= 0 || next === '') {
+        settledSearch.value = next
+        return
+      }
+      searchTimer = setTimeout(() => {
+        searchTimer = undefined
+        settledSearch.value = next
+      }, debounceMs)
+    },
+    // Synchronous, so `debounceMs: 0` is genuinely indistinguishable from
+    // having no debounce at all rather than merely a shorter one.
+    { flush: 'sync' },
+  )
+
+  onScopeDispose(() => {
+    if (searchTimer !== undefined) clearTimeout(searchTimer)
+  })
+
   const filtered = computed<TRow[]>(() => {
     void revision.value
     return filterRows(allRows.value, allColumns.value, {
       filters: filtersOf.value,
-      globalSearch: searchOf.value,
+      globalSearch: settledSearch.value,
     })
   })
 
@@ -101,9 +162,11 @@ export function useLocalDataSource<TRow>(
   function facetsSync(columnId: string): FacetValue[] {
     const column = allColumns.value.find((entry) => entry.id === columnId)
     if (!column) return []
+    // The settled term, not the typed one: a checklist counting rows the table
+    // is not showing yet would contradict what is on screen.
     return computeFacets(allRows.value, allColumns.value, column, {
       filters: filtersOf.value,
-      globalSearch: searchOf.value,
+      globalSearch: settledSearch.value,
     })
   }
 

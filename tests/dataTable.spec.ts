@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
@@ -17,8 +17,14 @@ function mountTable(props: Record<string, unknown> = {}) {
   const Host = defineComponent({
     setup() {
       const state = useTableState({ pageSize: 3 })
-      const source = useLocalDataSource<Person>(people, columns, state.query)
-      return () => h(DataTable as never, { columns, source, state, ...props })
+      // Synchronous by default here: these tests are about the markup the
+      // preset renders, not about when the filter settles. The debounce gets
+      // its own test below.
+      const source = useLocalDataSource<Person>(people, columns, state.query, {
+        debounceMs: (props.debounceMs as number) ?? 0,
+      })
+      const { debounceMs: _debounceMs, ...rest } = props
+      return () => h(DataTable as never, { columns, source, state, ...rest })
     },
   })
   return mount(Host, { attachTo: document.body })
@@ -88,6 +94,23 @@ describe('DataTable rendering', () => {
     await nextTick()
     expect(wrapper.findAll('tbody tr')).toHaveLength(2)
     wrapper.unmount()
+  })
+
+  it('coalesces typing in the search box', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountTable({ debounceMs: 150 })
+    const search = wrapper.find('input.vt-search')
+
+    for (const term of ['r', 're', 'res', 'research']) await search.setValue(term)
+    await nextTick()
+    // Mid-burst the table has not moved — which is the entire point.
+    expect(wrapper.findAll('tbody tr')).toHaveLength(3)
+
+    vi.advanceTimersByTime(150)
+    await nextTick()
+    expect(wrapper.findAll('tbody tr')).toHaveLength(2)
+    wrapper.unmount()
+    vi.useRealTimers()
   })
 
   it('shows the empty state when nothing matches', async () => {

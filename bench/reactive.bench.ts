@@ -36,11 +36,13 @@ const rows = makeRows(SIZE)
 /** Keeps roughly half the rows, so the pipeline has real work to redo. */
 const seedFilter = valuesFilter(['Engineering', 'Research', 'Design'])
 
-function harness(groupBy: string[] = []) {
+function harness(groupBy: string[] = [], debounceMs = 0) {
   const scope = effectScope()
   const built = scope.run(() => {
     const state = useTableState({ pageSize: 25, initialGroupBy: groupBy })
-    const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value)
+    const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
+      debounceMs,
+    })
     const columns = useColumns<Employee>(employeeColumns, {
       sortFor: state.sortFor,
       sortIndexFor: state.sortIndexFor,
@@ -81,11 +83,22 @@ describe(`interaction · ${SIZE / 1000}k rows, filtered and sorted`, () => {
     paging.source.rows.value
   })
 
-  const searching = harness()
+  // Two numbers, because the debounce splits one cost into two questions.
+  // What a keystroke costs is what typing feels like; what the settled filter
+  // costs is unchanged work that now happens once per burst instead of per key.
+  const typing = harness([], 150)
   let term = 'ada'
-  bench('one search keystroke', () => {
+  bench('search keystroke, debounced — the cost while typing', () => {
     term = term === 'ada' ? 'adam' : 'ada'
-    searching.state.setSearch(term)
+    typing.state.setSearch(term)
+    typing.source.rows.value
+  })
+
+  const searching = harness()
+  let settled = 'ada'
+  bench('search settling — the filter pass itself', () => {
+    settled = settled === 'ada' ? 'adam' : 'ada'
+    searching.state.setSearch(settled)
     searching.source.rows.value
   })
 
