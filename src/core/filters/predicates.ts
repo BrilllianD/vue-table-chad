@@ -179,9 +179,23 @@ export function compileFilter(
 
 /** Case-insensitive substring match used by the global search box. */
 export function matchesSearch(values: unknown[], search: string): boolean {
+  const test = compileSearch(search)
+  if (!test) return true
+  return values.some(test)
+}
+
+/**
+ * The same test, with the needle lowered once instead of once per call.
+ *
+ * `matchesSearch` re-trims and re-lowercases the term for every row it is asked
+ * about — unnoticeable once, and ten thousand times over on every keystroke.
+ * Returning `undefined` for an empty search lets a caller skip the column loop
+ * outright rather than run a test that always passes.
+ */
+export function compileSearch(search: string): ((value: unknown) => boolean) | undefined {
   const needle = search.trim().toLowerCase()
-  if (needle === '') return true
-  return values.some((value) => !isBlank(value) && textOf(value).includes(needle))
+  if (needle === '') return undefined
+  return (value: unknown) => !isBlank(value) && textOf(value).includes(needle)
 }
 
 export type { FilterValue }

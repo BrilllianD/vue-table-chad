@@ -1,5 +1,5 @@
 import type { AggregateResult, ColumnDef, FilterValue } from './types'
-import { comparatorFor, readValue } from './sorting'
+import { comparatorFor, readValue, sortKeyFor } from './sorting'
 import { ROOT_GROUP_KEY, groupPathKey, groupValueOf } from './grouping'
 import { isBlank, toNumber } from './utils/values'
 
@@ -50,14 +50,33 @@ function extreme<TRow>(
     ? (column.comparator as (a: unknown, b: unknown) => number)
     : comparatorFor(column.type)
 
+  // Where the type has a numeric key and the column did not override the
+  // ordering, each value is projected once and the incumbent's key is kept.
+  // Otherwise the scan re-derives it on every row: `compareDate` parses both
+  // operands per call, so finding the earliest of 10 000 dates parsed the
+  // running minimum 10 000 times over.
+  const key = column.comparator ? undefined : sortKeyFor(column.type)
+
   let winner: TRow | undefined
   let winning: unknown
+  let winningKey = 0
   let sampleCount = 0
 
   for (const row of rows) {
     const value = readValue(row, column)
     if (isBlank(value)) continue
     sampleCount += 1
+
+    if (key) {
+      const candidate = key(value)
+      if (winner === undefined || (wantLargest ? candidate > winningKey : candidate < winningKey)) {
+        winner = row
+        winning = value
+        winningKey = candidate
+      }
+      continue
+    }
+
     if (winner === undefined) {
       winner = row
       winning = value

@@ -1,5 +1,5 @@
 import type { ColumnDef, ColumnFilter, FacetValue, FilterValue, QueryState } from '../types'
-import { compileFilter, matchesSearch } from './predicates'
+import { compileFilter, compileSearch } from './predicates'
 import { readValue } from '../sorting'
 import { compareDate, compareNumber, compareText } from '../sorting'
 import { facetKey, toFilterValue } from '../utils/values'
@@ -38,16 +38,28 @@ export function filterRows<TRow>(
 
   if (compiled.length === 0 && searchable.length === 0) return rows.slice()
 
+  // Compiled once for the whole pass rather than rebuilt per row.
+  const searchTest = compileSearch(search)
+
   return rows.filter((row) => {
     for (const { column, test } of compiled) {
       if (!test(readValue(row, column))) return false
     }
-    if (searchable.length > 0) {
-      const values = searchable.map((column) => {
+    if (searchTest) {
+      // Walked rather than collected: gathering every searchable cell into an
+      // array first meant allocating one array per row and running `format` on
+      // all of them, when the first hit already settles the question. Most rows
+      // that match do so on an early column, and most that do not are decided
+      // by the loop ending — neither case wants the array.
+      let hit = false
+      for (const column of searchable) {
         const value = readValue(row, column)
-        return column.format ? column.format(value, row) : value
-      })
-      if (!matchesSearch(values, search)) return false
+        if (searchTest(column.format ? column.format(value, row) : value)) {
+          hit = true
+          break
+        }
+      }
+      if (!hit) return false
     }
     return true
   })

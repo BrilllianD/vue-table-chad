@@ -71,7 +71,13 @@ export {
   OPERATOR_LABELS,
 } from './core/filters/model'
 
-export { matchesFilter, matchesRule, matchesSearch, compileFilter } from './core/filters/predicates'
+export {
+  matchesFilter,
+  matchesRule,
+  matchesSearch,
+  compileFilter,
+  compileSearch,
+} from './core/filters/predicates'
 export { computeFacets, filterRows } from './core/filters/facets'
 
 /* --------------------------------------------------------------- sorting */
@@ -81,6 +87,7 @@ export {
   applySortRule,
   nextDirection,
   comparatorFor,
+  sortKeyFor,
   compareText,
   compareNumber,
   compareDate,

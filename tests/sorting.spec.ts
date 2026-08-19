@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { aggregateValue } from '../src/core/aggregation'
 import { applySortRule, nextDirection, sortRows } from '../src/core/sorting'
 import { names, people, personColumns, type Person } from './fixtures'
 
@@ -125,5 +126,140 @@ describe('sortRows', () => {
     const byLength = [{ id: 'name', type: 'text' as const, comparator: (a: unknown, b: unknown) => String(a).length - String(b).length }]
     const sorted = sortRows(people, [{ columnId: 'name', direction: 'asc' }], byLength)
     expect(sorted[0]!.name).toBe('Item 2')
+  })
+})
+
+/*
+ * `sortRows` projects number, date and boolean columns to a numeric key once
+ * per row instead of deriving one inside the comparator on every comparison.
+ * These pin the corners where the two paths could disagree — a fast path that
+ * quietly reorders anything is worse than no fast path.
+ */
+describe('sortRows key projection', () => {
+  it('orders an unparseable value exactly as the comparator did — last', () => {
+    // `compareNumber` and `compareDate` both return 1 for an operand that will
+    // not coerce, so a non-blank piece of nonsense sorts after everything real.
+    // The projection maps it to +Infinity, which has to mean the same thing.
+    const rows = [
+      { id: 1, n: 5, d: '2020-01-01' },
+      { id: 2, n: 'not a number', d: 'not a date' },
+      { id: 3, n: 1, d: '2019-01-01' },
+    ]
+    const columns = [
+      { id: 'n', type: 'number' as const },
+      { id: 'd', type: 'date' as const },
+    ]
+
+    expect(sortRows(rows, [{ columnId: 'n', direction: 'asc' }], columns).map((r) => r.id)).toEqual([
+      3, 1, 2,
+    ])
+    expect(sortRows(rows, [{ columnId: 'd', direction: 'asc' }], columns).map((r) => r.id)).toEqual([
+      3, 1, 2,
+    ])
+  })
+
+  it('ties two unparseable values rather than producing NaN', () => {
+    // Both project to +Infinity. Subtracting them would give NaN and leave the
+    // order at the mercy of the engine's sort; comparing makes it a tie, so the
+    // incoming order stands.
+    const rows = [
+      { id: 1, n: 'x' },
+      { id: 2, n: 'y' },
+      { id: 3, n: 2 },
+    ]
+    const columns = [{ id: 'n', type: 'number' as const }]
+    expect(sortRows(rows, [{ columnId: 'n', direction: 'asc' }], columns).map((r) => r.id)).toEqual([
+      3, 1, 2,
+    ])
+  })
+
+  it('sorts booleans false before true, blanks aside', () => {
+    const rows = [
+      { id: 1, ok: true },
+      { id: 2, ok: false },
+      { id: 3, ok: true },
+    ]
+    const columns = [{ id: 'ok', type: 'boolean' as const }]
+    expect(sortRows(rows, [{ columnId: 'ok', direction: 'asc' }], columns).map((r) => r.id)).toEqual(
+      [2, 1, 3],
+    )
+    expect(
+      sortRows(rows, [{ columnId: 'ok', direction: 'desc' }], columns).map((r) => r.id),
+    ).toEqual([1, 3, 2])
+  })
+
+  it('leaves a custom comparator in charge of its own column', () => {
+    // The projection must not shadow an override, or a column sorting by a
+    // bespoke rule would silently start sorting numerically.
+    const order = ['medium', 'low', 'high']
+    const rows = [{ size: 'high' }, { size: 'low' }, { size: 'medium' }]
+    const columns = [
+      {
+        id: 'size',
+        type: 'number' as const,
+        comparator: (a: unknown, b: unknown) => order.indexOf(String(a)) - order.indexOf(String(b)),
+      },
+    ]
+    expect(
+      sortRows(rows, [{ columnId: 'size', direction: 'asc' }], columns).map((r) => r.size),
+    ).toEqual(['medium', 'low', 'high'])
+  })
+
+  it('reads an accessor once per row, not once per comparison', () => {
+    let reads = 0
+    const rows = Array.from({ length: 40 }, (_, i) => ({ nested: { n: 40 - i } }))
+    const columns = [
+      {
+        id: 'n',
+        type: 'number' as const,
+        accessor: (row: { nested: { n: number } }) => {
+          reads += 1
+          return row.nested.n
+        },
+      },
+    ]
+
+    sortRows(rows, [{ columnId: 'n', direction: 'asc' }], columns)
+    // Comparisons run O(n log n) times; cells number exactly n.
+    expect(reads).toBe(rows.length)
+  })
+})
+
+describe('aggregate extremes use the same ordering as the sort', () => {
+  it('reports the earliest date, blanks skipped', () => {
+    const rows = [
+      { id: 1, d: '2021-06-01' },
+      { id: 2, d: null },
+      { id: 3, d: '2019-02-14' },
+      { id: 4, d: '2020-01-01' },
+    ]
+    const column = { id: 'd', type: 'date' as const, aggregate: 'min' as const }
+    const result = aggregateValue(rows, column)
+    expect(result?.value).toBe('2019-02-14')
+    expect(result?.row).toBe(rows[2])
+    expect(result?.sampleCount).toBe(3)
+  })
+
+  it('counts an unparseable value and still lets it win a max', () => {
+    // Exactly what the comparator did before the projection: a non-blank value
+    // that will not coerce counts as a sample and sorts above everything. Odd,
+    // but it is the established behaviour and the fast path must not change it.
+    const rows = [{ id: 1, n: 10 }, { id: 2, n: 'junk' }, { id: 3, n: 2 }]
+    const column = { id: 'n', type: 'number' as const, aggregate: 'max' as const }
+    const result = aggregateValue(rows, column)
+    expect(result?.value).toBe('junk')
+    expect(result?.sampleCount).toBe(3)
+  })
+
+  it('still defers to a custom comparator', () => {
+    const order = ['medium', 'low', 'high']
+    const rows = [{ size: 'high' }, { size: 'low' }, { size: 'medium' }]
+    const column = {
+      id: 'size',
+      type: 'number' as const,
+      aggregate: 'min' as const,
+      comparator: (a: unknown, b: unknown) => order.indexOf(String(a)) - order.indexOf(String(b)),
+    }
+    expect(aggregateValue(rows, column)?.value).toBe('medium')
   })
 })

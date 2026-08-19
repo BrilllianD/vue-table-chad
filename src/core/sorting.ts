@@ -35,6 +35,40 @@ export function compareBoolean(a: unknown, b: unknown): number {
   return ba ? 1 : -1
 }
 
+/**
+ * A number a value of this type can be ordered by, or `undefined` for the types
+ * that have none.
+ *
+ * Text and enum are excluded on purpose: they order through `Intl.Collator`,
+ * which is not expressible as a number. For the three that remain, projecting
+ * once per row beats re-deriving inside a comparator on every comparison —
+ * `compareDate` parses *both* operands per call, so scanning for a minimum
+ * re-parses the incumbent once per row.
+ *
+ * Unorderable values map to `+Infinity`, which is not a convenience: it is what
+ * `compareNumber`, `compareDate` and `compareBoolean` already do, each
+ * returning `1` when its own operand will not coerce and `0` when neither will.
+ * A caller swapping a comparator for a key must not quietly reorder blanks.
+ */
+export function sortKeyFor(
+  type: ColumnDataType = 'text',
+): ((value: unknown) => number) | undefined {
+  switch (type) {
+    case 'number':
+      return (value) => toNumber(value) ?? Number.POSITIVE_INFINITY
+    case 'date':
+      return (value) => toTime(value) ?? Number.POSITIVE_INFINITY
+    case 'boolean':
+      return (value) => {
+        const parsed = toBoolean(value)
+        if (parsed === undefined) return Number.POSITIVE_INFINITY
+        return parsed ? 1 : 0
+      }
+    default:
+      return undefined
+  }
+}
+
 export function comparatorFor(type: ColumnDataType = 'text'): (a: unknown, b: unknown) => number {
   switch (type) {
     case 'number':
@@ -120,32 +154,83 @@ export function sortRows<TRow>(
         compare: column.comparator
           ? (column.comparator as (a: unknown, b: unknown) => number)
           : comparatorFor(column.type),
+        // Present for number, date and boolean columns that did not override
+        // the ordering. See below for why it is worth the extra pass.
+        key: column.comparator ? undefined : sortKeyFor(column.type),
       }
     })
     .filter((entry): entry is NonNullable<typeof entry> => entry !== undefined)
 
   if (plan.length === 0) return rows.slice()
 
-  // Decorate with the original index so ties keep their incoming order —
-  // Array.prototype.sort is stable in modern engines, but multi-key comparison
-  // still needs the tiebreak to be explicit and testable.
-  return rows
-    .map((row, index) => ({ row, index }))
-    .sort((left, right) => {
-      for (const { column, direction, compare } of plan) {
-        const a = readValue(left.row, column)
-        const b = readValue(right.row, column)
-        const aBlank = isBlank(a)
-        const bBlank = isBlank(b)
-        if (aBlank || bBlank) {
-          if (aBlank && bBlank) continue
-          if (nullsLast) return aBlank ? 1 : -1
-          return aBlank ? -1 : 1
-        }
-        const result = compare(a, b)
-        if (result !== 0) return result * direction
+  /*
+   * Read every sort cell up front, one column-shaped array per plan entry.
+   *
+   * The comparator runs O(n log n) times but there are only n cells, so
+   * anything derived inside it is derived tens of times per row. That was the
+   * whole cost of sorting a date column: `compareDate` parses both operands on
+   * every call, so 10 000 rows cost roughly 270 000 date parses instead of
+   * 10 000. Accessor columns paid the same way — `readValue` ran per
+   * comparison, not per row.
+   *
+   * Column-shaped rather than row-shaped on purpose: one array per sort key
+   * beats one small array per row, which for a single-column sort would mean
+   * allocating an array per row to hold one value.
+   */
+  const values = plan.map((entry) => {
+    const column = new Array<unknown>(rows.length)
+    for (let i = 0; i < rows.length; i += 1) column[i] = readValue(rows[i]!, entry.column)
+    return column
+  })
+
+  const blanks = values.map((column) => {
+    const flags = new Array<boolean>(column.length)
+    for (let i = 0; i < column.length; i += 1) flags[i] = isBlank(column[i])
+    return flags
+  })
+
+  const keys = plan.map((entry, planIndex) => {
+    const project = entry.key
+    if (!project) return undefined
+    const column = values[planIndex]!
+    const projected = new Array<number>(column.length)
+    for (let i = 0; i < column.length; i += 1) projected[i] = project(column[i])
+    return projected
+  })
+
+  // Indices rather than decorated objects: the original position is the index
+  // itself, so ties keep their incoming order with nothing to carry around.
+  const order = new Array<number>(rows.length)
+  for (let i = 0; i < rows.length; i += 1) order[i] = i
+
+  order.sort((left, right) => {
+    for (let planIndex = 0; planIndex < plan.length; planIndex += 1) {
+      const aBlank = blanks[planIndex]![left]!
+      const bBlank = blanks[planIndex]![right]!
+      if (aBlank || bBlank) {
+        if (aBlank && bBlank) continue
+        if (nullsLast) return aBlank ? 1 : -1
+        return aBlank ? -1 : 1
       }
-      return left.index - right.index
-    })
-    .map((entry) => entry.row)
+
+      const { direction, compare } = plan[planIndex]!
+      const projected = keys[planIndex]
+      let result: number
+      if (projected) {
+        const a = projected[left]!
+        const b = projected[right]!
+        // Subtraction would yield NaN for two unorderable values, which both
+        // map to +Infinity; comparing instead makes that case the tie it is.
+        result = a === b ? 0 : a < b ? -1 : 1
+      } else {
+        result = compare(values[planIndex]![left], values[planIndex]![right])
+      }
+      if (result !== 0) return result * direction
+    }
+    return left - right
+  })
+
+  const sorted = new Array<TRow>(rows.length)
+  for (let i = 0; i < order.length; i += 1) sorted[i] = rows[order[i]!]!
+  return sorted
 }

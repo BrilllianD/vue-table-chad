@@ -23,6 +23,13 @@ const SIZES = [10_000, 100_000] as const
 
 const rowsBySize = new Map(SIZES.map((size) => [size, makeRows(size)]))
 
+/** The same columns with every aggregate but one stripped off. */
+function onlyAggregate(columnId: string) {
+  return employeeColumns.map((column) =>
+    column.id === columnId ? column : { ...column, aggregate: undefined },
+  )
+}
+
 /** A filter that keeps roughly half the rows — the case that costs the most. */
 const halfFilter = {
   department: valuesFilter(['Engineering', 'Research', 'Design']),
@@ -53,6 +60,12 @@ for (const size of SIZES) {
 
     bench('single number column', () => {
       sortRows(rows, [{ columnId: 'salary', direction: 'desc' }], employeeColumns)
+    })
+
+    bench('single date column', () => {
+      // The worst case for a comparator that derives its key on every call:
+      // O(n log n) comparisons, each parsing both operands.
+      sortRows(rows, [{ columnId: 'hiredAt', direction: 'asc' }], employeeColumns)
     })
 
     bench('three columns, mixed types', () => {
@@ -101,6 +114,22 @@ for (const size of SIZES) {
 
     bench('aggregate, two levels', () => {
       aggregateGroups(rows, ['department', 'role'], employeeColumns)
+    })
+
+    // Split by reducer, because "aggregation is slow" is not actionable and
+    // "parsing a date string per comparison is slow" is. `min` on a date column
+    // runs the column's comparator once per row, and each call re-parses both
+    // operands — including the incumbent, over and over.
+    bench('aggregate · sum on a number column', () => {
+      aggregateGroups(rows, ['department', 'role'], onlyAggregate('salary'))
+    })
+
+    bench('aggregate · avg on a number column', () => {
+      aggregateGroups(rows, ['department', 'role'], onlyAggregate('rating'))
+    })
+
+    bench('aggregate · min on a date column', () => {
+      aggregateGroups(rows, ['department', 'role'], onlyAggregate('hiredAt'))
     })
   })
 }
