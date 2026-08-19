@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * Header button that cycles asc → desc → unsorted.
+ * The clickable header label: cycles asc → desc → unsorted, and shift-click
+ * stacks sort keys.
  *
- * Shift-click (or ctrl/cmd) appends to the multi-sort instead of replacing it,
+ * Shift (or ctrl/cmd) appends to the multi-sort instead of replacing it,
  * and the badge shows the column's position in that ordering.
  */
 import { computed } from 'vue'

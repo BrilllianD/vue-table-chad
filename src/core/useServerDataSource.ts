@@ -10,6 +10,7 @@ import {
 } from 'vue'
 import type { DataSource, FacetValue, FetchParams, FetchResult, QueryState } from './types'
 
+/** debounceMs, keepPreviousData, immediate, fetchFacets and onError. */
 export interface ServerDataSourceOptions {
   /** Delay applied to filter/search/sort changes. Paging is never debounced. */
   debounceMs?: number
@@ -22,6 +23,7 @@ export interface ServerDataSourceOptions {
   onError?: (error: unknown) => void
 }
 
+/** A DataSource plus initialLoading, true only before anything has arrived. */
 export interface ServerDataSource<TRow> extends DataSource<TRow> {
   /** True only for the first load, when there is nothing to show yet. */
   initialLoading: ComputedRef<boolean>

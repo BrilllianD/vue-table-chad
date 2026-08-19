@@ -14,6 +14,7 @@ export interface StorageLike {
   removeItem: (key: string) => void
 }
 
+/** Storage key, which fields to keep, and where to keep them. */
 export interface ColumnStorageOptions {
   key: string
   /**
@@ -27,6 +28,7 @@ export interface ColumnStorageOptions {
   storage?: StorageLike | (() => StorageLike | undefined)
 }
 
+/** The four layout fields persisted unless you narrow them. */
 export const DEFAULT_COLUMN_LAYOUT_FIELDS: readonly ColumnLayoutField[] = [
   'hidden',
   'order',
@@ -76,10 +78,12 @@ function pinMap(value: unknown): Record<string, PinSide | false> | undefined {
 }
 
 /**
- * Rebuilds a layout from untrusted JSON, keeping only well-formed entries of
- * the requested fields. Unknown column ids are deliberately kept: `useColumns`
- * already ignores ids it cannot resolve, and dropping them here would erase a
- * saved layout for anyone whose column set is built asynchronously.
+ * Drops anything malformed from a stored layout rather than trusting it.
+ *
+ * Only well-formed entries of the requested fields survive. Unknown column ids
+ * are deliberately kept: `useColumns` already ignores ids it cannot resolve,
+ * and dropping them here would erase a saved layout for anyone whose column
+ * set is built asynchronously.
  */
 export function sanitizeColumnLayout(
   raw: unknown,
@@ -168,7 +172,12 @@ export function clearColumnLayout(options: ColumnStorageOptions): void {
   }
 }
 
-/** `storage: 'my-table'` is shorthand for `storage: { key: 'my-table' }`. */
+/**
+ * Resolves the storage options into a concrete key, field list and
+ * `StorageLike`.
+ *
+ * `storage: 'my-table'` is shorthand for `storage: { key: 'my-table' }`.
+ */
 export function normalizeColumnStorage(
   storage: string | ColumnStorageOptions | undefined,
 ): ColumnStorageOptions | undefined {

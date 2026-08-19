@@ -4,10 +4,12 @@ import { isBlank, toBoolean, toNumber, toTime } from './utils/values'
 /** Natural ordering: "item 2" sorts before "item 10". */
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
 
+/** Text ordering, natural and case-insensitive, through the shared collator. */
 export function compareText(a: unknown, b: unknown): number {
   return collator.compare(String(a), String(b))
 }
 
+/** Numeric ordering; anything uncoercible sorts last. */
 export function compareNumber(a: unknown, b: unknown): number {
   const na = toNumber(a)
   const nb = toNumber(b)
@@ -17,6 +19,7 @@ export function compareNumber(a: unknown, b: unknown): number {
   return na - nb
 }
 
+/** Chronological ordering, with bare YYYY-MM-DD read as local midnight. */
 export function compareDate(a: unknown, b: unknown): number {
   const ta = toTime(a)
   const tb = toTime(b)
@@ -26,6 +29,7 @@ export function compareDate(a: unknown, b: unknown): number {
   return ta - tb
 }
 
+/** false before true, with blanks last. */
 export function compareBoolean(a: unknown, b: unknown): number {
   const ba = toBoolean(a)
   const bb = toBoolean(b)
@@ -69,6 +73,7 @@ export function sortKeyFor(
   }
 }
 
+/** The comparator a column type sorts by. */
 export function comparatorFor(type: ColumnDataType = 'text'): (a: unknown, b: unknown) => number {
   switch (type) {
     case 'number':
@@ -84,6 +89,7 @@ export function comparatorFor(type: ColumnDataType = 'text'): (a: unknown, b: un
   }
 }
 
+/** A column's value for a row: its accessor, or row[id]. */
 export function readValue<TRow>(row: TRow, column: ColumnDef<TRow>): unknown {
   if (column.accessor) return column.accessor(row)
   return (row as Record<string, unknown>)[column.id]
@@ -122,17 +128,20 @@ export function applySortRule(
   return next
 }
 
+/** Sort behaviour that is not per-column — currently just blank handling. */
 export interface SortOptions {
   /** Blanks sink to the bottom in both directions when true (the default). */
   nullsLast?: boolean
 }
 
 /**
- * Stable multi-column sort. Returns a new array; the input is untouched.
+ * Stable multi-column sort, projecting each row's sort key once rather than
+ * deriving it inside the comparator.
  *
- * Blanks are handled outside the direction flip, so an empty cell stays at the
- * bottom whether you sort ascending or descending — flipping them to the top on
- * `desc` is the behaviour users read as a bug.
+ * Returns a new array; the input is untouched. Blanks are handled outside the
+ * direction flip, so an empty cell stays at the bottom whether you sort
+ * ascending or descending — flipping them to the top on `desc` is the
+ * behaviour users read as a bug.
  */
 export function sortRows<TRow>(
   rows: readonly TRow[],

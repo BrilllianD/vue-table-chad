@@ -4,6 +4,10 @@ import { ROOT_GROUP_KEY, buildGroupTree, flattenTree, groupSortRules } from './g
 import { aggregateRow } from './aggregation'
 import { sortRows } from './sorting'
 
+/**
+ * What to group by, whole-set totals and aggregates, and the initial collapse
+ * state.
+ */
 export interface UseRowGroupingOptions<TRow = Record<string, unknown>> {
   /** Column ids to group by, outermost first. Usually `state.groupBy`. */
   groupBy: MaybeRefOrGetter<string[]>
@@ -33,6 +37,7 @@ export interface UseRowGroupingOptions<TRow = Record<string, unknown>> {
   blankLabel?: string
 }
 
+/** displayRows, groups, overall aggregates and the collapse controls. */
 export interface UseRowGrouping<TRow> {
   /** Group headers and rows interleaved, ready to render. */
   displayRows: ComputedRef<DisplayRow<TRow>[]>

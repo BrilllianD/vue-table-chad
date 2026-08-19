@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Drag handle in a header cell.
+ * Pointer and keyboard column resizing, exposed as a `separator` role so it
+ * is reachable without a mouse.
  *
  * Uses pointer capture so the drag keeps tracking even when the cursor leaves
  * the handle — without it, a fast drag drops the column mid-resize.

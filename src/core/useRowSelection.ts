@@ -8,6 +8,7 @@ import {
 } from 'vue'
 import type { HeaderCheckboxState, RowId, SelectionMode, SelectionState } from './types'
 
+/** Row identity, selectability, mode, and an initial selection. */
 export interface UseRowSelectionOptions<TRow> {
   /** Stable identity for a row. Defaults to `row.id`. */
   getRowId?: (row: TRow) => RowId
@@ -18,6 +19,7 @@ export interface UseRowSelectionOptions<TRow> {
   initial?: SelectionState
 }
 
+/** Selection state, predicates and mutators. */
 export interface UseRowSelection<TRow> {
   state: Ref<SelectionState>
   /** Ids explicitly selected. Empty in `all-matching` mode. */

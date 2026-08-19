@@ -111,6 +111,7 @@ function matchesBooleanRule(raw: unknown, rule: ConditionRule): boolean {
   return rule.operator === 'neq' ? value !== operand : value === operand
 }
 
+/** Does one value satisfy one condition rule, at this type? */
 export function matchesRule(raw: unknown, rule: ConditionRule, type: ColumnDataType): boolean {
   switch (type) {
     case 'number':
@@ -149,9 +150,11 @@ export function matchesFilter(raw: unknown, filter: ColumnFilter, type: ColumnDa
 }
 
 /**
- * Pre-builds the allowed-value set once per filter instead of once per row —
- * `matchesFilter` rebuilds it on every call, which is O(rows × values) on a
- * 10k-row local dataset.
+ * Pre-builds a filter into a predicate once, instead of rebuilding its value
+ * set per row.
+ *
+ * `matchesFilter` rebuilds that set on every call, which is O(rows × values)
+ * on a 10k-row local dataset.
  */
 export function compileFilter(
   filter: ColumnFilter,

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { apiReference } from '../demo/src/data/apiReference'
+import { generate } from '../scripts/generate-api-reference'
 
 /**
  * The API reference is documentation, and documentation rots. This is what
@@ -12,6 +13,12 @@ import { apiReference } from '../demo/src/data/apiReference'
  * It reads `src/index.ts` as text rather than importing it, because importing
  * would only reveal runtime values — the reference covers types as well, and
  * types leave nothing behind to inspect.
+ *
+ * The parser below stayed after the reference became generated, and is worth
+ * more now than it was: it is a *second, independently written* reading of
+ * `src/index.ts`. A bug in the generator's own parser would produce a file
+ * that agrees with the generator, so the freshness check below would pass —
+ * only a separate parser notices. Do not collapse the two.
  */
 function exportedNames(): Set<string> {
   // Resolved from the working directory rather than `import.meta.url`: vitest
@@ -61,5 +68,26 @@ describe('API reference', () => {
 
   it('names each entry once', () => {
     expect(documented.size).toBe(apiReference.length)
+  })
+
+  /*
+   * The file is generated but committed, so `pnpm demo` needs no codegen step
+   * in front of it. These two are what make that safe.
+   */
+
+  it('is byte-for-byte what the generator writes', () => {
+    // Byte compare rather than deep-equal on the data: this is the assertion
+    // that catches a hand edit which happens to be semantically identical,
+    // which is the exact failure mode generating the file is meant to end.
+    const onDisk = readFileSync(resolve(process.cwd(), 'demo/src/data/apiReference.ts'), 'utf8')
+    expect(generate(), 'demo/src/data/apiReference.ts is stale — run `pnpm docs:api`').toBe(onDisk)
+  })
+
+  it('gives every export a summary at its declaration', () => {
+    // `generate()` throws rather than emitting a blank summary, so simply
+    // calling it is the check. Named separately from the freshness case
+    // because the fix is different: write a doc comment in `src/`, do not
+    // re-run the generator.
+    expect(() => generate()).not.toThrow()
   })
 })

@@ -10,6 +10,8 @@ import type {
 import { UNARY_OPERATORS, BINARY_OPERATORS } from '../types'
 
 /**
+ * Excel's checkbox list: which distinct values survive.
+ *
  * Blanks default to *excluded*: in Excel, ticking two departments means those
  * two and nothing else. "(Blanks)" is its own checkbox, so keeping blanks needs
  * an explicit `includeBlanks: true`.
@@ -18,14 +20,17 @@ export function valuesFilter(include: FilterValue[] | null, includeBlanks = fals
   return { kind: 'values', include, includeBlanks }
 }
 
+/** Excel's operator rules, combined with and / or. */
 export function conditionsFilter(rules: ConditionRule[], op: 'and' | 'or' = 'and'): ConditionsFilter {
   return { kind: 'conditions', op, rules }
 }
 
+/** Operators that take no operand: empty, notEmpty. */
 export function isUnaryOperator(op: ConditionOperator): boolean {
   return (UNARY_OPERATORS as readonly string[]).includes(op)
 }
 
+/** Operators that take two: between. */
 export function isBinaryOperator(op: ConditionOperator): boolean {
   return (BINARY_OPERATORS as readonly string[]).includes(op)
 }
@@ -115,6 +120,7 @@ export function operatorsFor(type: ColumnDataType): ConditionOperator[] {
   }
 }
 
+/** Human-readable names for every operator. */
 export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
   contains: 'contains',
   notContains: 'does not contain',
@@ -134,6 +140,7 @@ export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
   after: 'is after',
 }
 
+/** The operator a fresh rule on this type starts with. */
 export function defaultOperator(type: ColumnDataType): ConditionOperator {
   return operatorsFor(type)[0]!
 }

@@ -1,14 +1,17 @@
 import { computed, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 
 
+/** siblingCount around the current page, and an onChange callback. */
 export interface UsePaginationOptions {
   /** How many numbered links to show around the current page. */
   siblingCount?: MaybeRefOrGetter<number>
   onChange?: (page: number) => void
 }
 
+/** A page number or an ellipsis, ready to render. */
 export type PageItem = number | 'ellipsis'
 
+/** Current page, bounds, the item list, and the navigation calls. */
 export interface UsePagination {
   page: ComputedRef<number>
   pageCount: ComputedRef<number>

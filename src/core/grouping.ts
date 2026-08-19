@@ -35,9 +35,11 @@ export const BLANK_GROUP_LABEL = 'Blank'
 export const ROOT_GROUP_KEY = ''
 
 /**
- * The bucket a row falls into for one column. Runs the value through
- * `toFilterValue`, so blanks of every flavour (`null`, `undefined`, `''`)
- * collapse into one group rather than three.
+ * The bucket a row falls into for one column, with every flavour of blank
+ * collapsed into one.
+ *
+ * `toFilterValue` does the collapsing, so `null`, `undefined` and `''` land in
+ * one group rather than three.
  */
 export function groupValueOf<TRow>(row: TRow, column: ColumnDef<TRow>): FilterValue {
   if (column.groupValue) return column.groupValue(row)
@@ -45,7 +47,8 @@ export function groupValueOf<TRow>(row: TRow, column: ColumnDef<TRow>): FilterVa
 }
 
 /**
- * Stable identity for a group, built from the values of every level above it.
+ * Stable identity for a band, built from every level above it.
+ *
  * Two groups at different depths, or under different parents, can never
  * collide — which matters because collapse state is nothing but a set of these.
  */
@@ -107,6 +110,7 @@ function labelFor<TRow>(
   return String(value)
 }
 
+/** Collapse predicate, supplied totals and aggregates, and the blank label. */
 export interface GroupingOptions<TRow = Record<string, unknown>> {
   /** Group keys the user has folded shut. Their rows and subgroups are skipped. */
   isCollapsed?: (key: string) => boolean
@@ -252,9 +256,11 @@ export function buildGroupTree<TRow>(
 }
 
 /**
- * Walks a built tree into the list a `<tbody>` renders, skipping the contents
- * of whatever is folded shut. Cheap by construction — it allocates the output
- * and nothing else, which is the point of having built the tree separately.
+ * The cheap half: walks a built tree under the current collapse state.
+ *
+ * Produces the list a `<tbody>` renders, skipping the contents of whatever is
+ * folded shut. It allocates the output and nothing else, which is the point of
+ * having built the tree separately.
  */
 export function flattenTree<TRow>(
   tree: GroupTree<TRow>,
@@ -285,16 +291,17 @@ export function flattenTree<TRow>(
 }
 
 /**
- * Flattens rows into the list a `<tbody>` renders: a group header, then its
+ * Build and walk in one call, for callers doing it once.
+ *
+ * The output is the list a `<tbody>` renders: a group header, then its
  * contents, recursively. With no grouping it is the rows themselves, so a
  * caller can render `displayRows` unconditionally.
  *
  * `index` on a leaf is its position in the *input* array, not in the output —
  * so it stays a usable stripe parity no matter how many headers interleave.
  *
- * Build-then-walk in one call, for callers doing it once. A caller that folds
- * bands open and shut should hold a `buildGroupTree` result and call
- * `flattenTree` on each toggle instead.
+ * A caller that folds bands open and shut should hold a `buildGroupTree`
+ * result and call `flattenTree` on each toggle instead.
  */
 export function flattenGroups<TRow>(
   rows: readonly TRow[],
@@ -306,9 +313,11 @@ export function flattenGroups<TRow>(
 }
 
 /**
- * Every group key the rows produce, at every depth, ignoring collapse state.
- * "Collapse all" needs the keys it is about to hide, including ones currently
- * nested inside an already-collapsed parent.
+ * Every group key at every depth, ignoring collapse — what "collapse all"
+ * needs.
+ *
+ * Including keys currently nested inside an already-collapsed parent: those
+ * are exactly the ones "collapse all" is about to hide.
  */
 export function groupKeys<TRow>(
   rows: readonly TRow[],

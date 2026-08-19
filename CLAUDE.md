@@ -91,8 +91,11 @@ because a background tab reports the browser's throttle rather than the table's 
   dense with this; match it rather than stripping it.
 - Prefer a named constant over a repeated literal when the name states a contract (`ROOT_GROUP_KEY`
   is the empty group path, not a coincidence two modules share).
-- Public API changes go through `src/index.ts`. Anything exported is documented in `README.md` and
-  should appear somewhere in `demo/`.
+- Public API changes go through `src/index.ts`. Anything exported carries a doc comment on its
+  **declaration** whose first paragraph works as a one-line summary — `pnpm docs:api` harvests
+  those into `demo/src/data/apiReference.ts`, and a test regenerates that file and fails if the
+  committed copy differs. So the summary is written once, in `src/`, and never in the demo. An
+  export should also appear somewhere in `demo/`.
 - One commit per task, tests and typecheck green before each.
 
 ## Known gaps

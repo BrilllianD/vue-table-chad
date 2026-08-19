@@ -1,4 +1,8 @@
 <script setup lang="ts" generic="TRow extends Record<string, unknown>">
+/**
+ * Wires everything together and renders nothing of its own — the slot decides
+ * the markup entirely.
+ */
 import { computed, toRef, watch } from 'vue'
 import type {
   ColumnDef,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * A checkbox that understands the indeterminate state.
+ * A checkbox that tracks the indeterminate state, and stays in step when the
+ * parent refuses a change.
  *
  * `indeterminate` is a DOM property, not an attribute, so it has to be written
  * through a ref — binding it in the template silently does nothing. `checked`

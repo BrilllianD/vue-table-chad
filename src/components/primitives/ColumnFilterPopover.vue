@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /**
- * The funnel button plus its dropdown, hosting both halves of Excel's filter
- * menu. Facets are fetched only when the panel opens — computing distinct
- * values for every column up front is wasted work, and pointless for a server
- * source.
+ * The funnel and its panel, teleported out of the scroll container.
+ *
+ * The panel hosts both halves of Excel's filter menu. Facets are fetched only
+ * when it opens — computing distinct values for every column up front is
+ * wasted work, and pointless for a server source.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useTableContext } from '../../core/context'

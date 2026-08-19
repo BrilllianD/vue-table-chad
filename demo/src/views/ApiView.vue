@@ -7,10 +7,12 @@
  * kind, groupable, sortable. If the reference is hard to use, the table is hard
  * to use, and there is nowhere to hide.
  *
- * The entries live in `demo/src/data/apiReference.ts` and are diffed against
- * `src/index.ts` by `tests/apiReference.spec.ts` in both directions, so an
- * export cannot be added without being described, and a described name cannot
- * outlive its export.
+ * The entries are generated: each summary is the first paragraph of the doc
+ * comment on the declaration itself, harvested by `pnpm docs:api` into
+ * `demo/src/data/apiReference.ts`. `tests/apiReference.spec.ts` regenerates it
+ * and fails if the committed copy differs, so an export cannot be added
+ * without being described, a described name cannot outlive its export, and a
+ * summary cannot drift from the code it describes.
  */
 import { shallowRef } from 'vue'
 import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@sandbox/vue-table'

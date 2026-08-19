@@ -9,6 +9,7 @@ import type {
 import { applySortRule, nextDirection } from './sorting'
 import { isEmptyFilter, pruneFilters } from './filters/model'
 
+/** pageSize, initialGroupBy, groupMode, and an external ref to mirror. */
 export interface TableStateOptions {
   initialSort?: SortRule[]
   initialFilters?: Record<string, ColumnFilter>
@@ -32,6 +33,9 @@ export interface TableStateOptions {
   state?: Ref<QueryState>
 }
 
+/**
+ * What useTableState returns: refs plus the mutators that keep paging honest.
+ */
 export interface TableState {
   query: ComputedRef<QueryState>
   sort: Ref<SortRule[]>
@@ -79,6 +83,10 @@ export interface TableState {
   reset: () => void
 }
 
+/**
+ * A fresh QueryState with defaults filled in. Useful for seeding a store or a
+ * URL.
+ */
 export function createQueryState(options: TableStateOptions = {}): QueryState {
   return {
     sort: options.initialSort ? [...options.initialSort] : [],

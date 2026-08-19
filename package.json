@@ -22,6 +22,7 @@
     "build:playground": "vite build --config vite.playground.config.ts",
     "build:demo": "vite build --config vite.demo.config.ts",
     "build:docs": "pnpm build:demo && node demo/inline.mjs",
+    "docs:api": "node scripts/generate-api-reference.ts",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "bench": "vitest bench --run",

@@ -178,7 +178,8 @@ export function aggregateGroups<TRow>(
 }
 
 /**
- * Display text for an aggregate.
+ * Display text for an aggregate, through the column's `aggregateFormat` — or
+ * through `format` for a `min`/`max`.
  *
  * `format` is only reached for a `min`/`max`, which carries the row it came
  * from; a sum has no row to hand it, so a column that needs its totals dressed

@@ -7,6 +7,10 @@ import type { UseRowGrouping } from './useRowGrouping'
 import type { UseRowSelection } from './useRowSelection'
 import type { UsePagination } from './usePagination'
 
+/**
+ * Everything a primitive can reach: state, columns, source, selection,
+ * grouping, cell readers.
+ */
 export interface TableContext<TRow = Record<string, unknown>> {
   state: TableState
   columns: UseColumnsResult<TRow>
@@ -43,23 +47,29 @@ export interface TableContext<TRow = Record<string, unknown>> {
   getCellText: (row: TRow, column: ColumnDef<TRow>) => string
 }
 
+/** The injection key, exported so you can provide a context by hand. */
 export const TableContextKey: InjectionKey<TableContext<never>> = Symbol('vue-table')
 
+/** Publishes a TableContext so primitives beneath can find it. */
 export function provideTableContext<TRow>(context: TableContext<TRow>): void {
   provide(TableContextKey, context as unknown as TableContext<never>)
 }
 
 /**
- * Reads the table context.
+ * The table context, or `undefined` — which is what lets a primitive work
+ * standalone.
  *
  * Every primitive calls this, but each also accepts explicit props that
- * override it — which is what lets `<TablePagination>` or a filter popover be
- * used on its own, outside any `<TableRoot>`.
+ * override it, so `<TablePagination>` or a filter popover can be used on its
+ * own, outside any `<TableRoot>`.
  */
 export function useTableContext<TRow = Record<string, unknown>>(): TableContext<TRow> | undefined {
   return inject(TableContextKey, undefined) as TableContext<TRow> | undefined
 }
 
+/**
+ * The context, or a thrown error, for the primitives that genuinely need one.
+ */
 export function requireTableContext<TRow = Record<string, unknown>>(
   component: string,
 ): TableContext<TRow> {

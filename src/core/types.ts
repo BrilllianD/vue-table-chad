@@ -12,8 +12,10 @@ export type FilterValue = string | number | boolean | null
  */
 export type ColumnDataType = 'text' | 'number' | 'date' | 'boolean' | 'enum'
 
+/** 'asc' | 'desc'. Unsorted is the absence of a rule, not a third value. */
 export type SortDirection = 'asc' | 'desc'
 
+/** One sort key: a column id and a direction. */
 export interface SortRule {
   columnId: string
   direction: SortDirection
@@ -39,6 +41,7 @@ export type DateOperator = 'on' | 'before' | 'after' | 'between' | 'empty' | 'no
 
 export type BooleanOperator = 'eq'
 
+/** Every operator across every column type. */
 export type ConditionOperator = TextOperator | NumberOperator | DateOperator | BooleanOperator
 
 /** Operators that need no operand at all. */
@@ -46,6 +49,7 @@ export const UNARY_OPERATORS = ['empty', 'notEmpty'] as const
 /** Operators that need two operands (`value` and `value2`). */
 export const BINARY_OPERATORS = ['between'] as const
 
+/** An operator with up to two operands. */
 export interface ConditionRule {
   operator: ConditionOperator
   value?: FilterValue
@@ -68,6 +72,7 @@ export interface ConditionsFilter {
   rules: ConditionRule[]
 }
 
+/** Either kind of filter: a values checklist, or a set of condition rules. */
 export type ColumnFilter = ValuesFilter | ConditionsFilter
 
 /** One distinct value plus how many rows carry it. */
@@ -80,6 +85,10 @@ export interface FacetValue {
  * Query state — the serializable description of what to show
  * ------------------------------------------------------------------ */
 
+/**
+ * The serialisable description of what to show. Put it in a URL and the table
+ * is shareable.
+ */
 export interface QueryState {
   sort: SortRule[]
   filters: Record<string, ColumnFilter>
@@ -104,8 +113,13 @@ export interface QueryState {
  * Columns
  * ------------------------------------------------------------------ */
 
+/** 'left' | 'right' — which edge a pinned column sticks to. */
 export type PinSide = 'left' | 'right'
 
+/**
+ * A column as you declare it: accessor, type, format, aggregate, width, pin,
+ * background.
+ */
 export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   id: string
   header?: string
@@ -198,7 +212,7 @@ export interface ResolvedColumn<TRow = Record<string, unknown>> extends ColumnDe
  * Aggregation
  * ------------------------------------------------------------------ */
 
-/** The aggregations a column can declare. */
+/** The aggregations a column can declare: `sum` | `avg` | `min` | `max`. */
 export type AggregateFn = 'sum' | 'avg' | 'min' | 'max'
 
 /** One computed aggregate, ready to render. */
@@ -223,7 +237,8 @@ export interface AggregateResult<TRow = Record<string, unknown>> {
 }
 
 /**
- * Who performs the grouping.
+ * Who performs the grouping: `'client'` bands the rows already loaded,
+ * `'server'` delegates it and keeps bands whole across pages.
  *
  *  - `'client'` — the table bands the rows it already has. Nothing enters the
  *    query, so no refetch happens and a server never hears about it. Bands
@@ -296,6 +311,7 @@ export interface FetchParams {
   signal: AbortSignal
 }
 
+/** What it must return: rows for the page, and the total across all pages. */
 export interface FetchResult<TRow> {
   rows: TRow[]
   /** Total rows matching the filters, across all pages. */
@@ -345,6 +361,7 @@ export interface DataSource<TRow = Record<string, unknown>> {
  * Selection
  * ------------------------------------------------------------------ */
 
+/** Whether one row at a time can be selected, or many. */
 export type SelectionMode = 'single' | 'multiple'
 
 /**
@@ -355,4 +372,5 @@ export type SelectionState =
   | { mode: 'ids'; ids: RowId[] }
   | { mode: 'all-matching'; excluded: RowId[] }
 
+/** 'none' | 'some' | 'all' — the tri-state header checkbox. */
 export type HeaderCheckboxState = 'none' | 'some' | 'all'

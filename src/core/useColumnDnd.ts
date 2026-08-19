@@ -3,11 +3,13 @@ import { computed, onScopeDispose, ref, toValue, type ComputedRef, type MaybeRef
 /** Which edge of the hovered column the dragged one lands on. */
 export type DropSide = 'before' | 'after'
 
+/** The column a drag is currently over, and which side of it. */
 export interface ColumnDropTarget {
   columnId: string
   side: DropSide
 }
 
+/** The column order, a move callback, and canDrag / canDrop guards. */
 export interface UseColumnDndOptions {
   /** Column ids in display order. Drives keyboard moves; drags don't need it. */
   columnIds: MaybeRefOrGetter<string[]>
@@ -21,6 +23,7 @@ export interface UseColumnDndOptions {
   onDrop?: (columnId: string, targetId: string, side: DropSide) => void
 }
 
+/** Drag state and handlers for a header cell to bind. */
 export interface UseColumnDnd {
   /** The column being dragged — null until the press clears the threshold. */
   activeId: Readonly<Ref<string | null>>
@@ -54,7 +57,8 @@ export interface UseColumnDnd {
 const DEFAULT_THRESHOLD = 4
 
 /**
- * Pointer-driven column reordering.
+ * Pointer-driven column reordering: a drag threshold, drop sides, Escape to
+ * cancel, and keyboard moves for anyone not using a pointer.
  *
  * Deliberately not the HTML5 drag-and-drop API: that one cannot render a
  * usable drag image for a table column, fires no events over the element you

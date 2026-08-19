@@ -19,6 +19,7 @@ import { sortRows, type SortOptions } from './sorting'
 import { countGroups, groupedSort } from './grouping'
 import { aggregateGroups } from './aggregation'
 
+/** nullsLast, and debounceMs to coalesce the global search. */
 export interface LocalDataSourceOptions extends SortOptions {
   /**
    * Coalesces the global search, in milliseconds. Every keystroke otherwise
@@ -38,6 +39,10 @@ export interface LocalDataSourceOptions extends SortOptions {
 /** One shared empty grouping, so an absent `groupBy` is a stable reference. */
 const NO_GROUPS: string[] = []
 
+/**
+ * A DataSource plus filteredRows, synchronous facets, and whole-set group
+ * counts.
+ */
 export interface LocalDataSource<TRow> extends DataSource<TRow> {
   /** Rows after filtering and sorting, before the page slice. */
   filteredRows: ComputedRef<TRow[]>

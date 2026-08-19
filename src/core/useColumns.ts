@@ -9,6 +9,7 @@ import {
   type ColumnStorageOptions,
 } from './columnStorage'
 
+/** The serialisable part of a layout: hidden ids, order, widths, pins. */
 export interface ColumnLayoutState {
   hidden: string[]
   order: string[]
@@ -21,6 +22,10 @@ export interface ColumnLayoutState {
   pinned: Record<string, PinSide | false>
 }
 
+/**
+ * Sort and filter lookups to decorate columns with, plus initial layout and
+ * storage.
+ */
 export interface UseColumnsOptions {
   /** Reports the current sort direction for a column, if any. */
   sortFor?: (columnId: string) => SortDirection | false
@@ -39,6 +44,7 @@ export interface UseColumnsOptions {
   storage?: string | ColumnStorageOptions
 }
 
+/** all / visible columns and every layout mutator. */
 export interface UseColumnsResult<TRow> {
   /** Every column, in display order, including hidden ones. */
   all: ComputedRef<ResolvedColumn<TRow>[]>

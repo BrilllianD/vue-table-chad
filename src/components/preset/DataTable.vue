@@ -1,6 +1,8 @@
 <script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /**
- * The batteries-included preset — and deliberately NOT a god component.
+ * The batteries-included preset: every region a named slot, and the one
+ * component that imports the default stylesheet. Deliberately NOT a god
+ * component.
  *
  * It owns no logic of its own: every capability here comes from a primitive or
  * a composable, and every region is a named slot. If it does not fit, drop to
