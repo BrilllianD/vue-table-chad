@@ -97,7 +97,8 @@ because a background tab reports the browser's throttle rather than the table's 
 
 ## Known gaps
 
-Deliberate, not oversights:
+Deliberate, not oversights. [`ROADMAP.md`](ROADMAP.md) carries the full plan, what Phase 1 changed,
+and what each remaining phase involves — start there when picking the work back up.
 
 - **`@sandbox/vue-table` is a placeholder name.** Also no LICENSE, no `repository` field, no CI, no
   CJS build, and `files: ["dist"]` with a gitignored `dist/` means a fresh clone would publish an
