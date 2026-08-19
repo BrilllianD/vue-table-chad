@@ -26,6 +26,7 @@ import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
 import TableHeaderCell from '../primitives/TableHeaderCell.vue'
 import TableCell from '../primitives/TableCell.vue'
+import TableRow from '../primitives/TableRow.vue'
 import TableGroupRow from '../primitives/TableGroupRow.vue'
 import SortTrigger from '../primitives/SortTrigger.vue'
 import ColumnFilterPopover from '../primitives/ColumnFilterPopover.vue'
@@ -142,8 +143,6 @@ function footerText(
       displayRows,
       overallAggregates,
       getRowKey: rowKey,
-      getCellValue,
-      getCellText,
     }"
     :columns="columns"
     :source="source"
@@ -299,15 +298,17 @@ function footerText(
                 </template>
               </TableGroupRow>
 
-              <tr
+              <TableRow
                 v-else
                 :key="rowKey(item.row, item.index)"
-                class="vt-tr"
-                :data-selected="selection?.isSelected(item.row) || undefined"
-                :data-parity="item.index % 2 === 0 ? 'odd' : 'even'"
+                :row="item.row"
+                :columns="cols"
+                :index="item.index"
+                :depth="item.depth"
+                :selected="selection ? selection.isSelected(item.row) : false"
                 @click="$emit('rowClick', item.row, $event)"
               >
-                <td v-if="selectable" class="vt-td vt-td-selection">
+                <template v-if="selectable" #leading>
                   <SelectionCheckbox
                     v-if="selection"
                     :checked="selection.isSelected(item.row)"
@@ -318,35 +319,25 @@ function footerText(
                         event.shiftKey ? selection.toggleRange(item.row) : selection.toggle(item.row)
                     "
                   />
-                </td>
+                </template>
 
-                <TableCell
-                  v-for="(column, columnIndex) in cols"
-                  :key="column.id"
-                  :column="column"
-                >
-                  <!--
-                    The first cell carries the group indent, so rows sit visibly
-                    inside their band without an extra spacer column.
-                  -->
-                  <span
-                    v-if="columnIndex === 0 && item.depth > 0"
-                    class="vt-group-indent"
-                    :style="{ '--vt-group-depth': item.depth }"
-                    aria-hidden="true"
-                  />
-                  <!-- Reads through the column's accessor and format, not row[id]. -->
+                <!--
+                  Forwards each cell to this component's own `cell:<id>` slot,
+                  so the preset's slot API is exactly what it always was while
+                  the row markup lives in the primitive.
+                -->
+                <template #cell="{ row, column, value, text }">
                   <slot
                     :name="`cell:${column.id}`"
-                    :row="item.row"
+                    :row="row"
                     :column="column"
-                    :value="getCellValue(item.row, column)"
-                    :text="getCellText(item.row, column)"
+                    :value="value"
+                    :text="text"
                   >
-                    {{ getCellText(item.row, column) }}
+                    {{ text }}
                   </slot>
-                </TableCell>
-              </tr>
+                </template>
+              </TableRow>
             </template>
           </tbody>
 

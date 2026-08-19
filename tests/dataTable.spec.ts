@@ -4,9 +4,11 @@ import { defineComponent, h, nextTick, ref } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import TableRoot from '../src/components/primitives/TableRoot.vue'
 import TablePagination from '../src/components/primitives/TablePagination.vue'
+import TableRow from '../src/components/primitives/TableRow.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { valuesFilter } from '../src/core/filters/model'
+import type { ResolvedColumn } from '../src/core/types'
 import { people, personColumns, type Person } from './fixtures'
 
 const columns = personColumns.map((column) =>
@@ -612,6 +614,102 @@ describe('column layout', () => {
     await nextTick()
 
     expect(wrapper.findAll('thead th').length).toBe(before - 1)
+    wrapper.unmount()
+  })
+})
+
+describe('TableRow as a primitive', () => {
+  // A plain record rather than a `Person`: `TableRow` is generic over
+  // `Record<string, unknown>`, and these two tests are about a row rendering
+  // with no table above it, not about any particular row shape.
+  const row: Record<string, unknown> = { id: 1, name: 'Ada Lovelace', salary: 120000 }
+
+  function resolved(
+    extra: Partial<ResolvedColumn<Record<string, unknown>>> & { id: string },
+  ): ResolvedColumn<Record<string, unknown>> {
+    return {
+      visible: true,
+      order: 0,
+      resolvedWidth: undefined,
+      pinned: false,
+      pinOffset: 0,
+      sortDirection: false,
+      sortIndex: 0,
+      hasFilter: false,
+      ...extra,
+    }
+  }
+
+  it('renders standalone, with no table context above it', () => {
+    // The property every primitive here is meant to have: usable on its own.
+    // A row that needed a `<TableRoot>` could not be assembled into a custom
+    // `<tbody>`, which is the whole reason the layer exists.
+    const wrapper = mount(TableRow, {
+      props: {
+        row,
+        columns: [
+          resolved({ id: 'name', header: 'Name' }),
+          resolved({ id: 'salary', header: 'Salary', format: (value) => `$${value}` }),
+        ],
+      },
+    })
+
+    const cells = wrapper.findAll('td')
+    expect(cells).toHaveLength(2)
+    expect(cells[0]!.text()).toBe('Ada Lovelace')
+    // Formatting comes from the column even with no context to route it.
+    expect(cells[1]!.text()).toBe('$120000')
+    wrapper.unmount()
+  })
+
+  it('reads each cell once rather than once per use', () => {
+    let reads = 0
+    const wrapper = mount(TableRow, {
+      props: {
+        row,
+        columns: [
+          resolved({
+            id: 'name',
+            header: 'Name',
+            accessor: (source) => {
+              reads += 1
+              return source.name
+            },
+          }),
+        ],
+      },
+    })
+
+    // Inlined in the preset's template this was three reads: twice to build the
+    // slot props, once more for the fallback content.
+    expect(reads).toBe(1)
+    wrapper.unmount()
+  })
+})
+
+describe('rowClick', () => {
+  it('emits the row that was clicked', async () => {
+    // Worth pinning: the click reaches the `<tr>` through `TableRow`'s declared
+    // `click` emit rather than through attribute fallthrough, and nothing else
+    // in the suite would notice if that wiring came undone.
+    const clicked: string[] = []
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(DataTable as never, {
+            columns,
+            source,
+            state,
+            onRowClick: (row: Person) => clicked.push(row.name),
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    await wrapper.findAll('tbody tr')[1]!.trigger('click')
+    expect(clicked).toEqual(['Grace Hopper'])
     wrapper.unmount()
   })
 })

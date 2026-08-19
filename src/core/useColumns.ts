@@ -166,30 +166,37 @@ export function useColumns<TRow>(
    * shift everything pinned after it, so this cannot be precomputed config.
    */
   const visible = computed<ResolvedColumn<TRow>[]>(() => {
-    // Copy rather than mutate: these objects also belong to `all`, and writing
-    // pinOffset through them would make `all`'s contents depend on whether
-    // `visible` had been evaluated yet.
-    const shown = all.value.filter((column) => column.visible).map((column) => ({ ...column }))
+    const shown = all.value.filter((column) => column.visible)
 
     const left = shown.filter((column) => column.pinned === 'left')
     const right = shown.filter((column) => column.pinned === 'right')
+    // Unpinned columns are passed through by reference. `all` already gave them
+    // `pinOffset: 0`, which is the correct answer for anything not pinned, so
+    // there is nothing to copy — and sharing identity with `all` is not merely
+    // cheaper, it is what lets a consumer memoise on a column object at all.
     const middle = shown.filter((column) => !column.pinned)
 
+    // Pinned ones do get a copy, because their offset accumulates from live
+    // widths and writing it through would make `all`'s contents depend on
+    // whether `visible` had been evaluated yet.
     let offset = 0
-    for (const column of left) {
-      column.pinOffset = offset
+    const leftPinned = left.map((column) => {
+      const resolved = { ...column, pinOffset: offset }
       offset += column.resolvedWidth ?? defaultWidth
-    }
+      return resolved
+    })
 
-    // Right-pinned offsets accumulate from the far edge inwards.
+    // Right-pinned offsets accumulate from the far edge inwards, so they are
+    // assigned back to front and the array put right way round afterwards.
     offset = 0
+    const rightPinned: ResolvedColumn<TRow>[] = []
     for (let i = right.length - 1; i >= 0; i -= 1) {
       const column = right[i]!
-      column.pinOffset = offset
+      rightPinned.unshift({ ...column, pinOffset: offset })
       offset += column.resolvedWidth ?? defaultWidth
     }
 
-    return [...left, ...middle, ...right]
+    return [...leftPinned, ...middle, ...rightPinned]
   })
 
   function toggleVisibility(columnId: string, nextVisible?: boolean): void {
