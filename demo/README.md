@@ -86,13 +86,16 @@ The **API reference** view documents all 143 exports, and `tests/apiReference.sp
 list against `src/index.ts` in both directions — an export cannot be added without being described,
 and a description cannot outlive its export. That check is what keeps this section honest.
 
-118 of the 135 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
+120 of the 143 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
 checked by diffing the export list against the sources, not by eye. Most are called or
 rendered; the remainder are types that appear as explicit annotations
 (`ServerDataSourceOptions`, `UseColumnsResult`, `PageItem`, `SelectionState`, `GroupingOptions`,
 …) so the demo doubles as a typed reference rather than leaning on inference.
 
-The seventeen that are not referenced, and why:
+Measure it with `demo/src/data/apiReference.ts` **excluded**. That file is generated and names
+every export by construction, so a plain search of `demo/src` reports 143 of 143 and means nothing.
+
+The twenty-three that are not referenced, and why:
 
 - **Column storage and drag-and-drop internals** — `ColumnLayoutState`, `ColumnLayoutField`,
   `ColumnStorageOptions`, `StorageLike`, `DEFAULT_COLUMN_LAYOUT_FIELDS`, `sanitizeColumnLayout`,
@@ -103,7 +106,11 @@ The seventeen that are not referenced, and why:
   `groupSortRules`. The Grouping view uses the whole-dataset entry points (`aggregateGroups`,
   `countGroups`, `flattenGroups`, `groupKeys`) instead; these five are the single-column and
   single-row pieces those are built from.
-- **`TableGroupRow`** — reaching it means hand-building a `<tbody>`, which is the Composed
-  view's business, not the Grouping view's.
+- **The two-step grouping API** — `buildGroupTree`, `flattenTree`, `GroupTree`, `GroupTreeOptions`,
+  `GroupNode`. Splitting build from walk is what makes collapsing a band re-scan nothing, but
+  `useRowGrouping` already does the splitting, so no view has a reason to do it by hand.
+- **Single-pass optimisations** — `sortKeyFor` and `compileSearch`. Both exist so `sortRows` and
+  the filter pipeline can derive per row instead of per comparison; a caller that is not writing
+  its own pipeline never touches them.
 
 Each view also lists the exports it uses in the chips under its title.
