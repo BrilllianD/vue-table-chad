@@ -10,6 +10,7 @@ import ComposedView from './views/ComposedView.vue'
 import HeadlessView from './views/HeadlessView.vue'
 import StateView from './views/StateView.vue'
 import ThemingView from './views/ThemingView.vue'
+import PerfView from './views/PerfView.vue'
 
 interface Tab {
   id: string
@@ -30,6 +31,7 @@ const tabs: Tab[] = [
   { id: 'grouping', label: 'Grouping', layer: 'preset', component: GroupingView },
   { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
   { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
+  { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },
   { id: 'selection', label: 'Selection', layer: 'primitives', component: SelectionView },
   { id: 'columns', label: 'Column layout', layer: 'primitives', component: ColumnsView },
   { id: 'composed', label: 'Composed', layer: 'primitives', component: ComposedView },

@@ -42,6 +42,7 @@ demo/
 | Grouping | preset | Client vs server grouping, nesting, and per-column aggregates |
 | Hoisted state | preset | `QueryState` owned by a ref, mirrored into the URL, driven imperatively |
 | Theming | preset | The `--vt-*` palette and the `data-*` state hooks |
+| Performance | preset | The whole 10k rows, timed in the browser to the frame after the paint |
 | Selection | primitives | Modes, ranges, tri-state header, "select all matching" as a predicate |
 | Column layout | primitives | `useColumns` standalone, persisted to `localStorage` |
 | Composed | primitives | Cards, not a table — same primitives, different surface |
@@ -56,6 +57,12 @@ demo/
 - **A palette is a set.** The Theming view owns every colour variable at once and seeds them from
   `prefers-color-scheme`. Overriding only `--vt-bg-header` while `--vt-text` stays on its
   dark-mode value gives you white-on-white — the exact bug this view would otherwise ship.
+- **The Performance view refuses to measure a hidden tab.** A background tab never fires
+  `requestAnimationFrame` and clamps `setTimeout` to a second, so a number taken there would be the
+  browser's throttle rather than the table's cost. It says so instead of reporting a lie — and
+  `afterPaint` carries a timeout anyway, so a tab hidden *partway* through a run cannot leave the
+  controls disabled for good.
+
 - **`ColumnVisibilityMenu` is the one primitive that truly needs a table context.** Everything
   else takes explicit props that stand in for the injection, which is why the Filters view can
   render `ValueListFilter`, `ConditionFilter` and `ColumnFilterPopover` outside any table at all.
