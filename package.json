@@ -21,6 +21,7 @@
     "build": "vue-tsc --noEmit -p tsconfig.build.json && vite build",
     "build:playground": "vite build --config vite.playground.config.ts",
     "build:demo": "vite build --config vite.demo.config.ts",
+    "build:docs": "pnpm build:demo && node demo/inline.mjs",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "bench": "vitest bench --run",

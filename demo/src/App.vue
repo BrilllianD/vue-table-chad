@@ -11,6 +11,8 @@ import HeadlessView from './views/HeadlessView.vue'
 import StateView from './views/StateView.vue'
 import ThemingView from './views/ThemingView.vue'
 import PerfView from './views/PerfView.vue'
+import ApiView from './views/ApiView.vue'
+import RecipesView from './views/RecipesView.vue'
 
 interface Tab {
   id: string
@@ -25,6 +27,7 @@ interface Tab {
  * the same as taking the library apart.
  */
 const tabs: Tab[] = [
+  { id: 'recipes', label: 'Recipes', layer: 'preset', component: RecipesView },
   { id: 'overview', label: 'Everything at once', layer: 'preset', component: OverviewView },
   { id: 'server', label: 'Server data', layer: 'preset', component: ServerView },
   { id: 'filters', label: 'Filters', layer: 'preset', component: FiltersView },
@@ -36,6 +39,7 @@ const tabs: Tab[] = [
   { id: 'columns', label: 'Column layout', layer: 'primitives', component: ColumnsView },
   { id: 'composed', label: 'Composed', layer: 'primitives', component: ComposedView },
   { id: 'core', label: 'Core only', layer: 'core', component: HeadlessView },
+  { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },
 ]
 
 const active = ref('overview')

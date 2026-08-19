@@ -5,7 +5,12 @@ Every feature the library has, one view at a time.
 ```bash
 pnpm demo          # http://localhost:5174
 pnpm build:demo    # -> demo/dist
+pnpm build:docs    # -> demo/dist/standalone.html, the whole site in one file
 ```
+
+`build:docs` inlines the bundle into a single self-contained page. It exists because the demo *is*
+the docs site and has nowhere to live yet: there is no repository and no host until Phase 3, and one
+file can be published anywhere in the meantime.
 
 The playground (`pnpm dev`, port 5173) is four small examples. This is the exhaustive one, and
 the two run side by side.
@@ -43,6 +48,8 @@ demo/
 | Hoisted state | preset | `QueryState` owned by a ref, mirrored into the URL, driven imperatively |
 | Theming | preset | The `--vt-*` palette and the `data-*` state hooks |
 | Performance | preset | The whole 10k rows, timed in the browser to the frame after the paint |
+| API reference | preset | All 143 exports, rendered by the table they belong to |
+| Recipes | preset | What to type — the copy-paste snippets, so the built demo stands alone |
 | Selection | primitives | Modes, ranges, tri-state header, "select all matching" as a predicate |
 | Column layout | primitives | `useColumns` standalone, persisted to `localStorage` |
 | Composed | primitives | Cards, not a table — same primitives, different surface |
@@ -74,6 +81,10 @@ demo/
   Composed view.
 
 ## Coverage
+
+The **API reference** view documents all 143 exports, and `tests/apiReference.spec.ts` diffs that
+list against `src/index.ts` in both directions — an export cannot be added without being described,
+and a description cannot outlive its export. That check is what keeps this section honest.
 
 118 of the 135 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
 checked by diffing the export list against the sources, not by eye. Most are called or
