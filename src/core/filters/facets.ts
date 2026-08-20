@@ -45,7 +45,14 @@ export function filterRows<TRow>(
     for (const { column, test } of compiled) {
       if (!test(readValue(row, column))) return false
     }
-    if (searchTest) {
+    // Both halves matter. `searchTest` is undefined for an empty search, and
+    // `searchable` is empty when no column will take one — a search with
+    // nothing to search against must be ignored rather than tested against
+    // zero columns, which would leave `hit` false and reject every row. The
+    // early return above already answers that case when no filter is active,
+    // so dropping this half made the same search return everything or nothing
+    // depending on whether an unrelated column filter happened to be set.
+    if (searchTest && searchable.length > 0) {
       // Walked rather than collected: gathering every searchable cell into an
       // array first meant allocating one array per row and running `format` on
       // all of them, when the first hit already settles the question. Most rows
