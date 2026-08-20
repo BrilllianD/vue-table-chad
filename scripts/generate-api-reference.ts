@@ -276,8 +276,20 @@ function divider(layer: string): string {
   return `  /* ${'-'.repeat(Math.max(1, 70 - layer.length))} ${layer} */`
 }
 
+/**
+ * A TypeScript string literal for a summary.
+ *
+ * Backslashes first, and that order is the whole point: escaping the quotes
+ * afterwards must not re-escape the backslashes this introduces. Without it a
+ * summary naming an escape — `\0`, a `\u` sequence, a regex — emitted a
+ * literal TypeScript reads back as the escape itself, silently corrupting the
+ * text, or failed to parse outright on a trailing backslash. The freshness test
+ * compares generated text to committed text, so it would have surfaced as an
+ * unexplained staleness diff rather than as the escaping bug it is.
+ */
 function quote(value: string): string {
-  return value.includes("'") ? `"${value.replace(/"/g, '\\"')}"` : `'${value}'`
+  const escaped = value.replace(/\\/g, '\\\\')
+  return escaped.includes("'") ? `"${escaped.replace(/"/g, '\\"')}"` : `'${escaped}'`
 }
 
 export function generate(): string {
