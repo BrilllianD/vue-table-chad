@@ -10,14 +10,21 @@ import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
 import type { SortDirection } from '../../core/types'
 
-const props = defineProps<{
-  columnId: string
-  label?: string
-  /** Stand-ins for the context, so this works outside a TableRoot. */
-  direction?: SortDirection | false
-  index?: number
-  disabled?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    columnId: string
+    label?: string
+    /** Stand-ins for the context, so this works outside a TableRoot. */
+    direction?: SortDirection | false
+    index?: number
+    disabled?: boolean
+  }>(),
+  // `direction` includes `false` in its type, so Vue counts it as a boolean
+  // prop and casts an absent one to `false` — which reads as "not sorted" and
+  // would shadow the injected direction for good. The explicit `undefined`
+  // keeps "not passed" distinguishable from "passed as false".
+  { direction: undefined },
+)
 
 const emit = defineEmits<{ toggle: [columnId: string, additive: boolean] }>()
 

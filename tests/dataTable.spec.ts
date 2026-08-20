@@ -75,6 +75,31 @@ describe('DataTable rendering', () => {
     wrapper.unmount()
   })
 
+  it('shows the direction on the trigger itself, not only on the cell', async () => {
+    const wrapper = mountTable()
+    const trigger = () =>
+      wrapper
+        .findAll('thead th')
+        .find((th) => th.attributes('data-column') === 'salary')!
+        .find('button.vt-sort')
+
+    // `direction` is a stand-in prop whose type includes `false`, so Vue counts
+    // it as a boolean prop; an absent one cast to `false` would read as "not
+    // sorted" and pin the arrow to its unsorted glyph forever, while the `<th>`
+    // — which reads the resolved column instead — kept updating.
+    expect(trigger().attributes('data-direction')).toBe('none')
+    expect(trigger().find('.vt-sort-icon').text()).toBe('\u21c5')
+
+    await trigger().trigger('click')
+    expect(trigger().attributes('data-direction')).toBe('asc')
+    expect(trigger().find('.vt-sort-icon').text()).toBe('\u25b2')
+
+    await trigger().trigger('click')
+    expect(trigger().attributes('data-direction')).toBe('desc')
+    expect(trigger().find('.vt-sort-icon').text()).toBe('\u25bc')
+    wrapper.unmount()
+  })
+
   it('builds a multi-sort on shift-click and shows the rank badge', async () => {
     const wrapper = mountTable()
     const header = (id: string) =>
