@@ -59,18 +59,30 @@ const firstAggregated = computed(() =>
   columns.value.findIndex((column) => column.aggregate !== undefined),
 )
 
-/** The columns that get a cell of their own. Empty when nothing aggregates. */
-const trailing = computed(() =>
-  firstAggregated.value === -1 ? [] : columns.value.slice(firstAggregated.value),
-)
-
-const colspan = computed(() => {
-  if (props.colspan !== undefined) return props.colspan
-  const spanned = firstAggregated.value === -1 ? columns.value.length : firstAggregated.value
-  // At least one: a table whose very first column aggregates has nothing ahead
-  // of it, and a colspan of 0 would collapse the label out of existence.
-  return Math.max(1, spanned + props.leading)
+/**
+ * Where the label's span ends and the aggregates begin.
+ *
+ * Both the span and the trailing cells derive from this one index, because the
+ * row is only well formed when `colspan + trailing.length` equals
+ * `leading + columns.length`. Deriving them separately let the span be clamped
+ * without the cells being trimmed to match, which emitted one cell more than
+ * the row had columns.
+ */
+const spanStart = computed(() => {
+  if (firstAggregated.value === -1) return columns.value.length
+  // The label needs a column of its own. When the very first column aggregates
+  // and no leading cell sits ahead of it, the label takes that column and its
+  // aggregate goes unshown — a colspan of 0 would collapse the label out of
+  // existence, and keeping both the span and the cell would overflow the row.
+  return Math.max(firstAggregated.value, 1 - props.leading)
 })
+
+/** The columns that get a cell of their own. Empty when nothing aggregates. */
+const trailing = computed(() => columns.value.slice(spanStart.value))
+
+const colspan = computed(() =>
+  props.colspan !== undefined ? props.colspan : spanStart.value + props.leading,
+)
 
 /** The grouped column's own header, so "Engineering" reads as a department. */
 const columnLabel = computed(() => {

@@ -504,6 +504,26 @@ describe('group aggregates', () => {
     wrapper.unmount()
   })
 
+  it('never emits more cells than the row has columns', () => {
+    /*
+     * The label cell needs a column of its own, so a table whose *first*
+     * column aggregates has nothing ahead of it to span. Clamping the span to
+     * 1 while still giving that column its own aggregate cell emitted N+1
+     * cells against an N-column `<colgroup>`, shifting every aggregate one
+     * column right. A selection column hid it — that leading cell is what the
+     * span was borrowing.
+     */
+    const firstAggregates = personColumns.map((column) =>
+      column.id === 'name' ? { ...column, aggregate: 'min' as const } : column,
+    )
+    const wrapper = mountTable({ groupBy: ['department'], columns: firstAggregates })
+    const band = bands(wrapper)[0]!
+    expect(Number(band.span) + band.cells.length).toBe(personColumns.length)
+    // The label took the first column, so its aggregate is the one not shown.
+    expect(band.span).toBe('1')
+    wrapper.unmount()
+  })
+
   it('puts each aggregate under the column it describes', () => {
     const wrapper = mountTable({ groupBy: ['department'], columns: aggregatedPersonColumns })
     const engineering = bands(wrapper)[0]!
