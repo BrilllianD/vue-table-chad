@@ -19,12 +19,42 @@ const dist = new URL('./dist/', import.meta.url).pathname
 const assets = join(dist, 'assets')
 const files = readdirSync(assets)
 
-const js = files.find((name) => name.endsWith('.js'))
-const css = files.find((name) => name.endsWith('.css'))
-if (!js || !css) throw new Error('demo/dist/assets is missing a build — run pnpm build:demo first')
+/*
+ * Exactly one of each, asserted rather than assumed.
+ *
+ * Taking the first match would quietly inline one arbitrary chunk and drop the
+ * rest the moment the demo gains a dynamic `import()` or Vite splits a vendor
+ * bundle — producing a standalone file that throws at load, with nothing here
+ * having complained. Inlining several would mean ordering them correctly and
+ * resolving the imports between them, which is a real change; failing loudly
+ * is the honest placeholder until it is needed.
+ */
+const js = files.filter((name) => name.endsWith('.js'))
+const css = files.filter((name) => name.endsWith('.css'))
+if (js.length === 0 || css.length === 0) {
+  throw new Error('demo/dist/assets is missing a build — run pnpm build:demo first')
+}
+if (js.length > 1 || css.length > 1) {
+  throw new Error(
+    `demo/dist/assets holds ${js.length} scripts and ${css.length} stylesheets; this script ` +
+      'inlines one of each. A code-split demo needs it taught to inline them all, in order.',
+  )
+}
 
-const script = readFileSync(join(assets, js), 'utf8')
-const styles = readFileSync(join(assets, css), 'utf8')
+/*
+ * `</script>` anywhere in the bundle would end the tag early and leave the
+ * browser parsing the rest of it as markup. Escaping the slash keeps the string
+ * identical to JavaScript while hiding it from the HTML parser.
+ *
+ * This currently replaces nothing, and is kept anyway. The demo really does
+ * carry the sequence — a `<script setup>` code sample shown to the reader —
+ * but esbuild emits it into the bundle already escaped, so it arrives here as
+ * `<\/script>`. That is the emitter's courtesy rather than a guarantee we
+ * hold, and the failure it prevents is a blank page with nothing in this script
+ * having complained.
+ */
+const script = readFileSync(join(assets, js[0]), 'utf8').replace(/<\/script/gi, '<\\/script')
+const styles = readFileSync(join(assets, css[0]), 'utf8')
 
 /*
  * The one thing the shell adds on its own.
