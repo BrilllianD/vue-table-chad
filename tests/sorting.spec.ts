@@ -240,15 +240,22 @@ describe('aggregate extremes use the same ordering as the sort', () => {
     expect(result?.sampleCount).toBe(3)
   })
 
-  it('counts an unparseable value and still lets it win a max', () => {
-    // Exactly what the comparator did before the projection: a non-blank value
-    // that will not coerce counts as a sample and sorts above everything. Odd,
-    // but it is the established behaviour and the fast path must not change it.
+  it('skips an unparseable value rather than letting it win a max', () => {
+    /*
+     * This used to assert the opposite, on the grounds that a non-blank value
+     * which will not coerce sorts above everything and so wins — "odd, but the
+     * established behaviour, and the fast path must not change it".
+     *
+     * The projection was indeed faithful to the comparator; both were wrong.
+     * Sorting wants an unreadable value last, and for a `max` that is the same
+     * position as first. `sum` and `avg` never counted such a cell, so this is
+     * the aggregate family agreeing with itself.
+     */
     const rows = [{ id: 1, n: 10 }, { id: 2, n: 'junk' }, { id: 3, n: 2 }]
     const column = { id: 'n', type: 'number' as const, aggregate: 'max' as const }
     const result = aggregateValue(rows, column)
-    expect(result?.value).toBe('junk')
-    expect(result?.sampleCount).toBe(3)
+    expect(result?.value).toBe(10)
+    expect(result?.sampleCount).toBe(2)
   })
 
   it('still defers to a custom comparator', () => {

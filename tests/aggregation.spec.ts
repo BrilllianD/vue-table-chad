@@ -17,6 +17,26 @@ const engineering = people.filter((row) => row.department === 'Engineering')
 const research = people.filter((row) => row.department === 'Research')
 
 describe('aggregateValue', () => {
+  it('skips values its column cannot order, rather than crowning them', () => {
+    /*
+     * "Sorts last" and "is the maximum" are the same number.
+     *
+     * A non-blank cell the type cannot parse projects to `+Infinity` — correct
+     * for a sort, where unorderable values belong at the bottom in either
+     * direction, and exactly wrong for a `max`, which then reports the garbage
+     * as the winner. `sum` and `avg` already skip what they cannot read; these
+     * two now agree with them, sampleCount included.
+     */
+    const rows = [{ salary: 100 }, { salary: 'N/A' }, { salary: 300 }] as unknown as Person[]
+    const numeric: ColumnDef<Person> = { id: 'salary', type: 'number' }
+
+    const max = aggregateValue(rows, { ...numeric, aggregate: 'max' })!
+    expect(max).toMatchObject({ fn: 'max', value: 300, sampleCount: 2 })
+
+    const min = aggregateValue(rows, { ...numeric, aggregate: 'min' })!
+    expect(min).toMatchObject({ fn: 'min', value: 100, sampleCount: 2 })
+  })
+
   it('returns nothing for a column that declares no aggregate', () => {
     expect(aggregateValue(people, column('salary'))).toBeUndefined()
   })

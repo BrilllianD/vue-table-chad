@@ -1,5 +1,5 @@
 import type { AggregateResult, ColumnDef, FilterValue } from './types'
-import { comparatorFor, readValue, sortKeyFor } from './sorting'
+import { comparatorFor, orderKeyFor, readValue } from './sorting'
 import { ROOT_GROUP_KEY, groupPathKey, groupValueOf } from './grouping'
 import { isBlank, toNumber } from './utils/values'
 
@@ -55,7 +55,12 @@ function extreme<TRow>(
   // Otherwise the scan re-derives it on every row: `compareDate` parses both
   // operands per call, so finding the earliest of 10 000 dates parsed the
   // running minimum 10 000 times over.
-  const key = column.comparator ? undefined : sortKeyFor(column.type)
+  //
+  // `orderKeyFor`, not `sortKeyFor`: the sort key maps an unreadable value to
+  // `+Infinity` so it sorts last, and "sorts last" is the same number as "is
+  // the maximum". A `max` over a column holding one unparseable cell would
+  // crown that cell. This one says `undefined` instead, so it can be skipped.
+  const key = column.comparator ? undefined : orderKeyFor(column.type)
 
   let winner: TRow | undefined
   let winning: unknown
@@ -65,10 +70,15 @@ function extreme<TRow>(
   for (const row of rows) {
     const value = readValue(row, column)
     if (isBlank(value)) continue
-    sampleCount += 1
 
     if (key) {
       const candidate = key(value)
+      // Skipped rather than counted, matching `sumOrAverage`: a cell the column
+      // cannot read contributed nothing, so it is not a sample either. Only the
+      // typed branch can tell — a custom comparator's rule is not ours to
+      // second-guess, and text orders through `String`, which never fails.
+      if (candidate === undefined) continue
+      sampleCount += 1
       if (winner === undefined || (wantLargest ? candidate > winningKey : candidate < winningKey)) {
         winner = row
         winning = value
@@ -77,6 +87,7 @@ function extreme<TRow>(
       continue
     }
 
+    sampleCount += 1
     if (winner === undefined) {
       winner = row
       winning = value

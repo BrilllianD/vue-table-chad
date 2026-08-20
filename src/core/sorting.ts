@@ -54,18 +54,36 @@ export function compareBoolean(a: unknown, b: unknown): number {
  * returning `1` when its own operand will not coerce and `0` when neither will.
  * A caller swapping a comparator for a key must not quietly reorder blanks.
  */
-export function sortKeyFor(
+export function sortKeyFor(type: ColumnDataType = 'text'): ((value: unknown) => number) | undefined {
+  const key = orderKeyFor(type)
+  return key && ((value) => key(value) ?? Number.POSITIVE_INFINITY)
+}
+
+/**
+ * Like `sortKeyFor`, but `undefined` — not `+Infinity` — for a value the type
+ * cannot order.
+ *
+ * Sorting wants those values last, which `+Infinity` says exactly. A caller
+ * choosing between them wants the opposite: "sorts last" and "is the maximum"
+ * are the same number, so an aggregate reusing the sort key would report a
+ * cell its own column cannot read as the largest one. Anything picking a
+ * winner rather than an order wants this and skips what it returns nothing for.
+ *
+ * Not exported from `src/index.ts`: `sortKeyFor` is the public projection and
+ * this is the shape the two share.
+ */
+export function orderKeyFor(
   type: ColumnDataType = 'text',
-): ((value: unknown) => number) | undefined {
+): ((value: unknown) => number | undefined) | undefined {
   switch (type) {
     case 'number':
-      return (value) => toNumber(value) ?? Number.POSITIVE_INFINITY
+      return toNumber
     case 'date':
-      return (value) => toTime(value) ?? Number.POSITIVE_INFINITY
+      return toTime
     case 'boolean':
       return (value) => {
         const parsed = toBoolean(value)
-        if (parsed === undefined) return Number.POSITIVE_INFINITY
+        if (parsed === undefined) return undefined
         return parsed ? 1 : 0
       }
     default:
