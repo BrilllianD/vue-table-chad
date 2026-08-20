@@ -91,6 +91,8 @@ const props = withDefaults(
     showPagination?: boolean
     stickyHeader?: boolean
     emptyMessage?: string
+    /** Text shown beside the spinner while the source is fetching. */
+    loadingMessage?: string
   }>(),
   {
     selectable: false,
@@ -105,6 +107,7 @@ const props = withDefaults(
     showPagination: true,
     stickyHeader: true,
     emptyMessage: 'No rows match the current filters.',
+    loadingMessage: 'Loading…',
   },
 )
 
@@ -165,7 +168,21 @@ function footerText(
     @update:selection="$emit('update:selection', $event)"
     @update:column-order="$emit('update:columnOrder', $event)"
   >
-    <div class="vt-datatable" :data-loading="loading || undefined">
+    <div
+      class="vt-datatable"
+      :data-loading="loading || undefined"
+      :aria-busy="loading || undefined"
+    >
+      <!--
+        The live region is mounted unconditionally and only its *text* changes.
+        A region that appears at the same moment as its content is unreliably
+        announced — screen readers watch existing regions for mutations — which
+        is what the previous `role="status"` on the `v-if`'d overlay was doing.
+      -->
+      <span class="vt-visually-hidden" role="status" aria-live="polite">
+        {{ loading ? loadingMessage : '' }}
+      </span>
+
       <div v-if="showToolbar" class="vt-toolbar">
         <slot name="toolbar" :state="tableState" :selection="selection" :total="total">
           <input
@@ -213,167 +230,186 @@ function footerText(
         </template>
       </div>
 
-      <div class="vt-scroll" :data-sticky="stickyHeader || undefined">
-        <TableGrid :columns="cols" :selection-column="selectable">
-          <thead class="vt-thead">
-            <tr>
-              <th v-if="selectable" class="vt-th vt-th-selection" scope="col">
-                <SelectionCheckbox
-                  v-if="selection && props.selectable !== 'single'"
-                  :checked="selection.headerState.value === 'all'"
-                  :indeterminate="selection.headerState.value === 'some'"
-                  label="Select all rows on this page"
-                  @change="selection.toggleAllOnPage()"
-                />
-              </th>
-
-              <TableHeaderCell v-for="column in cols" :key="column.id" :column="column">
-                <template #default>
-                  <SortTrigger
-                    v-if="column.sortable !== false"
-                    :column-id="column.id"
-                    :label="column.header ?? column.id"
+      <!--
+        A frame around the scroll box purely so the loading overlay has an
+        anchor that does not scroll. An absolutely positioned child of an
+        `overflow: auto` element is laid out against the padding box at scroll
+        origin and then translates with the content, so inside `.vt-scroll` the
+        scrim and the spinner slid off the top the moment you scrolled past
+        `max-height`. Out here they stay over the part you are looking at.
+      -->
+      <div class="vt-scroll-frame">
+        <div class="vt-scroll" :data-sticky="stickyHeader || undefined">
+          <TableGrid :columns="cols" :selection-column="selectable">
+            <thead class="vt-thead">
+              <tr>
+                <th v-if="selectable" class="vt-th vt-th-selection" scope="col">
+                  <SelectionCheckbox
+                    v-if="selection && props.selectable !== 'single'"
+                    :checked="selection.headerState.value === 'all'"
+                    :indeterminate="selection.headerState.value === 'some'"
+                    label="Select all rows on this page"
+                    @change="selection.toggleAllOnPage()"
                   />
-                  <span v-else class="vt-th-label">{{ column.header ?? column.id }}</span>
+                </th>
 
-                  <ColumnFilterPopover
-                    v-if="column.filterable !== false"
-                    :column-id="column.id"
-                    :type="column.type ?? 'text'"
-                    :label="column.header ?? column.id"
-                  />
-                </template>
-                <template #resize>
-                  <ColumnResizeHandle
-                    v-if="column.resizable !== false"
-                    :column-id="column.id"
-                    :width="column.resolvedWidth ?? 160"
-                    :min-width="column.minWidth"
-                  />
-                </template>
-              </TableHeaderCell>
-            </tr>
-          </thead>
+                <TableHeaderCell v-for="column in cols" :key="column.id" :column="column">
+                  <template #default>
+                    <SortTrigger
+                      v-if="column.sortable !== false"
+                      :column-id="column.id"
+                      :label="column.header ?? column.id"
+                    />
+                    <span v-else class="vt-th-label">{{ column.header ?? column.id }}</span>
 
-          <tbody class="vt-tbody">
-            <tr v-if="error" class="vt-row-message">
-              <td :colspan="cols.length + (selectable ? 1 : 0)">
-                <slot name="error" :error="error" :refresh="src.refresh">
-                  <span class="vt-error">
-                    Failed to load data.
-                    <button type="button" class="vt-btn vt-btn-link" @click="src.refresh()">
-                      Retry
-                    </button>
-                  </span>
-                </slot>
-              </td>
-            </tr>
+                    <ColumnFilterPopover
+                      v-if="column.filterable !== false"
+                      :column-id="column.id"
+                      :type="column.type ?? 'text'"
+                      :label="column.header ?? column.id"
+                    />
+                  </template>
+                  <template #resize>
+                    <ColumnResizeHandle
+                      v-if="column.resizable !== false"
+                      :column-id="column.id"
+                      :width="column.resolvedWidth ?? 160"
+                      :min-width="column.minWidth"
+                    />
+                  </template>
+                </TableHeaderCell>
+              </tr>
+            </thead>
 
-            <tr v-else-if="rows.length === 0 && !loading" class="vt-row-message">
-              <td :colspan="cols.length + (selectable ? 1 : 0)">
-                <slot name="empty">{{ emptyMessage }}</slot>
-              </td>
-            </tr>
+            <tbody class="vt-tbody">
+              <tr v-if="error" class="vt-row-message">
+                <td :colspan="cols.length + (selectable ? 1 : 0)">
+                  <slot name="error" :error="error" :refresh="src.refresh">
+                    <span class="vt-error">
+                      Failed to load data.
+                      <button type="button" class="vt-btn vt-btn-link" @click="src.refresh()">
+                        Retry
+                      </button>
+                    </span>
+                  </slot>
+                </td>
+              </tr>
+
+              <tr v-else-if="rows.length === 0 && !loading" class="vt-row-message">
+                <td :colspan="cols.length + (selectable ? 1 : 0)">
+                  <slot name="empty">{{ emptyMessage }}</slot>
+                </td>
+              </tr>
+
+              <!--
+                Iterates the display list, not `rows`: with nothing grouped the
+                two hold the same rows in the same order, so there is only one
+                code path to keep correct.
+              -->
+              <template v-for="item in displayRows" v-else>
+                <TableGroupRow
+                  v-if="item.kind === 'group'"
+                  :key="`group:${item.group.key}`"
+                  :group="item.group"
+                  :columns="cols"
+                  :leading="selectable ? 1 : 0"
+                >
+                  <template #default="slotProps">
+                    <slot name="group" v-bind="slotProps">
+                      <span class="vt-group-column">{{ slotProps.columnLabel }}</span>
+                      <span class="vt-group-label">{{ slotProps.group.label }}</span>
+                      <span class="vt-group-count">{{ slotProps.group.totalCount }}</span>
+                    </slot>
+                  </template>
+                  <template #aggregate="slotProps">
+                    <slot name="groupAggregate" v-bind="slotProps">{{ slotProps.text }}</slot>
+                  </template>
+                </TableGroupRow>
+
+                <TableRow
+                  v-else
+                  :key="rowKey(item.row, item.index)"
+                  :row="item.row"
+                  :columns="cols"
+                  :index="item.index"
+                  :depth="item.depth"
+                  :selected="selection ? selection.isSelected(item.row) : false"
+                  @click="$emit('rowClick', item.row, $event)"
+                >
+                  <template v-if="selectable" #leading>
+                    <SelectionCheckbox
+                      v-if="selection"
+                      :checked="selection.isSelected(item.row)"
+                      :disabled="!selection.isSelectable(item.row)"
+                      label="Select row"
+                      @change="
+                        (_checked, event) =>
+                          event.shiftKey ? selection.toggleRange(item.row) : selection.toggle(item.row)
+                      "
+                    />
+                  </template>
+
+                  <!--
+                    Forwards each cell to this component's own `cell:<id>` slot,
+                    so the preset's slot API is exactly what it always was while
+                    the row markup lives in the primitive.
+                  -->
+                  <template #cell="{ row, column, value, text }">
+                    <slot
+                      :name="`cell:${column.id}`"
+                      :row="row"
+                      :column="column"
+                      :value="value"
+                      :text="text"
+                    >
+                      {{ text }}
+                    </slot>
+                  </template>
+                </TableRow>
+              </template>
+            </tbody>
 
             <!--
-              Iterates the display list, not `rows`: with nothing grouped the
-              two hold the same rows in the same order, so there is only one
-              code path to keep correct.
+              After `</tbody>`, which is where HTML wants it, and inside the same
+              `TableGrid` slot — the grid is a bare `<slot />`, so a footer needs
+              nothing from it but the `<colgroup>` widths it already applies.
             -->
-            <template v-for="item in displayRows" v-else>
-              <TableGroupRow
-                v-if="item.kind === 'group'"
-                :key="`group:${item.group.key}`"
-                :group="item.group"
-                :columns="cols"
-                :leading="selectable ? 1 : 0"
-              >
-                <template #default="slotProps">
-                  <slot name="group" v-bind="slotProps">
-                    <span class="vt-group-column">{{ slotProps.columnLabel }}</span>
-                    <span class="vt-group-label">{{ slotProps.group.label }}</span>
-                    <span class="vt-group-count">{{ slotProps.group.totalCount }}</span>
-                  </slot>
-                </template>
-                <template #aggregate="slotProps">
-                  <slot name="groupAggregate" v-bind="slotProps">{{ slotProps.text }}</slot>
-                </template>
-              </TableGroupRow>
-
-              <TableRow
-                v-else
-                :key="rowKey(item.row, item.index)"
-                :row="item.row"
-                :columns="cols"
-                :index="item.index"
-                :depth="item.depth"
-                :selected="selection ? selection.isSelected(item.row) : false"
-                @click="$emit('rowClick', item.row, $event)"
-              >
-                <template v-if="selectable" #leading>
-                  <SelectionCheckbox
-                    v-if="selection"
-                    :checked="selection.isSelected(item.row)"
-                    :disabled="!selection.isSelectable(item.row)"
-                    label="Select row"
-                    @change="
-                      (_checked, event) =>
-                        event.shiftKey ? selection.toggleRange(item.row) : selection.toggle(item.row)
-                    "
-                  />
-                </template>
-
-                <!--
-                  Forwards each cell to this component's own `cell:<id>` slot,
-                  so the preset's slot API is exactly what it always was while
-                  the row markup lives in the primitive.
-                -->
-                <template #cell="{ row, column, value, text }">
+            <tfoot v-if="showFooter" class="vt-tfoot">
+              <tr class="vt-footer-row">
+                <td v-if="selectable" class="vt-td vt-td-selection" />
+                <TableCell v-for="(column, columnIndex) in cols" :key="column.id" :column="column">
                   <slot
-                    :name="`cell:${column.id}`"
-                    :row="row"
+                    name="footer"
                     :column="column"
-                    :value="value"
-                    :text="text"
+                    :result="overallAggregates[column.id]"
+                    :text="footerText(overallAggregates, column)"
                   >
-                    {{ text }}
+                    <!--
+                      The label only appears where it displaces nothing: a first
+                      column that aggregates shows its own number instead.
+                    -->
+                    <span v-if="columnIndex === 0 && !overallAggregates[column.id]">
+                      {{ footerLabel }}
+                    </span>
+                    <template v-else>{{ footerText(overallAggregates, column) }}</template>
                   </slot>
-                </template>
-              </TableRow>
-            </template>
-          </tbody>
+                </TableCell>
+              </tr>
+            </tfoot>
+          </TableGrid>
+        </div>
 
-          <!--
-            After `</tbody>`, which is where HTML wants it, and inside the same
-            `TableGrid` slot — the grid is a bare `<slot />`, so a footer needs
-            nothing from it but the `<colgroup>` widths it already applies.
-          -->
-          <tfoot v-if="showFooter" class="vt-tfoot">
-            <tr class="vt-footer-row">
-              <td v-if="selectable" class="vt-td vt-td-selection" />
-              <TableCell v-for="(column, columnIndex) in cols" :key="column.id" :column="column">
-                <slot
-                  name="footer"
-                  :column="column"
-                  :result="overallAggregates[column.id]"
-                  :text="footerText(overallAggregates, column)"
-                >
-                  <!--
-                    The label only appears where it displaces nothing: a first
-                    column that aggregates shows its own number instead.
-                  -->
-                  <span v-if="columnIndex === 0 && !overallAggregates[column.id]">
-                    {{ footerLabel }}
-                  </span>
-                  <template v-else>{{ footerText(overallAggregates, column) }}</template>
-                </slot>
-              </TableCell>
-            </tr>
-          </tfoot>
-        </TableGrid>
-
-        <div v-if="loading" class="vt-loading-overlay" role="status" aria-live="polite">
-          <slot name="loading"><span class="vt-spinner" aria-label="Loading" /></slot>
+        <div v-if="loading" class="vt-loading-overlay">
+          <slot name="loading">
+            <span class="vt-loading-pill">
+              <!--
+                Hidden from assistive tech, not labelled: the word beside it is
+                real text now, so an `aria-label` here would be read twice.
+              -->
+              <span class="vt-spinner" aria-hidden="true" />
+              {{ loadingMessage }}
+            </span>
+          </slot>
         </div>
       </div>
 

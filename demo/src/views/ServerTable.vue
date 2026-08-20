@@ -87,17 +87,15 @@ const source: ServerDataSource<Employee> = useServerDataSource<Employee>(
       selectable
       @update:query="lastQuery = $event"
     >
-      <!-- Both are DataTable slots with defaults; overridden here to show what
-           they receive. -->
+      <!-- `error` is a DataTable slot with a default, overridden here to show
+           what it receives. The `loading` slot is deliberately *not* overridden:
+           what you see while a request is in flight is the preset's own
+           indicator, so the demo shows what a consumer actually gets. -->
       <template #error="{ refresh }">
         <span class="vt-error">
           {{ lastError ?? 'Request failed' }} —
           <button type="button" class="vt-btn vt-btn-link" @click="refresh()">Try again</button>
         </span>
-      </template>
-
-      <template #loading>
-        <span class="loading-note">fetching…</span>
       </template>
 
       <!-- The pagination slot replaces the default pager entirely. -->
@@ -142,6 +140,5 @@ const source: ServerDataSource<Employee> = useServerDataSource<Employee>(
 <style scoped>
 .server-table { display: flex; flex-direction: column; gap: 10px; }
 .server-table > .hint { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.loading-note { font-size: 12px; opacity: 0.75; }
 .pager { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 </style>

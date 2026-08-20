@@ -46,6 +46,7 @@ function outcomeClass(outcome: string): string {
       'fetchFacets',
       'onError',
       'initialLoading',
+      'DataTable.loadingMessage',
       'refresh',
       'DataSource.remote',
     ]"

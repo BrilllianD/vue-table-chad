@@ -39,6 +39,13 @@
   /* Translucent, so stripes and column tints stay visible through a selection. */
   --vt-bg-selected: color-mix(in srgb, var(--vt-accent) 16%, transparent);
   /*
+    The wash over the table while a fetch is in flight. Opaque enough that the
+    pill on top of it reads against any row content; set it to `transparent` to
+    keep the pill and drop the dimming. Mixed off `--vt-bg` rather than named as
+    a grey, so the dark block below needs no counterpart for it.
+  */
+  --vt-loading-scrim: color-mix(in srgb, var(--vt-bg) 78%, transparent);
+  /*
     Outlines on hover — the row gets a rule top and bottom, the cell a full
     ring. Both are off at width 0, and both are drawn as inset shadows rather
     than real borders: a border that only exists on hover would resize the cell
@@ -940,13 +947,49 @@
   text-align: center;
 }
 
+/*
+  The anchor for the overlay. It wraps `.vt-scroll` instead of being it, because
+  an absolutely positioned child of a scroll container scrolls away with the
+  content — see the comment on the element in `DataTable.vue`.
+*/
+.vt-scroll-frame { position: relative; }
+
 .vt-loading-overlay {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--vt-bg) 55%, transparent);
+  background: var(--vt-loading-scrim);
+  /*
+    The rows underneath stay clickable: with `keepPreviousData` the previous
+    page is still real data, and a refetch is not a reason to freeze it.
+  */
   pointer-events: none;
+  /*
+    Clears the whole in-table ladder — pinned cells 1, sticky header 2, sticky
+    pinned header 3, drop caret 4 — all of which used to paint over an overlay
+    that declared no z-index, leaving the header and the pinned columns
+    undimmed. Still under the popover panels' 20, so a filter opened during a
+    refetch stays on top.
+  */
+  z-index: 5;
+}
+
+/*
+  Solid rather than translucent, and bordered: the scrim alone put low-contrast
+  text over whatever rows happened to be behind it. Same recipe as the popover
+  panels.
+*/
+.vt-loading-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--vt-bg);
+  border: 1px solid var(--vt-border-strong);
+  border-radius: var(--vt-radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  color: var(--vt-text);
 }
 
 .vt-spinner {

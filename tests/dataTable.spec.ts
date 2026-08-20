@@ -738,3 +738,100 @@ describe('rowClick', () => {
     wrapper.unmount()
   })
 })
+
+describe('DataTable loading state', () => {
+  /*
+   * `useLocalDataSource` hard-wires `loading` to `false`, so `mountTable` can
+   * never reach this branch. A minimal hand-rolled `DataSource` is the only way
+   * to render the overlay at all.
+   */
+  function mountLoading(
+    props: Record<string, unknown> = {},
+    slots: Record<string, unknown> = {},
+    pageRows: Person[] = people.slice(0, 3),
+  ) {
+    const loading = ref(true)
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = {
+          rows: ref(pageRows),
+          total: ref(pageRows.length),
+          loading,
+          error: ref(null),
+          refresh: () => {},
+          facets: async () => [],
+          remote: true,
+        }
+        return () => h(DataTable as never, { columns, source, state, ...props }, slots)
+      },
+    })
+    return { wrapper: mount(Host, { attachTo: document.body }), loading }
+  }
+
+  it('shows a labelled pill, not a bare spinner', () => {
+    const { wrapper } = mountLoading()
+    const pill = wrapper.find('.vt-loading-pill')
+    expect(pill.exists()).toBe(true)
+    expect(pill.text()).toContain('Loading…')
+    // The spinner is decoration once the word is real text; labelling it too
+    // would have a screen reader announce the state twice.
+    expect(pill.find('.vt-spinner').attributes('aria-hidden')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('takes its wording from loadingMessage', () => {
+    const { wrapper } = mountLoading({ loadingMessage: 'Fetching…' })
+    expect(wrapper.find('.vt-loading-pill').text()).toContain('Fetching…')
+    wrapper.unmount()
+  })
+
+  it('lets the loading slot replace the pill outright', () => {
+    const { wrapper } = mountLoading({}, { loading: () => h('span', { class: 'mine' }, 'wait') })
+    expect(wrapper.find('.vt-loading-pill').exists()).toBe(false)
+    expect(wrapper.find('.mine').text()).toBe('wait')
+    wrapper.unmount()
+  })
+
+  it('anchors the overlay outside the scroll box', () => {
+    /*
+     * The whole point of `.vt-scroll-frame`: an absolutely positioned child of
+     * an `overflow: auto` element scrolls away with the content, so an overlay
+     * inside `.vt-scroll` vanished on a table taller than its max-height. Only
+     * the DOM position encodes that — no assertion on CSS could catch it.
+     */
+    const { wrapper } = mountLoading()
+    expect(wrapper.find('.vt-scroll .vt-loading-overlay').exists()).toBe(false)
+    expect(wrapper.find('.vt-scroll-frame > .vt-loading-overlay').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('keeps the live region mounted so the change is what gets announced', async () => {
+    const { wrapper, loading } = mountLoading()
+    const region = wrapper.find('[role="status"]')
+    expect(region.exists()).toBe(true)
+    expect(region.text()).toBe('Loading…')
+    expect(wrapper.find('.vt-datatable').attributes('aria-busy')).toBe('true')
+
+    loading.value = false
+    await nextTick()
+    // Still there, just empty: a region created alongside its content is not
+    // reliably announced.
+    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    expect(wrapper.find('[role="status"]').text()).toBe('')
+    expect(wrapper.find('.vt-datatable').attributes('aria-busy')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('does not claim there are no rows while it is still fetching', async () => {
+    // An empty page mid-fetch is not an empty result — with keepPreviousData
+    // off, that is exactly the state between two requests.
+    const { wrapper, loading } = mountLoading({}, {}, [])
+    expect(wrapper.find('.vt-row-message').exists()).toBe(false)
+
+    loading.value = false
+    await nextTick()
+    expect(wrapper.find('.vt-row-message').text()).toContain('No rows match')
+    wrapper.unmount()
+  })
+})
