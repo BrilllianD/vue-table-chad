@@ -7,6 +7,7 @@ import { computed, ref } from 'vue'
 import { requireTableContext } from '../../core/context'
 import type { PinSide } from '../../core/types'
 import SelectionCheckbox from './SelectionCheckbox.vue'
+import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
 
 const props = withDefaults(defineProps<{ label?: string }>(), { label: 'Columns' })
 
@@ -25,10 +26,12 @@ function canHide(columnId: string): boolean {
   return !(column.visible && visibleCount.value <= 1)
 }
 
-function move(columnId: string, delta: number): void {
+async function move(event: MouseEvent, columnId: string, delta: number): Promise<void> {
   const order = columns.value.map((column) => column.id)
   const index = order.indexOf(columnId)
   context.columns.moveColumn(columnId, index + delta)
+  // Reordering re-inserts this row, which costs the button its focus.
+  await refocusAfterMove(event.currentTarget as HTMLElement, delta)
 }
 
 function cyclePin(columnId: string, current: PinSide | false): void {
@@ -36,11 +39,7 @@ function cyclePin(columnId: string, current: PinSide | false): void {
   context.columns.setPinned(columnId, next)
 }
 
-function onFocusOut(event: FocusEvent): void {
-  const next = event.relatedTarget as Node | null
-  if (next && root.value?.contains(next)) return
-  open.value = false
-}
+const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(node)))
 </script>
 
 <template>
@@ -64,7 +63,7 @@ function onFocusOut(event: FocusEvent): void {
           class="vt-btn vt-btn-icon"
           :disabled="index === 0"
           aria-label="Move up"
-          @click="move(column.id, -1)"
+          @click="move($event, column.id, -1)"
         >
           ↑
         </button>
@@ -73,7 +72,7 @@ function onFocusOut(event: FocusEvent): void {
           class="vt-btn vt-btn-icon"
           :disabled="index === columns.length - 1"
           aria-label="Move down"
-          @click="move(column.id, 1)"
+          @click="move($event, column.id, 1)"
         >
           ↓
         </button>

@@ -8,6 +8,7 @@
 import { computed, ref } from 'vue'
 import { requireTableContext } from '../../core/context'
 import SelectionCheckbox from './SelectionCheckbox.vue'
+import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
 
 const props = withDefaults(defineProps<{ label?: string }>(), { label: 'Group by' })
 
@@ -30,7 +31,7 @@ const levels = computed(() =>
   })),
 )
 
-function move(columnId: string, delta: number): void {
+async function move(event: MouseEvent, columnId: string, delta: number): Promise<void> {
   const order = [...state.groupBy.value]
   const index = order.indexOf(columnId)
   const target = index + delta
@@ -38,13 +39,11 @@ function move(columnId: string, delta: number): void {
   order.splice(index, 1)
   order.splice(target, 0, columnId)
   state.setGroupBy(order)
+  // Reordering re-inserts this level, which costs the button its focus.
+  await refocusAfterMove(event.currentTarget as HTMLElement, delta)
 }
 
-function onFocusOut(event: FocusEvent): void {
-  const next = event.relatedTarget as Node | null
-  if (next && root.value?.contains(next)) return
-  open.value = false
-}
+const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(node)))
 </script>
 
 <template>
@@ -78,7 +77,7 @@ function onFocusOut(event: FocusEvent): void {
             class="vt-btn vt-btn-icon"
             :disabled="index === 0"
             aria-label="Move up a level"
-            @click="move(level.columnId, -1)"
+            @click="move($event, level.columnId, -1)"
           >
             ↑
           </button>
@@ -87,7 +86,7 @@ function onFocusOut(event: FocusEvent): void {
             class="vt-btn vt-btn-icon"
             :disabled="index === levels.length - 1"
             aria-label="Move down a level"
-            @click="move(level.columnId, 1)"
+            @click="move($event, level.columnId, 1)"
           >
             ↓
           </button>
