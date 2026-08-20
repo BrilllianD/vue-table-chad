@@ -52,9 +52,10 @@ const props = withDefaults(
     reorderable?: boolean
     /**
      * Groups rows by these columns on first render, outermost level first.
-     * Seeds the state this component owns, so — like `pageSize` — it is
-     * ignored when `state` is supplied; put `initialGroupBy` on your own
-     * `useTableState` call instead.
+     *
+     * Seeds a `state` supplied from outside as well as one this component
+     * owns — unlike `pageSize` — but only when that state carries no grouping
+     * of its own, which keeps it a default rather than an override.
      */
     initialGroupBy?: string[]
     /**
@@ -174,6 +175,20 @@ watch(
   },
   { immediate: true },
 )
+
+/*
+ * `initialGroupBy` is config set where the table is used, so it has to reach a
+ * state built elsewhere too — hoisting the query into a store or the URL must
+ * not silently drop the grouping the table asked for.
+ *
+ * Seeding only: a state that already carries a grouping keeps it, because the
+ * prop is a default and the caller's own state outranks a default. Runs after
+ * the mode is settled above, so the seed lands in the home that mode
+ * designates rather than relying on the flip to carry it across.
+ */
+if (props.state && props.initialGroupBy?.length && state.groupBy.value.length === 0) {
+  state.setGroupBy(props.initialGroupBy)
+}
 
 /**
  * Strict identity, for selection: a wrong id there silently corrupts the

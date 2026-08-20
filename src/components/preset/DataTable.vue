@@ -62,7 +62,7 @@ const props = withDefaults(
     reorderable?: boolean
     /**
      * Bands rows by these columns on first render, outermost level first.
-     * Ignored when `state` is supplied — seed that state's `initialGroupBy`.
+     * Seeds a supplied `state` too, unless it already carries a grouping.
      */
     initialGroupBy?: string[]
     /**

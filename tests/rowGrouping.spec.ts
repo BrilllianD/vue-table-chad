@@ -4,7 +4,7 @@ import { defineComponent, effectScope, h, nextTick, ref } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useRowGrouping } from '../src/core/useRowGrouping'
-import { useTableState } from '../src/core/useTableState'
+import { createQueryState, useTableState } from '../src/core/useTableState'
 import { groupPathKey } from '../src/core/grouping'
 import {
   aggregatedPersonColumns,
@@ -463,6 +463,101 @@ describe('DataTable grouping', () => {
     const depths = wrapper.findAll('.vt-group-row').map((row) => row.attributes('data-depth'))
     expect(depths).toContain('0')
     expect(depths).toContain('1')
+    wrapper.unmount()
+  })
+})
+
+/* -------------------------------------------------- hoisted query state */
+
+describe('grouping against a hoisted QueryState', () => {
+  it('keeps a client grouping without writing it into the query', () => {
+    /*
+     * Client grouping is deliberately absent from `QueryState` — no source
+     * refetches over it, and no server hears about it. That made the setup-time
+     * move erase it: clearing `internal.groupBy` fired the mirror and stamped
+     * `groupBy: []` over the caller's own ref, so a URL carrying a grouping
+     * applied it once and lost it on the next change to anything else.
+     */
+    const external = ref(createQueryState({ initialGroupBy: ['department'] }))
+    const state = useTableState({ state: external })
+
+    expect(state.groupBy.value).toEqual(['department'])
+    // Never in the query itself: that is the whole point of the client mode.
+    expect(state.query.value.groupBy).toEqual([])
+
+    state.setPage(2)
+    state.setFilter('name', undefined)
+    expect(external.value.groupBy).toEqual(['department'])
+    expect(state.groupBy.value).toEqual(['department'])
+  })
+
+  it('writes a server grouping straight through to the query', () => {
+    const external = ref(createQueryState({ initialGroupBy: ['department'] }))
+    const state = useTableState({ state: external, groupMode: 'server' })
+
+    expect(state.groupBy.value).toEqual(['department'])
+    expect(state.query.value.groupBy).toEqual(['department'])
+
+    state.setGroupBy(['department', 'role'])
+    expect(external.value.groupBy).toEqual(['department', 'role'])
+  })
+
+  it('carries the grouping across a mode flip in both directions', () => {
+    const external = ref(createQueryState())
+    const state = useTableState({ state: external })
+    state.setGroupBy(['department'])
+
+    state.groupMode.value = 'server'
+    expect(external.value.groupBy).toEqual(['department'])
+
+    state.groupMode.value = 'client'
+    expect(state.groupBy.value).toEqual(['department'])
+  })
+
+  it('seeds a supplied state from initialGroupBy set on the table', () => {
+    // Config set where the table is used has to reach a state built elsewhere,
+    // otherwise hoisting the query silently drops the grouping the table asked
+    // for.
+    const external = ref(createQueryState())
+    let state!: ReturnType<typeof useTableState>
+    const Host = defineComponent({
+      setup() {
+        state = useTableState({ state: external, pageSize: 100 })
+        const source = useLocalDataSource<Person>(people, personColumns, state.query)
+        return () =>
+          h(DataTable as never, {
+            columns: personColumns,
+            source,
+            state,
+            initialGroupBy: ['department'],
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    expect(state.groupBy.value).toEqual(['department'])
+    expect(wrapper.findAll('.vt-group-row').length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  it('does not override a grouping the supplied state already carries', () => {
+    const external = ref(createQueryState())
+    let state!: ReturnType<typeof useTableState>
+    const Host = defineComponent({
+      setup() {
+        state = useTableState({ state: external, pageSize: 100 })
+        state.setGroupBy(['role'])
+        const source = useLocalDataSource<Person>(people, personColumns, state.query)
+        return () =>
+          h(DataTable as never, {
+            columns: personColumns,
+            source,
+            state,
+            initialGroupBy: ['department'],
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    expect(state.groupBy.value).toEqual(['role'])
     wrapper.unmount()
   })
 })

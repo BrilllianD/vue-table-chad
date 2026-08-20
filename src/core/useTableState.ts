@@ -106,6 +106,28 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   const initial = createQueryState(options)
   const internal = reactive<QueryState>(initial)
 
+  const groupMode = ref<GroupMode>(options.groupMode ?? 'client')
+
+  /**
+   * Where a client-side grouping lives. It cannot live in `internal`, because
+   * everything there is the query — mirrored to an external ref and handed to
+   * the data source — and a grouping the client performs must reach neither.
+   */
+  const clientGroupBy = ref<string[]>([])
+
+  // Adopted before the mirrors exist, so the hoist below cannot be observed
+  // half-done.
+  if (options.state) Object.assign(internal, options.state.value)
+
+  // `initialGroupBy` — or a grouping the caller's own state arrived with —
+  // seeded the query object. Under the default mode that is the wrong home for
+  // it, so move it before anything can observe it there. This genuinely
+  // precedes the watchers now; it used to run 25 lines below them.
+  if (groupMode.value === 'client' && internal.groupBy.length > 0) {
+    clientGroupBy.value = [...internal.groupBy]
+    internal.groupBy = []
+  }
+
   // When the caller supplies a ref, mirror both ways so external writes (a
   // router query, a Pinia store) land in the table and vice versa.
   //
@@ -114,7 +136,6 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   // The `syncing` guard stops the two from echoing each other.
   if (options.state) {
     const external = options.state
-    Object.assign(internal, external.value)
     let syncing = false
 
     watch(
@@ -122,7 +143,15 @@ export function useTableState(options: TableStateOptions = {}): TableState {
       (value) => {
         if (syncing || !value) return
         syncing = true
-        Object.assign(internal, value)
+        if (groupMode.value === 'client') {
+          // `groupBy` is not this mode's field in either direction — see the
+          // write-back below. Copying it in would put a client grouping back
+          // into the query, which is the one place it must never be.
+          const { groupBy: _hoisted, ...rest } = value
+          Object.assign(internal, rest)
+        } else {
+          Object.assign(internal, value)
+        }
         syncing = false
       },
       { deep: true, flush: 'sync' },
@@ -133,7 +162,14 @@ export function useTableState(options: TableStateOptions = {}): TableState {
       () => {
         if (syncing) return
         syncing = true
-        external.value = { ...toRaw(internal) } as QueryState
+        const next = { ...toRaw(internal) } as QueryState
+        // Under `'client'` the query deliberately holds no grouping, so
+        // `internal.groupBy` is empty *by construction* — writing it out would
+        // stamp `[]` over a grouping the caller put in their own state, and a
+        // URL carrying one would lose it on the next change to anything else.
+        // The field stays theirs for as long as this mode is on.
+        if (groupMode.value === 'client') next.groupBy = external.value.groupBy ?? []
+        external.value = next
         syncing = false
       },
       { deep: true, flush: 'sync' },
@@ -148,22 +184,6 @@ export function useTableState(options: TableStateOptions = {}): TableState {
   const globalSearch = refs.globalSearch as Ref<string>
 
   /* --------------------------------------------------------------- grouping */
-
-  const groupMode = ref<GroupMode>(options.groupMode ?? 'client')
-
-  /**
-   * Where a client-side grouping lives. It cannot live in `internal`, because
-   * everything there is the query — mirrored to an external ref and handed to
-   * the data source — and a grouping the client performs must reach neither.
-   */
-  const clientGroupBy = ref<string[]>([])
-
-  // `initialGroupBy` seeded the query object; under the default mode that is
-  // the wrong home for it, so move it before anything can observe it there.
-  if (groupMode.value === 'client' && internal.groupBy.length > 0) {
-    clientGroupBy.value = internal.groupBy
-    internal.groupBy = []
-  }
 
   /** Reads and writes whichever home the current mode designates. */
   const groupBy = computed<string[]>({
