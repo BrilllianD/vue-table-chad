@@ -72,6 +72,24 @@ Bench-gating cuts both ways. These looked worth doing and measurably were not:
   because a round trip is involved; here there is nothing to hide.
 - **Rebuilding `new Map(columns…)`** per `filterRows` call — eleven entries.
 
+## What the editing config costs the pipeline
+
+Nothing measurable, and it was worth checking rather than assuming.
+
+`employeeColumns` grew six fields per column for editing — `editable`, `setValue`, `validate`,
+`required` — and the whole workload runs through those objects. A wider column object could plausibly
+cost something: `sortRows` reads `column.comparator`, `column.type` and `column.accessor` per pass,
+and a larger shape is a larger lookup.
+
+A/B over the full pipeline bench, three runs each way, says no. Every figure lands inside the
+run-to-run spread, and the spread is wide enough to mislead: a single run showed `sortRows` on three
+mixed columns at 15.5ms against 13.3ms without the change, which two further runs put back at 13.6
+and 13.9. `flattenGroups` came out *faster* with the config than without, which is the same story
+told the other way.
+
+The reason it is free is structural rather than lucky: none of the four O(dataset) functions reads
+any of those fields. They are inert until a table is handed an editing session.
+
 ## What holding rows in a `ref` costs
 
 Not a regression — a choice the caller makes. `ref(people)` proxies the array and every object in

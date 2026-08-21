@@ -16,6 +16,12 @@
  *   - `salary` and `hiredAt` are nullable, so "(Blanks)" and null-sorting show up
  *   - `department` is blank in ~4% of rows, which is a different kind of blank
  *     (empty string, not null) and must land in the same bucket
+ *   - `city` and `country` read through an accessor, so making them *editable*
+ *     forces a `setValue`: an accessor cannot be inverted
+ *
+ * The editing config is inert unless a table is handed an editing session, so
+ * it costs the other twelve demo views and every benchmark nothing. Nothing in
+ * `filterRows`, `sortRows`, `countGroups` or `aggregateGroups` reads any of it.
  */
 
 import type { ColumnDef } from '@sandbox/vue-table'
@@ -163,16 +169,32 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     // switched off, or the rest of the row stops meaning anything.
     pinned: 'left',
     hideable: false,
+    editable: true,
+    // Nobody is nameless. `required` rejects the three blanks together, the
+    // same trio `isBlank` buckets for filtering.
+    required: true,
   },
-  { id: 'email', header: 'Email', type: 'text', width: 250 },
+  {
+    id: 'email',
+    header: 'Email',
+    type: 'text',
+    width: 250,
+    editable: true,
+    validate: (value) =>
+      typeof value === 'string' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)
+        ? null
+        : 'Not an email address',
+  },
   {
     id: 'department',
     header: 'Department',
     type: 'enum',
     width: 150,
     // Fixed options keep every choice in the checklist even at count 0, so the
-    // list does not reshuffle underneath the pointer as you filter.
+    // list does not reshuffle underneath the pointer as you filter. They are
+    // also what turns the editor into a select rather than a text box.
     options: DEPARTMENTS,
+    editable: true,
   },
   {
     id: 'role',
@@ -183,6 +205,7 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     // Seniority is not alphabetical. Without this, "Junior" sorts above
     // "Senior" and the column is worse than useless.
     comparator: (a, b) => SENIORITY.indexOf(String(a)) - SENIORITY.indexOf(String(b)),
+    editable: true,
   },
   {
     id: 'city',
@@ -192,6 +215,14 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     // The value lives at `row.location.city`, not `row.city` — this is what
     // `accessor` is for. Sorting, filtering and facets all read through it.
     accessor: (row) => row.location.city,
+    editable: true,
+    // And this is what `setValue` is for: an accessor is a function, so it
+    // cannot be run backwards to find where an edit should land. Without it the
+    // table would have to guess `row.city`, which nothing ever reads.
+    setValue: (row, value) => ({
+      ...row,
+      location: { ...row.location, city: String(value ?? '') },
+    }),
   },
   {
     id: 'country',
@@ -200,6 +231,11 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     width: 130,
     accessor: (row) => row.location.country,
     options: COUNTRIES,
+    editable: true,
+    setValue: (row, value) => ({
+      ...row,
+      location: { ...row.location, country: String(value ?? '') },
+    }),
   },
   {
     id: 'salary',
@@ -215,6 +251,10 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     aggregate: 'sum',
     aggregateFormat: (result) =>
       result.value === null ? '—' : money.format(Number(result.value)),
+    editable: true,
+    // Nullable, so a blank is allowed through and only a *negative* is refused.
+    validate: (value) =>
+      value !== null && Number(value) < 0 ? 'A salary cannot be negative' : null,
   },
   {
     id: 'hiredAt',
@@ -225,6 +265,7 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     // `min`/`max` know the row they came from, so `format` renders them and no
     // `aggregateFormat` is needed here.
     aggregate: 'min',
+    editable: true,
   },
   {
     id: 'rating',
@@ -236,6 +277,9 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     aggregate: 'avg',
     aggregateFormat: (result) =>
       result.value === null ? '—' : `${Number(result.value).toFixed(2)} ★`,
+    editable: true,
+    validate: (value) =>
+      Number(value) >= 0 && Number(value) <= 5 ? null : 'A rating runs from 0 to 5',
   },
   {
     id: 'tags',
@@ -248,6 +292,9 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     filterable: false,
     resizable: false,
     accessor: (row) => row.tags.join(', '),
+    // Left read-only on purpose. Editing is opt-in per column, and a list needs
+    // an editor of its own — a comma-separated text box would be a worse lie
+    // than showing the value plainly.
   },
   {
     id: 'active',
@@ -257,6 +304,7 @@ export const employeeColumns: ColumnDef<Employee>[] = [
     align: 'center',
     pinned: 'right',
     format: (value) => (value ? 'Yes' : 'No'),
+    editable: true,
   },
 ]
 

@@ -11,6 +11,7 @@
  */
 import { reactive } from 'vue'
 import {
+  applyPatch,
   computeFacets,
   filterRows,
   groupedSort,
@@ -21,6 +22,7 @@ import {
   type QueryState,
 } from '@sandbox/vue-table'
 import { employees, type Employee } from './dataset'
+import { employeeColumns } from '../columns'
 
 export interface ApiOptions {
   latencyMs?: number
@@ -31,7 +33,7 @@ export interface ApiOptions {
 export interface RequestLogEntry {
   id: number
   at: number
-  kind: 'rows' | 'facets'
+  kind: 'rows' | 'facets' | 'save'
   label: string
   outcome: 'pending' | 'ok' | 'error' | 'aborted'
   ms: number
@@ -121,6 +123,67 @@ export async function fetchEmployees(
 
     logEnd(entry, 'ok')
     return { rows: ordered.slice(start, start + query.pageSize), total: matched.length }
+  } catch (caught) {
+    logEnd(entry, signal.aborted ? 'aborted' : 'error')
+    throw caught
+  }
+}
+
+/**
+ * Simulates `PATCH /employees/:id` — the write half.
+ *
+ * It does the three things a real endpoint does and a mock usually skips:
+ * validates what only the server can (an email is unique across rows nobody
+ * has loaded), **normalises** what it stores, and returns the row it actually
+ * saved rather than an acknowledgement. That last one is why the table waits
+ * by default: adopting the returned row shows the rounding in the same paint
+ * as the edit, instead of correcting itself a moment later.
+ */
+export async function saveEmployee(
+  id: number,
+  patch: Record<string, unknown>,
+  signal: AbortSignal,
+  options: ApiOptions = {},
+): Promise<Employee> {
+  const entry = logStart('save', `#${id} · ${Object.keys(patch).join(', ')}`)
+  try {
+    await delay(options.latencyMs ?? 450, signal)
+
+    if (options.failureRate && Math.random() < options.failureRate) {
+      throw new Error('Simulated server error (503)')
+    }
+
+    const index = employees.findIndex((row) => row.id === id)
+    if (index === -1) throw new Error(`No employee ${id}`)
+
+    // The check a client cannot make: it holds one page, the server holds
+    // every row. Thrown as `{ message, fields }`, which is what the table's
+    // default error mapping reads — the message lands on the row, the field
+    // message lands on the cell that caused it.
+    if (
+      typeof patch.email === 'string' &&
+      employees.some((row) => row.id !== id && row.email === patch.email)
+    ) {
+      throw {
+        message: 'The server rejected this row',
+        fields: { email: 'Already taken' },
+      }
+    }
+
+    // `applyPatch` is the library's own, so the demo writes rows back exactly
+    // the way the table computed them — including through `city`'s `setValue`.
+    const saved = applyPatch(employees[index]!, patch, employeeColumns)
+    // Payroll rounds to the nearest hundred. Visible proof that the row the
+    // server returns is the row the table ends up showing.
+    const normalised: Employee = {
+      ...saved,
+      name: saved.name.trim(),
+      salary: saved.salary === null ? null : Math.round(saved.salary / 100) * 100,
+    }
+
+    employees[index] = normalised
+    logEnd(entry, 'ok')
+    return normalised
   } catch (caught) {
     logEnd(entry, signal.aborted ? 'aborted' : 'error')
     throw caught
