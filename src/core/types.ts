@@ -227,6 +227,14 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   background?: string
   /** Same for the header cell. Defaults to the preset's header background. */
   headerBackground?: string
+  /**
+   * The header band this column sits under, by id. Columns naming the same
+   * band get one spanning cell above them, and the header grows a second row.
+   *
+   * The band's label and collapse behaviour come from a matching
+   * `ColumnGroupDef`; an id nobody declared still bands, headed by the id.
+   */
+  group?: string
 }
 
 /** A column after user-driven layout state (width, pin, order) is folded in. */
@@ -241,7 +249,99 @@ export interface ResolvedColumn<TRow = Record<string, unknown>> extends ColumnDe
   /** 1-based position within a multi-sort, or 0 when not sorted. */
   sortIndex: number
   hasFilter: boolean
+  /**
+   * Withheld because its header band is folded shut, as opposed to `visible`,
+   * which is the user's own choice about this one column.
+   *
+   * The two are kept apart so that expanding a band cannot resurrect a column
+   * the user had switched off, and so the column menu keeps reporting what the
+   * user asked for rather than what a band is currently doing.
+   */
+  collapsed: boolean
 }
+
+/* ------------------------------------------------------------------ *
+ * Header bands
+ * ------------------------------------------------------------------ */
+
+/**
+ * A band of columns above the header row: its label, its nesting, and what it
+ * folds down to.
+ *
+ * Purely decoration over the ids columns already name in `ColumnDef.group` —
+ * a band exists because a column claims it, not because one of these was
+ * declared. Declaring one gives it a readable header and a say in how it
+ * collapses.
+ */
+export interface ColumnGroupDef {
+  id: string
+  /** Defaults to the id, so an undeclared band still reads as something. */
+  header?: string
+  /** Nests this band under another one, giving a third header row and beyond. */
+  parent?: string
+  /** Whether the band offers a collapse toggle. Defaults to true. */
+  collapsible?: boolean
+  /**
+   * The column, or columns, that survive a collapse. Defaults to the band's
+   * first member in *declared* order — not display order, so dragging a column
+   * about cannot change which one a folded band shows.
+   *
+   * A band always keeps at least one column. That is what lets collapsing be a
+   * plain subtraction from the visible list: the column count stays honest, so
+   * `<colgroup>`, every body row and the footer stay aligned with no special
+   * case for "a band that is showing nothing".
+   */
+  collapseTo?: string | string[]
+  /**
+   * Paints this band's header cell, reaching the DOM as `--vt-column-bg` just
+   * as `ColumnDef.headerBackground` does.
+   */
+  background?: string
+}
+
+/** A band's spanning `<th>`: which columns it covers, and where it sits. */
+export interface HeaderGroupCell<TRow = Record<string, unknown>> {
+  kind: 'group'
+  /** The band, with `header` defaulted to its id. */
+  group: ColumnGroupDef
+  /**
+   * Stable identity for this cell. Carries the band's whole path, its pin side
+   * and its first column, so a band split in two by a reorder or by the pin
+   * boundary yields two keys rather than two nodes claiming one.
+   */
+  key: string
+  colspan: number
+  /** The columns beneath this cell, in display order. */
+  columns: ResolvedColumn<TRow>[]
+  pinned: PinSide | false
+  /** Sticky offset in px, only meaningful when pinned. */
+  pinOffset: number
+  /** Which header row it sits in, 0-based. */
+  depth: number
+}
+
+/** One column's `<th>`, spanning down to the body from wherever its band left it. */
+export interface HeaderColumnCell<TRow = Record<string, unknown>> {
+  kind: 'column'
+  key: string
+  column: ResolvedColumn<TRow>
+  /**
+   * How many header rows this cell spans. A column under no band, in a header
+   * two rows deep, spans both — otherwise the row beneath it would be short a
+   * cell and every column after it would slide out of place.
+   */
+  rowspan: number
+  /** Which header row it sits in, 0-based. */
+  depth: number
+}
+
+/** Either kind of header cell: a band's spanning cell, or a column's own. */
+export type HeaderCell<TRow = Record<string, unknown>> =
+  | HeaderGroupCell<TRow>
+  | HeaderColumnCell<TRow>
+
+/** One `<tr>` of the header, as cells in display order. */
+export type HeaderRow<TRow = Record<string, unknown>> = HeaderCell<TRow>[]
 
 /* ------------------------------------------------------------------ *
  * Grouping

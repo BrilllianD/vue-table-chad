@@ -1,4 +1,4 @@
-import type { ColumnDef } from '../src/core/types'
+import type { ColumnDef, ColumnGroupDef } from '../src/core/types'
 
 export interface Person {
   id: number
@@ -41,3 +41,28 @@ export const aggregatedPersonColumns: ColumnDef<Person>[] = personColumns.map((c
 export function names(rows: Person[]): string[] {
   return rows.map((row) => row.name)
 }
+
+/**
+ * Bands over `personColumns`: an *Identity* band, and a *Record* band holding a
+ * nested *Money* one, so a header three rows deep has something to build from.
+ */
+export const personColumnGroups: ColumnGroupDef[] = [
+  { id: 'identity', header: 'Identity' },
+  { id: 'record', header: 'Record' },
+  { id: 'money', header: 'Money', parent: 'record', collapseTo: 'salary' },
+]
+
+/**
+ * The same columns with bands declared. A separate export for the same reason
+ * `aggregatedPersonColumns` is one: declaring a band adds a header row, and
+ * every existing spec asserts against the single-row shape.
+ *
+ * `active` deliberately stays outside every band — a header is only correct if
+ * an unbanded column still spans down to the body.
+ */
+export const groupedPersonColumns: ColumnDef<Person>[] = personColumns.map((column) => {
+  if (column.id === 'name' || column.id === 'department') return { ...column, group: 'identity' }
+  if (column.id === 'salary') return { ...column, group: 'money' }
+  if (column.id === 'hiredAt') return { ...column, group: 'record' }
+  return column
+})

@@ -141,6 +141,9 @@ export function useColumns<TRow>(
     return !layout.value.hidden.includes(columnId)
   }
 
+  /** Columns withheld by a folded band. Always empty until bands can fold. */
+  const collapsedColumnIds = computed<Set<string>>(() => new Set())
+
   function resolvedWidthOf(column: ColumnDef<TRow>): number {
     return layout.value.widths[column.id] ?? column.width ?? defaultWidth
   }
@@ -163,6 +166,7 @@ export function useColumns<TRow>(
       sortDirection: options.sortFor?.(column.id) ?? false,
       sortIndex: options.sortIndexFor?.(column.id) ?? 0,
       hasFilter: options.hasFilter?.(column.id) ?? false,
+      collapsed: collapsedColumnIds.value.has(column.id),
     })),
   )
 
@@ -172,7 +176,10 @@ export function useColumns<TRow>(
    * shift everything pinned after it, so this cannot be precomputed config.
    */
   const visible = computed<ResolvedColumn<TRow>[]>(() => {
-    const shown = all.value.filter((column) => column.visible)
+    // Both filters, in one pass: a column is on screen only if the user left it
+    // on *and* no band above it is folded shut. Keeping the two apart is what
+    // stops expanding a band from resurrecting a column the user switched off.
+    const shown = all.value.filter((column) => column.visible && !column.collapsed)
 
     const left = shown.filter((column) => column.pinned === 'left')
     const right = shown.filter((column) => column.pinned === 'right')

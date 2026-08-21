@@ -654,6 +654,7 @@ describe('TableRow as a primitive', () => {
   ): ResolvedColumn<Record<string, unknown>> {
     return {
       visible: true,
+      collapsed: false,
       order: 0,
       resolvedWidth: undefined,
       pinned: false,
