@@ -6,6 +6,7 @@
 import { computed, toRef, watch } from 'vue'
 import type {
   ColumnDef,
+  ColumnGroupDef,
   DataSource,
   GroupMode,
   QueryState,
@@ -15,6 +16,7 @@ import type {
 import { provideTableContext, type TableContext } from '../../core/context'
 import { useTableState, type TableState } from '../../core/useTableState'
 import { useColumns, type ColumnLayoutState } from '../../core/useColumns'
+import { buildHeaderRows } from '../../core/columnGroups'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
 import { useRowGrouping } from '../../core/useRowGrouping'
@@ -38,6 +40,14 @@ const props = withDefaults(
     selectable?: boolean | SelectionMode
     getRowId?: (row: TRow) => RowId
     isRowSelectable?: (row: TRow) => boolean
+    /**
+     * Header bands, giving a multi-row header and per-band collapse.
+     *
+     * Optional even when columns declare a `group`: a band forms because a
+     * column claims it, and these supply the label, the nesting and how it
+     * folds. With no column declaring one, the header stays a single row.
+     */
+    columnGroups?: ColumnGroupDef[]
     initialLayout?: Partial<ColumnLayoutState>
     /**
      * Saves the column layout under this key in `localStorage` and restores it
@@ -104,6 +114,7 @@ const state =
 const columns = useColumns<TRow>(
   () => props.columns,
   {
+    groups: () => props.columnGroups,
     sortFor: state.sortFor,
     sortIndexFor: state.sortIndexFor,
     // Same test `ActiveFilters` uses, so the header's funnel and the chip row
@@ -235,6 +246,16 @@ const pagination = usePagination(
   { siblingCount: () => props.siblingCount, onChange: state.setPage },
 )
 
+/**
+ * The header, row by row.
+ *
+ * Derived rather than put on the context: a folded band has already taken its
+ * columns out of `columns.visible`, so this describes whatever list survives
+ * and needs no collapse state of its own. `buildHeaderRows` is exported from
+ * core, so a hand-assembled table reaches the same answer without a context.
+ */
+const headerRows = computed(() => buildHeaderRows(columns.visible.value, props.columnGroups))
+
 function getCellValue(row: TRow, column: ColumnDef<TRow>): unknown {
   return readValue(row, column)
 }
@@ -323,6 +344,7 @@ defineExpose({
     :grouping="grouping"
     :columns="columns.visible.value"
     :all-columns="columns.all.value"
+    :header-rows="headerRows"
     :state="state"
     :selection="selection"
     :pagination="pagination"
