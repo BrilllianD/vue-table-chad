@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { effectScope, shallowRef } from 'vue'
 import { useColumns } from '../src/core/useColumns'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useRowGrouping } from '../src/core/useRowGrouping'
 import { useRowSelection } from '../src/core/useRowSelection'
+import { useRowEditing } from '../src/core/useRowEditing'
+import { replaceRowIn } from '../src/core/editing'
 import { useTableState } from '../src/core/useTableState'
 import { valuesFilter } from '../src/core/filters/model'
 import { employeeColumns, makeRows, type Employee } from '@fixtures'
@@ -128,7 +130,132 @@ function harness(groupBy: string[] = []) {
   return built
 }
 
+/** Every column writable, so an edit has somewhere to land. */
+const editableColumns = employeeColumns.map((column) => ({ ...column, editable: true }))
+
+/**
+ * The same used table, plus an editing session over a row array this harness
+ * owns — the shared `rows` is module-level and a test that wrote into it would
+ * leak into every other one.
+ */
+function editingHarness(
+  save: (change: { nextRow: Employee }) => Promise<Employee | void> = async ({ nextRow }) =>
+    nextRow,
+  groupBy: string[] = ['department'],
+) {
+  const scope = effectScope()
+  const data = shallowRef<Employee[]>([...rows])
+  const built = scope.run(() => {
+    const state = useTableState({ pageSize: 25, initialGroupBy: groupBy })
+    const source = useLocalDataSource<Employee>(data, editableColumns, () => state.query.value, {
+      debounceMs: 0,
+    })
+    const grouping = useRowGrouping<Employee>(() => source.rows.value, editableColumns, {
+      groupBy: () => state.groupBy.value,
+      sort: () => state.sort.value,
+      totals: () => source.groupCounts(state.groupBy.value),
+      aggregates: () => source.groupAggregates(state.groupBy.value),
+    })
+    const editing = useRowEditing<Employee>(source, editableColumns, {
+      save,
+      apply: (next) => {
+        data.value = replaceRowIn(data.value, next, (row) => row.id)
+      },
+    })
+
+    state.setFilter('department', valuesFilter(['Engineering', 'Research', 'Design']))
+    state.setSort('name', 'asc')
+    return { state, source, grouping, editing, data, stop: () => scope.stop() }
+  })!
+
+  built.source.rows.value
+  built.grouping.displayRows.value
+  reset()
+  return built
+}
+
 beforeEach(reset)
+
+describe('what editing is allowed to recompute', () => {
+  /** The column every case below edits: a plain number, no accessor to invert. */
+  const salary = editableColumns.find((column) => column.id === 'salary')!
+
+  it('opening a draft and typing into it never reaches the pipeline', () => {
+    const h = editingHarness()
+    const row = h.source.rows.value[0]!
+
+    h.editing.begin(row, 'salary')
+    for (const input of ['9', '92', '920', '9200', '92000']) {
+      h.editing.setValue(row, salary, input)
+    }
+    h.editing.stateFor(h.editing.getRowId(row))
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    h.stop()
+  })
+
+  it('a draft that fails validation never reaches the pipeline', async () => {
+    const h = editingHarness()
+    const row = h.source.rows.value[0]!
+
+    h.editing.begin(row, 'salary')
+    h.editing.setValue(row, salary, 'not a number')
+    await expect(h.editing.commit(row)).resolves.toBe(false)
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    h.stop()
+  })
+
+  it('a save the server rejects leaves the data, and the pipeline, alone', async () => {
+    // The rows never changed, so nothing below the edit has anything to redo —
+    // a failed save must cost exactly as little as a keystroke.
+    const h = editingHarness(async () => {
+      throw new Error('Simulated server error (503)')
+    })
+    const row = h.source.rows.value[0]!
+
+    h.editing.begin(row, 'salary')
+    h.editing.setValue(row, salary, '92000')
+    await expect(h.editing.commit(row)).resolves.toBe(false)
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    h.stop()
+  })
+
+  it('a save that succeeds does redo the pipeline, and only once', async () => {
+    // The mirror image, the same one `changing the sort` makes below: an edited
+    // row genuinely changed the dataset, so it must be allowed — and required —
+    // to re-sort, and to filter itself out of view. An invariant suite that only
+    // says "do less" is satisfied by a table that never updates.
+    const h = editingHarness()
+    const row = h.source.rows.value[0]!
+
+    h.editing.begin(row, 'salary')
+    h.editing.setValue(row, salary, '92000')
+    await expect(h.editing.commit(row)).resolves.toBe(true)
+    h.source.rows.value
+    h.source.rows.value
+
+    expect(counters.filter).toBe(1)
+    expect(counters.sort).toBe(1)
+    h.stop()
+  })
+})
 
 describe('what an interaction is allowed to recompute', () => {
   /*
