@@ -19,6 +19,7 @@ import type { ColumnLayoutField } from '../../core/columnStorage'
 import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
 import { useRowGrouping } from '../../core/useRowGrouping'
 import { useRowSelection, defaultRowId } from '../../core/useRowSelection'
+import type { UseRowEditing } from '../../core/useRowEditing'
 import { usePagination } from '../../core/usePagination'
 import { readValue } from '../../core/sorting'
 import { isEmptyFilter } from '../../core/filters/model'
@@ -78,6 +79,14 @@ const props = withDefaults(
     groupsCollapsed?: boolean
     /** Header text for the bucket holding rows with no value. */
     blankGroupLabel?: string
+    /**
+     * An editing session, from `useRowEditing`. Passed in rather than built
+     * here, unlike selection: editing carries a `save`, a `validate`, an
+     * `apply` and a mode, and re-declaring all four as props would duplicate
+     * the composable's own surface for nothing. Leave it out and cells render
+     * read-only.
+     */
+    editing?: UseRowEditing<TRow>
   }>(),
   { selectable: false, pageSize: 25, siblingCount: 1, reorderable: true },
 )
@@ -249,6 +258,11 @@ const context: TableContext<TRow> = {
   pagination,
   dnd,
   grouping,
+  // A getter, for the same reason `source` is one: swapping the session must
+  // reach everyone holding the context, not only what reads it reactively.
+  get editing() {
+    return props.editing
+  },
   rows,
   displayRows: grouping.displayRows,
   visibleColumns: columns.visible,
@@ -292,6 +306,7 @@ defineExpose({
   pagination,
   dnd,
   grouping,
+  editing: toRef(props, 'editing'),
   source: toRef(props, 'source'),
 })
 </script>
@@ -312,6 +327,7 @@ defineExpose({
     :selection="selection"
     :pagination="pagination"
     :dnd="dnd"
+    :editing="editing"
     :source="source"
     :loading="source.loading.value"
     :error="source.error.value"

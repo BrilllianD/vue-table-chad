@@ -193,6 +193,8 @@ export const apiReference: ApiEntry[] = [
 
   { name: 'TableRow', layer: 'primitives', kind: 'component', summary: 'One body row: the cells of a row, under the columns that read it.' },
 
+  { name: 'CellEditor', layer: 'primitives', kind: 'component', summary: 'The control that edits one cell, and the keyboard contract around it.' },
+
   { name: 'TableGroupRow', layer: 'primitives', kind: 'component', summary: "A group header row: the expand toggle and the group's label, followed by whatever the grouped rows aggregate to, under the columns those aggregates describe." },
 
   { name: 'SortTrigger', layer: 'primitives', kind: 'component', summary: 'The clickable header label: cycles asc → desc → unsorted, and shift-click stacks sort keys.' },

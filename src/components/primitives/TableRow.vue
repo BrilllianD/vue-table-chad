@@ -36,8 +36,13 @@ const props = withDefaults(
     depth?: number
     /** Overrides the injected selection state. */
     selected?: boolean
+    /**
+     * How this row stands with the server, as a style and test hook. Reaches
+     * the DOM as `data-row-state`; absent means an ordinary, untouched row.
+     */
+    state?: 'dirty' | 'saving' | 'error'
   }>(),
-  { index: 0, depth: 0, selected: undefined, columns: undefined },
+  { index: 0, depth: 0, selected: undefined, columns: undefined, state: undefined },
 )
 
 /*
@@ -85,6 +90,7 @@ const cells = computed(() =>
   <tr
     class="vt-tr"
     :data-selected="selected || undefined"
+    :data-row-state="state"
     :data-parity="index % 2 === 0 ? 'odd' : 'even'"
     @click="emit('click', $event)"
   >
@@ -123,5 +129,15 @@ const cells = computed(() =>
         {{ cell.text }}
       </slot>
     </TableCell>
+
+    <!--
+      Per-row controls — Save and Cancel while a row draft is open. Its `<td>`
+      belongs to the row for the same reason the leading one does: the
+      `<colgroup>` allotted it, and letting the slot own it would let a caller
+      knock the grid out of alignment.
+    -->
+    <td v-if="$slots.trailing" class="vt-td vt-td-actions">
+      <slot name="trailing" :row="row" :state="state" />
+    </td>
   </tr>
 </template>

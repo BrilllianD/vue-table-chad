@@ -12,6 +12,8 @@ const props = defineProps<{
   columns?: ResolvedColumn<TRow>[]
   /** Adds a leading narrow column for selection checkboxes. */
   selectionColumn?: boolean
+  /** Adds a trailing column for per-row controls, such as Save and Cancel. */
+  actionsColumn?: boolean
   layout?: 'auto' | 'fixed'
 }>()
 
@@ -28,6 +30,7 @@ const columns = computed(() => props.columns ?? context?.visibleColumns.value ??
         :key="column.id"
         :style="column.resolvedWidth ? { width: `${column.resolvedWidth}px` } : undefined"
       />
+      <col v-if="actionsColumn" class="vt-col-actions" />
     </colgroup>
     <slot />
   </table>

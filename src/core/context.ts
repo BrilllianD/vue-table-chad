@@ -5,6 +5,7 @@ import type { UseColumnsResult } from './useColumns'
 import type { UseColumnDnd } from './useColumnDnd'
 import type { UseRowGrouping } from './useRowGrouping'
 import type { UseRowSelection } from './useRowSelection'
+import type { UseRowEditing } from './useRowEditing'
 import type { UsePagination } from './usePagination'
 
 /**
@@ -31,6 +32,11 @@ export interface TableContext<TRow = Record<string, unknown>> {
    * may leave it out, and consumers then render `rows` flat.
    */
   grouping?: UseRowGrouping<TRow>
+  /**
+   * Inline editing. Optional for the same reason as `dnd` and `grouping`: a
+   * hand-built context may leave it out, and cells then render read-only.
+   */
+  editing?: UseRowEditing<TRow>
 
   rows: ComputedRef<TRow[]> | Readonly<Ref<TRow[]>>
   /**
