@@ -383,6 +383,22 @@ describe('a rejected save', () => {
     h.dispose()
   })
 
+  it('reads a message off a plain rejection, not only off an Error', async () => {
+    // The common case is a parsed error body thrown as it arrived, which is an
+    // object with a `message` and no prototype worth checking.
+    const h = setup({
+      save: async () => {
+        throw { message: 'Rejected', fields: { name: 'Already taken' } }
+      },
+    })
+    h.editing.begin(first, 'name')
+    h.editing.setValue(first, columns[0]!, 'Ada')
+    await h.editing.commit(first)
+    expect(h.editing.errorFor(first.id)).toBe('Rejected')
+    expect(h.editing.errorFor(first.id, 'name')).toBe('Already taken')
+    h.dispose()
+  })
+
   it('falls back to a message of its own when the rejection carried nothing', async () => {
     const h = setup({
       save: async () => {

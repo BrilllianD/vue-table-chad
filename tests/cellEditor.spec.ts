@@ -95,10 +95,14 @@ describe('what it emits', () => {
     expect(wrapper.emitted('cancel')).toHaveLength(1)
   })
 
-  it('commits on blur, because leaving a cell is how an edit usually ends', async () => {
+  it('reports a blur without deciding what it means', async () => {
+    // What leaving a cell means depends on the table: finishing a single-cell
+    // edit, or tabbing between the fields of one open row. The cell says only
+    // that focus left.
     const wrapper = editor(text, { value: 'Ada' })
     await wrapper.find('input').trigger('blur')
-    expect(wrapper.emitted('commit')).toHaveLength(1)
+    expect(wrapper.emitted('blur')).toHaveLength(1)
+    expect(wrapper.emitted('commit')).toBeUndefined()
   })
 
   it('moves on Tab, in the direction Shift asks for', async () => {
@@ -108,6 +112,12 @@ describe('what it emits', () => {
 
     await wrapper.find('input').trigger('keydown', { key: 'Tab', shiftKey: true })
     expect(wrapper.emitted('move')![1]).toEqual([-1])
+  })
+
+  it('leaves Tab alone when the neighbouring cells are editors too', async () => {
+    const wrapper = editor(text, { trapTab: false })
+    await wrapper.find('input').trigger('keydown', { key: 'Tab' })
+    expect(wrapper.emitted('move')).toBeUndefined()
   })
 
   it('leaves Enter to a textarea, and takes Ctrl+Enter instead', async () => {

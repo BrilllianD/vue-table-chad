@@ -62,7 +62,12 @@ export interface RowEditState {
   /** A cross-field failure, or a save rejection that named no field. */
   error: string | null
   status: 'editing' | 'saving' | 'error'
-  /** Which cell holds the editor in `'cell'` mode; `null` in `'row'` mode. */
+  /**
+   * The cell the user last asked for. In `'cell'` mode that is the one cell
+   * holding an editor; in `'row'` mode every editable cell has one and this is
+   * merely which of them to focus, and where a row-level failure should be
+   * shown.
+   */
   activeColumnId: string | null
 }
 
@@ -142,16 +147,24 @@ export interface UseRowEditing<TRow> {
   getRowId: (row: TRow) => RowId
 }
 
-/** Reads `fields` and `message` off a rejection, which is what most APIs throw. */
+/**
+ * Reads `fields` and `message` off a rejection, which is what most APIs throw.
+ *
+ * Duck-typed rather than `instanceof Error`, because the common case is not an
+ * Error at all: a parsed `{ message, fields }` body, thrown as it arrived.
+ * `Error` satisfies the same test, its `message` being a string.
+ */
 function defaultMapError(error: unknown): RowSaveFailure {
-  const thrown = error as { fields?: unknown; message?: unknown } | null
-  const fields =
-    thrown && typeof thrown === 'object' && thrown.fields && typeof thrown.fields === 'object'
-      ? (thrown.fields as CellErrors)
-      : undefined
-  const message =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : undefined
-  return { fields, message }
+  if (typeof error === 'string') return { message: error }
+  if (!error || typeof error !== 'object') return {}
+  const thrown = error as { fields?: unknown; message?: unknown }
+  return {
+    fields:
+      thrown.fields && typeof thrown.fields === 'object'
+        ? (thrown.fields as CellErrors)
+        : undefined,
+    message: typeof thrown.message === 'string' ? thrown.message : undefined,
+  }
 }
 
 /**
@@ -235,9 +248,7 @@ export function useRowEditing<TRow>(
 
   function begin(row: TRow, columnId?: string): void {
     const state = open(getRowId(row))
-    // In row mode every editable cell is open at once, so there is no one
-    // active cell to name; in cell mode this is the cell holding the editor.
-    state.activeColumnId = mode.value === 'row' ? null : (columnId ?? null)
+    state.activeColumnId = columnId ?? null
   }
 
   function setValue(row: TRow, column: ColumnDef<TRow>, input: unknown): void {

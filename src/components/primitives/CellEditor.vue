@@ -9,8 +9,14 @@
  *
  *   Enter   commit
  *   Escape  cancel, putting the cell back the way it was
- *   Tab     commit, then move to the next editable cell
- *   blur    commit — leaving a cell is how most people finish an edit
+ *   Tab     move — one cell forward, or back with Shift
+ *   blur    blur, and nothing more
+ *
+ * `blur` is reported rather than treated as a commit, because what leaving a
+ * cell means depends on the table, not on the cell. Editing one cell at a time,
+ * clicking away finishes the edit; editing a whole row, tabbing between its
+ * fields must not fire a save per field. The component that knows which is
+ * which is the one that owns the mode.
  *
  * The control itself comes from `editorFor`, so a column that declared
  * `type: 'number'` gets a number box without saying so twice. Anything more
@@ -38,16 +44,24 @@ const props = withDefaults(
     autofocus?: boolean
     /** Labels the control for assistive tech. Defaults to the column header. */
     label?: string
+    /**
+     * Take Tab over and report it as `move`. Off when the neighbouring cells
+     * are already editors — a whole row open at once — since Tab then reaches
+     * the next one on its own and intercepting it would only get in the way.
+     */
+    trapTab?: boolean
   }>(),
-  { row: undefined, error: null, disabled: false, autofocus: true, label: undefined },
+  { row: undefined, error: null, disabled: false, autofocus: true, label: undefined, trapTab: true },
 )
 
 const emit = defineEmits<{
   'update:value': [value: unknown]
   commit: []
   cancel: []
-  /** Tab, and which way: `1` forward, `-1` back. */
+  /** Tab, and which way: `1` forward, `-1` back. Only when `trapTab`. */
   move: [delta: number]
+  /** Focus left the control. What that means is the table's decision. */
+  blur: []
 }>()
 
 const control = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null)
@@ -100,7 +114,7 @@ function onKeydown(event: KeyboardEvent): void {
     emit('cancel')
     return
   }
-  if (event.key === 'Tab') {
+  if (event.key === 'Tab' && props.trapTab) {
     event.preventDefault()
     emit('move', event.shiftKey ? -1 : 1)
   }
@@ -130,7 +144,7 @@ function onKeydown(event: KeyboardEvent): void {
         :title="error ?? undefined"
         @change="onInput"
         @keydown="onKeydown"
-        @blur="emit('commit')"
+        @blur="emit('blur')"
       >
         <!--
           An empty choice unless the column refuses one: a select with no way
@@ -155,7 +169,7 @@ function onKeydown(event: KeyboardEvent): void {
         :title="error ?? undefined"
         @change="onInput"
         @keydown="onKeydown"
-        @blur="emit('commit')"
+        @blur="emit('blur')"
       />
 
       <textarea
@@ -170,7 +184,7 @@ function onKeydown(event: KeyboardEvent): void {
         :title="error ?? undefined"
         @input="onInput"
         @keydown="onKeydown"
-        @blur="emit('commit')"
+        @blur="emit('blur')"
       />
 
       <input
@@ -186,7 +200,7 @@ function onKeydown(event: KeyboardEvent): void {
         :title="error ?? undefined"
         @input="onInput"
         @keydown="onKeydown"
-        @blur="emit('commit')"
+        @blur="emit('blur')"
       />
     </slot>
 

@@ -46,6 +46,14 @@
   */
   --vt-loading-scrim: color-mix(in srgb, var(--vt-bg) 78%, transparent);
   /*
+    Failure. Named here because three places now need it — a filter that could
+    not load its facets, a table that could not load at all, and a cell holding
+    a value the server or a validator refused — and two of them were carrying
+    the same hex literal in a file that is otherwise entirely variable-driven.
+  */
+  --vt-danger: #b42318;
+  --vt-bg-danger: color-mix(in srgb, var(--vt-danger) 10%, transparent);
+  /*
     Outlines on hover — the row gets a rule top and bottom, the cell a full
     ring. Both are off at width 0, and both are drawn as inset shadows rather
     than real borders: a border that only exists on hover would resize the cell
@@ -114,6 +122,8 @@
     --vt-text: #e6e8eb;
     --vt-text-muted: #9aa4b0;
     --vt-accent: #5b93f7;
+    /* Lightened: the light theme's red does not carry against a dark row. */
+    --vt-danger: #f97066;
   }
 }
 
@@ -171,6 +181,7 @@
 .vt-table[data-layout='fixed'] { table-layout: fixed; }
 
 .vt-col-selection { width: 40px; }
+.vt-col-actions { width: 150px; }
 
 /* ------------------------------------------------------------------ cells */
 
@@ -575,7 +586,7 @@
 .vt-valuelist-count { color: var(--vt-text-muted); font-size: 12px; flex: none; }
 .vt-valuelist-status { padding: 10px; color: var(--vt-text-muted); text-align: center; }
 
-.vt-filter-error { margin: 0; padding: 8px 10px; color: #b42318; }
+.vt-filter-error { margin: 0; padding: 8px 10px; color: var(--vt-danger); }
 
 .vt-valuelist-actions {
   display: flex;
@@ -904,6 +915,113 @@
   font: inherit;
 }
 
+/* ---------------------------------------------------------------- editing */
+
+/*
+  The trigger that turns a cell into an editor.
+  
+  A button rather than a click handler on the `<td>`, so the cell can be tabbed
+  to and opened with Enter — but styled back down to look like the text it
+  replaces, the way `.vt-sort` does in the header. Full width so the whole cell
+  is the target, and `inherit`ing alignment so a right-aligned number stays
+  right-aligned once it becomes clickable.
+*/
+.vt-cell-trigger {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vt-cell-trigger:focus-visible {
+  outline: 2px solid var(--vt-accent);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+.vt-cell-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/*
+  The same five declarations every other control in this file uses. Sized to sit
+  inside `--vt-row-height` with the cell's own padding around it, because
+  `.vt-td` clips: an input taller than its row is an input with its bottom
+  sheared off.
+*/
+.vt-cell-input {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--vt-border-strong);
+  border-radius: 4px;
+  background: var(--vt-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.vt-cell-input:focus-visible {
+  outline: 2px solid var(--vt-accent);
+  outline-offset: -1px;
+}
+
+.vt-cell-checkbox { cursor: pointer; margin: 0; }
+
+/* The ring, not a message: there is no room under the input for words. */
+.vt-cell-editor[data-invalid] .vt-cell-input,
+.vt-cell-editor[data-invalid] .vt-cell-checkbox {
+  border-color: var(--vt-danger);
+  outline: 1px solid var(--vt-danger);
+  outline-offset: -1px;
+}
+
+/*
+  Row state, as a stripe down the leading edge rather than a background.
+  
+  A background here would join the queue of layers `.vt-td` already composes —
+  stripe, column tint, hover, selection — and would have to win against all of
+  them to be seen at all. A border does not compete with any of them.
+*/
+.vt-tr[data-row-state] > .vt-td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--vt-accent);
+}
+
+.vt-tr[data-row-state='error'] > .vt-td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--vt-danger);
+}
+
+.vt-tr[data-row-state='saving'] { opacity: 0.6; }
+
+.vt-td-actions { white-space: nowrap; }
+
+.vt-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vt-row-actions .vt-btn { padding: 2px 8px; }
+
+/*
+  Truncated rather than wrapped, and titled: the actions cell is one row tall
+  like every other, so a long message has to give way to the buttons.
+*/
+.vt-row-error {
+  color: var(--vt-danger);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ---------------------------------------------------------------- buttons */
 
 .vt-btn {
@@ -1007,7 +1125,7 @@
   .vt-spinner { animation-duration: 2.4s; }
 }
 
-.vt-error { color: #b42318; }
+.vt-error { color: var(--vt-danger); }
 
 .vt-visually-hidden {
   position: absolute;

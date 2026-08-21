@@ -28,6 +28,13 @@ const props = withDefaults(
     columns?: ResolvedColumn<TRow>[]
     /** Extra cells before the first column — the selection checkbox column. */
     leading?: number
+    /**
+     * Extra empty cells after the last column — the row-actions column. A group
+     * header has no actions of its own, but the grid still has to line up, and
+     * a row one cell short of its `<colgroup>` drags every column after it out
+     * of place.
+     */
+    trailingCells?: number
     /** Forces the label cell's span, for standalone use outside a table. */
     colspan?: number
     /** Overrides the injected collapse state. */
@@ -36,7 +43,7 @@ const props = withDefaults(
   // Vue casts an absent boolean prop to `false`, which would read as "this
   // group is open" and shadow the injected state for good. The explicit
   // `undefined` keeps "not passed" distinguishable from "passed as false".
-  { collapsed: undefined, leading: 0 },
+  { collapsed: undefined, leading: 0, trailingCells: 0 },
 )
 
 const emit = defineEmits<{ toggle: [key: string, collapsed: boolean] }>()
@@ -154,5 +161,7 @@ function toggle(): void {
         {{ textFor(column) }}
       </slot>
     </TableCell>
+
+    <td v-for="n in trailingCells" :key="`trailing-${n}`" class="vt-td vt-td-actions" />
   </tr>
 </template>
