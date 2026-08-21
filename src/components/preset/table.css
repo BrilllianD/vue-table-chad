@@ -327,14 +327,28 @@
 /* A band nobody can fold needs no room reserved for a control. */
 .vt-th-group:not([data-collapsible]) .vt-th-group-sticky { justify-content: center; }
 
+/*
+  Its own styles rather than a reuse of `.vt-group-toggle`. That one is a row
+  band's control — `display: block; width: 100%`, because the whole banner is
+  one click target — and borrowing it here made the caret consume the cell and
+  squeeze the label to nothing. Different control, different rules.
+
+  Just the caret is clickable: the band's name sits beside it, so reading the
+  header cannot fold it by accident.
+*/
 .vt-th-group-toggle {
-  /* Just the caret: the label beside it is not part of the hit target, so a
-     click on the band's name does not fold it by accident. */
   display: flex;
   align-items: center;
-  width: auto;
   flex: none;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
+
+.vt-th-group-toggle:focus-visible { outline: 2px solid var(--vt-accent); outline-offset: 1px; }
 
 .vt-th-group[data-collapsed] .vt-group-caret { transform: rotate(0deg); }
 

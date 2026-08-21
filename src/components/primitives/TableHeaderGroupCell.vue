@@ -51,7 +51,10 @@ const collapsed = computed(
 const collapsible = computed(() => {
   if (props.collapsible !== undefined) return props.collapsible
   if (props.cell.group.collapsible === false) return false
-  return collapsed.value || props.cell.colspan > 1
+  // `totalColumns`, not `colspan`: a band split by the pin boundary or by a
+  // reorder is several cells of one column each, and asking each of them
+  // whether *it* has anything to hide would leave the band unfoldable.
+  return collapsed.value || props.cell.totalColumns > 1
 })
 
 /** Pin offset, the band's own background, and which header row it sticks to. */
@@ -97,7 +100,7 @@ function toggle(): void {
         <button
           v-if="collapsible"
           type="button"
-          class="vt-group-toggle vt-th-group-toggle"
+          class="vt-th-group-toggle"
           :aria-expanded="!collapsed"
           :aria-label="`${collapsed ? 'Expand' : 'Collapse'} ${label} columns`"
           @click="toggle"

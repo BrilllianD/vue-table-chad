@@ -105,6 +105,7 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 | [Composing your own](docs/composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. | Composed |
 | [Styling](docs/styling.md) | The `--vt-*` variables, striping, and how cell backgrounds stack. | Theming |
 | [Column layout](docs/column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. | Column layout |
+| [Header bands](docs/column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. | Header bands |
 
 The full API — every export, with what it is for — is the **API reference** tab of `pnpm demo`.
 It is generated from the doc comments in `src/`, so it cannot fall behind the code.

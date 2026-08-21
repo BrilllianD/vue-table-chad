@@ -6,4 +6,4 @@
  * comparators and formats than the benches ran would make both less honest.
  * Every name the views imported from here still resolves.
  */
-export { employeeColumns, columnFor } from '@fixtures'
+export { employeeColumns, columnFor, employeeColumnGroups, groupedEmployeeColumns } from '@fixtures'

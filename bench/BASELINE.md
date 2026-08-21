@@ -19,8 +19,14 @@ The load-bearing table. 10k rows, a filter and a sort applied, page size 25.
 | `toggleSort` on text | 9.6 | 4.3 | Legitimate work, and cheaper (P1-10) |
 | selection toggle | 0.009 | 0.002 | Was already right; `shallowRef` and shared columns helped anyway (P1-7, P1-8) |
 | column resize | 0.070 | 0.058 | Was already right — never reaches the pipeline |
+| header band fold | — | **0.068** | New in G2. Folds a band of two columns; matches a resize, which is the claim (G1–G6) |
 
 Three of the top four were work nobody asked for. All three are gone.
+
+Folding a header band lands beside `column resize` rather than beside `group collapse
+toggle`, and that is the whole point of the number: a band fold looks like a row-band
+collapse on screen, but it is a column-layout change and never reaches the row pipeline at
+all. Measuring it was the only way to say so with a figure rather than an intention.
 
 ## What the pure functions cost
 

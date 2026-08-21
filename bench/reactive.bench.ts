@@ -10,7 +10,13 @@ import {
   useTableState,
   valuesFilter,
 } from '@sandbox/vue-table'
-import { employeeColumns, makeRows, type Employee } from '@fixtures'
+import {
+  employeeColumnGroups,
+  employeeColumns,
+  groupedEmployeeColumns,
+  makeRows,
+  type Employee,
+} from '@fixtures'
 
 /**
  * What one *interaction* costs, as opposed to what one function costs.
@@ -45,7 +51,10 @@ function harness(groupBy: string[] = [], debounceMs = 0) {
     const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
       debounceMs,
     })
-    const columns = useColumns<Employee>(employeeColumns, {
+    // Banded, so the fold bench below has something to fold. Inert otherwise:
+    // the pipeline reads the declared defs, and a band is not one of them.
+    const columns = useColumns<Employee>(groupedEmployeeColumns, {
+      groups: employeeColumnGroups,
       sortFor: state.sortFor,
       sortIndexFor: state.sortIndexFor,
     })
@@ -123,6 +132,15 @@ describe(`interaction · ${SIZE / 1000}k rows, filtered and sorted`, () => {
     resizing.columns.setWidth('name', width)
     resizing.columns.visible.value
     resizing.source.rows.value
+  })
+
+  // Same claim as the resize above, and benched for the same reason: "this
+  // touches nothing" is worth a number, not just an assertion.
+  const folding = harness()
+  bench('header band fold — should touch the pipeline not at all', () => {
+    folding.columns.toggleGroup('location')
+    folding.columns.visible.value
+    folding.source.rows.value
   })
 })
 

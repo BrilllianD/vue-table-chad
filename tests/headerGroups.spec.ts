@@ -110,6 +110,21 @@ describe('TableHeaderGroupCell as a primitive', () => {
     wrapper.unmount()
   })
 
+  it('offers a toggle to a band the pin boundary split into one-column cells', () => {
+    const left = resolved('name', 'identity')
+    left.pinned = 'left'
+    const cell = groupCell(buildHeaderRows([left, resolved('email', 'identity')], personColumnGroups), 0)
+
+    expect(cell.colspan).toBe(1)
+    expect(cell.totalColumns).toBe(2)
+    const wrapper = mount(TableHeaderGroupCell, { props: { cell, collapsed: false } })
+
+    // Asking each half whether *it* has anything to hide would leave the band
+    // unfoldable from either one.
+    expect(wrapper.find('button').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
   it('offers no toggle for an open band covering one column', () => {
     const cell = groupCell(buildHeaderRows([resolved('salary', 'money')], personColumnGroups), 1)
     const wrapper = mount(TableHeaderGroupCell, { props: { cell, collapsed: false } })

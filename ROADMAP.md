@@ -196,9 +196,11 @@ Decisions, not oversights.
   for making it fast.
 - **Keyboard nav & full a11y** — cell focus grid, roving tabindex, `aria-colindex`. Phase 2 lands
   only the `aria-rowcount`/`aria-rowindex` floor virtualization requires.
-- **Feature breadth** — tree/hierarchical rows, expandable detail rows, editable cells, multi-level
-  header groups, CSV/clipboard export, pinned rows, custom aggregate reducers beyond
-  `sum`/`avg`/`min`/`max`.
+- **Feature breadth** — tree/hierarchical rows, expandable detail rows, CSV/clipboard export,
+  pinned rows, custom aggregate reducers beyond `sum`/`avg`/`min`/`max`.
+
+  Two items have since left this list: **editable cells** shipped, and so did **multi-level
+  header groups** — see [Header bands](docs/column-groups.md).
 - **A search index.** Global search is the one number that stayed large (30 ms at 10k). Most of it is
   the columns' own `format` functions, because search matches what the user sees. The debounce is
   what makes it tolerable.

@@ -7,6 +7,7 @@ import EditingView from './views/EditingView.vue'
 import FiltersView from './views/FiltersView.vue'
 import GroupingView from './views/GroupingView.vue'
 import ColumnsView from './views/ColumnsView.vue'
+import HeaderGroupsView from './views/HeaderGroupsView.vue'
 import ComposedView from './views/ComposedView.vue'
 import HeadlessView from './views/HeadlessView.vue'
 import StateView from './views/StateView.vue'
@@ -39,6 +40,7 @@ const tabs: Tab[] = [
   { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },
   { id: 'selection', label: 'Selection', layer: 'primitives', component: SelectionView },
   { id: 'columns', label: 'Column layout', layer: 'primitives', component: ColumnsView },
+  { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },
   { id: 'composed', label: 'Composed', layer: 'primitives', component: ComposedView },
   { id: 'core', label: 'Core only', layer: 'core', component: HeadlessView },
   { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },

@@ -321,22 +321,33 @@ export function columnFor(id: string): ColumnDef<Employee> {
  * Shaped, like the columns themselves, to exercise the awkward cases rather
  * than to look tidy:
  *
- *   - `name` is `pinned: 'left'` and `active` is `pinned: 'right'`, so any band
- *     holding them is split by the pin hoisting in `useColumns().visible` — the
- *     header has to draw that as separate cells
- *   - `pay` nests inside `record`, so the header is three rows deep
+ *   - `name` is `pinned: 'left'`, so `identity` and the `person` band above it
+ *     are both split by the pin hoisting in `useColumns().visible` — the header
+ *     has to draw that as two cells carrying one label
+ *   - `identity`, `org` and `location` nest inside `person`, so the header is
+ *     three rows deep, while `record` sits at the top level with its columns
+ *     one row shallower — mixed depths in one header
  *   - `name` is `hideable: false`, so collapsing `identity` must leave it alone
- *   - `tags` sits in no band at all, so an unbanded column has to span down
+ *   - `tags` and `active` sit in no band at all, so an unbanded column — pinned
+ *     right, in `active`'s case — has to span down through every header row
  */
 export const employeeColumnGroups: ColumnGroupDef[] = [
-  { id: 'identity', header: 'Identity' },
-  { id: 'org', header: 'Organisation', collapseTo: 'department' },
-  { id: 'location', header: 'Location', collapseTo: 'country' },
-  { id: 'record', header: 'Employment record' },
-  { id: 'pay', header: 'Pay', parent: 'record', collapseTo: 'salary' },
+  { id: 'person', header: 'Personal details' },
+  { id: 'identity', header: 'Identity', parent: 'person' },
+  { id: 'org', header: 'Organisation', parent: 'person', collapseTo: 'department' },
+  { id: 'location', header: 'Location', parent: 'person', collapseTo: 'country' },
+  { id: 'record', header: 'Employment record', collapseTo: 'salary' },
 ]
 
-/** Which band each column claims. Ids not listed here stay unbanded. */
+/**
+ * Which band each column claims. Ids not listed here stay unbanded.
+ *
+ * Every band is contiguous in the declared order on purpose: a band split by
+ * the *declaration* would look like a mistake in the fixture rather than the
+ * feature it is. The splits worth showing are the ones that happen to a
+ * well-formed band — `name` is pinned left, so `identity` and `person` both
+ * break across the pin boundary — and the ones a reader causes by dragging.
+ */
 const GROUP_OF: Record<string, string> = {
   name: 'identity',
   email: 'identity',
@@ -344,10 +355,9 @@ const GROUP_OF: Record<string, string> = {
   role: 'org',
   city: 'location',
   country: 'location',
-  salary: 'pay',
-  rating: 'pay',
+  salary: 'record',
   hiredAt: 'record',
-  active: 'record',
+  rating: 'record',
 }
 
 /**

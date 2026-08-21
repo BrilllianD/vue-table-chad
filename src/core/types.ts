@@ -311,6 +311,16 @@ export interface HeaderGroupCell<TRow = Record<string, unknown>> {
    */
   key: string
   colspan: number
+  /**
+   * How many columns the *band* covers across the whole header row, which is
+   * more than `colspan` whenever a reorder or the pin boundary has split it
+   * into several cells.
+   *
+   * A cell cannot see its own siblings, and whether a band is worth folding is
+   * a property of the band: a two-column band split into two one-column cells
+   * still has something to put away.
+   */
+  totalColumns: number
   /** The columns beneath this cell, in display order. */
   columns: ResolvedColumn<TRow>[]
   pinned: PinSide | false

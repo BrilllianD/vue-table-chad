@@ -153,6 +153,18 @@ export function buildHeaderRows<TRow>(
     ]
   }
 
+  /**
+   * How many columns each band covers in total, before any of it is split into
+   * separate cells. Counted up front because a cell cannot see its siblings,
+   * and whether a band is worth folding is a property of the band.
+   */
+  const bandWidths = new Map<string, number>()
+  for (const path of paths) {
+    for (const group of path) {
+      bandWidths.set(group.id, (bandWidths.get(group.id) ?? 0) + 1)
+    }
+  }
+
   const rows: HeaderRow<TRow>[] = []
 
   for (let level = 0; level < rowCount; level += 1) {
@@ -200,6 +212,7 @@ export function buildHeaderRows<TRow>(
         // two Vue nodes fighting over one.
         key: `${key}${GROUP_PATH_SEPARATOR}${column.id}`,
         colspan: 1,
+        totalColumns: bandWidths.get(path[level]!.id) ?? 1,
         columns: [column],
         pinned: column.pinned,
         pinOffset: column.pinOffset,
