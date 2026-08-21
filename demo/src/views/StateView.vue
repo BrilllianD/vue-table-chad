@@ -27,7 +27,12 @@ const rows = ref(employees.slice(0, 600))
 
 /* ------------------------------------------------------------ URL <-> ref */
 
-const HASH_PREFIX = '#q='
+/*
+ * `#state?` rather than a bare `#`: the tab shell reads the hash up to the `?`
+ * to decide which view is open (see `App.vue`), so naming the tab here is what
+ * makes a copied link select this view instead of the default one.
+ */
+const HASH_PREFIX = '#state?q='
 
 function readFromUrl(): QueryState {
   const hash = location.hash

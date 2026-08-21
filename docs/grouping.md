@@ -168,4 +168,4 @@ Styling hooks: `.vt-group-row[data-depth][data-collapsed]`, `.vt-group-cell`, `.
 
 ---
 
-Live: the **Grouping** tab of `pnpm demo`. Back to the [docs index](../README.md#docs).
+Live: the **Grouping** tab of `pnpm demo` (`#grouping`). Back to the [docs index](../README.md#docs).

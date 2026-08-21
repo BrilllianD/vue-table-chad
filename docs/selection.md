@@ -20,4 +20,4 @@ predicate instead:
 
 ---
 
-Live: the **Selection** tab of `pnpm demo`. Back to the [docs index](../README.md#docs).
+Live: the **Selection** tab of `pnpm demo` (`#selection`). Back to the [docs index](../README.md#docs).

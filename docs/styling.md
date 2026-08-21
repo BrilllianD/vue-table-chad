@@ -138,4 +138,4 @@ tint over whatever the row is doing; use an opaque colour and the column wins ou
 
 ---
 
-Live: the **Theming** tab of `pnpm demo`. Back to the [docs index](../README.md#docs).
+Live: the **Theming** tab of `pnpm demo` (`#theming`). Back to the [docs index](../README.md#docs).

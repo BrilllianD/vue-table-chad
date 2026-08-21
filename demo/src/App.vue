@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue'
+import { computed, onMounted, onUnmounted, ref, type Component } from 'vue'
 import OverviewView from './views/OverviewView.vue'
 import ServerView from './views/ServerView.vue'
 import SelectionView from './views/SelectionView.vue'
@@ -42,7 +42,41 @@ const tabs: Tab[] = [
   { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },
 ]
 
-const active = ref('overview')
+/**
+ * The open tab lives in the URL, so a docs page can link at the running view of
+ * the feature it describes, and a reload keeps you where you were.
+ *
+ * Only the part before `?` is ours. The Hoisted state view owns the rest and
+ * writes `#state?q=...` the whole time it is mounted; reading past the
+ * separator would make every keystroke in that view look like a tab change.
+ */
+function tabFromHash(): string | undefined {
+  const id = location.hash.slice(1).split('?')[0]!
+  return tabs.some((tab) => tab.id === id) ? id : undefined
+}
+
+const active = ref(tabFromHash() ?? 'overview')
+
+function select(id: string): void {
+  active.value = id
+  // Guarded, not unconditional: clicking the tab you are already on would
+  // otherwise rewrite `#state?q=...` down to `#state`, dropping state that view
+  // is still holding. Assigning the hash pushes a history entry on purpose —
+  // back should undo a tab change, not leave the demo.
+  if (tabFromHash() !== id) location.hash = id
+}
+
+/**
+ * The other direction: back and forward move between tabs. `hashchange` does
+ * not fire for `history.replaceState`, which is what the Hoisted state view
+ * uses, so this only ever sees real navigation.
+ */
+function onHashChange(): void {
+  active.value = tabFromHash() ?? active.value
+}
+onMounted(() => window.addEventListener('hashchange', onHashChange))
+onUnmounted(() => window.removeEventListener('hashchange', onHashChange))
+
 const current = computed(() => tabs.find((tab) => tab.id === active.value) ?? tabs[0]!)
 
 const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
@@ -70,7 +104,7 @@ const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
           :key="tab.id"
           type="button"
           :data-active="active === tab.id || undefined"
-          @click="active = tab.id"
+          @click="select(tab.id)"
         >
           {{ tab.label }}
         </button>

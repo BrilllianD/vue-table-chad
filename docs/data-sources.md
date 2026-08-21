@@ -47,4 +47,4 @@ What it handles for you:
 
 ---
 
-Live: the **Server data** tab of `pnpm demo`. Back to the [docs index](../README.md#docs).
+Live: the **Server data** tab of `pnpm demo` (`#server`). Back to the [docs index](../README.md#docs).
