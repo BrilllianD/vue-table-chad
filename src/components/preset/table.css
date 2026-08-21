@@ -87,6 +87,13 @@
   /* The header underline is separate, so a borderless body can keep it. */
   --vt-header-border-width: 1px;
   --vt-header-border-color: var(--vt-border-strong);
+  /*
+    The rule *between* header rows, when bands give the header more than one.
+    Lighter than the underline on purpose: that one divides the header from the
+    body, and repeating it at full weight would read as three separate tables.
+  */
+  --vt-header-group-border-width: 1px;
+  --vt-header-group-border-color: var(--vt-border);
   /* The frame around the scroll box. Zero on all three = no rules at all. */
   --vt-outer-border-width: 1px;
   --vt-text: #1f2933;
@@ -276,10 +283,79 @@
 
 .vt-th-label { overflow: hidden; text-overflow: ellipsis; }
 
-/* Sticky header. `position: sticky` on <th> needs the cell itself, not <thead>. */
+/* ------------------------------------------------------------------ *
+   Header bands
+ * ------------------------------------------------------------------ */
+
+/*
+  Only the last header row carries the strong underline that divides header
+  from body. The rows above it get the lighter rule, or a three-row header
+  reads as three stacked tables.
+*/
+.vt-thead tr:not(:last-child) .vt-th {
+  border-bottom: var(--vt-header-group-border-width) solid var(--vt-header-group-border-color);
+}
+
+/*
+  Centred, unlike a column header: a band names what its columns have in
+  common, and left-aligning it over four columns leaves it hovering above the
+  first one as though it belonged to that.
+*/
+.vt-th-group-inner { justify-content: center; }
+
+/*
+  The label holds still while the cell scrolls under it. A band spanning four
+  columns is wider than the viewport as often as not, and unlike the spanning
+  cell in a group row, this one *can* be given room to slide — so the sticky
+  goes on the label, not on the `<th>`.
+*/
+.vt-th-group-sticky {
+  position: sticky;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+/*
+  Right-pinned bands stick to the other edge, or the label slides away from the
+  columns it names instead of towards them.
+*/
+.vt-th-group[data-pinned='right'] .vt-th-group-sticky { left: auto; right: 10px; }
+
+/* A band nobody can fold needs no room reserved for a control. */
+.vt-th-group:not([data-collapsible]) .vt-th-group-sticky { justify-content: center; }
+
+.vt-th-group-toggle {
+  /* Just the caret: the label beside it is not part of the hit target, so a
+     click on the band's name does not fold it by accident. */
+  display: flex;
+  align-items: center;
+  width: auto;
+  flex: none;
+}
+
+.vt-th-group[data-collapsed] .vt-group-caret { transform: rotate(0deg); }
+
+/*
+  A folded band keeps its label. It is one column wide by then, so the text
+  ellipses — but the whole point of the fold is that the band's name is now the
+  only thing saying what was put away.
+*/
+
+/*
+  Sticky header. `position: sticky` on <th> needs the cell itself, not <thead>.
+
+  Each row sticks below the ones above it. Every header cell is exactly
+  `--vt-row-height` tall, so the offset multiplies out rather than needing to be
+  measured — and `--vt-header-row` is only ever written when bands put a cell
+  somewhere other than the first row, so the `0` fallback is the whole story for
+  a single-row header.
+*/
 .vt-scroll[data-sticky] .vt-thead .vt-th {
   position: sticky;
-  top: 0;
+  top: calc(var(--vt-row-height) * var(--vt-header-row, 0));
   z-index: 2;
 }
 

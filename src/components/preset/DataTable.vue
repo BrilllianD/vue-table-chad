@@ -14,6 +14,7 @@ import { formatAggregate } from '../../core/aggregation'
 import type {
   AggregateResult,
   ColumnDef,
+  ColumnGroupDef,
   DataSource,
   GroupMode,
   QueryState,
@@ -28,6 +29,7 @@ import type { UseRowEditing } from '../../core/useRowEditing'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
 import TableHeaderCell from '../primitives/TableHeaderCell.vue'
+import TableHeaderGroupCell from '../primitives/TableHeaderGroupCell.vue'
 import TableCell from '../primitives/TableCell.vue'
 import TableRow from '../primitives/TableRow.vue'
 import CellEditor from '../primitives/CellEditor.vue'
@@ -54,6 +56,14 @@ const props = withDefaults(
     selectable?: boolean | SelectionMode
     getRowId?: (row: TRow) => RowId
     isRowSelectable?: (row: TRow) => boolean
+    /**
+     * Header bands, giving a multi-row header with a collapse control on each.
+     *
+     * Optional even when columns declare a `group` — a band forms because a
+     * column claims it, and these supply the label, the nesting and how it
+     * folds. With no column declaring one, the header stays a single row.
+     */
+    columnGroups?: ColumnGroupDef[]
     initialLayout?: Partial<ColumnLayoutState>
     /** Remembers the column layout across reloads under this `localStorage` key. */
     storageKey?: string
@@ -245,6 +255,7 @@ function footerText(
     v-slot="{
       rows,
       columns: cols,
+      headerRows,
       state: tableState,
       selection,
       source: src,
@@ -261,6 +272,7 @@ function footerText(
     :selectable="props.selectable"
     :get-row-id="getRowId"
     :is-row-selectable="isRowSelectable"
+    :column-groups="columnGroups"
     :initial-layout="initialLayout"
     :storage-key="storageKey"
     :storage-fields="storageFields"
@@ -348,9 +360,23 @@ function footerText(
       <div class="vt-scroll-frame">
         <div class="vt-scroll" :data-sticky="stickyHeader || undefined">
           <TableGrid :columns="cols" :selection-column="selectable" :actions-column="actionsColumn">
+            <!--
+              One `<tr>` per header row. With no band declared `headerRows` is a
+              single row of column cells spanning one row each, which is exactly
+              the markup this emitted before bands existed.
+
+              The selection and actions cells belong to the first row only, and
+              span the rest: they head a column, not a band, and a second copy
+              in row two would push every real column one place to the right.
+            -->
             <thead class="vt-thead">
-              <tr>
-                <th v-if="selectable" class="vt-th vt-th-selection" scope="col">
+              <tr v-for="(headerRow, headerLevel) in headerRows" :key="headerLevel">
+                <th
+                  v-if="selectable && headerLevel === 0"
+                  class="vt-th vt-th-selection"
+                  scope="col"
+                  :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
+                >
                   <SelectionCheckbox
                     v-if="selection && props.selectable !== 'single'"
                     :checked="selection.headerState.value === 'all'"
@@ -360,33 +386,60 @@ function footerText(
                   />
                 </th>
 
-                <TableHeaderCell v-for="column in cols" :key="column.id" :column="column">
-                  <template #default>
-                    <SortTrigger
-                      v-if="column.sortable !== false"
-                      :column-id="column.id"
-                      :label="column.header ?? column.id"
-                    />
-                    <span v-else class="vt-th-label">{{ column.header ?? column.id }}</span>
+                <template v-for="cell in headerRow" :key="cell.key">
+                  <TableHeaderGroupCell v-if="cell.kind === 'group'" :cell="cell">
+                    <template #default="bandProps">
+                      <slot
+                        name="headerGroup"
+                        :cell="bandProps.cell"
+                        :collapsed="bandProps.collapsed"
+                        :label="bandProps.label"
+                      >
+                        <span class="vt-th-label">{{ bandProps.label }}</span>
+                      </slot>
+                    </template>
+                  </TableHeaderGroupCell>
 
-                    <ColumnFilterPopover
-                      v-if="column.filterable !== false"
-                      :column-id="column.id"
-                      :type="column.type ?? 'text'"
-                      :label="column.header ?? column.id"
-                    />
-                  </template>
-                  <template #resize>
-                    <ColumnResizeHandle
-                      v-if="column.resizable !== false"
-                      :column-id="column.id"
-                      :width="column.resolvedWidth ?? 160"
-                      :min-width="column.minWidth"
-                    />
-                  </template>
-                </TableHeaderCell>
+                  <TableHeaderCell
+                    v-else
+                    :column="cell.column"
+                    :rowspan="cell.rowspan"
+                    :depth="cell.depth"
+                  >
+                    <template #default>
+                      <SortTrigger
+                        v-if="cell.column.sortable !== false"
+                        :column-id="cell.column.id"
+                        :label="cell.column.header ?? cell.column.id"
+                      />
+                      <span v-else class="vt-th-label">
+                        {{ cell.column.header ?? cell.column.id }}
+                      </span>
 
-                <th v-if="actionsColumn" class="vt-th vt-th-actions" scope="col">
+                      <ColumnFilterPopover
+                        v-if="cell.column.filterable !== false"
+                        :column-id="cell.column.id"
+                        :type="cell.column.type ?? 'text'"
+                        :label="cell.column.header ?? cell.column.id"
+                      />
+                    </template>
+                    <template #resize>
+                      <ColumnResizeHandle
+                        v-if="cell.column.resizable !== false"
+                        :column-id="cell.column.id"
+                        :width="cell.column.resolvedWidth ?? 160"
+                        :min-width="cell.column.minWidth"
+                      />
+                    </template>
+                  </TableHeaderCell>
+                </template>
+
+                <th
+                  v-if="actionsColumn && headerLevel === 0"
+                  class="vt-th vt-th-actions"
+                  scope="col"
+                  :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
+                >
                   <span class="vt-visually-hidden">Row actions</span>
                 </th>
               </tr>

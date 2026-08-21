@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { defineComponent, h, nextTick } from 'vue'
+import DataTable from '../src/components/preset/DataTable.vue'
+import { useLocalDataSource } from '../src/core/useLocalDataSource'
+import { useTableState } from '../src/core/useTableState'
 import TableHeaderCell from '../src/components/primitives/TableHeaderCell.vue'
 import TableHeaderGroupCell from '../src/components/primitives/TableHeaderGroupCell.vue'
 import { buildHeaderRows } from '../src/core/columnGroups'
 import type { HeaderGroupCell, HeaderRow, ResolvedColumn } from '../src/core/types'
-import { groupedPersonColumns, personColumnGroups } from './fixtures'
+import {
+  groupedPersonColumns,
+  people,
+  personColumnGroups,
+  personColumns,
+  type Person,
+} from './fixtures'
 
 /**
  * Columns over a plain record rather than a `Person`, the way
@@ -162,6 +172,198 @@ describe('TableHeaderCell spanning header rows', () => {
     })
 
     expect(wrapper.find('th').attributes('style')).toContain('--vt-header-row: 2')
+    wrapper.unmount()
+  })
+})
+
+describe('DataTable with header bands', () => {
+  function mountTable(props: Record<string, unknown> = {}) {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, groupedPersonColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, {
+            columns: groupedPersonColumns,
+            columnGroups: personColumnGroups,
+            source,
+            state,
+            ...props,
+          })
+      },
+    })
+    return mount(Host, { attachTo: document.body })
+  }
+
+  /** Column ids in the order the header puts them, across every header row. */
+  const headerColumns = (wrapper: ReturnType<typeof mountTable>) =>
+    wrapper.findAll('thead th[data-column]').map((th) => th.attributes('data-column'))
+
+  const bandCells = (wrapper: ReturnType<typeof mountTable>) =>
+    wrapper.findAll('thead th[data-column-group]')
+
+  /**
+   * Every row's cell count, spans included, against the `<colgroup>`.
+   *
+   * The invariant the whole grid rests on, and the one a multi-row header is
+   * most able to break: a row one cell short drags every column after it out
+   * of place, and nothing else in the suite would notice.
+   */
+  function gridIsSquare(wrapper: ReturnType<typeof mountTable>): void {
+    const width = wrapper.findAll('colgroup col').length
+
+    for (const body of wrapper.findAll('tbody tr, tfoot tr')) {
+      const cells = body.findAll('td, th')
+      const span = cells.reduce((sum, cell) => sum + Number(cell.attributes('colspan') ?? 1), 0)
+      expect(span).toBe(width)
+    }
+
+    // Header rows are counted together, since a rowspan reaches down into the
+    // rows beneath it and only the total has to come out square.
+    const rows = wrapper.findAll('thead tr')
+    let cellArea = 0
+    for (const row of rows) {
+      for (const cell of row.findAll('th')) {
+        cellArea +=
+          Number(cell.attributes('colspan') ?? 1) * Number(cell.attributes('rowspan') ?? 1)
+      }
+    }
+    expect(cellArea).toBe(width * rows.length)
+  }
+
+  it('renders one row per band level', () => {
+    const wrapper = mountTable()
+
+    // `money` nests inside `record`, so the fixtures are three deep.
+    expect(wrapper.findAll('thead tr')).toHaveLength(3)
+    expect(bandCells(wrapper).map((th) => th.attributes('data-column-group'))).toEqual([
+      'identity',
+      'record',
+      'money',
+    ])
+    gridIsSquare(wrapper)
+    wrapper.unmount()
+  })
+
+  it('spans a band over its columns and an unbanded column down to the body', () => {
+    const wrapper = mountTable()
+
+    const identity = wrapper.find('thead th[data-column-group="identity"]')
+    expect(identity.attributes('colspan')).toBe('2')
+    expect(identity.attributes('scope')).toBe('colgroup')
+
+    // `active` is in no band, so it is placed in the first row and reaches the
+    // body from there.
+    const active = wrapper.find('thead th[data-column="active"]')
+    expect(active.attributes('rowspan')).toBe('3')
+    wrapper.unmount()
+  })
+
+  it('keeps every control a banded column header had before', async () => {
+    const wrapper = mountTable()
+    // The deepest column in the fixtures, so its cell is the one furthest from
+    // the shape the header used to have.
+    const salary = wrapper.find('thead th[data-column="salary"]')
+
+    expect(salary.find('button.vt-sort').exists()).toBe(true)
+    expect(salary.find('.vt-filter-trigger').exists()).toBe(true)
+    expect(salary.find('.vt-resize').exists()).toBe(true)
+
+    await salary.find('button.vt-sort').trigger('click')
+    expect(wrapper.find('thead th[data-column="salary"]').attributes('data-sorted')).toBe('asc')
+    wrapper.unmount()
+  })
+
+  it('withholds a band’s columns from header, colgroup and body together', async () => {
+    const wrapper = mountTable()
+    const before = wrapper.findAll('colgroup col').length
+
+    await wrapper.find('thead th[data-column-group="identity"] button').trigger('click')
+    await nextTick()
+
+    expect(headerColumns(wrapper)).not.toContain('department')
+    expect(wrapper.findAll('colgroup col').length).toBe(before - 1)
+    expect(wrapper.findAll('tbody tr')[0]!.findAll('td')).toHaveLength(before - 1)
+    // The band keeps its first member, so it never folds out of existence.
+    expect(headerColumns(wrapper)).toContain('name')
+    gridIsSquare(wrapper)
+    wrapper.unmount()
+  })
+
+  it('flips aria-expanded and folds back open', async () => {
+    const wrapper = mountTable()
+    const toggle = () => wrapper.find('thead th[data-column-group="identity"] button')
+
+    expect(toggle().attributes('aria-expanded')).toBe('true')
+    await toggle().trigger('click')
+    await nextTick()
+    expect(toggle().attributes('aria-expanded')).toBe('false')
+
+    await toggle().trigger('click')
+    await nextTick()
+    expect(headerColumns(wrapper)).toContain('department')
+    gridIsSquare(wrapper)
+    wrapper.unmount()
+  })
+
+  it('spans the selection and actions cells down the whole header', () => {
+    const wrapper = mountTable({ selectable: true })
+
+    const selection = wrapper.find('thead th.vt-th-selection')
+    expect(selection.attributes('rowspan')).toBe('3')
+    // And exactly one of them: a second copy in row two would push every real
+    // column one place to the right.
+    expect(wrapper.findAll('thead th.vt-th-selection')).toHaveLength(1)
+    gridIsSquare(wrapper)
+    wrapper.unmount()
+  })
+
+  it('renders a single-row header when no column declares a band', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, personColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () => h(DataTable as never, { columns: personColumns, source, state })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    expect(wrapper.findAll('thead tr')).toHaveLength(1)
+    expect(wrapper.findAll('thead th[data-column-group]')).toHaveLength(0)
+    // The markup a table without bands emitted before any of this existed.
+    expect(wrapper.find('thead th[data-column="name"]').attributes('rowspan')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('takes the header rows through the headerGroup slot', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, groupedPersonColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(
+            DataTable as never,
+            {
+              columns: groupedPersonColumns,
+              columnGroups: personColumnGroups,
+              source,
+              state,
+            },
+            {
+              headerGroup: ({ label }: { label: string }) => h('em', { class: 'custom' }, label),
+            },
+          )
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    expect(wrapper.find('thead em.custom').text()).toBe('Identity')
     wrapper.unmount()
   })
 })
