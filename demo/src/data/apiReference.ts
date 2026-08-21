@@ -82,6 +82,15 @@ export const apiReference: ApiEntry[] = [
   { name: 'UseRowSelection', layer: 'core', kind: 'type', summary: 'Selection state, predicates and mutators.' },
   { name: 'UseRowSelectionOptions', layer: 'core', kind: 'type', summary: 'Row identity, selectability, mode, and an initial selection.' },
 
+  { name: 'useRowEditing', layer: 'core', kind: 'composable', summary: 'Inline editing: a draft per row, validated, persisted, and written back.' },
+  { name: 'SAVE_FAILED_MESSAGE', layer: 'core', kind: 'constant', summary: 'Shown when a save rejected with nothing that could be turned into a message.' },
+  { name: 'UseRowEditing', layer: 'core', kind: 'type', summary: 'Draft state, cell predicates, and the begin/cancel/commit mutators.' },
+  { name: 'UseRowEditingOptions', layer: 'core', kind: 'type', summary: 'getRowId, mode, optimistic, validate, save, apply, mapError and the two callbacks.' },
+  { name: 'EditMode', layer: 'core', kind: 'type', summary: "`'cell'` commits each field on its own; `'row'` commits a whole draft at once." },
+  { name: 'RowChange', layer: 'core', kind: 'type', summary: 'What a `save` receives: the row, what changed, what it would become.' },
+  { name: 'RowSaveFailure', layer: 'core', kind: 'type', summary: 'A rejected save, unpacked: a row-level message and/or per-field messages.' },
+  { name: 'RowEditState', layer: 'core', kind: 'type', summary: "One row's open draft: what changed, what is wrong with it, and where it is." },
+
   { name: 'usePagination', layer: 'core', kind: 'composable', summary: 'Pure page arithmetic — no data, no fetching. Usable standalone for any paginated list, not just this table.' },
   { name: 'UsePagination', layer: 'core', kind: 'type', summary: 'Current page, bounds, the item list, and the navigation calls.' },
   { name: 'UsePaginationOptions', layer: 'core', kind: 'type', summary: 'siblingCount around the current page, and an onChange callback.' },

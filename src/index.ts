@@ -44,6 +44,16 @@ export type { ServerDataSource, ServerDataSourceOptions } from './core/useServer
 export { useRowSelection } from './core/useRowSelection'
 export type { UseRowSelection, UseRowSelectionOptions } from './core/useRowSelection'
 
+export { useRowEditing, SAVE_FAILED_MESSAGE } from './core/useRowEditing'
+export type {
+  UseRowEditing,
+  UseRowEditingOptions,
+  EditMode,
+  RowChange,
+  RowSaveFailure,
+  RowEditState,
+} from './core/useRowEditing'
+
 export { usePagination } from './core/usePagination'
 export type { UsePagination, UsePaginationOptions, PageItem } from './core/usePagination'
 
