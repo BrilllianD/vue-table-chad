@@ -193,6 +193,8 @@ export const apiReference: ApiEntry[] = [
 
   { name: 'TableHeaderCell', layer: 'primitives', kind: 'component', summary: 'One `<th>`. Carries sort/pin/filter state as data-attributes and leaves all interactive bits (sort trigger, filter popover, resize handle) to slots.' },
 
+  { name: 'TableHeaderGroupCell', layer: 'primitives', kind: 'component', summary: "A band's spanning `<th>`: its label, and the control that folds it shut." },
+
   { name: 'TableCell', layer: 'primitives', kind: 'component', summary: "One `<td>`, sharing the header's sticky/pin logic so columns stay aligned." },
 
   { name: 'TableRow', layer: 'primitives', kind: 'component', summary: 'One body row: the cells of a row, under the columns that read it.' },

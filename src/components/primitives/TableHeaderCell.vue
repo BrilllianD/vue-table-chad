@@ -16,6 +16,14 @@ const props = withDefaults(
     column: ResolvedColumn<TRow>
     /** Forces drag-to-reorder off for this cell, whatever the column def says. */
     reorderable?: boolean
+    /**
+     * How many header rows this cell spans. A column under no band, in a
+     * header two rows deep, spans both — otherwise the row beneath it is a
+     * cell short and every column after it slides out of place.
+     */
+    rowspan?: number
+    /** Which header row it sits in, 0-based, for the sticky offset. */
+    depth?: number
   }>(),
   // Vue casts an absent boolean prop to `false`; the explicit `undefined`
   // default keeps "not passed" distinguishable from "passed as false".
@@ -31,6 +39,10 @@ const cellStyle = computed(() => {
     style[props.column.pinned === 'left' ? 'left' : 'right'] = `${props.column.pinOffset}px`
   }
   if (props.column.headerBackground) style['--vt-column-bg'] = props.column.headerBackground
+  // Only written when this cell is part of a multi-row header. A single-row
+  // header emits no custom property at all, and the stylesheet's `0` fallback
+  // keeps it sticking exactly where it always did.
+  if (props.depth) style['--vt-header-row'] = String(props.depth)
   return Object.keys(style).length > 0 ? style : undefined
 })
 
@@ -82,6 +94,7 @@ function onKeydown(event: KeyboardEvent): void {
   <th
     class="vt-th"
     scope="col"
+    :rowspan="rowspan !== undefined && rowspan > 1 ? rowspan : undefined"
     :style="cellStyle"
     :data-column="column.id"
     :data-align="column.align ?? 'left'"

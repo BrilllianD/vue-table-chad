@@ -172,6 +172,7 @@ export {
 export { default as TableRoot } from './components/primitives/TableRoot.vue'
 export { default as TableGrid } from './components/primitives/TableGrid.vue'
 export { default as TableHeaderCell } from './components/primitives/TableHeaderCell.vue'
+export { default as TableHeaderGroupCell } from './components/primitives/TableHeaderGroupCell.vue'
 export { default as TableCell } from './components/primitives/TableCell.vue'
 export { default as TableRow } from './components/primitives/TableRow.vue'
 export { default as CellEditor } from './components/primitives/CellEditor.vue'
