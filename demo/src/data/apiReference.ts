@@ -93,6 +93,18 @@ export const apiReference: ApiEntry[] = [
   { name: 'TableContextKey', layer: 'core', kind: 'constant', summary: 'The injection key, exported so you can provide a context by hand.' },
   { name: 'TableContext', layer: 'core', kind: 'type', summary: 'Everything a primitive can reach: state, columns, source, selection, grouping, cell readers.' },
 
+  { name: 'editorFor', layer: 'core', kind: 'function', summary: 'Which control edits this column: its own `editor`, or one derived from `type`.' },
+  { name: 'isColumnEditable', layer: 'core', kind: 'function', summary: 'Whether this column accepts an edit to this row.' },
+  { name: 'parseCellInput', layer: 'core', kind: 'function', summary: "Coerces what an editor produced into the column's own value: `column.parse`, or the coercion its `type` implies." },
+  { name: 'validateCell', layer: 'core', kind: 'function', summary: "One cell's error message, or `null` when the value is acceptable." },
+  { name: 'validateDraft', layer: 'core', kind: 'function', summary: 'Checks a whole draft: every changed field, then the cross-field rule.' },
+  { name: 'applyCellValue', layer: 'core', kind: 'function', summary: 'Writes one value into a row, returning the next row.' },
+  { name: 'applyPatch', layer: 'core', kind: 'function', summary: 'Applies a whole patch — values keyed by column id — and returns the next row.' },
+  { name: 'replaceRowIn', layer: 'core', kind: 'function', summary: 'A copy of `rows` with one row swapped for its saved version, matched by id.' },
+  { name: 'REQUIRED_MESSAGE', layer: 'core', kind: 'constant', summary: 'Shown when a `required` column is left blank.' },
+  { name: 'CellErrors', layer: 'core', kind: 'type', summary: 'Error messages by column id — the shape both validators and a rejected save produce.' },
+  { name: 'DraftValidation', layer: 'core', kind: 'type', summary: 'What a draft would produce: per-field errors, a row-level error, and the row itself.' },
+
   /* --------------------------------------------------------------- filters */
   { name: 'valuesFilter', layer: 'filters', kind: 'function', summary: "Excel's checkbox list: which distinct values survive." },
   { name: 'conditionsFilter', layer: 'filters', kind: 'function', summary: "Excel's operator rules, combined with and / or." },
@@ -203,6 +215,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'RowId', layer: 'types', kind: 'type', summary: 'Anything a row can be keyed by.' },
   { name: 'FilterValue', layer: 'types', kind: 'type', summary: 'Values that may appear inside a serialized filter. Keep this JSON-safe.' },
   { name: 'ColumnDataType', layer: 'types', kind: 'type', summary: "How a column's values behave. Drives which comparator sorts it and which operators its filter panel offers." },
+  { name: 'CellEditorKind', layer: 'types', kind: 'type', summary: 'Which control an editable column renders. Defaults from `type` — `number` and `date` to their native inputs, `boolean` to a checkbox, an `enum` that declared `options` to a select, and everything else to a text box.' },
   { name: 'SortDirection', layer: 'types', kind: 'type', summary: "'asc' | 'desc'. Unsorted is the absence of a rule, not a third value." },
   { name: 'SortRule', layer: 'types', kind: 'type', summary: 'One sort key: a column id and a direction.' },
   { name: 'ConditionOperator', layer: 'types', kind: 'type', summary: 'Every operator across every column type.' },

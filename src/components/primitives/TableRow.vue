@@ -100,7 +100,7 @@ const cells = computed(() =>
     <TableCell
       v-for="(cell, cellIndex) in cells"
       :key="cell.column.id"
-      :column="(cell.column as ResolvedColumn<never>)"
+      :column="cell.column"
     >
       <!--
         The first cell carries the group indent, so rows sit visibly inside

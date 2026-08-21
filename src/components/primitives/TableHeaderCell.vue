@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /**
  * One `<th>`. Carries sort/pin/filter state as data-attributes and leaves all
  * interactive bits (sort trigger, filter popover, resize handle) to slots.
@@ -13,7 +13,7 @@ import type { ResolvedColumn } from '../../core/types'
 
 const props = withDefaults(
   defineProps<{
-    column: ResolvedColumn<never>
+    column: ResolvedColumn<TRow>
     /** Forces drag-to-reorder off for this cell, whatever the column def says. */
     reorderable?: boolean
   }>(),

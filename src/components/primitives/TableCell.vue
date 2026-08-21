@@ -1,10 +1,10 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /** One `<td>`, sharing the header's sticky/pin logic so columns stay aligned. */
 import { computed } from 'vue'
 import type { ResolvedColumn } from '../../core/types'
 
 const props = defineProps<{
-  column: ResolvedColumn<never>
+  column: ResolvedColumn<TRow>
 }>()
 
 /**

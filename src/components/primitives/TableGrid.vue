@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /**
  * The `<table>` element itself, plus a `<colgroup>` driven by resolved widths
  * so column sizing survives resizing and pinning without per-cell inline styles.
@@ -9,13 +9,13 @@ import type { ResolvedColumn } from '../../core/types'
 
 const props = defineProps<{
   /** Overrides the injected columns, for standalone use. */
-  columns?: ResolvedColumn<never>[]
+  columns?: ResolvedColumn<TRow>[]
   /** Adds a leading narrow column for selection checkboxes. */
   selectionColumn?: boolean
   layout?: 'auto' | 'fixed'
 }>()
 
-const context = useTableContext()
+const context = useTableContext<TRow>()
 const columns = computed(() => props.columns ?? context?.visibleColumns.value ?? [])
 </script>
 

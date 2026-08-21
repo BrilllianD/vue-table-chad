@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="TRow">
+<script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /**
  * A group header row: the expand toggle and the group's label, followed by
  * whatever the grouped rows aggregate to, under the columns those aggregates
@@ -148,7 +148,7 @@ function toggle(): void {
     <TableCell
       v-for="column in trailing"
       :key="column.id"
-      :column="(column as ResolvedColumn<never>)"
+      :column="column"
     >
       <slot name="aggregate" :column="column" :result="resultFor(column)" :text="textFor(column)">
         {{ textFor(column) }}

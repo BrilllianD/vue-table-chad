@@ -12,6 +12,13 @@ export type FilterValue = string | number | boolean | null
  */
 export type ColumnDataType = 'text' | 'number' | 'date' | 'boolean' | 'enum'
 
+/**
+ * Which control an editable column renders. Defaults from `type` — `number`
+ * and `date` to their native inputs, `boolean` to a checkbox, an `enum` that
+ * declared `options` to a select, and everything else to a text box.
+ */
+export type CellEditorKind = 'text' | 'number' | 'date' | 'checkbox' | 'select' | 'textarea'
+
 /** 'asc' | 'desc'. Unsorted is the absence of a rule, not a third value. */
 export type SortDirection = 'asc' | 'desc'
 
@@ -143,6 +150,38 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   options?: FilterValue[]
   /** Formats the value for display and for the filter checklist. */
   format?: (value: TValue, row: TRow) => string
+  /**
+   * Whether this column's cells can be edited. A function decides per row, so
+   * a closed record or a row the user does not own can refuse.
+   */
+  editable?: boolean | ((row: TRow) => boolean)
+  /**
+   * Writes an edited value back, returning the **next row** rather than
+   * mutating this one — the table hands rows out by reference and a caller's
+   * `shallowRef` only notices a replacement.
+   *
+   * Defaults to `{ ...row, [id]: value }`. Required as soon as `accessor`
+   * reads somewhere `row[id]` is not: a function cannot be inverted, so a
+   * column reading `row.location.city` has to say how to write it back.
+   */
+  setValue?: (row: TRow, value: TValue) => TRow
+  /**
+   * Turns what the editor produced into the column's own value. Defaults from
+   * `type`, through the same coercions the filters use.
+   *
+   * Return `undefined` to mean "this does not parse at all" — distinct from
+   * `null`, which is a legitimately blank cell.
+   */
+  parse?: (input: unknown, row: TRow) => TValue | undefined
+  /**
+   * An error message, or `null` when the value is acceptable. Runs against the
+   * parsed value, so it never has to re-do the coercion.
+   */
+  validate?: (value: TValue, row: TRow) => string | null
+  /** Which control to edit with. Defaults from `type` and `options`. */
+  editor?: CellEditorKind
+  /** Rejects a blank, using the same `isBlank` that buckets them for filters. */
+  required?: boolean
   width?: number
   minWidth?: number
   maxWidth?: number

@@ -127,6 +127,21 @@ export {
   formatAggregate,
 } from './core/aggregation'
 
+/* --------------------------------------------------------------- editing */
+
+export {
+  editorFor,
+  isColumnEditable,
+  parseCellInput,
+  validateCell,
+  validateDraft,
+  applyCellValue,
+  applyPatch,
+  replaceRowIn,
+  REQUIRED_MESSAGE,
+} from './core/editing'
+export type { CellErrors, DraftValidation } from './core/editing'
+
 /* ----------------------------------------------------------------- utils */
 
 export {
@@ -184,6 +199,7 @@ export type {
   RowId,
   FilterValue,
   ColumnDataType,
+  CellEditorKind,
   SortDirection,
   SortRule,
   ConditionOperator,
