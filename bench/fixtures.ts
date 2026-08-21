@@ -24,7 +24,7 @@
  * `filterRows`, `sortRows`, `countGroups` or `aggregateGroups` reads any of it.
  */
 
-import type { ColumnDef } from '@sandbox/vue-table'
+import type { ColumnDef, ColumnGroupDef } from '@sandbox/vue-table'
 
 export interface Employee extends Record<string, unknown> {
   id: number
@@ -314,3 +314,49 @@ export function columnFor(id: string): ColumnDef<Employee> {
   if (!column) throw new Error(`[demo] no column "${id}"`)
   return column
 }
+
+/**
+ * Header bands over the same eleven columns.
+ *
+ * Shaped, like the columns themselves, to exercise the awkward cases rather
+ * than to look tidy:
+ *
+ *   - `name` is `pinned: 'left'` and `active` is `pinned: 'right'`, so any band
+ *     holding them is split by the pin hoisting in `useColumns().visible` — the
+ *     header has to draw that as separate cells
+ *   - `pay` nests inside `record`, so the header is three rows deep
+ *   - `name` is `hideable: false`, so collapsing `identity` must leave it alone
+ *   - `tags` sits in no band at all, so an unbanded column has to span down
+ */
+export const employeeColumnGroups: ColumnGroupDef[] = [
+  { id: 'identity', header: 'Identity' },
+  { id: 'org', header: 'Organisation', collapseTo: 'department' },
+  { id: 'location', header: 'Location', collapseTo: 'country' },
+  { id: 'record', header: 'Employment record' },
+  { id: 'pay', header: 'Pay', parent: 'record', collapseTo: 'salary' },
+]
+
+/** Which band each column claims. Ids not listed here stay unbanded. */
+const GROUP_OF: Record<string, string> = {
+  name: 'identity',
+  email: 'identity',
+  department: 'org',
+  role: 'org',
+  city: 'location',
+  country: 'location',
+  salary: 'pay',
+  rating: 'pay',
+  hiredAt: 'record',
+  active: 'record',
+}
+
+/**
+ * `employeeColumns` banded. A derived copy rather than a change to the
+ * original, for the reason `aggregatedPersonColumns` is a separate export in
+ * `tests/fixtures.ts`: declaring a band adds a header row, and every other
+ * demo view and benchmark asserts against the single-row shape.
+ */
+export const groupedEmployeeColumns: ColumnDef<Employee>[] = employeeColumns.map((column) => {
+  const group = GROUP_OF[column.id]
+  return group ? { ...column, group } : column
+})

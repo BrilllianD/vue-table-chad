@@ -28,12 +28,13 @@ export interface ColumnStorageOptions {
   storage?: StorageLike | (() => StorageLike | undefined)
 }
 
-/** The four layout fields persisted unless you narrow them. */
+/** The five layout fields persisted unless you narrow them. */
 export const DEFAULT_COLUMN_LAYOUT_FIELDS: readonly ColumnLayoutField[] = [
   'hidden',
   'order',
   'widths',
   'pinned',
+  'collapsedGroups',
 ]
 
 /**
@@ -108,6 +109,10 @@ export function sanitizeColumnLayout(
   if (fields.includes('pinned')) {
     const pinned = pinMap(input.pinned)
     if (pinned) layout.pinned = pinned
+  }
+  if (fields.includes('collapsedGroups')) {
+    const collapsedGroups = stringList(input.collapsedGroups)
+    if (collapsedGroups) layout.collapsedGroups = collapsedGroups
   }
 
   return Object.keys(layout).length > 0 ? layout : undefined

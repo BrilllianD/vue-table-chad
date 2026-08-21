@@ -24,6 +24,8 @@ export {
 } from './core/columnStorage'
 export type { ColumnStorageOptions, ColumnLayoutField, StorageLike } from './core/columnStorage'
 
+export { buildHeaderRows, columnGroupPath, columnGroupPaths } from './core/columnGroups'
+
 export { useColumnDnd } from './core/useColumnDnd'
 export type {
   UseColumnDnd,
@@ -223,6 +225,11 @@ export type {
   PinSide,
   ColumnDef,
   ResolvedColumn,
+  ColumnGroupDef,
+  HeaderCell,
+  HeaderGroupCell,
+  HeaderColumnCell,
+  HeaderRow,
   RowGroup,
   DisplayRow,
   GroupMode,

@@ -64,6 +64,22 @@ export function columnGroupPath<TRow>(
   return pathFrom(column.group, byId)
 }
 
+/**
+ * Every column's band path at once, keyed by column id.
+ *
+ * The same answer `columnGroupPath` gives one column at a time, but indexing
+ * the declared bands once instead of once per column — which is the difference
+ * between O(columns + bands) and O(columns x bands) for the callers that need
+ * the whole set, and all of them do.
+ */
+export function columnGroupPaths<TRow>(
+  columns: readonly (ColumnDef<TRow> | ResolvedColumn<TRow>)[],
+  groups?: readonly ColumnGroupDef[],
+): Map<string, ColumnGroupDef[]> {
+  const byId = groupsById(groups)
+  return new Map(columns.map((column) => [column.id, pathFrom(column.group, byId)]))
+}
+
 /** The shared walk, so a caller iterating many columns indexes the defs once. */
 function pathFrom(
   groupId: string | undefined,

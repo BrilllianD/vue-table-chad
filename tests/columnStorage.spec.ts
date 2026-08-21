@@ -90,6 +90,7 @@ describe('useColumns persistence', () => {
       order: [],
       widths: { name: 300 },
       pinned: { name: 'left' },
+      collapsedGroups: [],
     })
     dispose()
   })
@@ -169,6 +170,7 @@ describe('useColumns persistence', () => {
       order: [],
       widths: {},
       pinned: {},
+      collapsedGroups: [],
     })
 
     dispose()
@@ -270,7 +272,13 @@ describe('column layout storage helpers', () => {
 
   it('round-trips a layout through read/write', () => {
     const storage = memoryStorage()
-    const layout = { hidden: ['a'], order: ['b', 'a'], widths: { a: 120 }, pinned: { a: 'left' as const } }
+    const layout = {
+      hidden: ['a'],
+      order: ['b', 'a'],
+      widths: { a: 120 },
+      pinned: { a: 'left' as const },
+      collapsedGroups: ['money'],
+    }
     writeColumnLayout(layout, options(storage))
     expect(readColumnLayout(options(storage))).toEqual(layout)
   })
@@ -278,7 +286,13 @@ describe('column layout storage helpers', () => {
   it('writes only the requested fields', () => {
     const storage = memoryStorage()
     writeColumnLayout(
-      { hidden: ['a'], order: ['b', 'a'], widths: { a: 120 }, pinned: { a: 'left' } },
+      {
+        hidden: ['a'],
+        order: ['b', 'a'],
+        widths: { a: 120 },
+        pinned: { a: 'left' },
+        collapsedGroups: ['money'],
+      },
       { key: KEY, storage, fields: ['hidden'] },
     )
     expect(JSON.parse(storage.getItem(KEY)!)).toEqual({ hidden: ['a'] })

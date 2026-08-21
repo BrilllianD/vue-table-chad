@@ -8,7 +8,13 @@ import { useRowEditing } from '../src/core/useRowEditing'
 import { replaceRowIn } from '../src/core/editing'
 import { useTableState } from '../src/core/useTableState'
 import { valuesFilter } from '../src/core/filters/model'
-import { employeeColumns, makeRows, type Employee } from '@fixtures'
+import {
+  employeeColumnGroups,
+  employeeColumns,
+  groupedEmployeeColumns,
+  makeRows,
+  type Employee,
+} from '@fixtures'
 
 /**
  * Performance as a correctness property.
@@ -98,9 +104,13 @@ function harness(groupBy: string[] = []) {
     const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
       debounceMs: 0,
     })
-    const columns = useColumns<Employee>(employeeColumns, {
+    // Banded columns here, so the collapse invariant below has something to
+    // fold. The bands are inert for every other case: `filterRows`, `sortRows`,
+    // `countGroups` and `aggregateGroups` read none of them.
+    const columns = useColumns<Employee>(groupedEmployeeColumns, {
       sortFor: state.sortFor,
       sortIndexFor: state.sortIndexFor,
+      groups: employeeColumnGroups,
     })
     const grouping = useRowGrouping<Employee>(() => source.rows.value, employeeColumns, {
       groupBy: () => state.groupBy.value,
@@ -334,6 +344,24 @@ describe('what an interaction is allowed to recompute', () => {
 
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)
+    h.stop()
+  })
+
+  it('collapsing a column group never reaches the pipeline', () => {
+    const h = harness()
+    h.columns.toggleGroup('location')
+    h.columns.visible.value
+    h.source.rows.value
+
+    // Folding a band is layout, the same as a pin or a resize: it changes which
+    // columns are on screen and nothing at all about which rows are, or in what
+    // order. The pipeline reads the declared column defs, never `visible`.
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    // And it did do the work it was asked for.
+    expect(h.columns.visible.value.map((column) => column.id)).not.toContain('city')
     h.stop()
   })
 

@@ -1,6 +1,7 @@
 import { computed, ref, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
 import { toValue } from 'vue'
-import type { ColumnDef, PinSide, ResolvedColumn, SortDirection } from './types'
+import type { ColumnDef, ColumnGroupDef, PinSide, ResolvedColumn, SortDirection } from './types'
+import { columnGroupPaths } from './columnGroups'
 import {
   clearColumnLayout,
   normalizeColumnStorage,
@@ -20,6 +21,14 @@ export interface ColumnLayoutState {
    * "unpinned" that outranks its own default.
    */
   pinned: Record<string, PinSide | false>
+  /**
+   * Ids of the header bands currently folded shut.
+   *
+   * Kept apart from `hidden` even though both end up withholding columns: one
+   * is the user's verdict on a column, the other a band's current posture, and
+   * expanding a band must not undo the former.
+   */
+  collapsedGroups: string[]
 }
 
 /**
@@ -42,6 +51,13 @@ export interface UseColumnsOptions {
    * the fallback for a first visit.
    */
   storage?: string | ColumnStorageOptions
+  /**
+   * Header bands, for a multi-row header and per-band collapse.
+   *
+   * Optional even when columns declare a `group`: a band forms because a column
+   * claims it, and these only supply the label, the nesting and how it folds.
+   */
+  groups?: MaybeRefOrGetter<ColumnGroupDef[] | undefined>
 }
 
 /** all / visible columns and every layout mutator. */
@@ -63,6 +79,12 @@ export interface UseColumnsResult<TRow> {
 
   setWidth: (columnId: string, width: number) => void
   resetWidths: () => void
+
+  /** Whether this band is folded shut. */
+  isGroupCollapsed: (groupId: string) => boolean
+  toggleGroup: (groupId: string, collapsed?: boolean) => void
+  expandAllGroups: () => void
+  collapseAllGroups: () => void
 
   setPinned: (columnId: string, side: PinSide | false) => void
   /** Forgets the override so the column's declared `pinned` applies again. */
@@ -104,6 +126,7 @@ export function useColumns<TRow>(
     order: initial.order ? [...initial.order] : [],
     widths: { ...(initial.widths ?? {}) },
     pinned: { ...(initial.pinned ?? {}) },
+    collapsedGroups: initial.collapsedGroups ? [...initial.collapsedGroups] : [],
   })
 
   if (storage) {
@@ -141,8 +164,59 @@ export function useColumns<TRow>(
     return !layout.value.hidden.includes(columnId)
   }
 
-  /** Columns withheld by a folded band. Always empty until bands can fold. */
-  const collapsedColumnIds = computed<Set<string>>(() => new Set())
+  const groupDefs = computed<ColumnGroupDef[] | undefined>(() => toValue(options.groups))
+
+  /** Band path per column, indexed once rather than once per lookup. */
+  const groupPaths = computed(() => columnGroupPaths(source.value, groupDefs.value))
+
+  /**
+   * The columns a folded band is currently withholding.
+   *
+   * Everything a band covers goes, except the columns it folds *to* and any
+   * column declaring `hideable: false` — a column the caller marked as never
+   * hideable is the row's identity, and a band is no more entitled to take it
+   * away than the column menu is.
+   *
+   * Depends on `collapsedGroups` and the declared columns, never on `hidden`,
+   * `order`, `widths` or `pinned`. Resizing a column therefore cannot make this
+   * recompute, which is what keeps a drag off the O(columns) path entirely.
+   */
+  const collapsedColumnIds = computed<Set<string>>(() => {
+    const folded = layout.value.collapsedGroups
+    const result = new Set<string>()
+    if (folded.length === 0) return result
+
+    const paths = groupPaths.value
+    const byId = new Map((groupDefs.value ?? []).map((group) => [group.id, group]))
+
+    for (const groupId of folded) {
+      // Every column *under* the band, at any depth — folding an outer band
+      // has to take its nested bands down with it.
+      const members = source.value.filter((column) =>
+        paths.get(column.id)?.some((group) => group.id === groupId),
+      )
+      if (members.length === 0) continue
+
+      const declared = byId.get(groupId)?.collapseTo
+      const requested = declared === undefined ? [] : [declared].flat()
+      // Declared order, not display order, so dragging a column about cannot
+      // change which one a folded band shows.
+      const keep = new Set(
+        requested.filter((id) => members.some((member) => member.id === id)),
+      )
+      // A `collapseTo` naming nothing in the band would fold it out of
+      // existence. Falling back to the first member keeps the promise that a
+      // band always leaves one column standing.
+      if (keep.size === 0) keep.add(members[0]!.id)
+
+      for (const member of members) {
+        if (keep.has(member.id) || member.hideable === false) continue
+        result.add(member.id)
+      }
+    }
+
+    return result
+  })
 
   function resolvedWidthOf(column: ColumnDef<TRow>): number {
     return layout.value.widths[column.id] ?? column.width ?? defaultWidth
@@ -272,6 +346,42 @@ export function useColumns<TRow>(
     layout.value = { ...layout.value, widths: {} }
   }
 
+  function isGroupCollapsed(groupId: string): boolean {
+    return layout.value.collapsedGroups.includes(groupId)
+  }
+
+  function toggleGroup(groupId: string, collapsed?: boolean): void {
+    const shouldCollapse = collapsed ?? !isGroupCollapsed(groupId)
+    const folded = new Set(layout.value.collapsedGroups)
+    if (shouldCollapse) folded.add(groupId)
+    else folded.delete(groupId)
+    layout.value = { ...layout.value, collapsedGroups: [...folded] }
+  }
+
+  function expandAllGroups(): void {
+    layout.value = { ...layout.value, collapsedGroups: [] }
+  }
+
+  /**
+   * Folds every band that admits it.
+   *
+   * `useRowGrouping` needs an inversion flag for the same operation, because
+   * row bands are discovered from the data and a band that has not been seen
+   * yet still has to come back collapsed. Column bands are a finite declared
+   * list, so this can simply name them all.
+   */
+  function collapseAllGroups(): void {
+    const declared = new Map((groupDefs.value ?? []).map((group) => [group.id, group]))
+    const ids = new Set<string>()
+    for (const path of groupPaths.value.values()) {
+      for (const group of path) {
+        if (declared.get(group.id)?.collapsible === false) continue
+        ids.add(group.id)
+      }
+    }
+    layout.value = { ...layout.value, collapsedGroups: [...ids] }
+  }
+
   /**
    * Records the pin side, including `false`. To go back to whatever the column
    * def declares, use `clearPinned` (or `resetLayout`) instead.
@@ -292,7 +402,7 @@ export function useColumns<TRow>(
   }
 
   function resetLayout(): void {
-    layout.value = { hidden: [], order: [], widths: {}, pinned: {} }
+    layout.value = { hidden: [], order: [], widths: {}, pinned: {}, collapsedGroups: [] }
   }
 
   function clearStored(): void {
@@ -311,6 +421,10 @@ export function useColumns<TRow>(
     moveColumnTo,
     setWidth,
     resetWidths,
+    isGroupCollapsed,
+    toggleGroup,
+    expandAllGroups,
+    collapseAllGroups,
     setPinned,
     clearPinned,
     resetLayout,
