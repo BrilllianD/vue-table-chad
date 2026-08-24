@@ -19,7 +19,9 @@
 import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
 import { readValue } from '../../core/sorting'
-import type { ColumnDef, ResolvedColumn } from '../../core/types'
+import type { CellCursorMark } from '../../core/cellCursor'
+import type { UseCellCursor } from '../../core/useCellCursor'
+import type { ColumnDef, ResolvedColumn, RowId } from '../../core/types'
 import TableCell from './TableCell.vue'
 
 const props = withDefaults(
@@ -41,8 +43,30 @@ const props = withDefaults(
      * the DOM as `data-row-state`; absent means an ordinary, untouched row.
      */
     state?: 'dirty' | 'saving' | 'error'
+    /**
+     * A cell cursor from `useCellCursor`. Given one, this row marks its cells
+     * and carries `data-row-id` so the grid can find them again; given none,
+     * it emits exactly the attributes it always did.
+     *
+     * The composable itself, not its position: this row subscribes to four
+     * *fields* of it, so a move that changes none of them costs a pointer
+     * compare, and the parent that passed it never re-renders because the
+     * reference never changes. The same reason the pipeline stages depend on
+     * query fields rather than on the query object.
+     */
+    cursor?: UseCellCursor<TRow>
+    /** Overrides the id this row is known by. Defaults to the cursor's own `getRowId`. */
+    rowId?: RowId
   }>(),
-  { index: 0, depth: 0, selected: undefined, columns: undefined, state: undefined },
+  {
+    index: 0,
+    depth: 0,
+    selected: undefined,
+    columns: undefined,
+    state: undefined,
+    cursor: undefined,
+    rowId: undefined,
+  },
 )
 
 /*
@@ -84,11 +108,71 @@ const cells = computed(() =>
     return { column, value, text }
   }),
 )
+
+/**
+ * This row's identity, derived only when something needs it.
+ *
+ * Through the cursor's own `getRowId` rather than the context's, because a
+ * table with no cursor has no reason to pay for it — and `defaultRowId` throws
+ * for a row with no `id`, which would turn "renders a table" into "crashes"
+ * for a caller who never asked for a cursor at all.
+ */
+const rowId = computed<RowId | undefined>(() =>
+  props.rowId ?? (props.cursor ? props.cursor.getRowId(props.row) : undefined),
+)
+
+/*
+ * Four scalar computeds, not one read of `cursor.position`.
+ *
+ * A vertical move leaves both column ids identical, and a computed that
+ * recomputes to the same value does not propagate — so on an ArrowDown, 23 of
+ * 25 rows re-evaluate two string compares and stop there, and only the two
+ * rows that actually changed re-render. Reading the position object instead
+ * would re-render the whole page for every keystroke.
+ */
+const cursorColumnId = computed(() => props.cursor?.position.value?.columnId)
+const tabStopColumnId = computed(() => props.cursor?.tabStop.value?.columnId)
+const isCursorRow = computed(
+  () => rowId.value !== undefined && props.cursor?.position.value?.rowId === rowId.value,
+)
+const isTabStopRow = computed(
+  () => rowId.value !== undefined && props.cursor?.tabStop.value?.rowId === rowId.value,
+)
+
+/**
+ * How the cursor touches one of this row's cells.
+ *
+ * A function called from the template, and deliberately **not** folded into
+ * `cells`: that computed resolves an accessor and a `format()` per column, and
+ * letting it depend on the cursor would re-derive every value in the row and
+ * re-run every format to change one attribute on one arrow press.
+ *
+ * The cursor and the tab stop are the same cell whenever there is a cursor on
+ * screen. They come apart in exactly two situations, and both are why `entry`
+ * exists: before anything has set a cursor, and while the cursor's row has been
+ * filtered off the page. In both the ring must not be drawn, but a way into the
+ * grid still has to exist.
+ */
+function cursorFor(columnId: string): CellCursorMark | undefined {
+  if (!props.cursor) return undefined
+  if (isCursorRow.value && columnId === cursorColumnId.value) return 'cell'
+  if (isTabStopRow.value && columnId === tabStopColumnId.value) return 'entry'
+  if (columnId === cursorColumnId.value) return 'column'
+  return 'none'
+}
 </script>
 
 <template>
+  <!--
+    `:data-row-id="rowId"` with no `|| undefined` after it, unlike every other
+    attribute here. `0` is a perfectly good row id and so is `''`, and `||`
+    would erase both; Vue drops the attribute for `undefined` on its own, which
+    is the only case that should drop it.
+  -->
   <tr
     class="vt-tr"
+    :data-row-id="rowId"
+    :data-cursor="isCursorRow || undefined"
     :data-selected="selected || undefined"
     :data-row-state="state"
     :data-parity="index % 2 === 0 ? 'odd' : 'even'"
@@ -107,6 +191,7 @@ const cells = computed(() =>
       v-for="(cell, cellIndex) in cells"
       :key="cell.column.id"
       :column="cell.column"
+      :cursor="cursorFor(cell.column.id)"
     >
       <!--
         The first cell carries the group indent, so rows sit visibly inside

@@ -24,6 +24,12 @@ const props = withDefaults(
     rowspan?: number
     /** Which header row it sits in, 0-based, for the sticky offset. */
     depth?: number
+    /**
+     * Set when this column is the cell cursor's, so the header takes the same
+     * tint as the column beneath it. Only ever `'column'`: the cursor lives in
+     * the body and never enters the header, so a `<th>` is never the ring.
+     */
+    cursor?: 'column'
   }>(),
   // Vue casts an absent boolean prop to `false`; the explicit `undefined`
   // default keeps "not passed" distinguishable from "passed as false".
@@ -105,6 +111,7 @@ function onKeydown(event: KeyboardEvent): void {
     :data-reorderable="draggable || undefined"
     :data-dragging="dnd?.isDragged(column.id) || undefined"
     :data-drop="dnd?.dropSideFor(column.id) || undefined"
+    :data-cursor="cursor"
     :aria-sort="
       column.sortDirection === 'asc'
         ? 'ascending'

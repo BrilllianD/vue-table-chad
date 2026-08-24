@@ -5,12 +5,23 @@
  * This is the only place in the library that handles Enter and Tab. The rest of
  * the components handle Escape and the arrow keys and nothing else, so keeping
  * the commit gesture in one primitive is what stops a second, slightly
- * different convention growing beside the first.
+ * different convention growing beside the first. A cell cursor does not break
+ * that: it handles Enter on a *closed* cell, to open one of these, and the
+ * commit-and-move gesture is this component reporting where the user asked to
+ * go rather than a second component claiming the key.
  *
- *   Enter   commit
- *   Escape  cancel, putting the cell back the way it was
- *   Tab     move — one cell forward, or back with Shift
- *   blur    blur, and nothing more
+ *   Enter             commit, and move down    (Shift: up)
+ *   Ctrl/Cmd+Enter    commit, and move right   (Shift: left)
+ *   Escape            cancel, putting the cell back the way it was
+ *   Tab               move — one cell forward, or back with Shift
+ *   blur              blur, and nothing more
+ *
+ * In a `textarea` both Enter and Shift+Enter insert the newline the control
+ * exists for and neither commits, so the Ctrl/Cmd pair has to carry the commit
+ * — and it keeps meaning *down* and *up* there rather than right and left,
+ * because a multi-line cell with no way to commit and move down would be
+ * missing the gesture people actually use. Down and up are simply unreachable
+ * from a textarea. That follows from the control, not from a second convention.
  *
  * `blur` is reported rather than treated as a commit, because what leaving a
  * cell means depends on the table, not on the cell. Editing one cell at a time,
@@ -28,6 +39,7 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { editorFor } from '../../core/editing'
+import { commitMoveFor, type CursorMove } from '../../core/cellCursor'
 import type { ColumnDef } from '../../core/types'
 
 const props = withDefaults(
@@ -56,7 +68,18 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'update:value': [value: unknown]
-  commit: []
+  /**
+   * Finish the edit, and — when the gesture named one — where the cursor should
+   * land next.
+   *
+   * The direction rides on `commit` rather than on an event of its own because
+   * the two have to be sequenced: a failed commit must not move anyone, and two
+   * separate events arrive with the save still in flight. It is the payload of
+   * an existing event rather than a new one so that every `@commit="save(row)"`
+   * already written keeps working — a template handler written as a call drops
+   * the argument.
+   */
+  commit: [next?: CursorMove]
   cancel: []
   /** Tab, and which way: `1` forward, `-1` back. Only when `trapTab`. */
   move: [delta: number]
@@ -100,10 +123,13 @@ function onInput(event: Event): void {
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Enter') {
-    // A textarea uses Enter for what it is for; Ctrl/Cmd+Enter commits instead.
-    if (kind.value === 'textarea' && !(event.ctrlKey || event.metaKey)) return
+    const next = commitMoveFor(event, kind.value)
+    // `undefined` means this Enter is not a commit in this control at all — the
+    // textarea's plain Enter and Shift+Enter, which are the newline it exists
+    // for. Left to the control rather than swallowed.
+    if (!next) return
     event.preventDefault()
-    emit('commit')
+    emit('commit', next)
     return
   }
   if (event.key === 'Escape') {

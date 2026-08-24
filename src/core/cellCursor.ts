@@ -44,6 +44,22 @@ export type CursorMove =
   | { kind: 'corner'; to: 'first' | 'last' }
 
 /**
+ * How the cursor touches one cell, as a renderer needs to know it.
+ *
+ *   'cell'    the focused cell — the ring, and the grid's tab stop
+ *   'column'  in the cursor's column — the tint
+ *   'entry'   no cursor set yet, and this is the way in: the tab stop, no ring
+ *   'none'    the table has a cursor, and this cell is nowhere near it
+ *
+ * One value rather than three booleans because both DOM decisions a cell makes
+ * — its `data-cursor` and its place in the roving tabindex — fall out of this
+ * one answer, and a cell carrying them separately could contradict itself.
+ * `undefined` is the fifth state and means the table has no cursor at all, so
+ * the cell emits neither attribute.
+ */
+export type CellCursorMark = 'cell' | 'column' | 'entry' | 'none'
+
+/**
  * The parts of a key press this module reads.
  *
  * Structural rather than `KeyboardEvent`, so the key map can be exercised with

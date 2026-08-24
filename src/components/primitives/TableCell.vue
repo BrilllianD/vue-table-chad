@@ -1,10 +1,20 @@
 <script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /** One `<td>`, sharing the header's sticky/pin logic so columns stay aligned. */
 import { computed } from 'vue'
+import type { CellCursorMark } from '../../core/cellCursor'
 import type { ResolvedColumn } from '../../core/types'
 
 const props = defineProps<{
   column: ResolvedColumn<TRow>
+  /**
+   * How the cell cursor touches this cell, or `undefined` when the table has
+   * no cursor — in which case the two attributes below are not emitted at all
+   * and the cell renders exactly the markup it always did.
+   *
+   * `TableRow` works this out; a cell has no row identity of its own to work
+   * it out from.
+   */
+  cursor?: CellCursorMark
 }>()
 
 /**
@@ -21,6 +31,18 @@ const cellStyle = computed(() => {
   if (props.column.background) style['--vt-column-bg'] = props.column.background
   return Object.keys(style).length > 0 ? style : undefined
 })
+
+/**
+ * The roving tabindex: exactly one `0` in the whole grid, `-1` everywhere else.
+ *
+ * `entry` is a `0` as well as `cell`, which is what stops an untouched table
+ * from falling out of the tab order entirely — with no cursor set yet there is
+ * no `cell`, so some cell has to nominate itself as the way in.
+ */
+const tabIndex = computed(() => {
+  if (!props.cursor) return undefined
+  return props.cursor === 'cell' || props.cursor === 'entry' ? 0 : -1
+})
 </script>
 
 <template>
@@ -31,6 +53,8 @@ const cellStyle = computed(() => {
     :data-align="column.align ?? 'left'"
     :data-pinned="column.pinned || undefined"
     :data-column-bg="column.background ? '' : undefined"
+    :data-cursor="cursor === 'cell' || cursor === 'column' ? cursor : undefined"
+    :tabindex="tabIndex"
   >
     <slot />
   </td>
