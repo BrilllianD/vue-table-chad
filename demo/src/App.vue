@@ -4,6 +4,7 @@ import OverviewView from './views/OverviewView.vue'
 import ServerView from './views/ServerView.vue'
 import SelectionView from './views/SelectionView.vue'
 import EditingView from './views/EditingView.vue'
+import CursorView from './views/CursorView.vue'
 import FiltersView from './views/FiltersView.vue'
 import GroupingView from './views/GroupingView.vue'
 import ColumnsView from './views/ColumnsView.vue'
@@ -35,6 +36,7 @@ const tabs: Tab[] = [
   { id: 'filters', label: 'Filters', layer: 'preset', component: FiltersView },
   { id: 'grouping', label: 'Grouping', layer: 'preset', component: GroupingView },
   { id: 'editing', label: 'Editing', layer: 'preset', component: EditingView },
+  { id: 'cursor', label: 'Cell cursor', layer: 'preset', component: CursorView },
   { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
   { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
   { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },

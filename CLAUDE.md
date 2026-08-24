@@ -110,5 +110,6 @@ and what each remaining phase involves — start there when picking the work bac
   needs is also what row memoisation requires — `v-memo` has no effect inside a `v-for`, so it waits
   for that.
 - **No i18n.** Around 35 English strings are hardcoded across the components, `aria-label`s included.
-- **No cell-level keyboard navigation.** Sorting, menus and resize handles are keyboard-driven; there
-  is no focus grid.
+- **No `aria-colindex`/`aria-rowindex`.** The cell cursor gives the body a focus grid and a roving
+  tabindex (`docs/keyboard.md`), but the grid does not yet announce a cell's coordinates, and there
+  is no live region reporting where the cursor went.

@@ -106,6 +106,7 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 | [Styling](docs/styling.md) | The `--vt-*` variables, striping, and how cell backgrounds stack. | Theming |
 | [Column layout](docs/column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. | Column layout |
 | [Header bands](docs/column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. | Header bands |
+| [Keyboard navigation](docs/keyboard.md) | The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it. | Cell cursor |
 
 The full API — every export, with what it is for — is the **API reference** tab of `pnpm demo`.
 It is generated from the doc comments in `src/`, so it cannot fall behind the code.
@@ -118,7 +119,7 @@ turned out not to be worth it, [`ROADMAP.md`](ROADMAP.md) for what is planned, a
 ## Not included
 
 Row virtualization, tree rows (parent/child hierarchies, as opposed to the value-based grouping
-in [Grouping rows](docs/grouping.md)), editable cells, and pivoting. Aggregation covers
+in [Grouping rows](docs/grouping.md)), and pivoting. Aggregation covers
 `sum`/`avg`/`min`/`max` and no custom reducer. The core is structured so virtualization slots in at
 the rendering layer without touching the pipeline — `filteredRows` on the local source is the hook
 for it.

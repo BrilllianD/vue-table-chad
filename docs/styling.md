@@ -53,10 +53,12 @@ the table background or the row's stripe — and every state above it is a `back
 painted over it, topmost first:
 
 ```
-cell hover  ┐ topmost
-selected    │
-row hover   │
-column tint ┘ bottom
+cell hover    ┐ topmost   the pointer, and the most specific of the three
+selected      │
+row hover     ┘
+cursor row    ┐           the keyboard: persistent, and under everything the
+cursor column ┘           pointer is doing right now
+column tint   ─ bottom    static, declared by the column itself
 ────────────── background-color: stripe / --vt-bg
 ```
 
@@ -121,6 +123,53 @@ wipe out the edge shadow that separates a pinned column from what scrolls beneat
 
 Give the widths a unit. `0` alone is not a length once it goes through the `calc()` that mirrors
 the top edge to the bottom, and an invalid value takes the whole `box-shadow` with it.
+
+## The cell cursor
+
+With [`cellCursor`](keyboard.md) on, the focused cell gets a ring and a faint crosshair runs down
+its column and across its row — the header cell of that column included.
+
+```css
+.vt-datatable {
+  --vt-cursor-row-delta: 4%;                       /* the crosshair, same idiom as hover */
+  --vt-cursor-column-delta: 4%;
+  --vt-cursor-border-width: 2px;                   /* the ring: all four edges */
+  --vt-cursor-border-color: var(--vt-accent);
+  --vt-cursor-idle-border-color: var(--vt-border-strong);
+}
+```
+
+The two tints are deltas for the reason hover is — one number that reads in both themes — and are
+clamped for you like the others. The ring is not a delta: it is a focus indicator, so it is
+`--vt-accent` and has to hold contrast against whatever the row underneath happens to be doing.
+
+Three things about it are deliberate:
+
+- **The ring is on by default**, unlike the hover outlines. A focus indicator you have to switch on
+  is not a focus indicator. Set either delta to `0` to keep the ring and drop that arm of the
+  crosshair.
+- **The cursor cell has no fill layer of its own.** It sits in both the cursor row and the cursor
+  column, so it takes both washes and comes out the darkest cell on screen without a third layer
+  being declared for it.
+- **The ring goes grey while the grid does not hold focus** (`--vt-cursor-idle-border-color`), so a
+  position the table merely remembers never looks like a live one. The cell counts as holding focus
+  while an editor inside it has the caret.
+
+The cursor's layers sit *above* the static per-column background and *below* hover and selection.
+Above, because `--vt-column-bg` is a colour you name and is usually opaque — a crosshair painted
+under it would be invisible in exactly the columns it is hardest to keep your place in. Below,
+because hover and selection are the user's own doing, and an ambient cursor must not argue with the
+feedback someone is actively generating.
+
+One more variable belongs to the cursor rather than to the palette. Focusing a cell scrolls it into
+view, and the browser's idea of "in view" knows nothing about a sticky header, so the body's
+`scroll-margin-top` has to say how much of the top is already spoken for:
+
+```css
+.vt-scroll { --vt-header-rows: 1; }   /* the preset writes this from headerRows.length */
+```
+
+Only override it if you are assembling a header of your own from primitives.
 
 ## Per-column background
 

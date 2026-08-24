@@ -130,7 +130,7 @@ So server data can feed a continuous scroll rather than a page slice.
 
 ### P2-5 · Accessibility floor
 `aria-rowcount` / `aria-rowindex`, so a virtualized table does not lie to screen readers about its
-size. Full keyboard grid navigation stays in the backlog.
+size. Keyboard grid navigation has since shipped — see [Keyboard navigation](docs/keyboard.md).
 
 ### P2-6 · Acceptance
 `PerfView` at 100k rows scrolling smoothly **with pinned columns and collapsed groups active
@@ -194,13 +194,15 @@ Decisions, not oversights.
 - **i18n / label overrides** — ~35 hardcoded English strings (`"Search…"`, `"Select all rows on this
   page"`, `"No matching values"`, every `aria-label`). A real blocker for a public package, but not
   for making it fast.
-- **Keyboard nav & full a11y** — cell focus grid, roving tabindex, `aria-colindex`. Phase 2 lands
-  only the `aria-rowcount`/`aria-rowindex` floor virtualization requires.
+- **Full a11y beyond the grid** — `aria-colindex`/`aria-rowindex`, and an announced live region
+  for cursor movement. Phase 2 lands only the `aria-rowcount`/`aria-rowindex` floor virtualization
+  requires.
 - **Feature breadth** — tree/hierarchical rows, expandable detail rows, CSV/clipboard export,
   pinned rows, custom aggregate reducers beyond `sum`/`avg`/`min`/`max`.
 
-  Two items have since left this list: **editable cells** shipped, and so did **multi-level
-  header groups** — see [Header bands](docs/column-groups.md).
+  Three items have since left this list: **editable cells** shipped, so did **multi-level
+  header groups** — see [Header bands](docs/column-groups.md) — and so did the **cell focus grid**
+  and its roving tabindex, see [Keyboard navigation](docs/keyboard.md).
 - **A search index.** Global search is the one number that stayed large (30 ms at 10k). Most of it is
   the columns' own `format` functions, because search matches what the user sees. The debounce is
   what makes it tolerable.
