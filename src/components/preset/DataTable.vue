@@ -23,6 +23,8 @@ import type {
   SelectionMode,
 } from '../../core/types'
 import type { ColumnLayoutState } from '../../core/useColumns'
+import { commitMoveFor, type CellPosition, type CursorMove } from '../../core/cellCursor'
+import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
@@ -114,9 +116,19 @@ const props = withDefaults(
      * opens every editable cell at once behind one Save.
      */
     editing?: UseRowEditing<TRow>
+    /**
+     * A keyboard cell cursor: arrows move a focused cell, Enter opens its
+     * editor when it has one, and Enter again commits and steps on.
+     *
+     * Off by default, and off means off — no `role="grid"`, no `tabindex`, no
+     * cursor attributes, and editable cells keep the button that is their only
+     * keyboard route without one.
+     */
+    cellCursor?: boolean
   }>(),
   {
     selectable: false,
+    cellCursor: false,
     pageSize: 25,
     reorderable: true,
     showFooter: false,
@@ -199,14 +211,33 @@ function rowState(row: TRow): 'dirty' | 'saving' | 'error' | undefined {
   return session.isDirty(id) ? 'dirty' : undefined
 }
 
-async function commitRow(row: TRow): Promise<void> {
+/**
+ * Commits one row, and says whether it was persisted — so a caller can decide
+ * whether to move on.
+ *
+ * The guard is the load-bearing line. A row with nothing open is not a save:
+ * `useRowEditing.commit` resolves `true` for it, having nothing to reject, and
+ * emitting `rowSaved` off that turns a stray blur into a second "saved" for a
+ * row already saved. The stray blur is not hypothetical — Enter commits, the
+ * draft closes, the editor unmounts and focus moves to the next cell, so the
+ * blur arrives with the draft already gone. Whether it arrives at all is
+ * browser-dependent, which is the second reason the test lives here rather
+ * than as a flag on the blur path: this one does not care.
+ *
+ * Guarding here also covers Tab, and covers clicking away from a cell some
+ * other route already committed. One test instead of one per caller.
+ */
+async function commitRow(row: TRow): Promise<boolean> {
   const session = props.editing
-  if (!session) return
+  if (!session) return false
+  const id = session.getRowId(row)
+  if (!session.isEditing(id)) return false
   const saved = await session.commit(row)
   if (saved) emit('rowSaved', row)
-  else if (session.stateFor(session.getRowId(row))?.status === 'error') {
-    emit('rowSaveError', row, session.errorFor(session.getRowId(row)))
+  else if (session.stateFor(id)?.status === 'error') {
+    emit('rowSaveError', row, session.errorFor(id))
   }
+  return saved
 }
 
 /**
@@ -232,13 +263,67 @@ async function moveEdit(
 ): Promise<void> {
   const session = props.editing
   if (!session) return
-  const saved = await session.commit(row)
-  if (!saved) return
-  emit('rowSaved', row)
+  // Through `commitRow` rather than `session.commit` directly, so Tab inherits
+  // the "a row with nothing open is not a save" guard and stops emitting
+  // `rowSaved` from a second place.
+  if (!(await commitRow(row))) return
   const editable = cols.filter((entry) => canEdit(row, entry))
   const index = editable.findIndex((entry) => entry.id === column.id)
   const next = editable[index + delta]
   if (next) session.begin(row, next.id)
+}
+
+/**
+ * Enter in an open editor: commit, then step the cursor if the save took.
+ *
+ * A failed commit stays put, matching the rule `moveEdit` follows for Tab —
+ * moving would scroll the message explaining the failure out from under the
+ * user. The destination is left read-only rather than opened, which is what a
+ * spreadsheet does: you land there, and typing is what starts an edit.
+ */
+async function commitCell(
+  row: TRow,
+  next: CursorMove | undefined,
+  cursor: UseCellCursor<TRow> | undefined,
+): Promise<void> {
+  if (!(await commitRow(row))) return
+  if (next) cursor?.move(next)
+}
+
+/** Escape: put the cell back, and give the cell itself the focus the editor had. */
+function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
+  props.editing?.cancel(row)
+  cursor?.requestFocus()
+}
+
+/**
+ * Enter, F2 or a double-click on the cursor cell.
+ *
+ * `TableGrid` reports the gesture rather than acting on it, because opening an
+ * editor needs a session it may not have. Here we do have one, so: open the
+ * editor if this cell has one, and otherwise let Enter mean what it means
+ * everywhere else in the grid — move on. `commitMoveFor` returns nothing for
+ * F2 and nothing for a double-click, so neither of those moves a read-only
+ * cell, which is right: F2 asks to edit and nothing else.
+ */
+function onActivate(
+  position: CellPosition,
+  event: Event,
+  rows: TRow[],
+  cols: ResolvedColumn<TRow>[],
+  cursor: UseCellCursor<TRow> | undefined,
+): void {
+  const session = props.editing
+  const row = rows.find((entry) => cursor?.getRowId(entry) === position.rowId)
+  const column = cols.find((entry) => entry.id === position.columnId)
+  if (session && row && column && canEdit(row, column)) {
+    session.begin(row, column.id)
+    return
+  }
+  // A `KeyboardEvent` satisfies `CursorKeyGesture` structurally; anything else
+  // has no `key` and is not a move.
+  const move = 'key' in event ? commitMoveFor(event as unknown as KeyboardEvent) : undefined
+  if (move) cursor?.move(move)
 }
 
 function footerText(
@@ -258,6 +343,7 @@ function footerText(
       headerRows,
       state: tableState,
       selection,
+      cursor,
       source: src,
       loading,
       error,
@@ -283,6 +369,7 @@ function footerText(
     :groups-collapsed="groupsCollapsed"
     :blank-group-label="blankGroupLabel"
     :editing="editing"
+    :cell-cursor="cellCursor"
     @update:query="$emit('update:query', $event)"
     @update:selection="$emit('update:selection', $event)"
     @update:column-order="$emit('update:columnOrder', $event)"
@@ -358,8 +445,24 @@ function footerText(
         `max-height`. Out here they stay over the part you are looking at.
       -->
       <div class="vt-scroll-frame">
-        <div class="vt-scroll" :data-sticky="stickyHeader || undefined">
-          <TableGrid :columns="cols" :selection-column="selectable" :actions-column="actionsColumn">
+        <!--
+          `--vt-header-rows` is how the stylesheet keeps a focused cell out from
+          under the sticky header: the browser's scroll-into-view knows nothing
+          about `position: sticky`, so the body's `scroll-margin-top` has to say
+          how much of the top is already spoken for.
+        -->
+        <div
+          class="vt-scroll"
+          :data-sticky="stickyHeader || undefined"
+          :style="{ '--vt-header-rows': headerRows.length }"
+        >
+          <TableGrid
+            :columns="cols"
+            :selection-column="selectable"
+            :actions-column="actionsColumn"
+            :cursor="cursor"
+            @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
+          >
             <!--
               One `<tr>` per header row. With no band declared `headerRows` is a
               single row of column cells spanning one row each, which is exactly
@@ -405,6 +508,7 @@ function footerText(
                     :column="cell.column"
                     :rowspan="cell.rowspan"
                     :depth="cell.depth"
+                    :cursor="cursor?.isCursorColumn(cell.column.id) ? 'column' : undefined"
                   >
                     <template #default>
                       <SortTrigger
@@ -500,6 +604,7 @@ function footerText(
                   :depth="item.depth"
                   :selected="selection ? selection.isSelected(item.row) : false"
                   :state="rowState(item.row)"
+                  :cursor="cursor"
                   @click="$emit('rowClick', item.row, $event)"
                 >
                   <template v-if="selectable" #leading>
@@ -536,8 +641,8 @@ function footerText(
                       :trap-tab="!rowMode"
                       :autofocus="props.editing.stateFor(props.editing.getRowId(row))?.activeColumnId === column.id"
                       @update:value="props.editing.setValue(row, column, $event)"
-                      @commit="commitRow(row)"
-                      @cancel="props.editing.cancel(row)"
+                      @commit="commitCell(row, $event, cursor)"
+                      @cancel="cancelCell(row, cursor)"
                       @blur="onCellBlur(row)"
                       @move="moveEdit(row, column, $event, cols)"
                     >
@@ -555,9 +660,15 @@ function footerText(
                       A real button, not a click handler on the cell: a cell you
                       can only reach with a pointer is a cell half the users
                       cannot edit at all.
+
+                      Only without a cursor, though. With one the `<td>` is
+                      itself the focus target and Enter opens the editor, so
+                      this button would add a second tab stop per editable cell
+                      — which is exactly what a roving tabindex exists to avoid,
+                      and it would nest a focusable inside a gridcell besides.
                     -->
                     <button
-                      v-else-if="canEdit(row, column)"
+                      v-else-if="canEdit(row, column) && !cursor"
                       type="button"
                       class="vt-cell-trigger"
                       :aria-label="`Edit ${column.header ?? column.id}`"
@@ -573,6 +684,24 @@ function footerText(
                         {{ text }}
                       </slot>
                     </button>
+
+                    <!--
+                      The same cell under a cursor. No button, but not bare
+                      either: the pointer is the one thing the button carried
+                      that is still worth having, because it is what says "you
+                      can type here" before you try.
+                    -->
+                    <span v-else-if="canEdit(row, column)" class="vt-cell-editable">
+                      <slot
+                        :name="`cell:${column.id}`"
+                        :row="row"
+                        :column="column"
+                        :value="value"
+                        :text="text"
+                      >
+                        {{ text }}
+                      </slot>
+                    </span>
 
                     <slot
                       v-else

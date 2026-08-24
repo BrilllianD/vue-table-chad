@@ -36,6 +36,24 @@
   */
   --vt-hover-clamped: clamp(0%, var(--vt-hover-delta), 100%);
   --vt-cell-hover-clamped: clamp(0%, var(--vt-cell-hover-delta), 100%);
+  /*
+    The cell cursor: a ring on the focused cell, and a faint crosshair through
+    its row and its column. The two tints are deltas for the same reason hover
+    is — one number that reads in both themes — but the ring is `--vt-accent`,
+    because it is a focus indicator and has to hold contrast against whatever
+    the row underneath it happens to be doing. Set either delta to 0 to keep
+    the ring and drop that arm of the crosshair.
+  */
+  --vt-cursor-row-delta: 4%;
+  --vt-cursor-column-delta: 4%;
+  --vt-bg-cursor-row: color-mix(in srgb, var(--vt-text) var(--vt-cursor-row-clamped), transparent);
+  --vt-bg-cursor-column: color-mix(
+    in srgb,
+    var(--vt-text) var(--vt-cursor-column-clamped),
+    transparent
+  );
+  --vt-cursor-row-clamped: clamp(0%, var(--vt-cursor-row-delta), 100%);
+  --vt-cursor-column-clamped: clamp(0%, var(--vt-cursor-column-delta), 100%);
   /* Translucent, so stripes and column tints stay visible through a selection. */
   --vt-bg-selected: color-mix(in srgb, var(--vt-accent) 16%, transparent);
   /*
@@ -64,6 +82,14 @@
   --vt-hover-border-color: var(--vt-accent);
   --vt-cell-hover-border-width: 0px;
   --vt-cell-hover-border-color: var(--vt-accent);
+  /*
+    The cursor's ring. On by default, unlike the two above: a focus indicator
+    you have to switch on is not a focus indicator. It goes grey while the grid
+    does not hold focus, so a remembered position never impersonates a live one.
+  */
+  --vt-cursor-border-width: 2px;
+  --vt-cursor-border-color: var(--vt-accent);
+  --vt-cursor-idle-border-color: var(--vt-border-strong);
   /*
     Row striping, off by default: both stripes inherit the table background, so
     setting just one of them is all a zebra table needs.
@@ -200,28 +226,51 @@
   first, which is what lets any of them carry an alpha channel and blend with
   what is underneath instead of replacing it:
 
-      cell hover  ┐ topmost
-      selected    │
-      row hover   │
-      column tint ┘ bottom
+      cell hover    ┐ topmost   the pointer, and the most specific of the three
+      selected      │
+      row hover     ┘
+      cursor row    ┐           the keyboard: persistent, and deliberately under
+      cursor column ┘           everything the pointer is doing right now
+      column tint   ─ bottom    static, declared by the column itself
       ────────────── background-color: stripe / --vt-bg
+
+  The two cursor layers sit above the static column tint and below everything
+  else on purpose. Above, because `--vt-column-bg` is a colour the caller names
+  and is usually opaque — a crosshair painted under it would be invisible in
+  exactly the columns it is hardest to keep your place in. Below, because hover
+  and selection are the user's own doing and an ambient cursor must not argue
+  with them. Where the two cursor layers cross — the focused cell — they
+  compound, which is what makes the intersection read without a third layer
+  declared for it.
 
   Each state sets its own layer variable, so none of them compete on specificity
   and the order above is fixed here rather than emerging from source order.
   Keep the base opaque: pinned cells are sticky, and rows scroll underneath them.
+
+  Every slot has to be reset here. A `var()` with no value and no fallback is
+  invalid at computed-value time, and that does not fail quietly: it takes the
+  whole `background-image` with it, every other layer included.
 */
 .vt-th,
 .vt-td {
   --vt-layer-cell-hover: none;
   --vt-layer-selected: none;
   --vt-layer-hover: none;
+  --vt-layer-cursor-row: none;
+  --vt-layer-cursor-column: none;
   --vt-layer-column: none;
 
   /*
     Shadows compose the same way, for the same reason: `box-shadow` is one
     property, so a hover ring written directly would wipe out the edge shadow
     that separates a pinned column from what scrolls under it.
+
+    The cursor's ring is listed first — topmost. It and the cell-hover ring are
+    the same shape at the same inset, so the order here is the only thing
+    deciding which one you see on a cell that is both hovered and focused, and
+    the cursor is the state a keyboard user cannot re-create with the pointer.
   */
+  --vt-shadow-cursor: 0 0 #0000;
   --vt-shadow-cell-hover: 0 0 #0000;
   --vt-shadow-row-hover: 0 0 #0000;
   --vt-shadow-pin: 0 0 #0000;
@@ -235,8 +284,11 @@
     var(--vt-layer-cell-hover),
     var(--vt-layer-selected),
     var(--vt-layer-hover),
+    var(--vt-layer-cursor-row),
+    var(--vt-layer-cursor-column),
     var(--vt-layer-column);
   box-shadow:
+    var(--vt-shadow-cursor),
     var(--vt-shadow-cell-hover),
     var(--vt-shadow-row-hover),
     var(--vt-shadow-pin);
@@ -434,6 +486,64 @@
   --vt-layer-cell-hover: linear-gradient(var(--vt-bg-cell-hover), var(--vt-bg-cell-hover));
   --vt-shadow-cell-hover:
     inset 0 0 0 var(--vt-cell-hover-border-width) var(--vt-cell-hover-border-color);
+}
+
+/* ----------------------------------------------------------- cell cursor */
+
+/*
+  The crosshair, driven by `data-cursor` rather than by `:focus`.
+
+  It cannot be a focus selector. The cursor keeps its place while focus is
+  inside the editor that cell opened, and keeps it while focus has left the
+  table entirely — remembering where you were is the whole point of it.
+*/
+.vt-tbody .vt-tr[data-cursor] .vt-td {
+  --vt-layer-cursor-row: linear-gradient(var(--vt-bg-cursor-row), var(--vt-bg-cursor-row));
+}
+
+/*
+  `[data-cursor]` on a cell means "in the cursor's column" whichever value it
+  holds — the focused cell carries `cell`, the rest of the column `column`, and
+  the header cell above them `column` as well. So this one selector tints the
+  `<th>` along with everything under it.
+*/
+.vt-th[data-cursor],
+.vt-td[data-cursor] {
+  --vt-layer-cursor-column: linear-gradient(
+    var(--vt-bg-cursor-column),
+    var(--vt-bg-cursor-column)
+  );
+}
+
+/* All four edges from one spread-only inset shadow, exactly like the hover ring. */
+.vt-tbody .vt-td[data-cursor='cell'] {
+  --vt-shadow-cursor: inset 0 0 0 var(--vt-cursor-border-width) var(--vt-cursor-border-color);
+}
+
+/*
+  The cell is a focus target now, so the UA outline would land directly on top
+  of the ring. Replacing it is only legitimate because the ring is drawn
+  unconditionally on the focused cell — and it goes grey while the grid does not
+  hold focus, so a position the table merely remembers never looks live.
+
+  `:focus-within`, not `:focus`: the cell is still where the user is while the
+  editor inside it holds the caret.
+*/
+.vt-tbody .vt-td[data-cursor='cell']:focus { outline: none; }
+
+.vt-tbody .vt-td[data-cursor='cell']:not(:focus-within) {
+  --vt-cursor-border-color: var(--vt-cursor-idle-border-color);
+}
+
+/*
+  Focusing a cell scrolls it into view, and the browser's idea of "in view"
+  knows nothing about a sticky header — without this, every cursor move that
+  scrolls parks the new cell underneath it. `--vt-header-rows` is written once
+  on `.vt-scroll` from the number of header rows; `1` is the fallback and the
+  only value a table with no bands ever has.
+*/
+.vt-scroll[data-sticky] .vt-tbody .vt-td {
+  scroll-margin-top: calc(var(--vt-row-height) * var(--vt-header-rows, 1));
 }
 
 .vt-row-message td {
@@ -1025,6 +1135,20 @@
   color: inherit;
   font: inherit;
   text-align: inherit;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+  The same cell with a cursor over the table: the `<td>` is the focus target
+  itself, so the button would only add a second tab stop per editable cell —
+  which is the thing a roving tabindex exists to avoid. What is left to carry
+  over is the pointer, the one affordance that says "you can type here".
+*/
+.vt-cell-editable {
+  display: block;
+  width: 100%;
   cursor: text;
   overflow: hidden;
   text-overflow: ellipsis;
