@@ -86,6 +86,10 @@ export const apiReference: ApiEntry[] = [
   { name: 'UseRowSelection', layer: 'core', kind: 'type', summary: 'Selection state, predicates and mutators.' },
   { name: 'UseRowSelectionOptions', layer: 'core', kind: 'type', summary: 'Row identity, selectability, mode, and an initial selection.' },
 
+  { name: 'useCellCursor', layer: 'core', kind: 'composable', summary: 'A focused cell you can move with the keyboard, and the highlight that follows it.' },
+  { name: 'UseCellCursor', layer: 'core', kind: 'type', summary: 'Cursor position, predicates, and the movers.' },
+  { name: 'UseCellCursorOptions', layer: 'core', kind: 'type', summary: 'Row identity, the columns to walk, and where to start.' },
+
   { name: 'useRowEditing', layer: 'core', kind: 'composable', summary: 'Inline editing: a draft per row, validated, persisted, and written back.' },
   { name: 'SAVE_FAILED_MESSAGE', layer: 'core', kind: 'constant', summary: 'Shown when a save rejected with nothing that could be turned into a message.' },
   { name: 'UseRowEditing', layer: 'core', kind: 'type', summary: 'Draft state, cell predicates, and the begin/cancel/commit mutators.' },
@@ -117,6 +121,14 @@ export const apiReference: ApiEntry[] = [
   { name: 'REQUIRED_MESSAGE', layer: 'core', kind: 'constant', summary: 'Shown when a `required` column is left blank.' },
   { name: 'CellErrors', layer: 'core', kind: 'type', summary: 'Error messages by column id — the shape both validators and a rejected save produce.' },
   { name: 'DraftValidation', layer: 'core', kind: 'type', summary: 'What a draft would produce: per-field errors, a row-level error, and the row itself.' },
+
+  { name: 'cursorMoveFor', layer: 'core', kind: 'function', summary: 'What a key press means while a **cell** has focus, or `undefined` for a key the grid does not claim.' },
+  { name: 'commitMoveFor', layer: 'core', kind: 'function', summary: 'Where the cursor goes after an Enter that commits an open editor, or `undefined` when this key press is not a commit at all.' },
+  { name: 'nextPosition', layer: 'core', kind: 'function', summary: 'Where `move` lands, given the cells currently on screen — or `undefined` when it lands nowhere new.' },
+  { name: 'PAGE_MOVE_ROWS', layer: 'core', kind: 'constant', summary: 'How far PageUp and PageDown jump.' },
+  { name: 'CellPosition', layer: 'core', kind: 'type', summary: 'Where the cursor is: a row and a column, by identity rather than by position.' },
+  { name: 'CursorMove', layer: 'core', kind: 'type', summary: 'What a key press asked for, before anything knows whether it is possible.' },
+  { name: 'CursorKeyGesture', layer: 'core', kind: 'type', summary: 'The parts of a key press this module reads.' },
 
   /* --------------------------------------------------------------- filters */
   { name: 'valuesFilter', layer: 'filters', kind: 'function', summary: "Excel's checkbox list: which distinct values survive." },

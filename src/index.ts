@@ -46,6 +46,9 @@ export type { ServerDataSource, ServerDataSourceOptions } from './core/useServer
 export { useRowSelection } from './core/useRowSelection'
 export type { UseRowSelection, UseRowSelectionOptions } from './core/useRowSelection'
 
+export { useCellCursor } from './core/useCellCursor'
+export type { UseCellCursor, UseCellCursorOptions } from './core/useCellCursor'
+
 export { useRowEditing, SAVE_FAILED_MESSAGE } from './core/useRowEditing'
 export type {
   UseRowEditing,
@@ -153,6 +156,11 @@ export {
   REQUIRED_MESSAGE,
 } from './core/editing'
 export type { CellErrors, DraftValidation } from './core/editing'
+
+/* ----------------------------------------------------------- cell cursor */
+
+export { cursorMoveFor, commitMoveFor, nextPosition, PAGE_MOVE_ROWS } from './core/cellCursor'
+export type { CellPosition, CursorMove, CursorKeyGesture } from './core/cellCursor'
 
 /* ----------------------------------------------------------------- utils */
 

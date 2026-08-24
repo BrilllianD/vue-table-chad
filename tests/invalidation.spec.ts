@@ -4,6 +4,7 @@ import { useColumns } from '../src/core/useColumns'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useRowGrouping } from '../src/core/useRowGrouping'
 import { useRowSelection } from '../src/core/useRowSelection'
+import { useCellCursor } from '../src/core/useCellCursor'
 import { useRowEditing } from '../src/core/useRowEditing'
 import { replaceRowIn } from '../src/core/editing'
 import { useTableState } from '../src/core/useTableState'
@@ -123,15 +124,24 @@ function harness(groupBy: string[] = []) {
       () => source.total.value,
       { getRowId: (row) => row.id },
     )
+    // Over the *rendered* rows and the *visible* columns, which is what the
+    // cursor walks — and what makes the counters below meaningful, since both
+    // of those lists sit downstream of every stage being counted.
+    const cursor = useCellCursor<Employee>(
+      () => grouping.displayRows.value.flatMap((item) => (item.kind === 'row' ? [item.row] : [])),
+      () => columns.visible.value,
+      { getRowId: (row) => row.id },
+    )
 
     state.setFilter('department', valuesFilter(['Engineering', 'Research', 'Design']))
     state.setSort('name', 'asc')
-    return { state, source, columns, grouping, selection, stop: () => scope.stop() }
+    return { state, source, columns, grouping, selection, cursor, stop: () => scope.stop() }
   })!
 
   built.source.rows.value
   built.grouping.displayRows.value
   built.columns.visible.value
+  built.cursor.tabStop.value
 
   // Warming is setup, not subject. Without this the harness's own first pass
   // lands in the counters and every test measures construction instead of the
@@ -373,6 +383,70 @@ describe('what an interaction is allowed to recompute', () => {
 
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)
+    h.stop()
+  })
+
+  it('moving the cell cursor never reaches the pipeline', () => {
+    const h = harness()
+    const first = h.source.rows.value[0]!
+    h.cursor.moveTo({ rowId: first.id, columnId: 'name' })
+    reset()
+
+    h.cursor.move({ kind: 'by', rows: 1, columns: 0 })
+    h.cursor.move({ kind: 'by', rows: 0, columns: 1 })
+    h.cursor.move({ kind: 'columnEdge', to: 'last' })
+    h.cursor.move({ kind: 'corner', to: 'last' })
+    h.cursor.position.value
+    h.cursor.tabStop.value
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    // The cursor is interaction state, like a selection or a pin. It changes
+    // which cell is outlined and nothing whatever about which rows exist, what
+    // order they are in, or what they add up to.
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.flatten).toBe(0)
+    // And it did do the work it was asked for: four moves, ending in the corner.
+    const rows = h.source.rows.value
+    expect(h.cursor.position.value).toEqual({
+      rowId: rows[rows.length - 1]!.id,
+      columnId: h.columns.visible.value[h.columns.visible.value.length - 1]!.id,
+    })
+    h.stop()
+  })
+
+  it('a cursor clamped at the edge writes no state at all', () => {
+    const h = harness()
+    h.cursor.moveTo({ rowId: h.source.rows.value[0]!.id, columnId: 'name' })
+    reset()
+
+    expect(h.cursor.move({ kind: 'by', rows: -1, columns: 0 })).toBe(false)
+    h.source.rows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    h.stop()
+  })
+
+  it('a re-sort under a set cursor costs one sort, and the cursor keeps its row', () => {
+    // The mirror image again. Sorting is work that *was* asked for, so it must
+    // happen — and the cursor must survive it, which is the whole reason a
+    // position is a pair of ids rather than a pair of indices.
+    const h = harness()
+    const row = h.source.rows.value[3]!
+    h.cursor.moveTo({ rowId: row.id, columnId: 'salary' })
+    reset()
+
+    h.state.setSort('salary', 'desc')
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    expect(counters.sort).toBe(1)
+    expect(counters.filter).toBe(0)
+    expect(h.cursor.position.value).toEqual({ rowId: row.id, columnId: 'salary' })
     h.stop()
   })
 

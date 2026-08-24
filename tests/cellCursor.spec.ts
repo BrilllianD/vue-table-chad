@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { shallowRef } from 'vue'
 import {
   PAGE_MOVE_ROWS,
   commitMoveFor,
@@ -6,6 +7,8 @@ import {
   nextPosition,
   type CellPosition,
 } from '../src/core/cellCursor'
+import { useCellCursor } from '../src/core/useCellCursor'
+import type { ColumnDef } from '../src/core/types'
 
 /**
  * The cursor, from the two angles it has: what a key press asked for, and where
@@ -16,6 +19,19 @@ import {
  * written out as data here, and `nextPosition` is handed plain arrays because
  * "the cells currently on screen" is all it is ever allowed to know.
  */
+
+interface Row {
+  id: number
+  name: string
+}
+
+const rows: Row[] = [
+  { id: 1, name: 'Ada' },
+  { id: 2, name: 'Grace' },
+  { id: 3, name: 'Katherine' },
+]
+
+const columns: ColumnDef<Row>[] = [{ id: 'id' }, { id: 'name' }, { id: 'role' }]
 
 const rowIds = [1, 2, 3]
 const columnIds = ['id', 'name', 'role']
@@ -203,5 +219,105 @@ describe('nextPosition', () => {
   it('has nowhere to go in an empty table', () => {
     expect(nextPosition(middle, { kind: 'by', rows: 1, columns: 0 }, [], columnIds)).toBeUndefined()
     expect(nextPosition(middle, { kind: 'by', rows: 1, columns: 0 }, rowIds, [])).toBeUndefined()
+  })
+})
+
+describe('useCellCursor', () => {
+  function cursor(initial?: CellPosition) {
+    const data = shallowRef<Row[]>([...rows])
+    return {
+      data,
+      cursor: useCellCursor<Row>(data, columns, { getRowId: (row) => row.id, initial }),
+    }
+  }
+
+  it('starts nowhere, and still offers a way in', () => {
+    const h = cursor()
+    expect(h.cursor.position.value).toBeNull()
+    // With every cell at `tabindex="-1"` the table would fall out of the tab
+    // order entirely, so an unset cursor still nominates a cell.
+    expect(h.cursor.tabStop.value).toEqual({ rowId: 1, columnId: 'id' })
+  })
+
+  it('takes an initial position without asking for focus', () => {
+    const h = cursor({ rowId: 2, columnId: 'name' })
+    expect(h.cursor.position.value).toEqual({ rowId: 2, columnId: 'name' })
+    // Mounting a table must not steal the caret from the page it is on.
+    expect(h.cursor.focusRequests.value).toBe(0)
+  })
+
+  it('nominates the first cell again once the cursor row leaves the page', () => {
+    const h = cursor({ rowId: 2, columnId: 'name' })
+    h.data.value = [rows[0]!, rows[2]!]
+    // The position is kept — the row may come back on the next page — but the
+    // tab stop has to be a cell that actually exists.
+    expect(h.cursor.position.value).toEqual({ rowId: 2, columnId: 'name' })
+    expect(h.cursor.tabStop.value).toEqual({ rowId: 1, columnId: 'id' })
+  })
+
+  it('reports a move that landed, and one that did not', () => {
+    const h = cursor({ rowId: 3, columnId: 'role' })
+    expect(h.cursor.move({ kind: 'by', rows: -1, columns: 0 })).toBe(true)
+    expect(h.cursor.position.value).toEqual({ rowId: 2, columnId: 'role' })
+    expect(h.cursor.move({ kind: 'by', rows: 0, columns: 1 })).toBe(false)
+    expect(h.cursor.position.value).toEqual({ rowId: 2, columnId: 'role' })
+  })
+
+  it('asks for focus even when it had nowhere to go', () => {
+    const h = cursor({ rowId: 1, columnId: 'id' })
+    h.cursor.move({ kind: 'by', rows: -1, columns: 0 })
+    // The cursor did not move, but the person did ask to be looking at it —
+    // and they may have scrolled it off the screen since.
+    expect(h.cursor.focusRequests.value).toBe(1)
+  })
+
+  it('sets a position silently, and takes focus only when asked', () => {
+    const h = cursor()
+    h.cursor.moveTo({ rowId: 2, columnId: 'name' })
+    expect(h.cursor.focusRequests.value).toBe(0)
+    h.cursor.moveTo({ rowId: 3, columnId: 'name' }, { focus: true })
+    expect(h.cursor.focusRequests.value).toBe(1)
+  })
+
+  it('answers what is the cursor, what is in its row, and what is in its column', () => {
+    const h = cursor({ rowId: 2, columnId: 'name' })
+    expect(h.cursor.isCursor(2, 'name')).toBe(true)
+    expect(h.cursor.isCursor(2, 'id')).toBe(false)
+    expect(h.cursor.isCursorRow(2)).toBe(true)
+    expect(h.cursor.isCursorColumn('name')).toBe(true)
+    expect(h.cursor.isCursorColumn('role')).toBe(false)
+  })
+
+  it('says nothing is the cursor while there is no cursor', () => {
+    const h = cursor()
+    // `tabStop` nominates the first cell, but nominating is not being: an
+    // untouched table draws no ring anywhere.
+    expect(h.cursor.isCursor(1, 'id')).toBe(false)
+    expect(h.cursor.isCursorRow(1)).toBe(false)
+  })
+
+  it('matches a stringified id back to the row rather than parsing it', () => {
+    const h = cursor()
+    // The DOM only ever holds strings, and `Number('007')` is not the row whose
+    // id is the string '007'.
+    expect(h.cursor.rowIdFor('2')).toBe(2)
+    expect(h.cursor.rowIdFor('007')).toBeUndefined()
+    expect(h.cursor.rowIdFor('nope')).toBeUndefined()
+  })
+
+  it('stays on its row when the rows are re-sorted underneath it', () => {
+    const h = cursor({ rowId: 3, columnId: 'name' })
+    h.data.value = [rows[2]!, rows[1]!, rows[0]!]
+    expect(h.cursor.position.value).toEqual({ rowId: 3, columnId: 'name' })
+    // And the row it names is now the first one, so the next step down is the
+    // row that is now visually below it.
+    expect(h.cursor.move({ kind: 'by', rows: 1, columns: 0 })).toBe(true)
+    expect(h.cursor.position.value).toEqual({ rowId: 2, columnId: 'name' })
+  })
+
+  it('clears back to nothing', () => {
+    const h = cursor({ rowId: 2, columnId: 'name' })
+    h.cursor.clear()
+    expect(h.cursor.position.value).toBeNull()
   })
 })
