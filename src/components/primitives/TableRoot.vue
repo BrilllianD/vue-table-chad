@@ -21,6 +21,7 @@ import type { ColumnLayoutField } from '../../core/columnStorage'
 import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
 import { useRowGrouping } from '../../core/useRowGrouping'
 import { useRowSelection, defaultRowId } from '../../core/useRowSelection'
+import { useCellCursor } from '../../core/useCellCursor'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import { usePagination } from '../../core/usePagination'
 import { readValue } from '../../core/sorting'
@@ -97,8 +98,23 @@ const props = withDefaults(
      * read-only.
      */
     editing?: UseRowEditing<TRow>
+    /**
+     * A keyboard cell cursor: arrow keys move a focused cell, and the theme
+     * rings it and crosses its row and column.
+     *
+     * A boolean rather than a session built outside, unlike `editing`. That one
+     * is passed in because it carries a `save`, a `validate`, an `apply` and a
+     * mode, and re-declaring all four as props would duplicate the composable's
+     * surface; a cursor carries no callbacks at all. It also *has* to be built
+     * here, because only this component knows the rendered row order — see
+     * `cursorRows` below.
+     *
+     * Off by default. With it off the table emits no `role`, no `tabindex` and
+     * no cursor attributes, and renders exactly what it always did.
+     */
+    cellCursor?: boolean
   }>(),
-  { selectable: false, pageSize: 25, siblingCount: 1, reorderable: true },
+  { selectable: false, pageSize: 25, siblingCount: 1, reorderable: true, cellCursor: false },
 )
 
 const emit = defineEmits<{
@@ -239,6 +255,31 @@ const rowSelection = useRowSelection<TRow>(rows, () => props.source.total.value,
 
 const selection = computed(() => (props.selectable === false ? undefined : rowSelection))
 
+/**
+ * The cells the cursor walks: the rows actually rendered, in the order they are
+ * rendered in, under the columns actually on screen.
+ *
+ * Not `rows` — grouping bands the page into a different order, so the source's
+ * page order and what is on screen are two different lists, and a cursor
+ * walking the first would jump about under the user. Narrowing `displayRows`
+ * gets a folded band right for nothing as well: its rows are already absent
+ * here, so the cursor steps over it rather than into it, and a group header is
+ * never a cursor target because it is not a row.
+ *
+ * `columns.visible` for the same reason: it has already dropped the columns the
+ * user hid and the ones a folded header band is withholding.
+ */
+const cursorRows = computed(() =>
+  grouping.displayRows.value.flatMap((item) => (item.kind === 'row' ? [item.row] : [])),
+)
+
+// Built unconditionally and gated on the way out, for the reason the selection
+// is: creating it lazily would freeze the answer at setup, so turning the prop
+// on later would render a grid with nothing behind it.
+const cellCursor = useCellCursor<TRow>(cursorRows, columns.visible, { getRowId })
+
+const cursor = computed(() => (props.cellCursor ? cellCursor : undefined))
+
 const pagination = usePagination(
   () => state.page.value,
   () => state.pageSize.value,
@@ -324,6 +365,7 @@ defineExpose({
   state,
   columns,
   selection,
+  cursor,
   pagination,
   dnd,
   grouping,
@@ -347,6 +389,7 @@ defineExpose({
     :header-rows="headerRows"
     :state="state"
     :selection="selection"
+    :cursor="cursor"
     :pagination="pagination"
     :dnd="dnd"
     :editing="editing"
