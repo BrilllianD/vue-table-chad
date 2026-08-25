@@ -71,6 +71,7 @@ const props = withDefaults(
     storageKey?: string
     /** Which parts of the layout to remember. Defaults to visibility, order, widths and pins. */
     storageFields?: ColumnLayoutField[]
+    /** Rows per page. Defaults to 10, from `useTableState` — see `DEFAULT_PAGE_SIZE`. */
     pageSize?: number
     /** Drag column headers to reorder them. */
     reorderable?: boolean
@@ -129,7 +130,6 @@ const props = withDefaults(
   {
     selectable: false,
     cellCursor: false,
-    pageSize: 25,
     reorderable: true,
     showFooter: false,
     footerLabel: 'Total',

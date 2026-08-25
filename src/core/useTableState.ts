@@ -9,6 +9,18 @@ import type {
 import { applySortRule, nextDirection } from './sorting'
 import { isEmptyFilter, pruneFilters } from './filters/model'
 
+/**
+ * The rows-per-page every default in the library agrees on.
+ *
+ * Named rather than repeated because three files need the same answer and only
+ * one of them can compute it: `TablePagination` used standalone has no state to
+ * ask. `TableRoot` and `DataTable` declare no default of their own at all —
+ * they pass `undefined` straight through, so this line is the only place the
+ * number lives. Not re-exported from `src/index.ts`: it is the default's
+ * definition, not a knob, and `pageSize` is how a caller changes it.
+ */
+export const DEFAULT_PAGE_SIZE = 10
+
 /** pageSize, initialGroupBy, groupMode, and an external ref to mirror. */
 export interface TableStateOptions {
   initialSort?: SortRule[]
@@ -23,6 +35,7 @@ export interface TableStateOptions {
    */
   groupMode?: GroupMode
   initialPage?: number
+  /** Rows per page. Defaults to 10 — a first screen, not a first scroll. */
   pageSize?: number
   initialSearch?: string
   /**
@@ -93,7 +106,7 @@ export function createQueryState(options: TableStateOptions = {}): QueryState {
     filters: options.initialFilters ? { ...options.initialFilters } : {},
     groupBy: options.initialGroupBy ? [...options.initialGroupBy] : [],
     page: options.initialPage ?? 1,
-    pageSize: options.pageSize ?? 25,
+    pageSize: options.pageSize ?? DEFAULT_PAGE_SIZE,
     globalSearch: options.initialSearch ?? '',
   }
 }

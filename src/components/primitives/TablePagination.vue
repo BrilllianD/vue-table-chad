@@ -6,6 +6,7 @@
 import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
 import { usePagination } from '../../core/usePagination'
+import { DEFAULT_PAGE_SIZE } from '../../core/useTableState'
 
 const props = withDefaults(
   defineProps<{
@@ -33,7 +34,7 @@ const emit = defineEmits<{
 const context = useTableContext()
 
 const page = computed(() => props.page ?? context?.state.page.value ?? 1)
-const pageSize = computed(() => props.pageSize ?? context?.state.pageSize.value ?? 25)
+const pageSize = computed(() => props.pageSize ?? context?.state.pageSize.value ?? DEFAULT_PAGE_SIZE)
 const total = computed(() => props.total ?? context?.source.total.value ?? 0)
 
 function goTo(next: number): void {

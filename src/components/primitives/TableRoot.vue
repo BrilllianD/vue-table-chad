@@ -58,6 +58,12 @@ const props = withDefaults(
     storageKey?: string
     /** Which parts of the layout `storageKey` saves. Defaults to all four. */
     storageFields?: ColumnLayoutField[]
+    /**
+     * Rows per page. Left undefined here rather than defaulted, so the number
+     * lives in `useTableState` alone — see `DEFAULT_PAGE_SIZE`. Read once at
+     * setup, and ignored entirely when a `state` is supplied from outside,
+     * because that state is then the authority.
+     */
     pageSize?: number
     siblingCount?: number
     /** Turns column drag-to-reorder off for the whole table. */
@@ -114,7 +120,7 @@ const props = withDefaults(
      */
     cellCursor?: boolean
   }>(),
-  { selectable: false, pageSize: 25, siblingCount: 1, reorderable: true, cellCursor: false },
+  { selectable: false, siblingCount: 1, reorderable: true, cellCursor: false },
 )
 
 const emit = defineEmits<{
