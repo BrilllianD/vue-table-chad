@@ -385,7 +385,11 @@ function scrollColumns(direction: number): void {
   const box = scrollBox.value
   if (!box) return
 
-  const boxLeft = box.getBoundingClientRect().left
+  // The *padding* box, which is where `scrollLeft` is measured from.
+  // `getBoundingClientRect` gives the border box, and `.vt-scroll` carries a
+  // border: without `clientLeft` every boundary comes out a border-width too
+  // far right, and scrolling to the very start lands at 1px instead of 0.
+  const boxLeft = box.getBoundingClientRect().left + box.clientLeft
   let inset = 0
   const boundaries: number[] = []
 

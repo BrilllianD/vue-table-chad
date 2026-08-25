@@ -74,6 +74,12 @@ The vertical pair is deliberately unclaimed. `Shift`+`↑`/`↓` is the spreadsh
 extending a selection, and spending it on scrolling would take the obvious binding away from a
 feature the table may yet grow.
 
+Whichever way it moves, the ring is scrolled into view — the *least* that works, and clear of the
+sticky header and of either pinned band rather than underneath them. Pinned cells are
+`position: sticky` and sit over the content, and a browser's own focus scroll neither knows that nor
+acts on a cell that is only half covered, so the grid asks for the scroll itself and the preset
+tells the stylesheet how wide the bands are.
+
 `Alt` is left alone throughout. `Alt`+`←`/`→` is already the keyboard reorder gesture on a header
 (see [Column layout](column-layout.md)), and in the body most browsers spend it on history
 navigation.

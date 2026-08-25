@@ -228,6 +228,36 @@ describe('TableGrid', () => {
     wrapper.unmount()
   })
 
+  it('scrolls the cell it focuses, rather than leaving that to focus()', async () => {
+    /*
+     * The one thing jsdom cannot show and a browser can: a focus scroll is
+     * "centre if needed", and *needed* means the cell is entirely out of view.
+     * A cell hanging half off the edge is left hanging — which is what a table
+     * with a pinned column produces on every press, because the band covers the
+     * cell rather than pushing it out of the box. So the scroll is asked for
+     * explicitly, with the alignment that moves the least.
+     */
+    const cursor = cursorOver({ rowId: 1, columnId: 'name' })
+    const { wrapper } = mountGrid(cursor)
+
+    const calls: unknown[] = []
+    const target = cellAt(wrapper, 2, 'name').element as HTMLElement
+    target.scrollIntoView = (options?: unknown) => calls.push(options)
+    let preventedScroll: boolean | undefined
+    target.focus = (options?: { preventScroll?: boolean }) => {
+      preventedScroll = options?.preventScroll
+    }
+
+    await cellAt(wrapper, 1, 'name').trigger('keydown', { key: 'ArrowDown' })
+    await nextTick()
+
+    // `preventScroll`, so the browser's alignment does not fire first and get
+    // overridden — two scrolls for one key press, the first one wrong.
+    expect(preventedScroll).toBe(true)
+    expect(calls).toEqual([{ block: 'nearest', inline: 'nearest' }])
+    wrapper.unmount()
+  })
+
   it('takes Ctrl+End to the last cell and clamps at the edges', async () => {
     const cursor = cursorOver({ rowId: 1, columnId: 'name' })
     const { wrapper } = mountGrid(cursor)

@@ -111,10 +111,36 @@ function focusCursorCell(): void {
   const position = props.cursor?.position.value ?? props.cursor?.tabStop.value
   if (!position) return
   const cell = cellAt(position)
+  if (!cell) return
   // Already there when the move came from a click or from the editor's own
   // focus: re-focusing would fire a second `focusin` and set the cursor to the
   // cell it just came from.
-  if (cell && cell !== document.activeElement) cell.focus()
+  if (cell !== document.activeElement) cell.focus({ preventScroll: true })
+  /*
+   * The scroll, taken off `focus()` and done here.
+   *
+   * A browser's focus scroll is "centre if needed", and its idea of *needed* is
+   * that the cell be entirely out of view. Measured in Chrome against a table
+   * wider than its box: a cell hanging twenty pixels off the right edge is left
+   * hanging, and then the next one — fully off — is *centred*, throwing the
+   * viewport two columns' worth of scroll to travel one. `nearest` moves the
+   * least that works, in both directions, every press.
+   *
+   * Both routes honour `scroll-margin` and `scroll-padding`, which is what
+   * keeps the cell clear of the sticky header and the pinned bands rather than
+   * underneath them. Doing the scroll ourselves is what makes that reliable:
+   * the cell one press beyond the pin is *partially* covered, which is exactly
+   * the case a focus scroll declines to act on.
+   *
+   * Unconditional, including when the cell already has the focus. That is the
+   * case `focusRequests` exists for — holding ArrowDown at the last row asks to
+   * be looking at a ring that did not move — and a cell already in view makes
+   * `nearest` a no-op anyway.
+   *
+   * Optional call: jsdom implements neither scrolling nor this method, and a
+   * component test moving the cursor should not have to care.
+   */
+  cell.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
 }
 
 /**
