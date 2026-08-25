@@ -255,6 +255,82 @@ describe('useCellCursor', () => {
     expect(h.cursor.tabStop.value).toEqual({ rowId: 1, columnId: 'id' })
   })
 
+  it('reports how far down the rendered rows it is', () => {
+    const h = cursor({ rowId: 2, columnId: 'name' })
+    expect(h.cursor.rowOffset.value).toBe(1)
+
+    // A row this page does not hold is not an offset. Falling back to 0 here
+    // would silently turn "the cursor is somewhere else" into "the cursor is
+    // at the top", which is a page change landing on the wrong row.
+    h.data.value = [rows[0]!, rows[2]!]
+    expect(h.cursor.rowOffset.value).toBe(-1)
+
+    h.cursor.clear()
+    expect(h.cursor.rowOffset.value).toBe(-1)
+  })
+
+  it('anchors at an offset, taking the first column when none is named', () => {
+    const h = cursor()
+    h.cursor.anchorAt(1)
+    expect(h.cursor.position.value).toEqual({ rowId: 2, columnId: 'id' })
+    // Silent by default, like every other way of putting the cursor somewhere
+    // the user did not personally ask for.
+    expect(h.cursor.focusRequests.value).toBe(0)
+
+    h.cursor.anchorAt(2, 'role', { focus: true })
+    expect(h.cursor.position.value).toEqual({ rowId: 3, columnId: 'role' })
+    expect(h.cursor.focusRequests.value).toBe(1)
+  })
+
+  it('clamps an anchor to the rows it was given', () => {
+    const h = cursor()
+    // What a short last page does: page 2 of a 5-row table holds two rows, and
+    // an offset of 4 has to land on one of them rather than on nothing.
+    h.cursor.anchorAt(99, 'name')
+    expect(h.cursor.position.value).toEqual({ rowId: 3, columnId: 'name' })
+
+    h.cursor.anchorAt(-3, 'name')
+    expect(h.cursor.position.value).toEqual({ rowId: 1, columnId: 'name' })
+  })
+
+  it('re-anchors to the first column when the named one has gone', () => {
+    const h = cursor()
+    // Hidden, or withheld by a folded band. `nextPosition` re-anchors an axis
+    // it cannot find the same way, so a fold behaves here as it does there.
+    h.cursor.anchorAt(0, 'salary')
+    expect(h.cursor.position.value).toEqual({ rowId: 1, columnId: 'id' })
+  })
+
+  it('waits for rows before anchoring, then anchors once', () => {
+    const data = shallowRef<Row[]>([])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    // A server source has not answered yet. The offset cannot be resolved in
+    // this tick, and giving up would leave the table with no cursor at all.
+    c.anchorAt(1, 'name')
+    expect(c.position.value).toBeNull()
+
+    data.value = [...rows]
+    expect(c.position.value).toEqual({ rowId: 2, columnId: 'name' })
+
+    // One-shot: the rows changing again is the next page arriving, not a
+    // second reason to move the cursor back to where it was told once.
+    data.value = [rows[2]!, rows[0]!]
+    expect(c.position.value).toEqual({ rowId: 2, columnId: 'name' })
+  })
+
+  it('lets a second anchor replace one still waiting', () => {
+    const data = shallowRef<Row[]>([])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    // Two page changes before the first answered. Both landing would move the
+    // cursor twice, and the older one would win about half the time.
+    c.anchorAt(0, 'name')
+    c.anchorAt(2, 'role')
+    data.value = [...rows]
+    expect(c.position.value).toEqual({ rowId: 3, columnId: 'role' })
+  })
+
   it('reports a move that landed, and one that did not', () => {
     const h = cursor({ rowId: 3, columnId: 'role' })
     expect(h.cursor.move({ kind: 'by', rows: -1, columns: 0 })).toBe(true)

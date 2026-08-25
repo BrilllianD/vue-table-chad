@@ -10,6 +10,12 @@
  * button every editable cell carries *without* a cursor is gone here — the cell
  * itself is the focus target now.
  *
+ * **Reload with the ring already on the first cell.** The table starts the
+ * cursor rather than waiting to be clicked, and does it silently: the ring is
+ * there, but the caret never left whatever you were doing. `initialCursor`
+ * moves the start somewhere else — the toggle remounts the table, because
+ * where a cursor *starts* is a question asked once.
+ *
  * **Type Enter, edit, Enter again.** You land one row down, read-only. Shift
  * for up, Ctrl for right, both for left. Run a column of numbers that way and
  * you never touch the pointer.
@@ -49,6 +55,12 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 const cellCursor = ref(true)
 const stickyHeader = ref(true)
 const groupBy = ref<string[]>([])
+
+/** Off: the table starts on its own first cell. On: it is told where to start. */
+const seeded = ref(false)
+const initialCursor = computed(() =>
+  seeded.value ? { rowId: rows.value[2]!.id, columnId: 'salary' } : undefined,
+)
 
 /** The three theme knobs the cursor adds, live. */
 const ringWidth = ref(2)
@@ -99,6 +111,7 @@ function onRowSaved(row: Employee): void {
       <div class="controls">
         <label><input v-model="cellCursor" type="checkbox" /> cellCursor</label>
         <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
+        <label><input v-model="seeded" type="checkbox" /> initialCursor</label>
 
         <span class="divider" />
 
@@ -126,7 +139,9 @@ function onRowSaved(row: Employee): void {
     </template>
 
     <p class="note">
-      Click a cell, or press Tab. Then <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>,
+      The ring is already on the first cell — a table asked for a keyboard looks like it has
+      one before you press a key, and <em>initialCursor</em> puts it somewhere else instead.
+      Press Tab to take it, or click any cell. Then <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>,
       <kbd>Home</kbd>/<kbd>End</kbd> for the ends of a row, <kbd>Ctrl</kbd>+<kbd>Home</kbd>/
       <kbd>End</kbd> for the corners, <kbd>PageUp</kbd>/<kbd>PageDown</kbd> for ten rows.
       <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor; <kbd>Esc</kbd> puts the cell back and
@@ -143,7 +158,8 @@ function onRowSaved(row: Employee): void {
         :cell-cursor="cellCursor"
         :sticky-header="stickyHeader"
         :initial-group-by="groupBy"
-        :key="groupBy.join('|')"
+        :initial-cursor="initialCursor"
+        :key="`${groupBy.join('|')}/${seeded}`"
         @row-saved="onRowSaved"
       />
     </div>

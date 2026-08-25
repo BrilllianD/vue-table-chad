@@ -126,6 +126,11 @@ const props = withDefaults(
      * keyboard route without one.
      */
     cellCursor?: boolean
+    /**
+     * Where the cursor starts. Defaults to the first rendered cell, so a table
+     * asked for a keyboard looks like it has one before you press a key.
+     */
+    initialCursor?: CellPosition
   }>(),
   {
     selectable: false,
@@ -370,6 +375,7 @@ function footerText(
     :blank-group-label="blankGroupLabel"
     :editing="editing"
     :cell-cursor="cellCursor"
+    :initial-cursor="initialCursor"
     @update:query="$emit('update:query', $event)"
     @update:selection="$emit('update:selection', $event)"
     @update:column-order="$emit('update:columnOrder', $event)"

@@ -1,10 +1,13 @@
 import {
   computed,
+  effectScope,
   shallowRef,
   toValue,
+  watch,
   type ComputedRef,
   type MaybeRefOrGetter,
   type ShallowRef,
+  type WatchStopHandle,
 } from 'vue'
 import type { ColumnDef, RowId } from './types'
 import { nextPosition, type CellPosition, type CursorMove } from './cellCursor'
@@ -18,6 +21,10 @@ export interface UseCellCursorOptions<TRow> {
    * Where the cursor sits before anyone touches it. Seeded silently — it asks
    * for no focus, so a table does not steal the caret from the page it is on
    * merely by mounting.
+   *
+   * A position names a cell outright. To start at the first rendered cell
+   * instead, call `anchorAt(0)` — it waits for a row to exist, which a value
+   * read at setup cannot do.
    */
   initial?: CellPosition
 }
@@ -51,10 +58,39 @@ export interface UseCellCursor<TRow> {
   isCursorRow: (rowId: RowId) => boolean
   isCursorColumn: (columnId: string) => boolean
 
+  /**
+   * How far down the rendered rows the cursor is, or `-1` when it is on none
+   * of them — unset, or on a row this page does not hold.
+   *
+   * An offset is the one thing about a cursor position that survives the rows
+   * underneath it being replaced wholesale, which is what turning the page
+   * does. Everywhere else the identity is what matters and the index is the
+   * meaningless half; this is the exception, so it is offered rather than
+   * recomputed by every caller that needs it.
+   */
+  rowOffset: ComputedRef<number>
+
   /** Applies a move against the rendered cells. Returns whether it landed somewhere new. */
   move: (move: CursorMove) => boolean
   /** Puts the cursor somewhere outright. Silent unless asked to take focus. */
   moveTo: (position: CellPosition | null, options?: { focus?: boolean }) => void
+  /**
+   * Puts the cursor at an offset down the rendered rows — as soon as there are
+   * rows to count. Without a `columnId` it takes the first rendered column, so
+   * `anchorAt(0)` is "start at the first cell, whenever there is one".
+   *
+   * The waiting is the point, and it is why this is a call rather than a value
+   * anyone could compute. A page change replaces the rendered rows and a server
+   * source has not fetched the replacements yet, so the offset cannot be
+   * resolved in the tick the page was asked for; a table still loading its
+   * first page cannot name its first cell either. Resolving when the rows
+   * arrive makes both of those, and a local source that answers immediately,
+   * the same call.
+   *
+   * Clamped, so the last page being short lands on its last row rather than
+   * nowhere.
+   */
+  anchorAt: (offset: number, columnId?: string, options?: { focus?: boolean }) => void
   /** Asks for the focus back without moving — what Escape in an editor needs. */
   requestFocus: () => void
   clear: () => void
@@ -137,6 +173,89 @@ export function useCellCursor<TRow>(
     return { rowId: firstRow, columnId: firstColumn }
   })
 
+  /**
+   * A position asked for by where it sits rather than by what it is, resolved
+   * against the rendered lists — now, or on the first render that has any.
+   *
+   * A cell named by offset can be asked for at a moment when the table holds
+   * no rows: because the source is still fetching its first page, or because
+   * it has just been asked for its third. A source that answers synchronously
+   * and one that answers over the network are then the same call from here,
+   * which is the reason this waits rather than each caller doing it.
+   *
+   * One-shot, and a second request replaces the first: two answers to "where
+   * should the cursor be" both landing would move it twice, and the older one
+   * would win the race about half the time.
+   */
+  let pending: WatchStopHandle | undefined
+  /*
+   * Watchers created on demand belong to a scope of their own, so they stop
+   * with the table rather than with whichever event handler happened to create
+   * one. Not detached, so a component disposes it without being asked — and
+   * never created at all by a table whose cursor resolves on the first try,
+   * which is every table with rows already in hand.
+   */
+  const scope = effectScope()
+
+  function resolveWhenRendered(
+    resolve: (rowIds: readonly RowId[], columnIds: readonly string[]) => CellPosition | undefined,
+    focus: boolean,
+  ): void {
+    pending?.()
+    pending = undefined
+
+    const landed = resolve(rowIds.value, columnIds.value)
+    if (landed) {
+      moveTo(landed, { focus })
+      return
+    }
+
+    /*
+     * `flush: 'sync'`, so the cursor is in place in the same tick the rows are.
+     * A queued watcher would let the new page render once with rows and no
+     * ring, and the caller's own follow-up — a focus request, a scroll into
+     * view — would be reading a position that has not been written yet.
+     *
+     * Sync is affordable precisely because this is one-shot: it stops itself
+     * the moment it resolves, so there is never more than one of these
+     * listening, and never one at all on a table that resolved on the first
+     * try.
+     */
+    pending = scope.run(() =>
+      watch(
+        [rowIds, columnIds],
+        ([rows, cols]) => {
+          const next = resolve(rows, cols)
+          if (!next) return
+          pending?.()
+          pending = undefined
+          moveTo(next, { focus })
+        },
+        { flush: 'sync' },
+      ),
+    )
+  }
+
+  function anchorAt(
+    offset: number,
+    columnId?: string,
+    anchorOptions?: { focus?: boolean },
+  ): void {
+    resolveWhenRendered((rows, cols) => {
+      if (rows.length === 0) return undefined
+      // The column is named rather than offset because turning the page
+      // changes which rows are rendered, never which columns are — and when it
+      // has gone anyway, or was never given, the first column stands in. That
+      // is the same re-anchoring `nextPosition` does for an axis it cannot
+      // find, so a hidden column and a folded band behave here as they do
+      // everywhere else.
+      const column = columnId !== undefined && cols.includes(columnId) ? columnId : cols[0]
+      if (column === undefined) return undefined
+      const index = Math.min(Math.max(offset, 0), rows.length - 1)
+      return { rowId: rows[index]!, columnId: column }
+    }, anchorOptions?.focus ?? false)
+  }
+
   function isCursor(rowId: RowId, columnId: string): boolean {
     const current = position.value
     return current !== null && current.rowId === rowId && current.columnId === columnId
@@ -177,11 +296,16 @@ export function useCellCursor<TRow>(
     columnId: computed(() => position.value?.columnId),
     tabStop,
     focusRequests,
+    rowOffset: computed(() => {
+      const current = position.value
+      return current ? rowIds.value.indexOf(current.rowId) : -1
+    }),
     isCursor,
     isCursorRow,
     isCursorColumn,
     move,
     moveTo,
+    anchorAt,
     requestFocus: () => {
       focusRequests.value += 1
     },

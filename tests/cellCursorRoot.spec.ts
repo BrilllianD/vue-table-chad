@@ -86,14 +86,53 @@ describe('TableRoot and the cell cursor', () => {
     h1.wrapper.unmount()
   })
 
-  it('hands one down when asked', () => {
+  it('hands one down when asked, already on the first rendered cell', () => {
     const h1 = mountRoot({ cellCursor: true })
     expect(h1.cursor()).toBeDefined()
-    // Nowhere yet, and asking for no focus — mounting a table must not take
-    // the caret off whatever the page was doing.
-    expect(h1.cursor()!.position.value).toBeNull()
+    // A table asked for a keyboard should look like it has one before anybody
+    // presses a key, so the cursor starts somewhere rather than nowhere.
+    expect(h1.cursor()!.position.value).toEqual({
+      rowId: h1.cursor()!.getRowId(people[0]!),
+      columnId: personColumns[0]!.id,
+    })
+    // Silently, though: mounting a table must not take the caret off whatever
+    // the page was doing. The ring is a hint, not a jump.
     expect(h1.cursor()!.focusRequests.value).toBe(0)
     h1.wrapper.unmount()
+  })
+
+  it('starts where it was told to, when it was told', () => {
+    const h1 = mountRoot({
+      cellCursor: true,
+      initialCursor: { rowId: people[2]!.id, columnId: 'department' },
+    })
+    expect(h1.cursor()!.position.value).toEqual({
+      rowId: people[2]!.id,
+      columnId: 'department',
+    })
+    expect(h1.cursor()!.focusRequests.value).toBe(0)
+    h1.wrapper.unmount()
+  })
+
+  it('leaves the rows alone until the cursor is switched on', () => {
+    // The reason the first-cell seed is not `useCellCursor`'s `initial`:
+    // resolving it reads every rendered row's identity, and these rows have no
+    // `id` for `defaultRowId` to find. A table with the cursor off never asked
+    // for identities, so it must not be made to produce them — mounting throws
+    // if the seed runs regardless of the prop.
+    const host = defineComponent({
+      setup() {
+        const state = useTableState()
+        const rows = [{ name: 'Ada' }, { name: 'Grace' }]
+        const columns = [{ id: 'name', header: 'Name' }]
+        const source = useLocalDataSource(rows, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(TableRoot as never, { columns, source, state }, { default: () => h('div') })
+      },
+    })
+    const wrapper = mount(host)
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
   })
 
   it('walks the rows in the order they are rendered, not the order they arrived', () => {

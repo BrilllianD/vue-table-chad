@@ -60,8 +60,22 @@ stop per editable cell — with a cursor that button is gone, because the cell i
 target and a nested focusable inside a `gridcell` would be one stop too many.
 
 A table nobody has clicked yet still needs a way in, so the first cell nominates itself as the tab
-stop before any cursor exists. It takes the tab stop and draws no ring: nothing has been focused,
-so nothing claims to be.
+stop before any cursor exists. That is what `useCellCursor` does on its own, and what a
+hand-assembled grid gets: the tab stop with no ring, because nothing has been focused and nothing
+should claim to be.
+
+`DataTable` goes one step further and starts the cursor on that first cell rather than leaving it
+unset, so a table asked for a keyboard looks like it has one before you press a key. Silently —
+the ring appears, the caret does not move, and the page you were on keeps it. Say where it should
+start instead with `initial-cursor`:
+
+```vue
+<DataTable :columns="columns" :source="source" cell-cursor
+           :initial-cursor="{ rowId: 42, columnId: 'salary' }" />
+```
+
+A row that is not on this page is not an error. The cursor keeps the position — the row may come
+back when you page or re-filter — and the tab stop falls to the first rendered cell meanwhile.
 
 The cells get no `role` of their own. HTML-AAM already maps a `<td>` to `gridcell` rather than
 `cell` once its table is exposed as a grid, so writing it per cell would add an attribute to every

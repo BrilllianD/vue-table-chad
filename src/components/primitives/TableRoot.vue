@@ -22,6 +22,7 @@ import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
 import { useRowGrouping } from '../../core/useRowGrouping'
 import { useRowSelection, defaultRowId } from '../../core/useRowSelection'
 import { useCellCursor } from '../../core/useCellCursor'
+import type { CellPosition } from '../../core/cellCursor'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import { usePagination } from '../../core/usePagination'
 import { readValue } from '../../core/sorting'
@@ -119,6 +120,14 @@ const props = withDefaults(
      * no cursor attributes, and renders exactly what it always did.
      */
     cellCursor?: boolean
+    /**
+     * Where the cursor starts, when the first cell is not where you want it.
+     *
+     * Omitted, the cursor takes the first rendered cell — a table asked for a
+     * keyboard should look like it has one before you press a key. Seeded
+     * silently either way: the ring appears, the caret does not move.
+     */
+    initialCursor?: CellPosition
   }>(),
   { selectable: false, siblingCount: 1, reorderable: true, cellCursor: false },
 )
@@ -282,7 +291,39 @@ const cursorRows = computed(() =>
 // Built unconditionally and gated on the way out, for the reason the selection
 // is: creating it lazily would freeze the answer at setup, so turning the prop
 // on later would render a grid with nothing behind it.
-const cellCursor = useCellCursor<TRow>(cursorRows, columns.visible, { getRowId })
+const cellCursor = useCellCursor<TRow>(cursorRows, columns.visible, {
+  getRowId,
+  initial: props.initialCursor,
+})
+
+/*
+ * The default start — the first rendered cell — waits for the cursor to be
+ * switched on, and deliberately does not go through `useCellCursor`'s
+ * `initial`.
+ *
+ * Two reasons, and the first is a bug the suite caught. Resolving "the first
+ * rendered cell" reads every rendered row's identity, and `getRowId` throws for
+ * rows carrying no `id` unless the caller supplied one. A table with the cursor
+ * off never asked for identities and must not be made to produce them, so the
+ * read cannot happen at setup, where `initial` is consumed. The second is the
+ * reason the cursor is built unconditionally in the first place: the prop can
+ * be switched on later, and an answer frozen at setup would leave that table
+ * with a cursor starting nowhere.
+ *
+ * `immediate`, so the ordinary case — the prop true from the first render —
+ * still seeds on mount; `anchorAt` then does the waiting when the rows have
+ * not arrived. Silent, asking for no focus: a ring is a hint about where the
+ * arrow keys will start, but a caret nobody asked for is a scroll and a lost
+ * keystroke.
+ */
+watch(
+  () => props.cellCursor,
+  (on) => {
+    if (!on || cellCursor.position.value) return
+    cellCursor.anchorAt(0)
+  },
+  { immediate: true },
+)
 
 const cursor = computed(() => (props.cellCursor ? cellCursor : undefined))
 
