@@ -444,3 +444,107 @@ describe('the scroll box and the pinned bands', () => {
     wrapper.unmount()
   })
 })
+
+/**
+ * `autofocusCursor`: the caret on load, for the page where the table is the
+ * point of it.
+ *
+ * The default matters as much as the feature. Every other way the cursor is
+ * seeded is deliberately silent — the ring appears and the caret stays wherever
+ * the user left it — so this is the one opt-in that is allowed to move it, and
+ * only once.
+ */
+describe('autofocusCursor', () => {
+  function mountAuto(options: {
+    autofocusCursor?: boolean
+    cellCursor?: boolean
+    initialCursor?: { rowId: number; columnId: string }
+    startEmpty?: boolean
+  }) {
+    const rows = shallowRef<Person[]>(options.startEmpty ? [] : [...people])
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Person>(rows, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(DataTable as never, {
+            columns,
+            source,
+            state,
+            cellCursor: options.cellCursor ?? true,
+            autofocusCursor: options.autofocusCursor,
+            initialCursor: options.initialCursor,
+          })
+      },
+    })
+    return { wrapper: mount(Host, { attachTo: document.body }), rows }
+  }
+
+  /** The cell holding the caret, as `row/column`, or undefined for none. */
+  function focused(): string | undefined {
+    const active = document.activeElement as HTMLElement | null
+    if (!active || active.tagName !== 'TD') return undefined
+    const rowId = active.closest('tr')?.getAttribute('data-row-id')
+    return `${rowId}/${active.getAttribute('data-column')}`
+  }
+
+  it('leaves the caret alone by default', async () => {
+    const { wrapper } = mountAuto({})
+    await nextTick()
+    expect(focused()).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('takes the caret on mount when asked', async () => {
+    const { wrapper } = mountAuto({ autofocusCursor: true })
+    await nextTick()
+    expect(focused()).toBe('1/name')
+    wrapper.unmount()
+  })
+
+  it('lands on the seeded cell rather than the first', async () => {
+    const { wrapper } = mountAuto({
+      autofocusCursor: true,
+      initialCursor: { rowId: 3, columnId: 'salary' },
+    })
+    await nextTick()
+    expect(focused()).toBe('3/salary')
+    wrapper.unmount()
+  })
+
+  it('has nothing to focus without a cursor', async () => {
+    const { wrapper } = mountAuto({ autofocusCursor: true, cellCursor: false })
+    await nextTick()
+    expect(focused()).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('waits for the rows a source has not produced yet', async () => {
+    // The case that makes this a watch rather than a call: a server source has
+    // no cell to give the caret to at mount, and asking then would spend the
+    // request on nothing.
+    const { wrapper, rows } = mountAuto({ autofocusCursor: true, startEmpty: true })
+    await nextTick()
+    expect(focused()).toBeUndefined()
+
+    rows.value = [...people]
+    await nextTick()
+    await nextTick()
+    expect(focused()).toBe('1/name')
+    wrapper.unmount()
+  })
+
+  it('does not chase the rows a second time', async () => {
+    // One shot. A re-filter that replaces every row must not pull the caret
+    // back out of whatever the user moved it to — the search box, most often.
+    const { wrapper, rows } = mountAuto({ autofocusCursor: true })
+    await nextTick()
+    ;(document.activeElement as HTMLElement).blur()
+
+    rows.value = people.filter((person) => person.id !== 1)
+    await nextTick()
+    await nextTick()
+    expect(focused()).toBeUndefined()
+    wrapper.unmount()
+  })
+})

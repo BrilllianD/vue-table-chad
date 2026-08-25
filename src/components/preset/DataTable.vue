@@ -138,10 +138,21 @@ const props = withDefaults(
      * asked for a keyboard looks like it has one before you press a key.
      */
     initialCursor?: CellPosition
+    /**
+     * Take the caret on load, instead of waiting for a Tab or a click.
+     *
+     * Off by default: a table that grabbed the focus on mount would scroll
+     * itself into view and swallow the first keystroke on every page where the
+     * table is not the point. Turn it on for the pages where it is. Asked for
+     * once, when there is first a cell to give the focus to — a server source
+     * has none at mount — and never again.
+     */
+    autofocusCursor?: boolean
   }>(),
   {
     selectable: false,
     cellCursor: false,
+    autofocusCursor: false,
     reorderable: true,
     showFooter: false,
     footerLabel: 'Total',
@@ -510,6 +521,7 @@ function footerText(
     :editing="editing"
     :cell-cursor="cellCursor"
     :initial-cursor="initialCursor"
+    :autofocus-cursor="autofocusCursor"
     @update:query="$emit('update:query', $event)"
     @update:selection="$emit('update:selection', $event)"
     @update:column-order="$emit('update:columnOrder', $event)"

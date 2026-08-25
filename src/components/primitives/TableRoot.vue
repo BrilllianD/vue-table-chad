@@ -3,7 +3,7 @@
  * Wires everything together and renders nothing of its own — the slot decides
  * the markup entirely.
  */
-import { computed, toRef, watch } from 'vue'
+import { computed, onMounted, toRef, watch } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -128,8 +128,29 @@ const props = withDefaults(
      * silently either way: the ring appears, the caret does not move.
      */
     initialCursor?: CellPosition
+    /**
+     * Take the caret on load, instead of waiting for a Tab or a click.
+     *
+     * Off by default, and the default is the important one: a table that
+     * grabbed the focus on mount would scroll itself into view and swallow the
+     * first keystroke on every page where the table is not the point. Turn it
+     * on for the pages where it is.
+     *
+     * Asked for exactly once, when there is first a cell to give the focus to.
+     * A table that re-focused whenever the rows changed would pull the caret
+     * back out of the search box on every keystroke that re-filtered it.
+     *
+     * Does nothing without `cellCursor` — there is no cursor cell to focus.
+     */
+    autofocusCursor?: boolean
   }>(),
-  { selectable: false, siblingCount: 1, reorderable: true, cellCursor: false },
+  {
+    selectable: false,
+    siblingCount: 1,
+    reorderable: true,
+    cellCursor: false,
+    autofocusCursor: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -324,6 +345,50 @@ watch(
   },
   { immediate: true },
 )
+
+/*
+ * `autofocusCursor`, and the two things that make it more than one call.
+ *
+ * `onMounted` rather than setup: the watcher that moves the DOM focus lives in
+ * `TableGrid` and is created during *its* setup, which runs after this
+ * component's. A `focusRequests` bump made here at setup is therefore captured
+ * as that watcher's starting value and never seen as a change — which would
+ * make this silently do nothing against a source that answers immediately and
+ * work against one that fetches, the worst of both.
+ *
+ * And it waits, because a server source has no rows at mount and so no cell to
+ * hand the caret to. `tabStop` turning non-null is exactly "there is one now",
+ * whether that happens on the first render or three ticks later. One shot
+ * either way: the watcher stops itself, so nothing here survives to pull the
+ * caret back out of the search box on the re-filter three keystrokes later.
+ *
+ * `flush: 'post'`, so the cell is in the DOM and the roving tabindex has been
+ * patched before anything is focused. Same reason `TableGrid`'s own focus
+ * watcher uses it.
+ */
+onMounted(() => {
+  if (!props.autofocusCursor) return
+
+  /** Whether there is a cell to hand the caret to at all. */
+  const ready = (): boolean => props.cellCursor === true && cellCursor.tabStop.value !== null
+
+  // The ordinary case, answered outright rather than through a watcher with
+  // `immediate` — which would have to stop a handle it has not been given yet.
+  if (ready()) {
+    cellCursor.requestFocus()
+    return
+  }
+
+  const stop = watch(
+    ready,
+    (isReady) => {
+      if (!isReady) return
+      stop()
+      cellCursor.requestFocus()
+    },
+    { flush: 'post' },
+  )
+})
 
 const cursor = computed(() => (props.cellCursor ? cellCursor : undefined))
 

@@ -104,6 +104,20 @@ start instead with `initial-cursor`:
 A row that is not on this page is not an error. The cursor keeps the position — the row may come
 back when you page or re-filter — and the tab stop falls to the first rendered cell meanwhile.
 
+On a page where the table *is* the point, `autofocus-cursor` hands it the caret on load, so the
+arrow keys work on the first press with no Tab and no click:
+
+```vue
+<DataTable :columns="columns" :source="source" cell-cursor autofocus-cursor />
+```
+
+Off by default, and the default is the important half: a table that took the focus on mount would
+scroll itself into view and swallow the first keystroke on every page where it is one thing among
+several. It is asked for exactly once, and not until there is a cell to give the caret to — a
+server source has none at mount — so a table still fetching its first page takes the focus when the
+rows land rather than not at all. Once only: the re-filter three keystrokes later must not pull the
+caret back out of the search box.
+
 The cells get no `role` of their own. HTML-AAM already maps a `<td>` to `gridcell` rather than
 `cell` once its table is exposed as a grid, so writing it per cell would add an attribute to every
 cell on the page to say what the platform already says.

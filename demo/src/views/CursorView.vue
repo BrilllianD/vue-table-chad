@@ -13,8 +13,9 @@
  * **Reload with the ring already on the first cell.** The table starts the
  * cursor rather than waiting to be clicked, and does it silently: the ring is
  * there, but the caret never left whatever you were doing. `initialCursor`
- * moves the start somewhere else — the toggle remounts the table, because
- * where a cursor *starts* is a question asked once.
+ * moves the start somewhere else, and `autofocusCursor` is the opt-in that
+ * does take the caret — both toggles remount the table, because where a cursor
+ * starts and whether it grabs the focus are questions asked once.
  *
  * **Type Enter, edit, Enter again.** You land one row down, read-only. Shift
  * for up, Ctrl for right, both for left. Run a column of numbers that way and
@@ -73,6 +74,15 @@ const groupBy = ref<string[]>([])
 
 /** Off: the table starts on its own first cell. On: it is told where to start. */
 const seeded = ref(false)
+
+/**
+ * Off: the ring is there and the caret is wherever you left it. On: the table
+ * takes the caret as it mounts, so the arrows work on the first press.
+ *
+ * Only observable at mount, which is why the toggle is in the remount key
+ * below alongside `initialCursor`.
+ */
+const autofocus = ref(false)
 const initialCursor = computed(() =>
   seeded.value ? { rowId: rows.value[2]!.id, columnId: 'salary' } : undefined,
 )
@@ -114,6 +124,7 @@ function onRowSaved(row: Employee): void {
            whole grid, and the cursor reaches the row pipeline not at all."
     :api="[
       'DataTable cellCursor',
+      'DataTable autofocusCursor',
       'useCellCursor',
       'cursorMoveFor',
       'commitMoveFor',
@@ -131,6 +142,7 @@ function onRowSaved(row: Employee): void {
         <label><input v-model="cellCursor" type="checkbox" /> cellCursor</label>
         <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
         <label><input v-model="seeded" type="checkbox" /> initialCursor</label>
+        <label><input v-model="autofocus" type="checkbox" /> autofocusCursor</label>
 
         <span class="divider" />
 
@@ -160,7 +172,8 @@ function onRowSaved(row: Employee): void {
     <p class="note">
       The ring is already on the first cell — a table asked for a keyboard looks like it has
       one before you press a key, and <em>initialCursor</em> puts it somewhere else instead.
-      Press Tab to take it, or click any cell. Then <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>,
+      Press Tab to take it, or click any cell — or turn on <em>autofocusCursor</em>, which hands
+      the table the caret as it mounts and is the one way the cursor is allowed to move it. Then <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>,
       <kbd>Home</kbd>/<kbd>End</kbd> for the ends of a row, <kbd>Ctrl</kbd>+<kbd>Home</kbd>/
       <kbd>End</kbd> for the corners, <kbd>PageUp</kbd>/<kbd>PageDown</kbd> for ten rows,
       <kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to turn the page and take the ring with you, and
@@ -184,7 +197,8 @@ function onRowSaved(row: Employee): void {
         :sticky-header="stickyHeader"
         :initial-group-by="groupBy"
         :initial-cursor="initialCursor"
-        :key="`${groupBy.join('|')}/${seeded}`"
+        :autofocus-cursor="autofocus"
+        :key="`${groupBy.join('|')}/${seeded}/${autofocus}`"
         @row-saved="onRowSaved"
       />
     </div>
