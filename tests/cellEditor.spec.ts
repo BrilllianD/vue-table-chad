@@ -44,6 +44,18 @@ describe('the control it picks', () => {
     expect(editor(enumeration).find('select').exists()).toBe(true)
   })
 
+  it('lets the number box hold any number the column will take', () => {
+    // Without a `step` the browser invents `step="1"` off whatever value the
+    // control started with, which makes a decimal `:invalid` and lets the
+    // native spinner snap a rating's fraction away. No `ColumnDef` field
+    // declares a precision, so there is nothing here to derive a grid from.
+    expect(editor(number).find('input').attributes('step')).toBe('any')
+    // Only the number box. `step` on a date input means days, and one there
+    // would quietly restrict which dates a calendar offers.
+    expect(editor(date).find('input').attributes('step')).toBeUndefined()
+    expect(editor(text).find('input').attributes('step')).toBeUndefined()
+  })
+
   it('offers every option, plus a way back to blank', () => {
     const options = editor(enumeration).findAll('option')
     expect(options).toHaveLength(3)

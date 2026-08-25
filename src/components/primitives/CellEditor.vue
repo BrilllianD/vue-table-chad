@@ -213,11 +213,24 @@ function onKeydown(event: KeyboardEvent): void {
         @blur="emit('blur')"
       />
 
+      <!--
+        `step="any"` on the number box, because the column never said otherwise.
+
+        With no `step` the browser invents `step="1"`, and its step base is
+        whatever value the control started with. Type 96367.42 into a cell
+        holding 96367 and the input is `:invalid` on a stepMismatch, and the
+        native spinner and arrow keys snap to that grid — a decimal column such
+        as a rating loses its fraction to a key press that was meant to nudge
+        it. Nothing in `ColumnDef` declares a precision, so the honest default
+        is "any number the column's own `parse` and `validate` will accept",
+        and those are where a column that wants integers should say so.
+      -->
       <input
         v-else
         ref="control"
         class="vt-cell-input"
         :type="kind === 'number' ? 'number' : kind === 'date' ? 'date' : 'text'"
+        :step="kind === 'number' ? 'any' : undefined"
         :value="text"
         :disabled="disabled"
         :aria-label="label"

@@ -143,6 +143,32 @@ describe('cell mode', () => {
     h.wrapper.unmount()
   })
 
+  it('stores a decimal exactly as it was typed', async () => {
+    // The library's own path is lossless end to end — `target.value` untouched,
+    // `Number(trimmed)` to parse, the patch written straight through. What
+    // rounds a saved number is a formatter on the way back out, or a server
+    // normalising it, and neither is the table doing it. Asserted here because
+    // "the value changed after I saved it" is the report, and this is the line
+    // that says the change came from somewhere else.
+    const h = mountEditable()
+    await openEditor(h.wrapper, 'salary')
+
+    const input = cell(h.wrapper, 'salary').find('input')
+    await input.setValue('96367.42')
+    await input.trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    await nextTick()
+
+    expect(h.saves[0]!.patch).toEqual({ salary: 96367.42 })
+    expect(h.rows.value.find((row) => row.id === 1)!.salary).toBe(96367.42)
+
+    // And the editor seeds from the raw value, not from the rendered text, so
+    // reopening shows the number back rather than a re-parsed display string.
+    await openEditor(h.wrapper, 'salary')
+    expect(cell(h.wrapper, 'salary').find('input').element.value).toBe('96367.42')
+    h.wrapper.unmount()
+  })
+
   it('saves when focus leaves the cell', async () => {
     const h = mountEditable()
     await openEditor(h.wrapper, 'salary')

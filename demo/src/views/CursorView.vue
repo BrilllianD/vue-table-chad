@@ -34,6 +34,11 @@
  * a band header, because it walks the rendered rows rather than the page the
  * source returned.
  *
+ * Salary is worth one warning here, because this view edits against the same
+ * fake server the Editing view does: its payroll rounds to the nearest hundred,
+ * so that column will not keep the exact number you type. That is `fakeApi.ts`,
+ * not the table — every other editable column round-trips what you typed.
+ *
  * The counters at the bottom are the claim the invalidation suite makes, made
  * where you can watch it: moving the cursor is layout, and reaches the row
  * pipeline exactly as often as a column resize does — never.
@@ -151,7 +156,9 @@ function onRowSaved(row: Employee): void {
       <kbd>Home</kbd>/<kbd>End</kbd> for the ends of a row, <kbd>Ctrl</kbd>+<kbd>Home</kbd>/
       <kbd>End</kbd> for the corners, <kbd>PageUp</kbd>/<kbd>PageDown</kbd> for ten rows,
       <kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to turn the page and take the ring with you.
-      <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor; <kbd>Esc</kbd> puts the cell back and
+      <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor — Salary is the one column that will not
+      keep your exact number, because this demo's payroll rounds to the nearest hundred.
+      <kbd>Esc</kbd> puts the cell back and
       hands the focus to the cell. Turn <em>cellCursor</em> off and the table goes back to what
       it renders without one, edit buttons and all.
     </p>
