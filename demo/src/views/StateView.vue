@@ -89,9 +89,20 @@ function setFromOutside(): void {
 
 const copied = ref(false)
 async function copyLink(): Promise<void> {
-  await navigator.clipboard.writeText(`${location.origin}${location.pathname}${HASH_PREFIX}${serialized.value}`)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 1500)
+  try {
+    await navigator.clipboard.writeText(
+      `${location.origin}${location.pathname}${HASH_PREFIX}${serialized.value}`,
+    )
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1500)
+  } catch {
+    // Guarded the way the Recipes view guards its own copy button. The
+    // clipboard refuses for reasons that have nothing to do with this page — an
+    // unfocused document is enough — and an unhandled rejection in a click
+    // handler is a Vue warning in the console rather than anything the reader
+    // can act on. The link is in the address bar either way.
+    copied.value = false
+  }
 }
 
 /** Read straight after a write, to show the mirroring really is synchronous. */

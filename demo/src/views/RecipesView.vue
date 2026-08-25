@@ -21,6 +21,35 @@ interface Recipe {
   code: string
 }
 
+/**
+ * A `why` split into the pieces it should render as.
+ *
+ * The strings carry Markdown's two inline marks — `` `code` `` and `*emphasis*`
+ * — because they are lifted from the README, and interpolating one straight
+ * into the template put the punctuation on the screen. Segments rather than
+ * `v-html`: the copy is static and safe today, and a helper that renders any
+ * string as markup is the sort of thing someone later feeds a variable.
+ *
+ * One regex, alternating: whatever is between the marks becomes the segment's
+ * text, and which mark matched decides the tag.
+ */
+interface Segment {
+  tag: 'code' | 'em' | 'text'
+  text: string
+}
+
+function segments(why: string): Segment[] {
+  const out: Segment[] = []
+  let last = 0
+  for (const match of why.matchAll(/`([^`]+)`|\*([^*]+)\*/g)) {
+    if (match.index > last) out.push({ tag: 'text', text: why.slice(last, match.index) })
+    out.push(match[1] ? { tag: 'code', text: match[1] } : { tag: 'em', text: match[2]! })
+    last = match.index + match[0].length
+  }
+  if (last < why.length) out.push({ tag: 'text', text: why.slice(last) })
+  return out
+}
+
 const recipes: Recipe[] = [
   {
     id: 'quick-start',
@@ -194,7 +223,14 @@ async function copy(recipe: Recipe): Promise<void> {
             {{ copied === recipe.id ? 'Copied' : 'Copy' }}
           </button>
         </header>
-        <p class="hint">{{ recipe.why }}</p>
+        <p class="hint">
+          <component
+            :is="part.tag === 'text' ? 'span' : part.tag"
+            v-for="(part, index) in segments(recipe.why)"
+            :key="index"
+            >{{ part.text }}</component
+          >
+        </p>
         <pre class="recipe-code"><code>{{ recipe.code }}</code></pre>
       </article>
     </div>

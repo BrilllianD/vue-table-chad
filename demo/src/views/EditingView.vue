@@ -115,7 +115,7 @@ const editableColumns = computed(() =>
 <template>
   <DemoSection
     title="Editing"
-    blurb="Click any cell with a value to edit it. Every column is opt-in — `tags` stays read-only
+    blurb="Click any cell with a value to edit it. Every column is opt-in — Tags stays read-only
            because a list needs an editor of its own. Watch the request log: a save is one request,
            and in row mode it is one request for the whole row however many fields changed.
            Salary is the one column that will not keep what you type: this demo's payroll rounds

@@ -37,15 +37,15 @@ const tabs: Tab[] = [
   { id: 'grouping', label: 'Grouping', layer: 'preset', component: GroupingView },
   { id: 'editing', label: 'Editing', layer: 'preset', component: EditingView },
   { id: 'cursor', label: 'Cell cursor', layer: 'preset', component: CursorView },
+  { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },
   { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
   { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
   { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },
+  { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },
   { id: 'selection', label: 'Selection', layer: 'primitives', component: SelectionView },
   { id: 'columns', label: 'Column layout', layer: 'primitives', component: ColumnsView },
-  { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },
   { id: 'composed', label: 'Composed', layer: 'primitives', component: ComposedView },
   { id: 'core', label: 'Core only', layer: 'core', component: HeadlessView },
-  { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },
 ]
 
 /**
