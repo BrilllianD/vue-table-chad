@@ -23,14 +23,16 @@ const columns: ColumnDef<Person>[] = personColumns.map((column) =>
 
 type SessionOptions = Partial<Parameters<typeof useRowEditing<Person>>[2]>
 
-function mountTable(options: { cellCursor?: boolean; session?: SessionOptions } = {}) {
+function mountTable(
+  options: { cellCursor?: boolean; pageSize?: number; session?: SessionOptions } = {},
+) {
   const rows = shallowRef<Person[]>([...people])
   const saves: RowChange<Person>[] = []
   const saved: Person[] = []
 
   const Host = defineComponent({
     setup() {
-      const state = useTableState({ pageSize: 25 })
+      const state = useTableState({ pageSize: options.pageSize ?? 25 })
       const source = useLocalDataSource<Person>(rows, columns, state.query, { debounceMs: 0 })
       const session = useRowEditing<Person>(source, columns, {
         save: async (change) => {
@@ -250,6 +252,96 @@ describe('Escape', () => {
     // Without this the editor unmounts and the focus falls all the way to
     // <body>, stranding a keyboard user outside the table they were in.
     expect(document.activeElement).toBe(cell(wrapper, 1, 'name').element)
+    wrapper.unmount()
+  })
+})
+
+describe('Ctrl and an arrow', () => {
+  /** The row ids the body is showing, top to bottom. */
+  function pageIds(wrapper: Wrapper): string[] {
+    return wrapper
+      .findAll('tbody tr[data-row-id]')
+      .map((row) => row.attributes('data-row-id')!)
+  }
+
+  it('turns the page and keeps the cursor at the same offset and column', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
+
+    // Second row, third column — an offset and a column that are both wrong if
+    // either half of the re-anchor is dropped.
+    await cell(wrapper, 2, 'salary').trigger('focusin')
+    expect(ringAt(wrapper)).toBe('2:salary')
+
+    await cell(wrapper, 2, 'salary').trigger('keydown', { key: 'ArrowRight', ctrlKey: true })
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['4', '5', '6'])
+    // Second row of the new page, same column. Re-anchoring to the top would
+    // make every page turn cost a second gesture to get back to reading height.
+    expect(ringAt(wrapper)).toBe('5:salary')
+
+    await cell(wrapper, 5, 'salary').trigger('keydown', { key: 'ArrowLeft', ctrlKey: true })
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
+    expect(ringAt(wrapper)).toBe('2:salary')
+
+    wrapper.unmount()
+  })
+
+  it('clamps to a short last page rather than landing nowhere', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    await cell(wrapper, 3, 'name').trigger('focusin')
+
+    await cell(wrapper, 3, 'name').trigger('keydown', { key: 'ArrowRight', ctrlKey: true })
+    await nextTick()
+    expect(ringAt(wrapper)).toBe('6:name')
+
+    // Page 3 holds one row, and the cursor was on the third.
+    await cell(wrapper, 6, 'name').trigger('keydown', { key: 'ArrowRight', ctrlKey: true })
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['7'])
+    expect(ringAt(wrapper)).toBe('7:name')
+
+    wrapper.unmount()
+  })
+
+  it('does nothing at all at either end', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    await cell(wrapper, 2, 'name').trigger('focusin')
+
+    // Already on page 1. The page cannot move, so the cursor must not either —
+    // re-anchoring anyway would yank it to a page it never left.
+    await cell(wrapper, 2, 'name').trigger('keydown', { key: 'ArrowLeft', ctrlKey: true })
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
+    expect(ringAt(wrapper)).toBe('2:name')
+
+    wrapper.unmount()
+  })
+
+  it('leaves the unmodified arrow meaning one cell', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    await cell(wrapper, 2, 'name').trigger('focusin')
+
+    await cell(wrapper, 2, 'name').trigger('keydown', { key: 'ArrowRight' })
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
+    expect(ringAt(wrapper)).toBe('2:department')
+
+    wrapper.unmount()
+  })
+
+  it('is inert on a table with no cursor', async () => {
+    const { wrapper } = mountTable({ cellCursor: false, pageSize: 3 })
+    // No listeners are bound at all without a cursor, so the key reaches
+    // nothing — the table pages by its pager and by nothing else.
+    await wrapper.get('tbody tr:nth-child(2) td').trigger('keydown', {
+      key: 'ArrowRight',
+      ctrlKey: true,
+    })
+    await nextTick()
+    expect(wrapper.findAll('tbody tr')).toHaveLength(3)
+    expect(wrapper.get('tbody tr:first-child td').text()).toContain('Ada')
     wrapper.unmount()
   })
 })

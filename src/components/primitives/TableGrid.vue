@@ -22,7 +22,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import { useTableContext } from '../../core/context'
-import { cursorMoveFor, type CellPosition } from '../../core/cellCursor'
+import { cursorMoveFor, pageMoveFor, type CellPosition } from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ResolvedColumn } from '../../core/types'
 
@@ -51,6 +51,15 @@ const emit = defineEmits<{
    * session, and a grid that assumed one could not be used without one.
    */
   activate: [position: CellPosition, event: Event]
+  /**
+   * The user asked to turn the page — `Ctrl`/`Cmd` + `←`/`→`. `-1` back, `1` on.
+   *
+   * Reported rather than acted on, for the reason `activate` is: paging needs
+   * a data source and a query, and this component has neither. It also should
+   * not decide where the cursor lands afterwards — that depends on rows it has
+   * not been given yet.
+   */
+  pageMove: [pages: number]
 }>()
 
 const context = useTableContext<TRow>()
@@ -118,6 +127,15 @@ function onKeydown(event: KeyboardEvent): void {
     if (!position) return
     event.preventDefault()
     emit('activate', position, event)
+    return
+  }
+
+  // Before `cursorMoveFor`, which returns nothing for these two gestures — the
+  // one place both decoders see the same key press, and only one may claim it.
+  const pages = pageMoveFor(event)
+  if (pages) {
+    event.preventDefault()
+    emit('pageMove', pages)
     return
   }
 

@@ -24,6 +24,7 @@ import type {
 } from '../../core/types'
 import type { ColumnLayoutState } from '../../core/useColumns'
 import { commitMoveFor, type CellPosition, type CursorMove } from '../../core/cellCursor'
+import type { UsePagination } from '../../core/usePagination'
 import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
@@ -302,6 +303,40 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
 }
 
 /**
+ * `Ctrl`/`Cmd` + `←`/`→`: turn the page, and take the cursor along.
+ *
+ * It keeps its offset and its column — the third row of page 2 becomes the
+ * third row of page 3 — rather than re-anchoring to the top. Paging is reading,
+ * and the eye is already at a height on the screen; putting the ring back at
+ * the top would make every page turn cost a second gesture to get back to it.
+ *
+ * The offset is read *before* the page changes, because afterwards there is
+ * nothing left to read it from. `anchorAt` then resolves it whenever the new
+ * rows arrive, which is the same tick for a local source and some tick later
+ * for a server one — the reason this is not simply a `moveTo` on the next line.
+ *
+ * A clamped page change moves nothing at all. `pagination.go` already refuses
+ * to step past either end, and asking the cursor to re-anchor anyway would
+ * yank it to the top of a page it never left.
+ *
+ * Works whether or not `show-pagination` renders a pager: a keyboard route
+ * that only exists when a control is on screen is not a keyboard route.
+ */
+function pageMove(
+  pages: number,
+  cursor: UseCellCursor<TRow> | undefined,
+  pagination: UsePagination,
+): void {
+  if (!cursor) return
+  const offset = Math.max(0, cursor.rowOffset.value)
+  const columnId = cursor.columnId.value ?? cursor.tabStop.value?.columnId
+  const before = pagination.page.value
+  pagination.go(before + pages)
+  if (pagination.page.value === before) return
+  cursor.anchorAt(offset, columnId, { focus: true })
+}
+
+/**
  * Enter, F2 or a double-click on the cursor cell.
  *
  * `TableGrid` reports the gesture rather than acting on it, because opening an
@@ -349,6 +384,7 @@ function footerText(
       state: tableState,
       selection,
       cursor,
+      pagination,
       source: src,
       loading,
       error,
@@ -468,6 +504,7 @@ function footerText(
             :actions-column="actionsColumn"
             :cursor="cursor"
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
+            @page-move="(pages) => pageMove(pages, cursor, pagination)"
           >
             <!--
               One `<tr>` per header row. With no band declared `headerRows` is a

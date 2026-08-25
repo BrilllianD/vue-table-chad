@@ -18,8 +18,9 @@ editable cells keep the button that is their only keyboard route without one.
 | --- | --- |
 | `↑` `↓` `←` `→` | one cell |
 | `Home` / `End` | first / last column of this row |
-| `Ctrl`+`Home` / `Ctrl`+`End` | first / last cell of the table |
+| `Ctrl`+`Home` / `Ctrl`+`End` | first / last cell of the page |
 | `PageUp` / `PageDown` | ten rows |
+| `Ctrl`/`Cmd`+`←` / `→` | previous / next **page** |
 | `Enter` / `F2` | open this cell's editor |
 | `Esc` | cancel the edit, and hand the focus back to the cell |
 
@@ -46,6 +47,18 @@ neither commits; the `Ctrl`/`Cmd` pair carries the commit and still means **down
 rather than right and left. A multi-line cell with no way to commit and move down would be missing
 the gesture people actually use, so down is what its one modifier buys. Down and up are simply
 unreachable from a textarea — a consequence of the control, not a second convention.
+
+`PageUp`/`PageDown` move ten rows and stay on the page, which is what they mean in a spreadsheet;
+`Ctrl`/`Cmd`+`←`/`→` turns the page itself. The modifier is the whole difference between "the next
+column" and "the next page", the same split `Home` and `End` already use for "this row" against
+"the whole table". Ten rows is a fixed count rather than the page size, because with `page-size:
+100` and twelve rows visible a `PageDown` of 100 would put the cursor somewhere nobody can see.
+
+Turning the page keeps the cursor's **offset and column**: the third row of page 2 becomes the
+third row of page 3. Paging is reading, and the eye is already at a height on the screen — putting
+the ring back at the top would cost a second gesture to get back to it. A short last page clamps,
+and a page turn that cannot happen moves nothing at all. It works whether or not the pager is
+rendered: a keyboard route that only exists when a control is on screen is not a keyboard route.
 
 `Alt` is left alone throughout. `Alt`+`←`/`→` is already the keyboard reorder gesture on a header
 (see [Column layout](column-layout.md)), and in the body most browsers spend it on history
@@ -129,17 +142,34 @@ the one thing the composable cannot work out for itself, and it is why `TableRoo
 rather than accepting one.
 
 `TableGrid` **reports** `activate` (Enter, `F2`, a double-click) rather than acting on it, because
-opening an editor needs an editing session it may not have. `useCellCursor` never imports
-`useRowEditing` and never will: a cursor is useful on a read-only table, and a table can edit with
-no cursor.
+opening an editor needs an editing session it may not have. It reports `page-move` for the same
+reason: paging needs a data source and a query, and a grid that assumed one could not be used on
+its own. `useCellCursor` never imports `useRowEditing` and never will: a cursor is useful on a
+read-only table, and a table can edit with no cursor.
+
+To take the cursor along with the page yourself, read the offset *before* the page changes — there
+is nothing left to read it from afterwards — and hand it to `anchorAt`:
+
+```ts
+const offset = Math.max(0, cursor.rowOffset.value)
+pagination.go(pagination.page.value + pages)
+cursor.anchorAt(offset, cursor.columnId.value, { focus: true })
+```
+
+`anchorAt` waits for the rows if they are not there yet, which is what makes the same three lines
+work against a server source that has to fetch the page first.
 
 The pure half is exported too, for a key map of your own:
 
 ```ts
 cursorMoveFor(event)              // what a key press asked for, or undefined
 commitMoveFor(event, editorKind)  // where an Enter that commits should land
+pageMoveFor(event)                // -1, 1, or undefined — a page turn
 nextPosition(from, move, rowIds, columnIds)   // where that lands, clamped
 ```
+
+The three decoders are exclusive: no gesture is claimed by more than one, which is why a caller can
+try them in any order and act on the first that answers.
 
 `cursorMoveFor` takes a structural gesture rather than a `KeyboardEvent`, so a key table can be
 tested with a plain object and with no DOM at all.
@@ -149,7 +179,9 @@ tested with a plain object and with no DOM at all.
 Nothing the row pipeline can see. Moving the cursor is layout, like a resize or a pin: it writes
 one `shallowRef` and reads two lists that are already page-sized. `tests/invalidation.spec.ts`
 asserts all four O(dataset) counters stay at zero across an arrow, a `Home`/`End`, a `PageDown` and
-a `Ctrl`+`End`, and that a re-sort under a set cursor still costs exactly one sort pass.
+a `Ctrl`+`End`, and that a re-sort under a set cursor still costs exactly one sort pass. Turning
+the page with `Ctrl`+`←`/`→` costs what turning it by the pager costs — it is the same `setPage`,
+and the suite says so rather than assuming it.
 
 Within the page, a row subscribes to two *fields* of the cursor rather than to its position, so a
 vertical move leaves them identical for every row but two and the rest stop at a string compare.

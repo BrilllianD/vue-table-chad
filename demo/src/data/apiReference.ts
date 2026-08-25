@@ -124,6 +124,7 @@ export const apiReference: ApiEntry[] = [
 
   { name: 'cursorMoveFor', layer: 'core', kind: 'function', summary: 'What a key press means while a **cell** has focus, or `undefined` for a key the grid does not claim.' },
   { name: 'commitMoveFor', layer: 'core', kind: 'function', summary: 'Where the cursor goes after an Enter that commits an open editor, or `undefined` when this key press is not a commit at all.' },
+  { name: 'pageMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `←`/`→` asked to turn the page — `-1` back, `1` on — or `undefined` for any other key.' },
   { name: 'nextPosition', layer: 'core', kind: 'function', summary: 'Where `move` lands, given the cells currently on screen — or `undefined` when it lands nowhere new.' },
   { name: 'PAGE_MOVE_ROWS', layer: 'core', kind: 'constant', summary: 'How far PageUp and PageDown jump.' },
   { name: 'CellPosition', layer: 'core', kind: 'type', summary: 'Where the cursor is: a row and a column, by identity rather than by position.' },

@@ -159,7 +159,13 @@ export type { CellErrors, DraftValidation } from './core/editing'
 
 /* ----------------------------------------------------------- cell cursor */
 
-export { cursorMoveFor, commitMoveFor, nextPosition, PAGE_MOVE_ROWS } from './core/cellCursor'
+export {
+  cursorMoveFor,
+  commitMoveFor,
+  pageMoveFor,
+  nextPosition,
+  PAGE_MOVE_ROWS,
+} from './core/cellCursor'
 export type {
   CellPosition,
   CellCursorMark,

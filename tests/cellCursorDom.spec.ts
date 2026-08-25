@@ -164,6 +164,7 @@ describe('TableGrid', () => {
   /** A whole `<tbody>` of primitives, and nothing else — no root, no preset. */
   function mountGrid(cursor?: ReturnType<typeof cursorOver>) {
     const activated: Array<{ rowId: unknown; columnId: string }> = []
+    const paged: number[] = []
     const host = defineComponent({
       setup() {
         return () =>
@@ -174,6 +175,7 @@ describe('TableGrid', () => {
               cursor,
               onActivate: (position: { rowId: unknown; columnId: string }) =>
                 activated.push(position),
+              onPageMove: (pages: number) => paged.push(pages),
             },
             () => [
               h(
@@ -184,7 +186,7 @@ describe('TableGrid', () => {
           )
       },
     })
-    return { wrapper: mount(host, { attachTo: document.body }), activated }
+    return { wrapper: mount(host, { attachTo: document.body }), activated, paged }
   }
 
   function cellAt(wrapper: ReturnType<typeof mount>, rowId: number, columnId: string) {
@@ -233,6 +235,28 @@ describe('TableGrid', () => {
 
     await cellAt(wrapper, 3, 'salary').trigger('keydown', { key: 'ArrowDown' })
     expect(cursor.position.value).toEqual({ rowId: 3, columnId: 'salary' })
+
+    wrapper.unmount()
+  })
+
+  it('reports a page turn rather than moving the cursor sideways', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'name' })
+    const { wrapper, paged } = mountGrid(cursor)
+
+    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: 'ArrowRight', ctrlKey: true })
+    expect(paged).toEqual([1])
+    // The cursor has not moved, and that is the point: the grid has no data
+    // source, so where the cursor lands depends on rows it has not been given.
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'name' })
+
+    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: 'ArrowLeft', metaKey: true })
+    expect(paged).toEqual([1, -1])
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'name' })
+
+    // Unmodified, the same key is one column and no page turn at all.
+    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: 'ArrowRight' })
+    expect(paged).toEqual([1, -1])
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'city' })
 
     wrapper.unmount()
   })

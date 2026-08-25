@@ -24,6 +24,11 @@
  * it was on, which has moved. The position is a row id and a column id, never a
  * pair of indices — the same reason an open draft survives a re-sort.
  *
+ * **Hold Ctrl and press → a few times.** The page turns and the ring keeps its
+ * height on the screen — third row of page 2, third row of page 3. Paging is
+ * reading, and the eye is already somewhere. `PageDown` is the other thing, and
+ * still means ten rows *within* the page.
+ *
  * **Group by Department and arrow down through a band boundary.** The cursor
  * steps from the last row of one band to the first of the next and never onto
  * a band header, because it walks the rendered rows rather than the page the
@@ -101,6 +106,7 @@ function onRowSaved(row: Employee): void {
       'useCellCursor',
       'cursorMoveFor',
       'commitMoveFor',
+      'pageMoveFor',
       'nextPosition',
       'CellPosition',
       'CellCursorMark',
@@ -143,7 +149,8 @@ function onRowSaved(row: Employee): void {
       one before you press a key, and <em>initialCursor</em> puts it somewhere else instead.
       Press Tab to take it, or click any cell. Then <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>,
       <kbd>Home</kbd>/<kbd>End</kbd> for the ends of a row, <kbd>Ctrl</kbd>+<kbd>Home</kbd>/
-      <kbd>End</kbd> for the corners, <kbd>PageUp</kbd>/<kbd>PageDown</kbd> for ten rows.
+      <kbd>End</kbd> for the corners, <kbd>PageUp</kbd>/<kbd>PageDown</kbd> for ten rows,
+      <kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to turn the page and take the ring with you.
       <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor; <kbd>Esc</kbd> puts the cell back and
       hands the focus to the cell. Turn <em>cellCursor</em> off and the table goes back to what
       it renders without one, edit buttons and all.

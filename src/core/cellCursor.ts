@@ -4,6 +4,9 @@
  * `editing.ts` is the write half of a column; this is the navigation half of a
  * table. It answers two questions and holds no state at all: what a key press
  * asked for, and which cell that lands on given the cells currently on screen.
+ * There are three decoders for the first question — a position move, a commit
+ * and a page turn — because those are three different things for a caller to
+ * do, and flattening them into one return type would only move the branch.
  *
  * Three conventions run through the file:
  *
@@ -15,6 +18,10 @@
  *   - **Movement clamps, it does not wrap and it does not page.** Falling off
  *     the bottom of a page into a fetch is a different feature with a different
  *     failure mode (rows that have not arrived yet); the cursor stops instead.
+ *     Turning the page is asked for outright — `pageMoveFor` — and even then
+ *     nothing here performs it: a page change is the table's business, and
+ *     `nextPosition` would be reading a row list its caller was about to
+ *     replace.
  *   - **A move that changes nothing returns `undefined`.** The caller then
  *     writes no state, so holding ArrowDown at the last row re-renders exactly
  *     zero times.
@@ -107,10 +114,13 @@ export function cursorMoveFor(gesture: CursorKeyGesture): CursorMove | undefined
       return { kind: 'by', rows: 1, columns: 0 }
     case 'ArrowUp':
       return { kind: 'by', rows: -1, columns: 0 }
+    // The primary modifier turns the horizontal arrows into a page change,
+    // which is not a position move at all — `pageMoveFor` reads them. Claiming
+    // them here too would move the cursor one column *and* turn the page.
     case 'ArrowRight':
-      return { kind: 'by', rows: 0, columns: 1 }
+      return primary ? undefined : { kind: 'by', rows: 0, columns: 1 }
     case 'ArrowLeft':
-      return { kind: 'by', rows: 0, columns: -1 }
+      return primary ? undefined : { kind: 'by', rows: 0, columns: -1 }
     case 'PageDown':
       return { kind: 'by', rows: PAGE_MOVE_ROWS, columns: 0 }
     case 'PageUp':
@@ -126,6 +136,31 @@ export function cursorMoveFor(gesture: CursorKeyGesture): CursorMove | undefined
     default:
       return undefined
   }
+}
+
+/**
+ * Which way `Ctrl`/`Cmd` + `←`/`→` asked to turn the page — `-1` back, `1` on
+ * — or `undefined` for any other key.
+ *
+ * A decoder of its own rather than a fourth `CursorMove`, because turning the
+ * page is not a move: it changes which rows exist rather than which of them is
+ * under the cursor, and it is the table's business, not the cursor's.
+ * `nextPosition` is handed the cells currently on screen and clamps inside
+ * them, and a `CursorMove` that could invalidate that list would make the one
+ * thing it is allowed to know untrue.
+ *
+ * The horizontal arrows rather than `PageUp`/`PageDown`, which already mean
+ * ten rows *within* the page and mean it in every spreadsheet. Left and right
+ * for backwards and forwards is the pagination control's own direction, and
+ * the modifier is what separates "the next column" from "the next page" —
+ * the same primary-modifier split `Home` and `End` already use for "this row"
+ * against "the whole table".
+ */
+export function pageMoveFor(gesture: CursorKeyGesture): -1 | 1 | undefined {
+  if (gesture.altKey || !isPrimaryModifier(gesture)) return undefined
+  if (gesture.key === 'ArrowRight') return 1
+  if (gesture.key === 'ArrowLeft') return -1
+  return undefined
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   commitMoveFor,
   cursorMoveFor,
   nextPosition,
+  pageMoveFor,
   type CellPosition,
 } from '../src/core/cellCursor'
 import { useCellCursor } from '../src/core/useCellCursor'
@@ -85,10 +86,64 @@ describe('cursorMoveFor', () => {
     expect(cursorMoveFor({ key: 'Home', altKey: true })).toBeUndefined()
   })
 
+  it('gives the modified horizontal arrows up entirely', () => {
+    // They mean a page change, which is not a position move — and if both
+    // decoders claimed them the cursor would step a column *and* turn the page.
+    expect(cursorMoveFor({ key: 'ArrowRight', ctrlKey: true })).toBeUndefined()
+    expect(cursorMoveFor({ key: 'ArrowLeft', metaKey: true })).toBeUndefined()
+    // The vertical pair is untouched: there is no such thing as a modified
+    // ArrowDown here, so it must keep meaning one row.
+    expect(cursorMoveFor({ key: 'ArrowDown', ctrlKey: true })).toEqual({
+      kind: 'by',
+      rows: 1,
+      columns: 0,
+    })
+  })
+
   it('claims nothing else', () => {
     expect(cursorMoveFor({ key: 'a' })).toBeUndefined()
     expect(cursorMoveFor({ key: 'Tab' })).toBeUndefined()
     expect(cursorMoveFor({ key: 'Escape' })).toBeUndefined()
+  })
+})
+
+describe('pageMoveFor', () => {
+  it('reads the modified horizontal arrows as a page turn', () => {
+    expect(pageMoveFor({ key: 'ArrowRight', ctrlKey: true })).toBe(1)
+    expect(pageMoveFor({ key: 'ArrowLeft', ctrlKey: true })).toBe(-1)
+    expect(pageMoveFor({ key: 'ArrowRight', metaKey: true })).toBe(1)
+  })
+
+  it('needs the modifier, and refuses Alt', () => {
+    // Bare arrows are one cell, and must stay one cell — the modifier is the
+    // whole difference between "the next column" and "the next page".
+    expect(pageMoveFor({ key: 'ArrowRight' })).toBeUndefined()
+    expect(pageMoveFor({ key: 'ArrowLeft' })).toBeUndefined()
+    expect(pageMoveFor({ key: 'ArrowRight', ctrlKey: true, altKey: true })).toBeUndefined()
+  })
+
+  it('claims no other key, modified or not', () => {
+    expect(pageMoveFor({ key: 'ArrowDown', ctrlKey: true })).toBeUndefined()
+    expect(pageMoveFor({ key: 'PageDown', ctrlKey: true })).toBeUndefined()
+    expect(pageMoveFor({ key: 'Home', ctrlKey: true })).toBeUndefined()
+    expect(pageMoveFor({ key: 'Enter', ctrlKey: true })).toBeUndefined()
+  })
+
+  it('is exclusive with cursorMoveFor over every gesture either claims', () => {
+    // The invariant the two decoders rest on. A key both answered would be
+    // acted on twice, and the file's split only works if that cannot happen.
+    const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp',
+      'PageDown', 'Enter', 'F2', 'Tab', 'a']
+    for (const key of keys) {
+      for (const modifiers of [{}, { ctrlKey: true }, { metaKey: true }, { shiftKey: true },
+        { ctrlKey: true, shiftKey: true }, { altKey: true }]) {
+        const gesture = { key, ...modifiers }
+        expect(
+          cursorMoveFor(gesture) !== undefined && pageMoveFor(gesture) !== undefined,
+          `${key} ${JSON.stringify(modifiers)} was claimed by both`,
+        ).toBe(false)
+      }
+    }
   })
 })
 

@@ -418,6 +418,35 @@ describe('what an interaction is allowed to recompute', () => {
     h.stop()
   })
 
+  it('turning the page from the cursor costs what turning it always did', () => {
+    const h = harness()
+    const rows = h.source.rows.value
+    h.cursor.moveTo({ rowId: rows[2]!.id, columnId: 'salary' })
+    reset()
+
+    // What `Ctrl`+`→` does through the preset, without the preset: read the
+    // offset, move the page, re-anchor. The page change is the only part that
+    // touches data, and it is the same `setPage` the pager calls — so this
+    // inherits "paging redoes nothing", and says so where a new binding cannot
+    // quietly stop inheriting it.
+    const offset = h.cursor.rowOffset.value
+    h.state.setPage(h.state.page.value + 1)
+    h.cursor.anchorAt(offset, 'salary')
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    // And it landed: same offset down the new page, same column.
+    expect(h.cursor.position.value).toEqual({
+      rowId: h.source.rows.value[offset]!.id,
+      columnId: 'salary',
+    })
+    h.stop()
+  })
+
   it('a cursor clamped at the edge writes no state at all', () => {
     const h = harness()
     h.cursor.moveTo({ rowId: h.source.rows.value[0]!.id, columnId: 'name' })
