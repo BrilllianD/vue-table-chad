@@ -4,9 +4,10 @@
  * `editing.ts` is the write half of a column; this is the navigation half of a
  * table. It answers two questions and holds no state at all: what a key press
  * asked for, and which cell that lands on given the cells currently on screen.
- * There are three decoders for the first question — a position move, a commit
- * and a page turn — because those are three different things for a caller to
- * do, and flattening them into one return type would only move the branch.
+ * There are four decoders for the first question — a position move, a commit,
+ * a page turn and a sideways scroll — because those are four different things
+ * for a caller to do, and flattening them into one return type would only move
+ * the branch.
  *
  * Three conventions run through the file:
  *
@@ -114,13 +115,14 @@ export function cursorMoveFor(gesture: CursorKeyGesture): CursorMove | undefined
       return { kind: 'by', rows: 1, columns: 0 }
     case 'ArrowUp':
       return { kind: 'by', rows: -1, columns: 0 }
-    // The primary modifier turns the horizontal arrows into a page change,
-    // which is not a position move at all — `pageMoveFor` reads them. Claiming
-    // them here too would move the cursor one column *and* turn the page.
+    // A *modified* horizontal arrow is not a position move at all: the primary
+    // modifier turns the page (`pageMoveFor`) and Shift scrolls the viewport
+    // sideways (`scrollMoveFor`). Claiming them here as well would move the
+    // cursor one column *and* do the other thing.
     case 'ArrowRight':
-      return primary ? undefined : { kind: 'by', rows: 0, columns: 1 }
+      return primary || gesture.shiftKey ? undefined : { kind: 'by', rows: 0, columns: 1 }
     case 'ArrowLeft':
-      return primary ? undefined : { kind: 'by', rows: 0, columns: -1 }
+      return primary || gesture.shiftKey ? undefined : { kind: 'by', rows: 0, columns: -1 }
     case 'PageDown':
       return { kind: 'by', rows: PAGE_MOVE_ROWS, columns: 0 }
     case 'PageUp':
@@ -161,6 +163,88 @@ export function pageMoveFor(gesture: CursorKeyGesture): -1 | 1 | undefined {
   if (gesture.key === 'ArrowRight') return 1
   if (gesture.key === 'ArrowLeft') return -1
   return undefined
+}
+
+/**
+ * Which way `Shift` + `←`/`→` asked to scroll the table sideways — `-1` left,
+ * `1` right — or `undefined` for any other key.
+ *
+ * The fourth decoder, and the only one that moves neither the cursor nor the
+ * rows. It moves the **viewport**: the ring stays exactly where it was, which
+ * is the whole point of having the gesture at all. A wide table's far column
+ * was previously reachable only by walking the cursor onto it and losing your
+ * place, or by reaching for the scrollbar with the pointer.
+ *
+ * Three meanings, one pair of keys, separated by the modifier alone: bare moves
+ * the cursor one column, the primary modifier turns the page, and `Shift`
+ * scrolls. `Ctrl`/`Cmd`+`Shift`+`←`/`→` stays a page turn rather than becoming
+ * a fourth thing, so a bare `Shift` is required here — that is also what keeps
+ * this decoder exclusive with `pageMoveFor`.
+ *
+ * The vertical pair is deliberately unclaimed. `Shift`+`↑`/`↓` is the
+ * spreadsheet gesture for extending a selection, and spending it on scrolling
+ * would take the obvious binding away from a feature the table may yet grow.
+ */
+export function scrollMoveFor(gesture: CursorKeyGesture): -1 | 1 | undefined {
+  if (gesture.altKey || isPrimaryModifier(gesture) || !gesture.shiftKey) return undefined
+  if (gesture.key === 'ArrowRight') return 1
+  if (gesture.key === 'ArrowLeft') return -1
+  return undefined
+}
+
+/**
+ * Where a sideways scroll lands the scroll box, or `undefined` when it cannot
+ * move — the arithmetic behind `scrollMoveFor`, with the DOM read out of it.
+ *
+ * A press snaps the next column's left edge flush against the left edge of the
+ * *scrollable* area, which is the horizontal twin of an arrow's "one more row".
+ * `inset` is what makes that "scrollable" honest: left-pinned columns are
+ * `position: sticky` and sit over the content permanently, so a column scrolled
+ * to `scrollLeft` exactly would land underneath them and not be visible at all.
+ *
+ * `boundaries` are the content-box left edges of the columns that actually
+ * scroll, ascending, with the pinned ones left out — a caller measures them,
+ * because declared widths and rendered widths part company as soon as a
+ * `<colgroup>` carries a column the caller did not declare.
+ *
+ * Running out of boundaries is not running out of travel: the last column may
+ * be wider than the box, so a press past the final edge goes to `maxScrollLeft`
+ * rather than stopping short of the tail, and symmetrically to `0` going left.
+ * The gesture therefore always reaches both ends. It clamps rather than wraps,
+ * as every other movement in this file does.
+ */
+export function nextScrollLeft(
+  scrollLeft: number,
+  inset: number,
+  boundaries: readonly number[],
+  direction: -1 | 1,
+  maxScrollLeft: number,
+): number | undefined {
+  if (maxScrollLeft <= 0) return undefined
+
+  // What the left edge of the scrollable area is showing right now, in content
+  // coordinates. Everything below is a question about *this* number, not about
+  // `scrollLeft` — they differ by the pinned band, and forgetting that is how a
+  // press lands a column under the pin instead of beside it.
+  const edge = scrollLeft + inset
+
+  // A pixel of slack in both directions. Boundaries come from
+  // `getBoundingClientRect`, `scrollLeft` is fractional in every current
+  // browser, and a boundary the box is already sitting on must not count as one
+  // further along — that would make a press a no-op at every second column.
+  const found =
+    direction === 1
+      ? boundaries.find((boundary) => boundary > edge + 1)
+      : [...boundaries].reverse().find((boundary) => boundary < edge - 1)
+
+  const target = found === undefined ? (direction === 1 ? maxScrollLeft : 0) : found - inset
+  const clamped = target < 0 ? 0 : target > maxScrollLeft ? maxScrollLeft : target
+
+  // Nowhere new. The caller then writes nothing, so holding the key at either
+  // end costs no scroll events — the rule `nextPosition` follows for the same
+  // reason.
+  if (Math.abs(clamped - scrollLeft) < 1) return undefined
+  return clamped
 }
 
 /**

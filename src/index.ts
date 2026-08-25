@@ -163,7 +163,9 @@ export {
   cursorMoveFor,
   commitMoveFor,
   pageMoveFor,
+  scrollMoveFor,
   nextPosition,
+  nextScrollLeft,
   PAGE_MOVE_ROWS,
 } from './core/cellCursor'
 export type {

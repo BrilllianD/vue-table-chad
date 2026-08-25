@@ -21,6 +21,7 @@ editable cells keep the button that is their only keyboard route without one.
 | `Ctrl`+`Home` / `Ctrl`+`End` | first / last cell of the page |
 | `PageUp` / `PageDown` | ten rows |
 | `Ctrl`/`Cmd`+`←` / `→` | previous / next **page** |
+| `Shift`+`←` / `→` | scroll one column sideways, cursor stays put |
 | `Enter` / `F2` | open this cell's editor |
 | `Esc` | cancel the edit, and hand the focus back to the cell |
 
@@ -59,6 +60,19 @@ third row of page 3. Paging is reading, and the eye is already at a height on th
 the ring back at the top would cost a second gesture to get back to it. A short last page clamps,
 and a page turn that cannot happen moves nothing at all. It works whether or not the pager is
 rendered: a keyboard route that only exists when a control is on screen is not a keyboard route.
+
+`Shift`+`←`/`→` is the third meaning of the same pair of keys, and the only one that moves neither
+the cursor nor the rows: it scrolls the **viewport** one column, and the ring stays exactly where it
+was. That is the point of it. On a table wider than its box the far columns were otherwise reachable
+only by walking the cursor onto them — losing your place — or by reaching for the scrollbar with the
+pointer. A press snaps the next column's left edge flush against the scroll box, past the pinned
+band rather than under it, and the last press of all goes to the far end rather than stopping short
+of a column wider than the box. `Ctrl`/`Cmd`+`Shift`+`←`/`→` stays a page turn rather than becoming
+a fourth thing.
+
+The vertical pair is deliberately unclaimed. `Shift`+`↑`/`↓` is the spreadsheet gesture for
+extending a selection, and spending it on scrolling would take the obvious binding away from a
+feature the table may yet grow.
 
 `Alt` is left alone throughout. `Alt`+`←`/`→` is already the keyboard reorder gesture on a header
 (see [Column layout](column-layout.md)), and in the body most browsers spend it on history
@@ -165,11 +179,19 @@ The pure half is exported too, for a key map of your own:
 cursorMoveFor(event)              // what a key press asked for, or undefined
 commitMoveFor(event, editorKind)  // where an Enter that commits should land
 pageMoveFor(event)                // -1, 1, or undefined — a page turn
+scrollMoveFor(event)              // -1, 1, or undefined — a sideways scroll
 nextPosition(from, move, rowIds, columnIds)   // where that lands, clamped
+nextScrollLeft(scrollLeft, inset, boundaries, direction, maxScrollLeft)  // and where that does
 ```
 
-The three decoders are exclusive: no gesture is claimed by more than one, which is why a caller can
+The four decoders are exclusive: no gesture is claimed by more than one, which is why a caller can
 try them in any order and act on the first that answers.
+
+`nextScrollLeft` is the arithmetic behind `scrollMoveFor` with the DOM taken out of it. `boundaries`
+are the left edges of the columns that actually scroll and `inset` is the width of the left-pinned
+band, both measured by the caller — declared widths part company with rendered ones as soon as a
+`<colgroup>` carries a column the caller did not declare, which is exactly what the preset's
+selection and actions columns are.
 
 `cursorMoveFor` takes a structural gesture rather than a `KeyboardEvent`, so a key table can be
 tested with a plain object and with no DOM at all.

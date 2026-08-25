@@ -9,7 +9,7 @@
  * `<TableRoot>` and assemble the same pieces differently (see
  * `playground/src/examples/ComposedCustom.vue`).
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { formatAggregate } from '../../core/aggregation'
 import type {
   AggregateResult,
@@ -23,7 +23,12 @@ import type {
   SelectionMode,
 } from '../../core/types'
 import type { ColumnLayoutState } from '../../core/useColumns'
-import { commitMoveFor, type CellPosition, type CursorMove } from '../../core/cellCursor'
+import {
+  commitMoveFor,
+  nextScrollLeft,
+  type CellPosition,
+  type CursorMove,
+} from '../../core/cellCursor'
 import type { UsePagination } from '../../core/usePagination'
 import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
@@ -337,6 +342,68 @@ function pageMove(
 }
 
 /**
+ * The scroll box, so `Shift`+`←`/`→` has something to scroll.
+ *
+ * The preset owns it — `.vt-scroll` is the element that overflows, and no
+ * primitive has one — which is why `TableGrid` reports the gesture instead of
+ * performing it.
+ */
+const scrollBox = ref<HTMLElement | null>(null)
+
+/**
+ * `Shift` + `←`/`→`: scroll one column sideways, and leave the cursor alone.
+ *
+ * The geometry is **measured**, not derived from `cols[].resolvedWidth`, and
+ * that is not paranoia: the preset's `<colgroup>` also carries
+ * `.vt-col-selection` and `.vt-col-actions`, which are 40px and 150px of CSS
+ * and are not columns at all. Declared widths would put every boundary off by
+ * the checkbox column on every selectable table. Measuring is also what makes
+ * a resize, a pin and a folded band come out right without any of them being
+ * known about here.
+ *
+ * The header row rather than a body row, because every column has exactly one
+ * `<th>` — a band member spanning rows included — and a header exists even when
+ * the body is empty or still loading.
+ *
+ * One `getBoundingClientRect` sweep per key press, so one forced layout, and it
+ * reads header cells rather than rows: nothing here can reach the pipeline, and
+ * `tests/invalidation.spec.ts` says so.
+ */
+function scrollColumns(direction: number): void {
+  const box = scrollBox.value
+  if (!box) return
+
+  const boxLeft = box.getBoundingClientRect().left
+  let inset = 0
+  const boundaries: number[] = []
+
+  for (const cell of box.querySelectorAll<HTMLElement>('.vt-th[data-column]')) {
+    const rect = cell.getBoundingClientRect()
+    // Left-pinned cells are `position: sticky`, so they sit over the content
+    // permanently: their combined width is dead space a column must not be
+    // scrolled under. Their own rects are the stuck positions rather than the
+    // laid-out ones, which is the other reason they are no use as boundaries.
+    if (cell.dataset.pinned === 'left') inset += rect.width
+    // Right-pinned cells eat space at the far edge, but nothing is ever
+    // scrolled *to* them, so they are simply not boundaries.
+    else if (!cell.dataset.pinned) boundaries.push(rect.left - boxLeft + box.scrollLeft)
+  }
+
+  const next = nextScrollLeft(
+    box.scrollLeft,
+    inset,
+    boundaries,
+    direction < 0 ? -1 : 1,
+    box.scrollWidth - box.clientWidth,
+  )
+  // A direct assignment rather than `scrollTo({ behavior: 'smooth' })`: key
+  // repeat against a running smooth scroll queues animations that fight each
+  // other, and an instant jump has no `prefers-reduced-motion` question to
+  // answer.
+  if (next !== undefined) box.scrollLeft = next
+}
+
+/**
  * Enter, F2 or a double-click on the cursor cell.
  *
  * `TableGrid` reports the gesture rather than acting on it, because opening an
@@ -494,6 +561,7 @@ function footerText(
           how much of the top is already spoken for.
         -->
         <div
+          ref="scrollBox"
           class="vt-scroll"
           :data-sticky="stickyHeader || undefined"
           :style="{ '--vt-header-rows': headerRows.length }"
@@ -505,6 +573,7 @@ function footerText(
             :cursor="cursor"
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
             @page-move="(pages) => pageMove(pages, cursor, pagination)"
+            @scroll-move="scrollColumns"
           >
             <!--
               One `<tr>` per header row. With no band declared `headerRows` is a

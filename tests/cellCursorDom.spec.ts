@@ -165,6 +165,7 @@ describe('TableGrid', () => {
   function mountGrid(cursor?: ReturnType<typeof cursorOver>) {
     const activated: Array<{ rowId: unknown; columnId: string }> = []
     const paged: number[] = []
+    const scrolled: number[] = []
     const host = defineComponent({
       setup() {
         return () =>
@@ -176,6 +177,7 @@ describe('TableGrid', () => {
               onActivate: (position: { rowId: unknown; columnId: string }) =>
                 activated.push(position),
               onPageMove: (pages: number) => paged.push(pages),
+              onScrollMove: (cols: number) => scrolled.push(cols),
             },
             () => [
               h(
@@ -186,7 +188,7 @@ describe('TableGrid', () => {
           )
       },
     })
-    return { wrapper: mount(host, { attachTo: document.body }), activated, paged }
+    return { wrapper: mount(host, { attachTo: document.body }), activated, paged, scrolled }
   }
 
   function cellAt(wrapper: ReturnType<typeof mount>, rowId: number, columnId: string) {
@@ -258,6 +260,48 @@ describe('TableGrid', () => {
     expect(paged).toEqual([1, -1])
     expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'city' })
 
+    wrapper.unmount()
+  })
+
+  it('reports a sideways scroll rather than moving the cursor', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'city' })
+    const { wrapper, scrolled, paged } = mountGrid(cursor)
+
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'ArrowRight', shiftKey: true })
+    expect(scrolled).toEqual([1])
+    // The ring stays put — that is the entire point of the gesture. It moves
+    // the viewport so a far column can be read without losing your place.
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'city' })
+
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'ArrowLeft', shiftKey: true })
+    expect(scrolled).toEqual([1, -1])
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'city' })
+
+    // Ctrl+Shift stays a page turn, and the bare key stays one column: three
+    // meanings on one pair of keys, told apart by the modifier alone.
+    await cellAt(wrapper, 2, 'city').trigger('keydown', {
+      key: 'ArrowRight',
+      shiftKey: true,
+      ctrlKey: true,
+    })
+    expect(scrolled).toEqual([1, -1])
+    expect(paged).toEqual([1])
+
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'ArrowRight' })
+    expect(scrolled).toEqual([1, -1])
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'salary' })
+
+    wrapper.unmount()
+  })
+
+  it('leaves Shift on the vertical arrows alone', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'city' })
+    const { wrapper, scrolled } = mountGrid(cursor)
+    // Reserved for a range selection the table may yet grow; meanwhile the
+    // vertical arrows simply ignore the modifier, as they always did.
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'ArrowDown', shiftKey: true })
+    expect(scrolled).toEqual([])
+    expect(cursor.position.value).toEqual({ rowId: 3, columnId: 'city' })
     wrapper.unmount()
   })
 

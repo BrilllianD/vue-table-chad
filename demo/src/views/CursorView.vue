@@ -29,6 +29,11 @@
  * reading, and the eye is already somewhere. `PageDown` is the other thing, and
  * still means ten rows *within* the page.
  *
+ * **Hold Shift and press → a few times.** The table scrolls sideways a column a press and the
+ * ring does not move. Three meanings for one pair of keys, told apart by the modifier alone: bare
+ * moves the cursor, Ctrl turns the page, Shift moves the viewport. Reaching a far column used to
+ * mean walking the cursor onto it and losing your place.
+ *
  * **Group by Department and arrow down through a band boundary.** The cursor
  * steps from the last row of one band to the first of the next and never onto
  * a band header, because it walks the rendered rows rather than the page the
@@ -104,7 +109,8 @@ function onRowSaved(row: Employee): void {
     title="Cell cursor"
     blurb="A focused cell you move with the arrow keys, ringed and crossed by a tint down its
            row and its column. Enter opens the editor on a cell that has one; Enter again
-           commits and steps down, Shift up, Ctrl right, Ctrl+Shift left. One tab stop for the
+           commits and steps down, Shift up, Ctrl right, Ctrl+Shift left. Shift and a horizontal
+           arrow scrolls the box instead, leaving the ring where it is. One tab stop for the
            whole grid, and the cursor reaches the row pipeline not at all."
     :api="[
       'DataTable cellCursor',
@@ -112,7 +118,9 @@ function onRowSaved(row: Employee): void {
       'cursorMoveFor',
       'commitMoveFor',
       'pageMoveFor',
+      'scrollMoveFor',
       'nextPosition',
+      'nextScrollLeft',
       'CellPosition',
       'CellCursorMark',
       'PAGE_MOVE_ROWS',
@@ -155,7 +163,10 @@ function onRowSaved(row: Employee): void {
       Press Tab to take it, or click any cell. Then <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>,
       <kbd>Home</kbd>/<kbd>End</kbd> for the ends of a row, <kbd>Ctrl</kbd>+<kbd>Home</kbd>/
       <kbd>End</kbd> for the corners, <kbd>PageUp</kbd>/<kbd>PageDown</kbd> for ten rows,
-      <kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to turn the page and take the ring with you.
+      <kbd>Ctrl</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to turn the page and take the ring with you, and
+      <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to scroll sideways to a far column
+      <em>without</em> the ring moving at all — this table is wider than its box, so it has
+      somewhere to go.
       <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor — Salary is the one column that will not
       keep your exact number, because this demo's payroll rounds to the nearest hundred.
       <kbd>Esc</kbd> puts the cell back and

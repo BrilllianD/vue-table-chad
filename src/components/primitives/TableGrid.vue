@@ -22,7 +22,12 @@
  */
 import { computed, ref, watch } from 'vue'
 import { useTableContext } from '../../core/context'
-import { cursorMoveFor, pageMoveFor, type CellPosition } from '../../core/cellCursor'
+import {
+  cursorMoveFor,
+  pageMoveFor,
+  scrollMoveFor,
+  type CellPosition,
+} from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ResolvedColumn } from '../../core/types'
 
@@ -60,6 +65,18 @@ const emit = defineEmits<{
    * not been given yet.
    */
   pageMove: [pages: number]
+  /**
+   * The user asked to scroll the table sideways — `Shift` + `←`/`→`. `-1` left,
+   * `1` right, one column a press.
+   *
+   * Reported rather than acted on, and for a plainer reason than `activate` and
+   * `page-move` have: the scroll box is an **ancestor** of this component, not
+   * part of it. A primitive ships no stylesheet and so has no scroll box of its
+   * own — the preset's `.vt-scroll` is the element that overflows, and reaching
+   * up the tree to guess at it would make this component depend on markup its
+   * caller wrote.
+   */
+  scrollMove: [columns: number]
 }>()
 
 const context = useTableContext<TRow>()
@@ -130,12 +147,24 @@ function onKeydown(event: KeyboardEvent): void {
     return
   }
 
-  // Before `cursorMoveFor`, which returns nothing for these two gestures — the
-  // one place both decoders see the same key press, and only one may claim it.
+  // Before `cursorMoveFor`, which returns nothing for a modified horizontal
+  // arrow — the one place all three decoders see the same key press, and only
+  // one of them may claim it. The order between these two is free; that they
+  // both come first is not.
   const pages = pageMoveFor(event)
   if (pages) {
     event.preventDefault()
     emit('pageMove', pages)
+    return
+  }
+
+  const columns = scrollMoveFor(event)
+  if (columns) {
+    // Worth more than the usual here: Firefox spends Shift+arrow on
+    // caret-browsing text selection, which would drag a selection across the
+    // table behind the scroll.
+    event.preventDefault()
+    emit('scrollMove', columns)
     return
   }
 

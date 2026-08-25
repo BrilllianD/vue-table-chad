@@ -5,7 +5,9 @@ import {
   commitMoveFor,
   cursorMoveFor,
   nextPosition,
+  nextScrollLeft,
   pageMoveFor,
+  scrollMoveFor,
   type CellPosition,
 } from '../src/core/cellCursor'
 import { useCellCursor } from '../src/core/useCellCursor'
@@ -129,21 +131,118 @@ describe('pageMoveFor', () => {
     expect(pageMoveFor({ key: 'Enter', ctrlKey: true })).toBeUndefined()
   })
 
-  it('is exclusive with cursorMoveFor over every gesture either claims', () => {
-    // The invariant the two decoders rest on. A key both answered would be
-    // acted on twice, and the file's split only works if that cannot happen.
+  it('is exclusive with the other decoders over every gesture any of them claims', () => {
+    // The invariant the whole split rests on. A key two decoders answered would
+    // be acted on twice — the cursor stepping a column *and* the page turning —
+    // and the modifier is the only thing keeping the three apart.
+    const decoders = [
+      ['cursorMoveFor', cursorMoveFor],
+      ['pageMoveFor', pageMoveFor],
+      ['scrollMoveFor', scrollMoveFor],
+    ] as const
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp',
       'PageDown', 'Enter', 'F2', 'Tab', 'a']
     for (const key of keys) {
       for (const modifiers of [{}, { ctrlKey: true }, { metaKey: true }, { shiftKey: true },
-        { ctrlKey: true, shiftKey: true }, { altKey: true }]) {
+        { ctrlKey: true, shiftKey: true }, { metaKey: true, shiftKey: true },
+        { altKey: true }, { altKey: true, shiftKey: true }]) {
         const gesture = { key, ...modifiers }
+        const claimed = decoders.filter(([, decode]) => decode(gesture) !== undefined)
         expect(
-          cursorMoveFor(gesture) !== undefined && pageMoveFor(gesture) !== undefined,
-          `${key} ${JSON.stringify(modifiers)} was claimed by both`,
-        ).toBe(false)
+          claimed.length,
+          `${key} ${JSON.stringify(modifiers)} was claimed by ` +
+            claimed.map(([name]) => name).join(' and '),
+        ).toBeLessThan(2)
       }
     }
+  })
+})
+
+describe('scrollMoveFor', () => {
+  it('reads a bare Shift plus a horizontal arrow as a sideways scroll', () => {
+    expect(scrollMoveFor({ key: 'ArrowRight', shiftKey: true })).toBe(1)
+    expect(scrollMoveFor({ key: 'ArrowLeft', shiftKey: true })).toBe(-1)
+  })
+
+  it('needs Shift, and needs it bare', () => {
+    // Bare arrows move the cursor and must keep moving it; Ctrl/Cmd+Shift stays
+    // a page turn rather than becoming a fourth meaning for the same two keys.
+    expect(scrollMoveFor({ key: 'ArrowRight' })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'ArrowLeft' })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'ArrowRight', shiftKey: true, ctrlKey: true })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'ArrowLeft', shiftKey: true, metaKey: true })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'ArrowRight', shiftKey: true, altKey: true })).toBeUndefined()
+  })
+
+  it('leaves the vertical pair alone', () => {
+    // Shift+up/down is the spreadsheet gesture for extending a selection, and
+    // is deliberately unclaimed so the table can still grow one.
+    expect(scrollMoveFor({ key: 'ArrowUp', shiftKey: true })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'ArrowDown', shiftKey: true })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'PageDown', shiftKey: true })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'Home', shiftKey: true })).toBeUndefined()
+    expect(scrollMoveFor({ key: 'Enter', shiftKey: true })).toBeUndefined()
+  })
+
+  it('gives the cursor back its bare arrows, and only those', () => {
+    // The other half of the exclusivity: the gesture had to be taken from
+    // `cursorMoveFor`, which used to ignore Shift entirely.
+    expect(cursorMoveFor({ key: 'ArrowRight', shiftKey: true })).toBeUndefined()
+    expect(cursorMoveFor({ key: 'ArrowLeft', shiftKey: true })).toBeUndefined()
+    expect(cursorMoveFor({ key: 'ArrowRight' })).toEqual({ kind: 'by', rows: 0, columns: 1 })
+    // Vertical arrows never read the modifier, so Shift leaves them untouched.
+    expect(cursorMoveFor({ key: 'ArrowDown', shiftKey: true })).toEqual(
+      { kind: 'by', rows: 1, columns: 0 },
+    )
+  })
+})
+
+describe('nextScrollLeft', () => {
+  // Four columns 100 wide, none pinned, in a box 250 wide: 400 of content and
+  // 150 of travel.
+  const boundaries = [0, 100, 200, 300]
+  const max = 150
+
+  it('snaps the next column flush to the left edge', () => {
+    expect(nextScrollLeft(0, 0, boundaries, 1, max)).toBe(100)
+    expect(nextScrollLeft(100, 0, boundaries, 1, max)).toBe(150)
+  })
+
+  it('snaps back to the previous one going left', () => {
+    expect(nextScrollLeft(100, 0, boundaries, -1, max)).toBe(0)
+    // Mid-column — dragged there by the scrollbar — snaps to the boundary it is
+    // sitting inside rather than to the one before it.
+    expect(nextScrollLeft(140, 0, boundaries, -1, max)).toBe(100)
+  })
+
+  it('offsets every boundary by a sticky left-pinned band', () => {
+    // 100 of pin means the scrollable area starts at content x = scrollLeft +
+    // 100, so landing the third column beside the pin is scrollLeft 100, not
+    // 200. Getting this wrong scrolls the column *under* the pin.
+    expect(nextScrollLeft(0, 100, boundaries, 1, max)).toBe(100)
+    expect(nextScrollLeft(100, 100, boundaries, 1, max)).toBe(150)
+  })
+
+  it('runs to the end rather than stopping short of a wide last column', () => {
+    // Past the final boundary there is still travel left, because the last
+    // column is wider than the box. The gesture has to reach it.
+    expect(nextScrollLeft(120, 0, [0, 100], 1, max)).toBe(max)
+    expect(nextScrollLeft(40, 0, [0, 100], -1, max)).toBe(0)
+  })
+
+  it('returns undefined at either end, and when nothing scrolls at all', () => {
+    expect(nextScrollLeft(max, 0, boundaries, 1, max)).toBeUndefined()
+    expect(nextScrollLeft(0, 0, boundaries, -1, max)).toBeUndefined()
+    // A table narrower than its box has no travel; a press must not write a
+    // scroll position at all, or holding the key fires scroll events forever.
+    expect(nextScrollLeft(0, 0, boundaries, 1, 0)).toBeUndefined()
+  })
+
+  it('tolerates the subpixel a rect and a scrollLeft disagree by', () => {
+    // Sitting a shade past a boundary must not count as being before it —
+    // that would make every second press a no-op.
+    expect(nextScrollLeft(100.4, 0, boundaries, 1, max)).toBe(150)
+    expect(nextScrollLeft(99.6, 0, boundaries, 1, max)).toBe(150)
   })
 })
 
