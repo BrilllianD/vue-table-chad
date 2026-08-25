@@ -155,6 +155,22 @@ describe('isEditable', () => {
     h.dispose()
   })
 
+  it('makes begin refuse the row too', () => {
+    const h = setup({ isEditable: (row) => row.active })
+    const vetoed = people.find((person) => !person.active)!
+
+    h.editing.begin(vetoed, 'name')
+    // `begin` is public, and a session that refuses a row should refuse it
+    // however it is reached — not only where a component remembered to ask.
+    // A draft left behind here would show as a dirty row with no editor in it.
+    expect(h.editing.isEditing(vetoed.id)).toBe(false)
+    expect(h.editing.editingIds.value).toEqual([])
+
+    h.editing.begin(people.find((person) => person.active)!, 'name')
+    expect(h.editing.editingIds.value).toHaveLength(1)
+    h.dispose()
+  })
+
   it('is false while the row is saving', async () => {
     const gate = deferred<void>()
     const h = setup({ save: () => gate.promise })

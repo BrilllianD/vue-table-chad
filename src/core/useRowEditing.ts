@@ -138,6 +138,11 @@ export interface UseRowEditing<TRow> {
   /** A cell's message, or the row's when no column id is given. */
   errorFor: (id: RowId, columnId?: string) => string | null
 
+  /**
+   * Opens a draft, optionally naming the cell to focus. A row the session's
+   * own `isEditable` refuses opens nothing; per-column editability is the
+   * caller's to check, since this holds no column list.
+   */
   begin: (row: TRow, columnId?: string) => void
   setValue: (row: TRow, column: ColumnDef<TRow>, input: unknown) => void
   cancel: (row: TRow) => void
@@ -247,6 +252,18 @@ export function useRowEditing<TRow>(
   }
 
   function begin(row: TRow, columnId?: string): void {
+    // The row veto belongs here as well as in `isEditable`. Every route the
+    // library offers checks first — the preset's edit button, its Enter
+    // handler, the cell it renders — but `begin` is public, and a session that
+    // refuses a row should refuse it however it is reached rather than only
+    // where a component remembered to ask.
+    //
+    // Per-*column* editability is not checked, and cannot be: this composable
+    // holds no column list, only the defs it is handed one at a time. That is
+    // why the column gate lives in the preset, next to the columns it reads.
+    // Opening a draft on a row whose columns are all read-only renders no
+    // editor anyway — it just should not leave a draft behind either.
+    if (options.isEditable && !options.isEditable(row)) return
     const state = open(getRowId(row))
     state.activeColumnId = columnId ?? null
   }
