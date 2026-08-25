@@ -203,6 +203,24 @@
   border: var(--vt-outer-border-width) solid var(--vt-border);
   border-radius: var(--vt-radius);
   background: var(--vt-bg);
+
+  /*
+    Pinned columns are `position: sticky`, so they sit over the content rather
+    than beside it, and the browser's scroll-into-view does not know it. Without
+    this, walking the cell cursor left off the visible edge scrolls the cell
+    flush to the left of the box — which is where the left-pinned band is
+    painted — and parks it underneath, looking for all the world like a table
+    that scrolls one way only. `--vt-pin-*` is written by the preset from the
+    resolved widths; `0px` is the fallback and the value every unpinned table
+    has.
+
+    On the scrollport rather than `scroll-margin` on the cells, which is what
+    the sticky header opposite uses: one declaration instead of one per cell, no
+    `:not([data-pinned])` exclusion to keep right, and it covers a focused `<th>`
+    too — keyboard column reorder walks the header the same way.
+  */
+  scroll-padding-left: var(--vt-pin-left, 0px);
+  scroll-padding-right: var(--vt-pin-right, 0px);
 }
 
 .vt-table {

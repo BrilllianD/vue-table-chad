@@ -17,6 +17,7 @@ import type {
   ColumnGroupDef,
   DataSource,
   GroupMode,
+  PinSide,
   QueryState,
   ResolvedColumn,
   RowId,
@@ -404,6 +405,36 @@ function scrollColumns(direction: number): void {
 }
 
 /**
+ * How wide the pinned band on one side is, in CSS pixels, for the scroll box to
+ * inset its idea of "in view" by.
+ *
+ * Pinned cells are `position: sticky` and so sit *over* the content rather than
+ * beside it. The browser's scroll-into-view knows nothing about that, so a cell
+ * it scrolled flush against the left edge of the box lands underneath the
+ * left-pinned band and is not visible at all — which is why walking the cursor
+ * leftwards looked like a table that had stopped scrolling. `scroll-padding`
+ * on `.vt-scroll` is the fix, and this is the number it needs; the sticky
+ * header already had the same problem solved the same way one axis over, with
+ * `--vt-header-rows` and `scroll-margin-top`.
+ *
+ * Declared widths rather than a measurement, because these are the very numbers
+ * `useColumns` accumulates into `pinOffset` to *place* the sticky cells. Derived
+ * any other way the padding and the pin could disagree, and the cell would land
+ * beside a band of the wrong width. (`scrollColumns` above measures instead,
+ * for a reason that does not apply here: it needs the boundaries of the
+ * *unpinned* columns, and the preset's own `<colgroup>` entries put those out of
+ * step with the declared widths.)
+ *
+ * A string with its unit, so the template can hand it straight to a custom
+ * property — a bare number would be an invalid `scroll-padding`.
+ */
+function pinnedWidth(cols: ResolvedColumn<TRow>[], side: PinSide): string {
+  let total = 0
+  for (const column of cols) if (column.pinned === side) total += column.resolvedWidth ?? 0
+  return `${total}px`
+}
+
+/**
  * Enter, F2 or a double-click on the cursor cell.
  *
  * `TableGrid` reports the gesture rather than acting on it, because opening an
@@ -555,16 +586,22 @@ function footerText(
       -->
       <div class="vt-scroll-frame">
         <!--
-          `--vt-header-rows` is how the stylesheet keeps a focused cell out from
-          under the sticky header: the browser's scroll-into-view knows nothing
-          about `position: sticky`, so the body's `scroll-margin-top` has to say
-          how much of the top is already spoken for.
+          Three numbers the stylesheet cannot work out for itself, all saying
+          the same thing: the browser's scroll-into-view knows nothing about
+          `position: sticky`, so anything stuck has to declare how much of an
+          edge it has already spoken for. `--vt-header-rows` covers the sticky
+          header (via `scroll-margin-top`), `--vt-pin-*` the two pinned bands
+          (via `scroll-padding`).
         -->
         <div
           ref="scrollBox"
           class="vt-scroll"
           :data-sticky="stickyHeader || undefined"
-          :style="{ '--vt-header-rows': headerRows.length }"
+          :style="{
+            '--vt-header-rows': headerRows.length,
+            '--vt-pin-left': pinnedWidth(cols, 'left'),
+            '--vt-pin-right': pinnedWidth(cols, 'right'),
+          }"
         >
           <TableGrid
             :columns="cols"

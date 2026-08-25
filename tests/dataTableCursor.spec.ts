@@ -369,3 +369,78 @@ describe('a blur that follows a commit', () => {
     wrapper.unmount()
   })
 })
+
+/**
+ * The pinned band's width, handed to the stylesheet.
+ *
+ * jsdom lays nothing out and scrolls nothing, so what a browser does with
+ * `scroll-padding` is not assertable here. What is assertable is the number the
+ * rule reads — and getting *that* wrong is the whole bug, because a pinned cell
+ * is `position: sticky` and the browser's scroll-into-view will happily park a
+ * focused cell underneath it.
+ */
+describe('the scroll box and the pinned bands', () => {
+  function mountPinned(options: {
+    columns: ColumnDef<Person>[]
+    layout?: { widths?: Record<string, number>; pinned?: Record<string, 'left' | 'right' | false> }
+  }) {
+    const rows = shallowRef<Person[]>([...people])
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Person>(rows, options.columns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, {
+            columns: options.columns,
+            source,
+            state,
+            cellCursor: true,
+            initialLayout: options.layout,
+          })
+      },
+    })
+    return mount(Host, { attachTo: document.body })
+  }
+
+  /** The two custom properties, as the scroll box carries them. */
+  function pins(wrapper: ReturnType<typeof mountPinned>): [string, string] {
+    const box = wrapper.get('.vt-scroll').element as HTMLElement
+    return [box.style.getPropertyValue('--vt-pin-left'), box.style.getPropertyValue('--vt-pin-right')]
+  }
+
+  it('insets by nothing when nothing is pinned', () => {
+    const wrapper = mountPinned({ columns: personColumns })
+    expect(pins(wrapper)).toEqual(['0px', '0px'])
+    wrapper.unmount()
+  })
+
+  it('sums each side, and counts a declared width rather than assuming the default', () => {
+    const wrapper = mountPinned({
+      columns: personColumns.map((column) => {
+        if (column.id === 'name') return { ...column, pinned: 'left' as const, width: 220 }
+        // Two on one side, so a sum is being asserted and not just a lookup.
+        if (column.id === 'department') return { ...column, pinned: 'left' as const }
+        if (column.id === 'active') return { ...column, pinned: 'right' as const, width: 80 }
+        return column
+      }),
+    })
+    // 220 declared + 160, the default width `useColumns` gives a column that
+    // declares none — the same number it accumulates into `pinOffset` to place
+    // the sticky cells, which is why this is derived and not measured.
+    expect(pins(wrapper)).toEqual(['380px', '80px'])
+    wrapper.unmount()
+  })
+
+  it('follows the layout state, not the declarations', () => {
+    // A pin and a resize the user made. Reading the declarations alone would
+    // leave the padding describing a table nobody is looking at.
+    const wrapper = mountPinned({
+      columns: personColumns,
+      layout: { pinned: { salary: 'left' }, widths: { salary: 130 } },
+    })
+    expect(pins(wrapper)).toEqual(['130px', '0px'])
+    wrapper.unmount()
+  })
+})
