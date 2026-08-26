@@ -46,8 +46,9 @@ These are contracts, not conventions:
   tree-shaken away, silently shipping an unstyled table.
 - **Every primitive works standalone.** Given explicit props, it must render with no `<TableRoot>`
   above it — the specs assert this with a "renders standalone, with no table context above it" case,
-  `TableRow` and `TableHeaderGroupCell` among them. `TableGrid` is the one newer primitive with no
-  such case; it reads the optional context and is currently only covered through `DataTable`.
+  `TableRow`, `TableHeaderGroupCell` and `TableGrid` among them — the last of these in
+  `tests/tableGrid.spec.ts`, which also pins the other half of its contract: **with no `cursor`,
+  off means off** — no `role="grid"`, no `tabindex`, and none of the three gestures reported.
 
   Which side a primitive is on is declared in code, not by convention: `useTableContext()` returns
   `undefined` when there is no root, and is what an optional consumer calls. **`requireTableContext(name)`
