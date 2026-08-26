@@ -4,16 +4,21 @@ Headless table primitives for Vue 3, on the way to being an npm package. The poi
 is a universal table with a flexible config that **renders fast, without much overhead** — so
 performance is a correctness property here, not a nice-to-have.
 
+Known gaps, the phase plan and what to pick up next are in [`TODO.md`](TODO.md), which is the only
+place any of them live. This file is the standing contracts — what must stay true of the code
+however the plan moves.
+
 ## Commands
 
 ```bash
-pnpm test          # vitest, ~300 tests
+pnpm test          # vitest, ~600 tests
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
 pnpm build         # typecheck + vite lib build -> dist/
-pnpm demo          # http://localhost:5174 — every feature, one view each
+pnpm demo          # http://localhost:5174 — 16 views, every feature one view each
 pnpm dev           # http://localhost:5173 — the smaller playground
+pnpm build:docs    # the demo, folded into one self-contained page
 ```
 
 Node 24 (`.nvmrc`). pnpm, not npm.
@@ -36,12 +41,22 @@ These are contracts, not conventions:
   deliberately does *not*, because `sideEffects: ["**/*.css"]` would let a bare CSS import there be
   tree-shaken away, silently shipping an unstyled table.
 - **Every primitive works standalone.** Given explicit props, it must render with no `<TableRoot>`
-  above it. `ColumnVisibilityMenu` is the sole exception and the demo says so out loud.
+  above it — the specs assert this with a "renders standalone, with no table context above it" case,
+  `TableRow` and `TableHeaderGroupCell` among them. `TableGrid` is the one newer primitive with no
+  such case; it reads the optional context and is currently only covered through `DataTable`.
+
+  Which side a primitive is on is declared in code, not by convention: `useTableContext()` returns
+  `undefined` when there is no root, and is what an optional consumer calls. **`requireTableContext(name)`
+  throws, and marks the three primitives that genuinely cannot work without a root** —
+  `ColumnVisibilityMenu`, `RowGroupMenu` and `ActiveFilters`, each of which reads the whole column,
+  group or filter model rather than taking it as props. Adding a fourth means adding a demo note
+  saying so.
 
 ## Performance invariants
 
-`tests/invalidation.spec.ts` counts passes through the four O(dataset) functions and asserts what
-each interaction is allowed to move. Treat a failure there as a broken feature, not a slow one.
+`tests/invalidation.spec.ts` wraps the five dataset-wide functions — `filterRows`, `sortRows`,
+`countGroups`, `flattenGroups`, `aggregateGroups` — and asserts what each interaction is allowed to
+move. Treat a failure there as a broken feature, not a slow one.
 
 The rules it encodes:
 
@@ -53,6 +68,14 @@ The rules it encodes:
   (`buildGroupTree` / `flattenTree`); only the second depends on collapse state.
 - **Column layout never reaches the pipeline.** Resize, pin and reorder touch no rows.
 - **Selection never reaches the pipeline.** `Set`-backed, one state write per range.
+- **Folding a header band never reaches the pipeline.** A fold is a subtraction from
+  `useColumns().visible` and nothing else, which is why it costs what a resize costs rather than
+  what a group collapse costs.
+- **The cell cursor never reaches the pipeline.** Moving it, clamping it at an edge, or turning the
+  page from it costs what turning the page always cost. A clamped move writes no state at all.
+- **Editing never reaches the pipeline until a save succeeds.** Opening a draft, typing into it, a
+  draft that fails validation, and a save the server rejects all leave the dataset alone. A save
+  that succeeds does redo it — exactly once.
 - **Work that *is* asked for still happens.** Changing the sort must re-sort, exactly once. An
   invariant suite that only says "do less" is satisfied by a table that does nothing.
 
@@ -97,19 +120,3 @@ because a background tab reports the browser's throttle rather than the table's 
   committed copy differs. So the summary is written once, in `src/`, and never in the demo. An
   export should also appear somewhere in `demo/`.
 - One commit per task, tests and typecheck green before each.
-
-## Known gaps
-
-Deliberate, not oversights. [`ROADMAP.md`](ROADMAP.md) carries the full plan, what Phase 1 changed,
-and what each remaining phase involves — start there when picking the work back up.
-
-- **`@sandbox/vue-table` is a placeholder name.** Also no LICENSE, no `repository` field, no CI, no
-  CJS build, and `files: ["dist"]` with a gitignored `dist/` means a fresh clone would publish an
-  empty package. All of it is Phase 3 of the roadmap.
-- **No virtualization.** Pagination caps the DOM instead. Phase 2, and the `<tbody>` restructure it
-  needs is also what row memoisation requires — `v-memo` has no effect inside a `v-for`, so it waits
-  for that.
-- **No i18n.** Around 35 English strings are hardcoded across the components, `aria-label`s included.
-- **No `aria-colindex`/`aria-rowindex`.** The cell cursor gives the body a focus grid and a roving
-  tabindex (`docs/keyboard.md`), but the grid does not yet announce a cell's coordinates, and there
-  is no live region reporting where the cursor went.

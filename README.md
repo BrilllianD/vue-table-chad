@@ -1,7 +1,8 @@
 # vue-table
 
 Composable table building blocks for Vue 3 — sorting, Excel-style filters, pagination, row
-selection and column layout, over **local arrays or server endpoints, interchangeably**.
+selection, row grouping, column layout, multi-row header bands, inline editing and a keyboard cell
+cursor, over **local arrays or server endpoints, interchangeably**.
 
 Deliberately **not** a god component. Three layers, each usable on its own:
 
@@ -24,14 +25,18 @@ nvm use          # Node 24; pnpm crashes on Node 20 here
 pnpm install
 pnpm dev         # playground at http://localhost:5173
 pnpm demo        # full feature demo at http://localhost:5174
-pnpm test        # ~310 tests
+pnpm test        # ~600 tests
 pnpm typecheck
 pnpm bench       # pipeline and interaction benchmarks
 pnpm build       # library -> dist/
+pnpm build:docs  # the demo, folded into one self-contained page
 ```
 
-`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — every export, one view
-per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
+`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 16 views, every export, one
+view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
+
+Not on npm yet: `@sandbox/vue-table` is a placeholder scope the examples import from, and
+[`TODO.md`](TODO.md) tracks what publishing still needs.
 
 ## Quick start
 
@@ -108,18 +113,25 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 | [Header bands](docs/column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. | Header bands |
 | [Keyboard navigation](docs/keyboard.md) | The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it. | Cell cursor |
 
+Editable rows — `useRowEditing`, a draft per row, cell or row mode, validation, and a save the
+server can refuse — have no page of their own yet. They run in the demo's **Editing** view, and
+[Keyboard navigation](docs/keyboard.md) covers how the cursor drives them.
+
 The full API — every export, with what it is for — is the **API reference** tab of `pnpm demo`.
 It is generated from the doc comments in `src/`, so it cannot fall behind the code.
 
 Also in the repo: [`demo/README.md`](demo/README.md) for how the demo is laid out,
 [`bench/BASELINE.md`](bench/BASELINE.md) for the benchmark numbers and the optimizations that
-turned out not to be worth it, [`ROADMAP.md`](ROADMAP.md) for what is planned, and
+turned out not to be worth it, [`TODO.md`](TODO.md) for where this stands and what is planned, and
 [`CLAUDE.md`](CLAUDE.md) for the layer contracts and performance invariants.
 
 ## Not included
 
-Row virtualization, tree rows (parent/child hierarchies, as opposed to the value-based grouping
-in [Grouping rows](docs/grouping.md)), and pivoting. Aggregation covers
-`sum`/`avg`/`min`/`max` and no custom reducer. The core is structured so virtualization slots in at
-the rendering layer without touching the pipeline — `filteredRows` on the local source is the hook
-for it.
+Row virtualization, tree rows (parent/child hierarchies, as opposed to the value-based grouping in
+[Grouping rows](docs/grouping.md)), expandable detail rows, pinned rows, pivoting, and CSV or
+clipboard export. Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer. There is no
+i18n either: around 35 English strings are hardcoded across the components, `aria-label`s included.
+
+The core is structured so virtualization slots in at the rendering layer without touching the
+pipeline — `filteredRows` on the local source is the hook for it. [`TODO.md`](TODO.md) carries the
+rest, and why each of these is a decision rather than an oversight.
