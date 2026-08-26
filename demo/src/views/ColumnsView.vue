@@ -134,6 +134,9 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       'ColumnResizeHandle',
       'ColumnDragGhost',
       'ResolvedColumn.pinOffset',
+      'sanitizeColumnLayout',
+      'normalizeColumnStorage',
+      'DEFAULT_COLUMN_LAYOUT_FIELDS',
     ]"
   >
     <template #controls>

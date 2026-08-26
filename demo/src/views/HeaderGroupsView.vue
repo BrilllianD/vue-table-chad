@@ -71,6 +71,7 @@ function toggle(band: ColumnGroupDef): void {
       'TableHeaderGroupCell',
       'useColumns groups',
       'ColumnLayoutState.collapsedGroups',
+      'columnGroupPaths',
     ]"
   >
     <template #controls>

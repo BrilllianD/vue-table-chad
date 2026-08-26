@@ -128,5 +128,8 @@ because a background tab reports the browser's throttle rather than the table's 
   **declaration** whose first paragraph works as a one-line summary — `pnpm docs:api` harvests
   those into `demo/src/data/apiReference.ts`, and a test regenerates that file and fails if the
   committed copy differs. So the summary is written once, in `src/`, and never in the demo. An
-  export should also appear somewhere in `demo/`.
+  export should also appear somewhere in `demo/` — either named in a view's `:api` list or imported
+  by one. **`tests/apiSurface.spec.ts` enforces that** for every *value* export, and names the
+  offender when it fails: demonstrate it, or stop exporting it. Types are exempt, because a type
+  cannot be used in a view in a way a reader would see.
 - One commit per task, tests and typecheck green before each.

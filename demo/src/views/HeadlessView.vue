@@ -221,6 +221,8 @@ const cell = (row: Employee, id: string): string => {
       'toBoolean',
       'toFilterValue',
       'facetKey',
+      'compileSearch',
+      'sortKeyFor',
     ]"
   >
     <template #controls>

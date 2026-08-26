@@ -64,6 +64,8 @@ const miniColumns = employeeColumns.filter((column) =>
       'useTableContext',
       'useTable',
       'provideTableContext',
+      'requireTableContext',
+      'TableContextKey',
     ]"
   >
     <TableRoot
