@@ -1,52 +1,20 @@
+/**
+ * The playground's view of the shared column set.
+ *
+ * A *slice* of it rather than the whole thing, unlike the demo, which takes
+ * every column: these four examples are meant to stay small enough to read at
+ * a glance. What matters is that the accessors, formats, comparators and
+ * widths are the shared ones — those are half of what the pipeline costs, so a
+ * playground running its own definitions would render a different table from
+ * the one the benchmarks measure while looking like the same table.
+ */
+import { employeeColumns as allColumns } from '@fixtures'
 import type { ColumnDef } from '@sandbox/vue-table'
 import type { Employee } from '../mock/fakeApi'
 
-const money = new Intl.NumberFormat(undefined, {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-})
+/** The eight the examples show. Order is the shared set's own. */
+const SHOWN = ['name', 'email', 'department', 'role', 'salary', 'hiredAt', 'rating', 'active']
 
-export const employeeColumns: ColumnDef<Employee>[] = [
-  { id: 'name', header: 'Name', type: 'text', width: 190, pinned: 'left' },
-  { id: 'email', header: 'Email', type: 'text', width: 250 },
-  {
-    id: 'department',
-    header: 'Department',
-    type: 'enum',
-    width: 150,
-    options: ['Engineering', 'Research', 'Design', 'Support', 'Sales', 'Finance'],
-  },
-  { id: 'role', header: 'Role', type: 'enum', width: 120 },
-  {
-    id: 'salary',
-    header: 'Salary',
-    type: 'number',
-    width: 130,
-    align: 'right',
-    format: (value) => (value === null || value === undefined ? '—' : money.format(Number(value))),
-  },
-  {
-    id: 'hiredAt',
-    header: 'Hired',
-    type: 'date',
-    width: 130,
-    format: (value) => (value ? new Date(String(value)).toLocaleDateString() : '—'),
-  },
-  {
-    id: 'rating',
-    header: 'Rating',
-    type: 'number',
-    width: 100,
-    align: 'right',
-    format: (value) => `${Number(value).toFixed(1)} ★`,
-  },
-  {
-    id: 'active',
-    header: 'Active',
-    type: 'boolean',
-    width: 100,
-    align: 'center',
-    format: (value) => (value ? 'Yes' : 'No'),
-  },
-]
+export const employeeColumns: ColumnDef<Employee>[] = allColumns.filter((column) =>
+  SHOWN.includes(column.id),
+)
