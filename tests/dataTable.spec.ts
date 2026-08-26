@@ -641,6 +641,37 @@ describe('column layout', () => {
     expect(wrapper.findAll('thead th').length).toBe(before - 1)
     wrapper.unmount()
   })
+
+  // Double-click is the way back from a drag. It used to write a flat 160,
+  // which is a number the column never declared and left a column that *had*
+  // declared one unable to return to it.
+  it('double-clicking a resize handle restores the declared width', async () => {
+    const sized = columns.map((column) =>
+      column.id === 'name' ? { ...column, width: 200 } : column,
+    )
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, sized, state.query)
+        return () => h(DataTable as never, { columns: sized, source, state })
+      },
+    })
+
+    const wrapper = mount(Host)
+    const firstCol = () => wrapper.find('colgroup col')
+    const handle = wrapper
+      .findAll('thead th')
+      .find((th) => th.attributes('data-column') === 'name')!
+      .find('.vt-resize')
+
+    // Shift+ArrowRight is the keyboard resize: 200 + 40.
+    await handle.trigger('keydown', { key: 'ArrowRight', shiftKey: true })
+    expect(firstCol().attributes('style')).toContain('width: 240px')
+
+    await handle.trigger('dblclick')
+    expect(firstCol().attributes('style')).toContain('width: 200px')
+    wrapper.unmount()
+  })
 })
 
 describe('TableRow as a primitive', () => {

@@ -78,6 +78,14 @@ export interface UseColumnsResult<TRow> {
   moveColumnTo: (columnId: string, targetId: string, side?: 'before' | 'after') => void
 
   setWidth: (columnId: string, width: number) => void
+  /**
+   * Forgets one column's stored width, so its declared `width` — or the
+   * default — governs it again. `resetWidths()` is the whole-table version;
+   * this is the one a double-click on a resize handle wants, because
+   * overwriting the width with a number of its own would leave the column
+   * unable to get back to what it declared.
+   */
+  resetWidth: (columnId: string) => void
   resetWidths: () => void
 
   /** Whether this band is folded shut. */
@@ -342,6 +350,15 @@ export function useColumns<TRow>(
     }
   }
 
+  function resetWidth(columnId: string): void {
+    // Nothing stored means the declared width already governs; rewriting the
+    // layout anyway would invalidate `all` for a change that isn't one.
+    if (layout.value.widths[columnId] === undefined) return
+    const widths = { ...layout.value.widths }
+    delete widths[columnId]
+    layout.value = { ...layout.value, widths }
+  }
+
   function resetWidths(): void {
     layout.value = { ...layout.value, widths: {} }
   }
@@ -420,6 +437,7 @@ export function useColumns<TRow>(
     moveColumn,
     moveColumnTo,
     setWidth,
+    resetWidth,
     resetWidths,
     isGroupCollapsed,
     toggleGroup,
