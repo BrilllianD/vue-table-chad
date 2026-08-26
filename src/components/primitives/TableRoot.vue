@@ -266,7 +266,7 @@ if (props.state && props.initialGroupBy?.length && state.groupBy.value.length ==
  * Strict identity, for selection: a wrong id there silently corrupts the
  * selection, so a row with no id and no `getRowId` throws rather than guess.
  */
-function getRowId(row: TRow): RowId {
+function resolveRowId(row: TRow): RowId {
   return (props.getRowId ?? defaultRowId<TRow>)(row)
 }
 
@@ -285,7 +285,7 @@ function getRowKey(row: TRow, index: number): RowId {
 // checkbox column with nothing behind it.
 const rowSelection = useRowSelection<TRow>(rows, () => props.source.total.value, {
   mode: () => (props.selectable === 'single' ? 'single' : 'multiple'),
-  getRowId,
+  getRowId: resolveRowId,
   isSelectable: (row) => props.isRowSelectable?.(row) ?? true,
 })
 
@@ -313,7 +313,7 @@ const cursorRows = computed(() =>
 // is: creating it lazily would freeze the answer at setup, so turning the prop
 // on later would render a grid with nothing behind it.
 const cellCursor = useCellCursor<TRow>(cursorRows, columns.visible, {
-  getRowId,
+  getRowId: resolveRowId,
   initial: props.initialCursor,
 })
 
@@ -323,7 +323,7 @@ const cellCursor = useCellCursor<TRow>(cursorRows, columns.visible, {
  * `initial`.
  *
  * Two reasons, and the first is a bug the suite caught. Resolving "the first
- * rendered cell" reads every rendered row's identity, and `getRowId` throws for
+ * rendered cell" reads every rendered row's identity, and `resolveRowId` throws for
  * rows carrying no `id` unless the caller supplied one. A table with the cursor
  * off never asked for identities and must not be made to produce them, so the
  * read cannot happen at setup, where `initial` is consumed. The second is the
@@ -441,7 +441,7 @@ const context: TableContext<TRow> = {
   displayRows: grouping.displayRows,
   visibleColumns: columns.visible,
   columnDefs: computed(() => props.columns),
-  getRowId,
+  getRowId: resolveRowId,
   getCellValue,
   getCellText,
 }
@@ -509,7 +509,7 @@ defineExpose({
     :loading="source.loading.value"
     :error="source.error.value"
     :total="source.total.value"
-    :get-row-id="getRowId"
+    :get-row-id="resolveRowId"
     :get-row-key="getRowKey"
     :get-cell-value="getCellValue"
     :get-cell-text="getCellText"

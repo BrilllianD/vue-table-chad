@@ -70,7 +70,7 @@ const columns: UseColumnsResult<Employee> = useColumns<Employee>(
   columnOptions,
 )
 
-const rows = computed(() => source.rows.value)
+const sourceRows = computed(() => source.rows.value)
 
 // Grouping is a layer over whatever rows the source produced, so a hand-built
 // root wires it in exactly the way `TableRoot` does.
@@ -87,7 +87,7 @@ const groupingOptions: UseRowGroupingOptions<Employee> = {
       : undefined,
 }
 const grouping: UseRowGrouping<Employee> = useRowGrouping<Employee>(
-  rows,
+  sourceRows,
   () => props.columns,
   groupingOptions,
 )
@@ -97,7 +97,7 @@ const selectionOptions: UseRowSelectionOptions<Employee> = {
   getRowId: (row) => row.id,
 }
 const selection = useRowSelection<Employee>(
-  rows,
+  sourceRows,
   () => source.total.value,
   selectionOptions,
 )
@@ -127,7 +127,7 @@ const context: TableContext<Employee> = {
   selection: computed(() => selection),
   pagination,
   grouping,
-  rows,
+  rows: sourceRows,
   displayRows: grouping.displayRows,
   visibleColumns: columns.visible,
   columnDefs: computed(() => props.columns),
@@ -140,5 +140,5 @@ provideTableContext(context)
 </script>
 
 <template>
-  <slot :rows="rows" :columns="columns.visible.value" :selection="selection" :state="state" />
+  <slot :rows="sourceRows" :columns="columns.visible.value" :selection="selection" :state="state" />
 </template>
