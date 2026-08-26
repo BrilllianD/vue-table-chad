@@ -114,6 +114,11 @@ because a background tab reports the browser's throttle rather than the table's 
   dense with this; match it rather than stripping it.
 - Prefer a named constant over a repeated literal when the name states a contract (`ROOT_GROUP_KEY`
   is the empty group path, not a coincidence two modules share).
+- **`noUncheckedIndexedAccess` is on.** `array[i]` is `T | undefined`, so an index read has to be
+  answered rather than assumed. In a hot loop, bind the element once (`const step = steps[i]!`)
+  rather than re-indexing — the same "derive per row, not per comparison" argument, one level up,
+  and worth 7–12% of a sort. Elsewhere a `!` is fine *with a one-line why*; the flag exists to make
+  that a decision instead of a default.
 - Public API changes go through `src/index.ts`. Anything exported carries a doc comment on its
   **declaration** whose first paragraph works as a one-line summary — `pnpm docs:api` harvests
   those into `demo/src/data/apiReference.ts`, and a test regenerates that file and fails if the

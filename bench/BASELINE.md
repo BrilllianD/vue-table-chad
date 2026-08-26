@@ -59,6 +59,27 @@ comparison rather than per row. Accessor columns paid that twice over.
 `Intl.Collator` was already hoisted, which was right; precomputed collation keys were not needed to
 get text down, and were not added.
 
+#### R2 · folding the per-key arrays into one object (2026-08-26)
+
+The projection above left four arrays — `plan`, `blanks`, `keys`, `values` — each indexed by
+`planIndex` inside the comparator. Same argument one level up: comparisons outnumber sort keys, so
+those four lookups per key per comparison are paid O(n log n) times. They are now resolved once per
+sort key into a `steps` array of one object each.
+
+Measured back-to-back at 10k, stash / pop on the same machine in the same session:
+
+| | before | after | |
+| --- | ---: | ---: | --- |
+| single text column (`Intl.Collator`) | 97.9 hz | 96.8 hz | noise |
+| single number column | 336.2 hz | 360.2 hz | **+7.1%** |
+| single date column | 181.3 hz | 197.5 hz | **+9.0%** |
+| three columns, mixed types | 93.9 hz | 105.4 hz | **+12.2%** |
+
+The shape of the result is the argument for believing it: the win scales inversely with what the
+comparison itself costs. Text is collator-bound and does not move; the three-key sort pays the
+lookups three times per comparison and moves most. A single run showed the same ordering, so this
+is not one machine mood.
+
 ### Where the aggregate win came from
 
 Split by reducer, the answer was unambiguous — `sum` 9.1, `avg` 9.8, `min` on a date column 29.8.
