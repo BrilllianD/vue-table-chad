@@ -1,0 +1,182 @@
+/*
+ * The filter popover, its value list and condition rows, and the chips.
+ *
+ * A slice of the preset theme. Imported by `../table.css` in source order —
+ * see the note there about why the order is not arbitrary.
+ */
+
+/* ----------------------------------------------------------------- filter */
+
+.vt-filter { position: relative; flex: none; margin-left: auto; }
+
+.vt-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: none;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--vt-text-muted);
+  cursor: pointer;
+}
+
+.vt-filter-trigger:hover { background: var(--vt-border); color: var(--vt-text); }
+.vt-filter-trigger[data-active] { color: var(--vt-accent); }
+.vt-filter-trigger:focus-visible { outline: 2px solid var(--vt-accent); }
+
+/*
+  Fixed, not absolute: the panel is teleported out of the scroll container so
+  neither `.vt-scroll`'s overflow nor the table's stacking context can clip it.
+  `top`/`left` come from the trigger's rect, written inline by the component.
+*/
+.vt-filter-panel[data-inline] {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+}
+
+.vt-filter-panel {
+  position: fixed;
+  z-index: 20;
+  width: 268px;
+  /* Never taller than the viewport, so positioning always has a solution. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  background: var(--vt-bg);
+  border: 1px solid var(--vt-border-strong);
+  border-radius: var(--vt-radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  font-weight: 400;
+  white-space: normal;
+}
+
+.vt-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border-bottom: 1px solid var(--vt-border);
+}
+
+.vt-filter-tab {
+  background: none;
+  border: 0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font: inherit;
+  color: var(--vt-text-muted);
+  cursor: pointer;
+}
+
+.vt-filter-tab[data-active] { background: var(--vt-bg-header); color: var(--vt-text); }
+.vt-filter-clear { margin-left: auto; }
+
+/* -------------------------------------------------------------- value list */
+
+.vt-valuelist { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+.vt-valuelist-search {
+  padding: 5px 8px;
+  border: 1px solid var(--vt-border);
+  border-radius: 4px;
+  background: var(--vt-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.vt-valuelist-items {
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--vt-border);
+  border-radius: 4px;
+}
+
+.vt-valuelist-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 7px;
+  cursor: pointer;
+}
+
+.vt-valuelist-row:hover { background: var(--vt-bg-hover); }
+.vt-valuelist-all { border-bottom: 1px solid var(--vt-border); font-weight: 600; }
+.vt-valuelist-blank { border-top: 1px solid var(--vt-border); font-style: italic; }
+
+.vt-valuelist-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vt-valuelist-count { color: var(--vt-text-muted); font-size: 12px; flex: none; }
+.vt-valuelist-status { padding: 10px; color: var(--vt-text-muted); text-align: center; }
+
+.vt-filter-error { margin: 0; padding: 8px 10px; color: var(--vt-danger); }
+
+.vt-valuelist-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+/* -------------------------------------------------------------- conditions */
+
+.vt-conditions { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+.vt-condition { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.vt-condition-op,
+.vt-condition-operator,
+.vt-condition-value {
+  padding: 4px 6px;
+  border: 1px solid var(--vt-border);
+  border-radius: 4px;
+  background: var(--vt-bg);
+  color: inherit;
+  font: inherit;
+  min-width: 0;
+}
+
+.vt-condition-op { flex: none; width: 62px; }
+.vt-condition-op-first { border: 0; background: none; color: var(--vt-text-muted); }
+.vt-condition-operator { flex: 1 1 100%; }
+.vt-condition-value { flex: 1 1 84px; }
+
+/* ------------------------------------------------------------------- chips */
+
+.vt-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.vt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 8px;
+  background: var(--vt-bg-header);
+  border: 1px solid var(--vt-border);
+  border-radius: 999px;
+  font-size: 12px;
+  max-width: 260px;
+}
+
+.vt-chip-summary {
+  color: var(--vt-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vt-chip-remove {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--vt-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 3px;
+  border-radius: 50%;
+}
+
+.vt-chip-remove:hover { background: var(--vt-border); color: var(--vt-text); }

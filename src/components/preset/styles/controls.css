@@ -1,0 +1,120 @@
+/*
+ * Buttons, and the loading / error / empty feedback.
+ *
+ * A slice of the preset theme. Imported by `../table.css` in source order —
+ * see the note there about why the order is not arbitrary.
+ */
+
+/* ---------------------------------------------------------------- buttons */
+
+.vt-btn {
+  padding: 5px 10px;
+  border: 1px solid var(--vt-border);
+  border-radius: 4px;
+  background: var(--vt-bg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vt-btn:hover:not(:disabled) { background: var(--vt-bg-hover); }
+.vt-btn:disabled { opacity: 0.4; cursor: default; }
+
+.vt-btn-primary {
+  background: var(--vt-accent);
+  border-color: var(--vt-accent);
+  color: var(--vt-accent-contrast);
+}
+
+.vt-btn-link {
+  border: 0;
+  background: none;
+  color: var(--vt-accent);
+  padding: 4px 6px;
+}
+
+.vt-btn-icon { padding: 2px 6px; line-height: 1; }
+.vt-btn-icon[data-active] { color: var(--vt-accent); border-color: var(--vt-accent); }
+
+.vt-checkbox { cursor: pointer; margin: 0; flex: none; }
+
+/* --------------------------------------------------------------- feedback */
+
+.vt-selectall-banner {
+  padding: 6px 10px;
+  background: var(--vt-bg-selected);
+  border: 1px solid var(--vt-accent);
+  border-radius: var(--vt-radius);
+  text-align: center;
+}
+
+/*
+  The anchor for the overlay. It wraps `.vt-scroll` instead of being it, because
+  an absolutely positioned child of a scroll container scrolls away with the
+  content — see the comment on the element in `DataTable.vue`.
+*/
+.vt-scroll-frame { position: relative; }
+
+.vt-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--vt-loading-scrim);
+  /*
+    The rows underneath stay clickable: with `keepPreviousData` the previous
+    page is still real data, and a refetch is not a reason to freeze it.
+  */
+  pointer-events: none;
+  /*
+    Clears the whole in-table ladder — pinned cells 1, sticky header 2, sticky
+    pinned header 3, drop caret 4 — all of which used to paint over an overlay
+    that declared no z-index, leaving the header and the pinned columns
+    undimmed. Still under the popover panels' 20, so a filter opened during a
+    refetch stays on top.
+  */
+  z-index: 5;
+}
+
+/*
+  Solid rather than translucent, and bordered: the scrim alone put low-contrast
+  text over whatever rows happened to be behind it. Same recipe as the popover
+  panels.
+*/
+.vt-loading-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--vt-bg);
+  border: 1px solid var(--vt-border-strong);
+  border-radius: var(--vt-radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  color: var(--vt-text);
+}
+
+.vt-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--vt-border-strong);
+  border-top-color: var(--vt-accent);
+  border-radius: 50%;
+  animation: vt-spin 0.7s linear infinite;
+}
+
+@keyframes vt-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-spinner { animation-duration: 2.4s; }
+}
+
+.vt-error { color: var(--vt-danger); }
+
+.vt-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

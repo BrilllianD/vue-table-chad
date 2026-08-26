@@ -1,0 +1,40 @@
+/*
+ * The toolbar strip: search box, selection summary, spacer.
+ *
+ * A slice of the preset theme. Imported by `../table.css` in source order —
+ * see the note there about why the order is not arbitrary.
+ */
+
+/* ---------------------------------------------------------------- toolbar */
+
+.vt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vt-toolbar-spacer { flex: 1; }
+
+.vt-search {
+  padding: 6px 10px;
+  border: 1px solid var(--vt-border);
+  border-radius: var(--vt-radius);
+  background: var(--vt-bg);
+  color: inherit;
+  font: inherit;
+  min-width: 220px;
+}
+
+.vt-search:focus-visible,
+.vt-valuelist-search:focus-visible {
+  outline: 2px solid var(--vt-accent);
+  outline-offset: -1px;
+}
+
+.vt-selection-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vt-text-muted);
+}

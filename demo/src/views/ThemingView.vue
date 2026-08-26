@@ -54,7 +54,7 @@ interface Palette {
   outerBorder: number
 }
 
-/** The two palettes the preset itself ships, copied verbatim from table.css. */
+/** The two palettes the preset itself ships, copied verbatim from styles/tokens.css. */
 const LIGHT: Palette = {
   accent: '#2563eb', accentContrast: '#ffffff',
   bg: '#ffffff', bgHeader: '#f6f7f9',

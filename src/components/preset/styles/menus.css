@@ -1,0 +1,107 @@
+/*
+ * The two dropdown panels: grouping and column visibility.
+ *
+ * A slice of the preset theme. Imported by `../table.css` in source order —
+ * see the note there about why the order is not arbitrary.
+ */
+
+/* ----------------------------------------------------------- group menu */
+
+.vt-group-menu { position: relative; }
+
+.vt-group-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 240px;
+  padding: 6px;
+  background: var(--vt-bg);
+  border: 1px solid var(--vt-border-strong);
+  border-radius: var(--vt-radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+.vt-group-badge {
+  display: inline-block;
+  min-width: 16px;
+  font-size: 10px;
+  text-align: center;
+  background: var(--vt-accent);
+  color: var(--vt-accent-contrast);
+  border-radius: 8px;
+  padding: 0 4px;
+}
+
+.vt-group-hint {
+  margin: 0;
+  padding: 4px 6px 8px;
+  color: var(--vt-text-muted);
+  font-size: 12px;
+}
+
+.vt-group-levels {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0 0 4px;
+  border-bottom: 1px solid var(--vt-border);
+}
+
+.vt-group-level { display: flex; align-items: center; gap: 6px; padding: 3px 4px; }
+
+.vt-group-level-index {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--vt-text-muted);
+  border: 1px solid var(--vt-border);
+  border-radius: 4px;
+}
+
+.vt-group-level-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vt-group-option { display: flex; align-items: center; gap: 6px; padding: 3px 4px; }
+.vt-group-option-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vt-group-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--vt-border);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+/* --------------------------------------------------------- columns menu */
+
+.vt-columns-menu { position: relative; }
+
+.vt-columns-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 260px;
+  padding: 6px;
+  background: var(--vt-bg);
+  border: 1px solid var(--vt-border-strong);
+  border-radius: var(--vt-radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+.vt-columns-row { display: flex; align-items: center; gap: 6px; padding: 3px 4px; }
+.vt-columns-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vt-columns-actions {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--vt-border);
+  margin-top: 4px;
+  padding-top: 4px;
+}

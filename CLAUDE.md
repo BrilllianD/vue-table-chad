@@ -37,7 +37,11 @@ These are contracts, not conventions:
   demo's "Core only" view exists to prove it.
 - **Primitives ship no stylesheet.** They emit class names and `data-*` attributes and nothing else.
   Using only primitives must pull in zero CSS; that is what "headless" buys.
-- **The preset owns the theme.** `DataTable.vue` imports `table.css` itself. `src/index.ts`
+- **The preset owns the theme.** `DataTable.vue` imports `table.css` itself — the entry file, which
+  is now just an ordered list of `@import`s over `preset/styles/*`. **That order is behaviour**: the
+  pinned-cell z-index ladder, the cell background stack and the `[data-cursor]` overrides all depend
+  on source order rather than specificity, so the partitions are contiguous slices of the original
+  in its original order. `src/index.ts`
   deliberately does *not*, because `sideEffects: ["**/*.css"]` would let a bare CSS import there be
   tree-shaken away, silently shipping an unstyled table.
 - **Every primitive works standalone.** Given explicit props, it must render with no `<TableRoot>`
