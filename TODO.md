@@ -6,11 +6,8 @@ Where this stands, what to do next, and the phase plan behind it — one file.
 > they had drifted apart: the roadmap still told a cold reader that Phase 1 lived on a branch and
 > that there was no git remote, months after both stopped being true.
 
-**State as of 2026-08-26:** the work is on **`feat/column-groups`**, 28 commits ahead of `main` and
-a clean fast-forward — `main` holds nothing the branch lacks. 604 tests across 31 files green,
-`pnpm typecheck` clean. `main` itself is clean and tracks `origin/main`.
-
-Four series have landed since Phase 1 merged, none of them on `main` yet:
+**State as of 2026-08-26:** everything below is on **`main`**, which tracks `origin/main`. 638 tests
+across 34 files green, `pnpm typecheck` clean.
 
 | | |
 | --- | --- |
@@ -18,6 +15,7 @@ Four series have landed since Phase 1 merged, none of them on `main` yet:
 | G1–G6 | Header bands — multi-row `<thead>`, nested bands, folding one shut by subtracting from `visible` |
 | K1–K6 | The cell cursor — a focus grid, a roving tabindex, `Enter` to edit |
 | N1–N10 | Cursor polish — paging with `Ctrl`+arrow, a scroll box that knows its pins, `autofocusCursor` |
+| R1–R8 | Code health — see below. No feature changed; the shape of the code did. |
 
 ---
 
@@ -33,22 +31,40 @@ Two things blocked that. One is now fixed.
    the pipeline redoing full-dataset work on interactions that should be free, and fixed it.
 2. **It still cannot be published.** Placeholder `@sandbox` scope, no LICENSE, no CI, no `default`
    export condition, and `files: ["dist"]` with a gitignored `dist/` means a fresh clone publishes
-   an empty package. That is Phase 3, and it is next.
+   an empty package. That is Phase 3, and it is next — and now unblocked, since R1–R8 landed the
+   code-health work that wanted to happen before the surface is frozen.
 
 Virtualization was deliberately *not* put first: pagination caps the DOM at `pageSize`, so the
 render layer was not the bottleneck — the reactive pipeline was. Fixing it was cheaper, produced the
 numbers that justify the claim, and the render refactor it needed is the same groundwork
 virtualization requires.
 
-## Do this first: land the branch
+## R1–R8 — code health ✅
 
-Phase 3 renames the package. Doing that on an unmerged 28-commit stack renames the wrong trunk, so
-the merge comes first.
+Structure, not features: the library is becoming the shared table for an app with many tables, and
+what had not been settled was the shape of the code those tables build on. Nothing user-visible
+changed; all 610 tests that existed at the start still pass untouched.
 
-- Fast-forward `feat/column-groups` into `main` and push. It is a true fast-forward; no merge commit
-  is needed and no conflict is possible.
-- **Delete `feat/editable-rows`** — now an ancestor of `HEAD`, so it holds nothing of its own.
-- **Delete `perf/pipeline`** — fully merged into `main`, and two behind.
+| | |
+| --- | --- |
+| R1 | Double-click on a resize handle restores the column's *declared* width. It used to write a flat `160`, which no column had asked for and which left one that declared a width unable to get back to it. `useColumns.resetWidth`. |
+| R2 | `noUncheckedIndexedAccess` on — a ratchet for new code; every existing index read already asserted. Then the one place with a better answer than `!`: `sortRows` folded four per-key arrays into one `steps` object, worth +7% to +12% on a sort. |
+| R3 | **`useTable()`** — `TableRoot.vue`'s 487 lines of wiring moved to `core/`, leaving a 201-line provider. The assembly of `core/` no longer requires a component, and `tests/useTable.spec.ts` exercises it without mounting anything. |
+| R4 | `DataTable.vue` 972 → 588 lines. `DataTableHeader`, `DataTableFooter` and `DataTableBody` are preset-internal; the body took the cell-editing cluster with it, since the `<tbody>` was its only caller. |
+| R5 | `table.css` 1369 lines → ten partials under `preset/styles/`. The built CSS is byte-identical, which is the whole claim. |
+| R6 | `tests/tableGrid.spec.ts` — the last primitive with no standalone case, plus the "with no cursor, off means off" contract that was documented and untested. |
+| R7 | The playground stopped generating its own dataset and columns; both come from `bench/fixtures.ts` like the demo's. The two `fakeApi` modules stay separate on purpose — see the note in the playground's. |
+| R8 | `tests/apiSurface.spec.ts` enforces "every value export appears in the demo". 22 had no demo home; the audit that said otherwise was reading the *generated* API reference. No export was dropped: the review found no leaked internals. |
+
+**What R4 did not do:** it is not P2-2. `v-memo` has no effect inside a `v-for`, and on a
+component's own root it does not gate slot updates either — both verified during P1-8. The body
+component is fed forwarded slots and inherits that, so the memoisation restructure is still P2-2's
+work, and P2-2 may have to undo R4's slot bridge to get there.
+
+## Do this next: Phase 3
+
+Nothing blocks it now. R8 in particular was the piece that had to come first — publishing freezes
+the export surface, and it is now a reviewed one with a test keeping it honest.
 
 ## Decisions, settled
 
@@ -109,9 +125,12 @@ One pass, since they land together.
 | | |
 | --- | --- |
 | 5 | alias and config sites — `package.json`, `tsconfig.json`, `vitest.config.ts`, `vite.demo.config.ts`, `vite.playground.config.ts` |
-| 29 | plain imports — 16 of the 17 `demo/src/views/*`, two demo components and its mock api, `playground/**`, `bench/*`, and `src/index.ts` |
-| 5 | prose — `README.md`, `CLAUDE.md`, `docs/column-groups.md`, `docs/styling.md`, and this file |
-| 1 | `tests/docsLinks.spec.ts` — so the sweep has a test watching it |
+| 31 | plain imports — `demo/src/views/*`, the demo's components and mock api, `playground/**`, `bench/*`, and `src/index.ts` |
+| 4 | prose — `README.md`, `docs/column-groups.md`, `docs/styling.md`, and this file |
+| 2 | `tests/docsLinks.spec.ts`, so the sweep has a test watching it — and **`tests/apiSurface.spec.ts`, which matches the package name inside a regex**. That one fails loudly if missed, which is the point, but it is not an import and a search-and-replace over import lines alone will skip it. |
+
+*(Counts re-taken after R1–R8. The `@fixtures` alias now also has to exist in
+`vite.playground.config.ts`, which R7 added.)*
 
 Then `publishConfig: { access: "public" }`. A LICENSE file **and** the `license` field — without
 both the package is legally unusable. Then `repository`, `homepage`, `bugs`, `keywords`, `author`,
@@ -281,7 +300,7 @@ Decisions, not oversights.
 ## Verification
 
 **Per task**
-- `pnpm test` — all 604 stay green.
+- `pnpm test` — all 638 stay green.
 - `pnpm typecheck` — clean.
 - `pnpm bench` — before/after against `bench/BASELINE.md`.
 - `tests/invalidation.spec.ts` — the perf invariants hold. A failure there is a broken feature, not
