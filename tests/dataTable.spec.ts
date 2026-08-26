@@ -9,7 +9,14 @@ import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { valuesFilter } from '../src/core/filters/model'
 import type { ResolvedColumn } from '../src/core/types'
-import { people, personColumns, type Person } from './fixtures'
+import {
+  aggregatedPersonColumns,
+  groupedPersonColumns,
+  people,
+  personColumnGroups,
+  personColumns,
+  type Person,
+} from './fixtures'
 
 const columns = personColumns.map((column) =>
   column.id === 'name' ? { ...column, accessor: (row: Person) => row.name } : column,
@@ -670,6 +677,92 @@ describe('column layout', () => {
 
     await handle.trigger('dblclick')
     expect(firstCol().attributes('style')).toContain('width: 200px')
+    wrapper.unmount()
+  })
+})
+
+/*
+ * The two slots nothing else reaches for. Both are part of the preset's slot
+ * API and neither appeared in the demo, the playground or a spec — so when the
+ * header and the footer moved into components of their own, the forwarding
+ * that keeps those slots working had nothing watching it.
+ */
+describe('header and footer slots', () => {
+  it('headerGroup replaces a band label', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, groupedPersonColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(
+            DataTable as never,
+            { columns: groupedPersonColumns, columnGroups: personColumnGroups, source, state },
+            {
+              headerGroup: ({ label }: { label: string }) =>
+                h('span', { class: 'band-slot' }, `band:${label}`),
+            },
+          )
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    const bands = wrapper.findAll('.band-slot').map((node) => node.text())
+    expect(bands.length).toBeGreaterThan(0)
+    expect(bands.some((text) => text.startsWith('band:'))).toBe(true)
+    // The default it replaced is gone, not merely covered.
+    expect(wrapper.find('.vt-th-group .vt-th-label').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('footer replaces an aggregate cell, and receives its text', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, aggregatedPersonColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(
+            DataTable as never,
+            { columns: aggregatedPersonColumns, source, state, showFooter: true },
+            {
+              footer: ({ column, text }: { column: ResolvedColumn<Person>; text: string }) =>
+                h('span', { class: 'foot-slot' }, `${column.id}=${text}`),
+            },
+          )
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    const cells = wrapper.findAll('tfoot .foot-slot').map((node) => node.text())
+    expect(cells.length).toBe(aggregatedPersonColumns.length)
+    // `salary` aggregates `sum`, so the slot must be handed a real number.
+    expect(cells.find((text) => text.startsWith('salary='))).not.toBe('salary=')
+    wrapper.unmount()
+  })
+
+  it('renders the default footer label when no slot is given', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, aggregatedPersonColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, {
+            columns: aggregatedPersonColumns,
+            source,
+            state,
+            showFooter: true,
+            footerLabel: 'Sum',
+          })
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    expect(wrapper.find('tfoot').text()).toContain('Sum')
     wrapper.unmount()
   })
 })

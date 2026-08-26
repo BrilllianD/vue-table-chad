@@ -10,9 +10,7 @@
  * `playground/src/examples/ComposedCustom.vue`).
  */
 import { computed, ref } from 'vue'
-import { formatAggregate } from '../../core/aggregation'
 import type {
-  AggregateResult,
   ColumnDef,
   ColumnGroupDef,
   DataSource,
@@ -37,21 +35,17 @@ import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
-import TableHeaderCell from '../primitives/TableHeaderCell.vue'
-import TableHeaderGroupCell from '../primitives/TableHeaderGroupCell.vue'
-import TableCell from '../primitives/TableCell.vue'
 import TableRow from '../primitives/TableRow.vue'
 import CellEditor from '../primitives/CellEditor.vue'
 import TableGroupRow from '../primitives/TableGroupRow.vue'
-import SortTrigger from '../primitives/SortTrigger.vue'
-import ColumnFilterPopover from '../primitives/ColumnFilterPopover.vue'
-import ColumnResizeHandle from '../primitives/ColumnResizeHandle.vue'
 import ColumnDragGhost from '../primitives/ColumnDragGhost.vue'
 import ColumnVisibilityMenu from '../primitives/ColumnVisibilityMenu.vue'
 import RowGroupMenu from '../primitives/RowGroupMenu.vue'
 import ActiveFilters from '../primitives/ActiveFilters.vue'
 import TablePagination from '../primitives/TablePagination.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
+import DataTableHeader from './DataTableHeader.vue'
+import DataTableFooter from './DataTableFooter.vue'
 
 // The preset owns the preset theme, so `DataTable` is styled out of the box
 // while the primitives stay CSS-free.
@@ -478,14 +472,6 @@ function onActivate(
   const move = 'key' in event ? commitMoveFor(event as unknown as KeyboardEvent) : undefined
   if (move) cursor?.move(move)
 }
-
-function footerText(
-  aggregates: Record<string, AggregateResult<TRow>>,
-  column: ResolvedColumn<TRow>,
-): string {
-  const result = aggregates[column.id]
-  return result ? formatAggregate(result, column) : ''
-}
 </script>
 
 <template>
@@ -637,82 +623,18 @@ function footerText(
               span the rest: they head a column, not a band, and a second copy
               in row two would push every real column one place to the right.
             -->
-            <thead class="vt-thead">
-              <tr v-for="(headerRow, headerLevel) in headerRows" :key="headerLevel">
-                <th
-                  v-if="selectable && headerLevel === 0"
-                  class="vt-th vt-th-selection"
-                  scope="col"
-                  :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
-                >
-                  <SelectionCheckbox
-                    v-if="selection && props.selectable !== 'single'"
-                    :checked="selection.headerState.value === 'all'"
-                    :indeterminate="selection.headerState.value === 'some'"
-                    label="Select all rows on this page"
-                    @change="selection.toggleAllOnPage()"
-                  />
-                </th>
-
-                <template v-for="cell in headerRow" :key="cell.key">
-                  <TableHeaderGroupCell v-if="cell.kind === 'group'" :cell="cell">
-                    <template #default="bandProps">
-                      <slot
-                        name="headerGroup"
-                        :cell="bandProps.cell"
-                        :collapsed="bandProps.collapsed"
-                        :label="bandProps.label"
-                      >
-                        <span class="vt-th-label">{{ bandProps.label }}</span>
-                      </slot>
-                    </template>
-                  </TableHeaderGroupCell>
-
-                  <TableHeaderCell
-                    v-else
-                    :column="cell.column"
-                    :rowspan="cell.rowspan"
-                    :depth="cell.depth"
-                    :cursor="cursor?.isCursorColumn(cell.column.id) ? 'column' : undefined"
-                  >
-                    <template #default>
-                      <SortTrigger
-                        v-if="cell.column.sortable !== false"
-                        :column-id="cell.column.id"
-                        :label="cell.column.header ?? cell.column.id"
-                      />
-                      <span v-else class="vt-th-label">
-                        {{ cell.column.header ?? cell.column.id }}
-                      </span>
-
-                      <ColumnFilterPopover
-                        v-if="cell.column.filterable !== false"
-                        :column-id="cell.column.id"
-                        :type="cell.column.type ?? 'text'"
-                        :label="cell.column.header ?? cell.column.id"
-                      />
-                    </template>
-                    <template #resize>
-                      <ColumnResizeHandle
-                        v-if="cell.column.resizable !== false"
-                        :column-id="cell.column.id"
-                        :width="cell.column.resolvedWidth ?? 160"
-                        :min-width="cell.column.minWidth"
-                      />
-                    </template>
-                  </TableHeaderCell>
-                </template>
-
-                <th
-                  v-if="actionsColumn && headerLevel === 0"
-                  class="vt-th vt-th-actions"
-                  scope="col"
-                  :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
-                >
-                  <span class="vt-visually-hidden">Row actions</span>
-                </th>
-              </tr>
-            </thead>
+            <DataTableHeader
+              :header-rows="headerRows"
+              :selectable="selectable"
+              :selection-mode="props.selectable"
+              :selection="selection"
+              :cursor="cursor"
+              :actions-column="actionsColumn"
+            >
+              <template v-if="$slots.headerGroup" #headerGroup="bandProps">
+                <slot name="headerGroup" v-bind="bandProps" />
+              </template>
+            </DataTableHeader>
 
             <tbody class="vt-tbody">
               <tr v-if="error" class="vt-row-message">
@@ -922,29 +844,18 @@ function footerText(
               `TableGrid` slot — the grid is a bare `<slot />`, so a footer needs
               nothing from it but the `<colgroup>` widths it already applies.
             -->
-            <tfoot v-if="showFooter" class="vt-tfoot">
-              <tr class="vt-footer-row">
-                <td v-if="selectable" class="vt-td vt-td-selection" />
-                <TableCell v-for="(column, columnIndex) in cols" :key="column.id" :column="column">
-                  <slot
-                    name="footer"
-                    :column="column"
-                    :result="overallAggregates[column.id]"
-                    :text="footerText(overallAggregates, column)"
-                  >
-                    <!--
-                      The label only appears where it displaces nothing: a first
-                      column that aggregates shows its own number instead.
-                    -->
-                    <span v-if="columnIndex === 0 && !overallAggregates[column.id]">
-                      {{ footerLabel }}
-                    </span>
-                    <template v-else>{{ footerText(overallAggregates, column) }}</template>
-                  </slot>
-                </TableCell>
-                <td v-if="actionsColumn" class="vt-td vt-td-actions" />
-              </tr>
-            </tfoot>
+            <DataTableFooter
+              v-if="showFooter"
+              :columns="cols"
+              :aggregates="overallAggregates"
+              :label="footerLabel"
+              :selectable="selectable"
+              :actions-column="actionsColumn"
+            >
+              <template v-if="$slots.footer" #footer="footerProps">
+                <slot name="footer" v-bind="footerProps" />
+              </template>
+            </DataTableFooter>
           </TableGrid>
         </div>
 
