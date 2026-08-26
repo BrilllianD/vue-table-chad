@@ -218,7 +218,7 @@ export { default as SelectionCheckbox } from './components/primitives/SelectionC
  * headless layer. To style them with the default theme anyway, import the
  * stylesheet explicitly:
  *
- *   import '@sandbox/vue-table/style.css'
+ *   import '@brillliand/vue-table-chad/style.css'
  *
  * (Note: the stylesheet is deliberately NOT imported from this barrel file.
  * `package.json` declares `sideEffects: ["**\/*.css"]`, which marks every JS

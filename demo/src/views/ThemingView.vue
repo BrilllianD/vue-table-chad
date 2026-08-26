@@ -14,7 +14,7 @@
  * scheme the browser is actually in.
  */
 import { computed, reactive, ref } from 'vue'
-import { DataTable, useLocalDataSource, useTableState } from '@sandbox/vue-table'
+import { DataTable, useLocalDataSource, useTableState } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
@@ -378,7 +378,7 @@ const hooks = [
       'data-* state attributes',
       'ColumnDef.background',
       'ColumnDef.headerBackground',
-      '@sandbox/vue-table/style.css',
+      '@brillliand/vue-table-chad/style.css',
     ]"
   >
     <template #controls>
@@ -560,7 +560,7 @@ const hooks = [
 
     <p class="hint">
       Using only primitives and still want this theme? Import it yourself:
-      <code>import '@sandbox/vue-table/style.css'</code>. It is deliberately not pulled in by the
+      <code>import '@brillliand/vue-table-chad/style.css'</code>. It is deliberately not pulled in by the
       package barrel — <code>sideEffects</code> marks the JS modules side-effect-free, so a bare
       CSS import there would be tree-shaken away and you would silently get an unstyled table.
     </p>

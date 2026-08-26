@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@sandbox/vue-table': fileURLToPath(new URL('./src/index.ts', import.meta.url)),
+      '@brillliand/vue-table-chad': fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@fixtures': fileURLToPath(new URL('./bench/fixtures.ts', import.meta.url)),
     },

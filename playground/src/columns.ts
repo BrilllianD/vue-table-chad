@@ -1,4 +1,4 @@
-import type { ColumnDef } from '@sandbox/vue-table'
+import type { ColumnDef } from '@brillliand/vue-table-chad'
 import type { Employee } from '../mock/fakeApi'
 
 const money = new Intl.NumberFormat(undefined, {

@@ -15,7 +15,7 @@ import {
   TableRoot,
   useLocalDataSource,
   useTableState,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../../mock/fakeApi'
 import { employeeColumns } from '../columns'
 

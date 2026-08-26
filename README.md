@@ -35,15 +35,15 @@ pnpm build:docs  # the demo, folded into one self-contained page
 `pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 16 views, every export, one
 view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
 
-Not on npm yet: `@sandbox/vue-table` is a placeholder scope the examples import from, and
-[`TODO.md`](TODO.md) tracks what publishing still needs.
+Not on npm yet: `@brillliand/vue-table-chad` is the name the examples import from — an alias onto
+`src/index.ts` until the first release. [`TODO.md`](TODO.md) tracks what publishing still needs.
 
 ## Quick start
 
 ```vue
 <script setup lang="ts">
 import { shallowRef } from 'vue'
-import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@sandbox/vue-table'
+import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@brillliand/vue-table-chad'
 
 const rows = shallowRef(people)
 

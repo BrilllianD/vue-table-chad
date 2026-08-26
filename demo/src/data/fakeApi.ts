@@ -20,7 +20,7 @@ import {
   type FacetValue,
   type FetchResult,
   type QueryState,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { employees, type Employee } from './dataset'
 import { employeeColumns } from '../columns'
 

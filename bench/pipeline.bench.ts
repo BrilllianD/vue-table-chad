@@ -7,7 +7,7 @@ import {
   flattenGroups,
   sortRows,
   valuesFilter,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { columnFor, employeeColumns, makeRows } from '@fixtures'
 
 /**

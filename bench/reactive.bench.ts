@@ -9,7 +9,7 @@ import {
   useRowSelection,
   useTableState,
   valuesFilter,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import {
   employeeColumnGroups,
   employeeColumns,

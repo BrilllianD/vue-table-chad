@@ -13,7 +13,7 @@ import {
   type FacetValue,
   type FetchResult,
   type QueryState,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 
 export interface Employee extends Record<string, unknown> {
   id: number

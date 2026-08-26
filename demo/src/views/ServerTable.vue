@@ -16,7 +16,7 @@ import {
   type QueryState,
   type ServerDataSource,
   type ServerDataSourceOptions,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { fetchEmployeeFacets, fetchEmployees } from '../data/fakeApi'
 import type { Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'

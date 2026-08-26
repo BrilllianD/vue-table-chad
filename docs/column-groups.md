@@ -121,7 +121,7 @@ band is allowed, and the header simply redraws to say so.
 The header shape is a pure function, exported from core and usable with no component at all:
 
 ```ts
-import { buildHeaderRows, columnGroupPath } from '@sandbox/vue-table'
+import { buildHeaderRows, columnGroupPath } from '@brillliand/vue-table-chad'
 
 const rows = buildHeaderRows(columns.visible.value, columnGroups)
 // rows[0] → [{ kind: 'group', group, colspan, columns, … }, { kind: 'column', column, rowspan, … }]

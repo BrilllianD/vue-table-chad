@@ -57,7 +57,7 @@ import {
   useRowEditing,
   useTableState,
   type RowChange,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { employeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import { saveEmployee } from '../data/fakeApi'

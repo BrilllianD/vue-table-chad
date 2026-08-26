@@ -59,7 +59,7 @@ const recipes: Recipe[] = [
           and decides which operators the filter panel offers.`,
     code: `<script setup lang="ts">
 import { shallowRef } from 'vue'
-import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@sandbox/vue-table'
+import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@brillliand/vue-table-chad'
 
 // shallowRef, not ref: a plain ref proxies every row object, and every cell
 // read during a filter or sort then goes through a Proxy trap.

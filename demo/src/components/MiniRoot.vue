@@ -38,7 +38,7 @@ import {
   type UseRowGrouping,
   type UseRowGroupingOptions,
   type UseRowSelectionOptions,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import type { Employee } from '../data/dataset'
 
 const props = defineProps<{

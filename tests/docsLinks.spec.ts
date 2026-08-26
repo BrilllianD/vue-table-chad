@@ -106,7 +106,7 @@ describe('docs links', () => {
     const unknown: string[] = []
     for (const file of files) {
       readFileSync(file, 'utf8').split('\n').forEach((text, index) => {
-        const match = text.match(/^\s*import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+'@sandbox\/vue-table'/)
+        const match = text.match(/^\s*import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+'@brillliand\/vue-table-chad'/)
         if (!match) return
         for (const raw of match[1]!.split(',')) {
           const name = raw.trim().replace(/^type\s+/, '').split(/\s/)[0]

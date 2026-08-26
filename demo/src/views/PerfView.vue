@@ -23,7 +23,7 @@
  * DOM, which is exactly the point where pagination stops being enough.
  */
 import { computed, nextTick, ref, shallowRef } from 'vue'
-import { DataTable, useLocalDataSource, useTableState, valuesFilter } from '@sandbox/vue-table'
+import { DataTable, useLocalDataSource, useTableState, valuesFilter } from '@brillliand/vue-table-chad'
 import { makeRows, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'

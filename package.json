@@ -1,8 +1,38 @@
 {
-  "name": "@sandbox/vue-table",
+  "name": "@brillliand/vue-table-chad",
   "version": "0.1.0",
-  "type": "module",
   "description": "Composable headless table primitives for Vue 3",
+  "keywords": [
+    "vue",
+    "vue3",
+    "table",
+    "datatable",
+    "data-grid",
+    "headless",
+    "composable",
+    "sorting",
+    "filtering",
+    "pagination",
+    "grouping",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "Bronnikov Aleksandr <brullik7@gmail.com>",
+  "homepage": "https://bitbucket.org/BrilllianD/vue-table-chad#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://bitbucket.org/BrilllianD/vue-table-chad.git"
+  },
+  "bugs": {
+    "url": "https://bitbucket.org/BrilllianD/vue-table-chad/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
   "files": [
     "dist"
   ],

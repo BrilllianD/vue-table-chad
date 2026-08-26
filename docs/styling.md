@@ -11,7 +11,7 @@ Primitives ship **no CSS** — they emit class names and `data-*` attributes onl
 `DataTable` imports the default theme itself. If you use only primitives and still want that theme:
 
 ```ts
-import '@sandbox/vue-table/style.css'
+import '@brillliand/vue-table-chad/style.css'
 ```
 
 Retheme by overriding the CSS variables on `.vt-datatable` (`--vt-accent`, `--vt-border`,

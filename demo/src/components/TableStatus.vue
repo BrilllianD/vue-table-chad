@@ -9,7 +9,7 @@
  * degrades to a hint instead of throwing when someone misplaces it.
  */
 import { computed } from 'vue'
-import { useTableContext } from '@sandbox/vue-table'
+import { useTableContext } from '@brillliand/vue-table-chad'
 import type { Employee } from '../data/dataset'
 
 const context = useTableContext<Employee>()

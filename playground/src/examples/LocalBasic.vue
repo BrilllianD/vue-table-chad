@@ -4,7 +4,7 @@
  * Sorting, Excel filters, pagination, selection and column layout — 6 lines.
  */
 import { ref, shallowRef } from 'vue'
-import { DataTable, useLocalDataSource, useTableState } from '@sandbox/vue-table'
+import { DataTable, useLocalDataSource, useTableState } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../../mock/fakeApi'
 import { employeeColumns } from '../columns'
 

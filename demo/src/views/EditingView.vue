@@ -32,7 +32,7 @@ import {
   useTableState,
   type EditMode,
   type RowChange,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import { clearRequestLog, requestLog, saveEmployee } from '../data/fakeApi'

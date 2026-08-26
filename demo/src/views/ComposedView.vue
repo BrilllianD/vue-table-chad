@@ -23,7 +23,7 @@ import {
   TableRoot,
   useLocalDataSource,
   useTableState,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
 import { columnFor, employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'

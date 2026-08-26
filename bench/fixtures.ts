@@ -24,7 +24,7 @@
  * `filterRows`, `sortRows`, `countGroups` or `aggregateGroups` reads any of it.
  */
 
-import type { ColumnDef, ColumnGroupDef } from '@sandbox/vue-table'
+import type { ColumnDef, ColumnGroupDef } from '@brillliand/vue-table-chad'
 
 export interface Employee extends Record<string, unknown> {
   id: number

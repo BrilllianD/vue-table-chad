@@ -21,7 +21,7 @@
     "types": ["vitest/globals"],
     "baseUrl": ".",
     "paths": {
-      "@sandbox/vue-table": ["./src/index.ts"],
+      "@brillliand/vue-table-chad": ["./src/index.ts"],
       "@/*": ["./src/*"],
       "@fixtures": ["./bench/fixtures.ts"]
     }

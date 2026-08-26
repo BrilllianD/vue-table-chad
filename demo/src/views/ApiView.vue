@@ -15,7 +15,7 @@
  * summary cannot drift from the code it describes.
  */
 import { shallowRef } from 'vue'
-import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@sandbox/vue-table'
+import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@brillliand/vue-table-chad'
 import { API_KINDS, API_LAYERS, apiReference, type ApiEntry } from '../data/apiReference'
 import DemoSection from '../components/DemoSection.vue'
 

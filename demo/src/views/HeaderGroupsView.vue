@@ -21,7 +21,7 @@ import {
   useTableState,
   type ColumnGroupDef,
   type TableState,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { employeeColumnGroups, groupedEmployeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import DemoSection from '../components/DemoSection.vue'

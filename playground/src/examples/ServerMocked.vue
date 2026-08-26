@@ -7,7 +7,7 @@
  * server-side facets, and the component layer is none the wiser.
  */
 import { ref } from 'vue'
-import { DataTable, useServerDataSource, useTableState, type QueryState } from '@sandbox/vue-table'
+import { DataTable, useServerDataSource, useTableState, type QueryState } from '@brillliand/vue-table-chad'
 import { fetchEmployeeFacets, fetchEmployees, type Employee } from '../../mock/fakeApi'
 import { employeeColumns } from '../columns'
 
