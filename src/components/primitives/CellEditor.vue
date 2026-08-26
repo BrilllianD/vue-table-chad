@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="TRow extends Record<string, unknown>">
+`<script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /**
  * The control that edits one cell, and the keyboard contract around it.
  *

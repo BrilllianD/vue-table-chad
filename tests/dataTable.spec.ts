@@ -767,6 +767,150 @@ describe('header and footer slots', () => {
   })
 })
 
+/*
+ * The preset's body slots, all of which now reach `<tbody>` through
+ * `DataTableBody` rather than being written inline. Removing that forwarding
+ * entirely used to fail exactly one test — an `editor:<id>` case — so
+ * `cell:<id>`, `rowActions`, `empty`, `error`, `group` and `groupAggregate`
+ * were being forwarded on trust.
+ */
+describe('body slots survive the forwarding', () => {
+  it('cell:<id> replaces one column and leaves the others alone', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state },
+            {
+              'cell:name': ({ text }: { text: string }) =>
+                h('b', { class: 'mine' }, `${text}!`),
+            },
+          )
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    const mine = wrapper.findAll('tbody .mine').map((node) => node.text())
+    expect(mine[0]).toBe('Ada Lovelace!')
+    expect(mine).toHaveLength(3)
+    // The column next to it still renders its default text.
+    expect(wrapper.find('tbody tr').text()).toContain('120000')
+    wrapper.unmount()
+  })
+
+  it('empty replaces the no-rows message', async () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        state.setSearch('nothing matches this')
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state },
+            { empty: () => h('span', { class: 'mine' }, 'none at all') },
+          )
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
+    expect(wrapper.find('.mine').text()).toBe('none at all')
+    expect(wrapper.text()).not.toContain('No rows match the current filters.')
+    wrapper.unmount()
+  })
+
+  it('falls back to emptyMessage when no slot is given', async () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        state.setSearch('nothing matches this')
+        return () => h(DataTable as never, { columns, source, state, emptyMessage: 'Nada' })
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
+    // The body owns this fallback now; forwarding only the slots a caller
+    // actually passed is what keeps it reachable.
+    expect(wrapper.find('.vt-row-message').text()).toBe('Nada')
+    wrapper.unmount()
+  })
+
+  it('group and groupAggregate replace the band header', async () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 20 })
+        const source = useLocalDataSource<Person>(people, aggregatedPersonColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(
+            DataTable as never,
+            {
+              columns: aggregatedPersonColumns,
+              source,
+              state,
+              initialGroupBy: ['department'],
+            },
+            {
+              group: ({ group }: { group: { label: string } }) =>
+                h('span', { class: 'mine' }, `G:${group.label}`),
+              groupAggregate: ({ text }: { text: string }) =>
+                h('span', { class: 'agg' }, `A:${text}`),
+            },
+          )
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
+    const bands = wrapper.findAll('.mine').map((node) => node.text())
+    expect(bands.length).toBeGreaterThan(0)
+    expect(bands[0]!.startsWith('G:')).toBe(true)
+    expect(wrapper.findAll('.agg').length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  it('error replaces the failure row and keeps refresh reachable', async () => {
+    const refresh = vi.fn()
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = {
+          rows: ref([]),
+          total: ref(0),
+          loading: ref(false),
+          error: ref(new Error('boom')),
+          refresh,
+          facets: async () => [],
+          remote: true,
+        }
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state },
+            {
+              error: ({ error: err }: { error: Error }) =>
+                h('span', { class: 'mine' }, `E:${err.message}`),
+            },
+          )
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
+    expect(wrapper.find('.mine').text()).toBe('E:boom')
+    // The default retry button is gone, replaced rather than added to.
+    expect(wrapper.find('.vt-error').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
+
 describe('TableRow as a primitive', () => {
   // A plain record rather than a `Person`: `TableRow` is generic over
   // `Record<string, unknown>`, and these two tests are about a row rendering

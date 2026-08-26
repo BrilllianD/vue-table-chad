@@ -9,7 +9,7 @@
  * `<TableRoot>` and assemble the same pieces differently (see
  * `playground/src/examples/ComposedCustom.vue`).
  */
-import { computed, ref } from 'vue'
+import { computed, ref, useSlots } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -325,6 +325,27 @@ function pinnedWidth(cols: ResolvedColumn<TRow>[], side: PinSide): string {
  * F2 and nothing for a double-click, so neither of those moves a read-only
  * cell, which is right: F2 asks to edit and nothing else.
  */
+/**
+ * The slot names to hand down to `DataTableBody`, typed as plain strings on
+ * purpose.
+ *
+ * `v-for="(_, name) in $slots"` with `#[name]` reads naturally and type-checks
+ * under `vue-tsc`, but it makes the slots this component *declares* depend on
+ * the type of the slots it *receives* — and `vite-plugin-dts` reports that
+ * circle as TS7022 while generating the declarations, so the shipped types are
+ * built from a file the type-checker was unhappy with. The annotation here is
+ * what cuts it: the names leave the script already `string[]`, so nothing the
+ * template declares points back at `$slots`.
+ *
+ * A function rather than a computed: the slots object is replaced on re-render
+ * rather than mutated reactively, so a cached list could describe the previous
+ * render's slots.
+ */
+const slots = useSlots()
+function forwardedSlotNames(): string[] {
+  return Object.keys(slots)
+}
+
 function onActivate(
   position: CellPosition,
   event: Event,
@@ -539,7 +560,7 @@ function onActivate(
                 body's own fallback content — the empty message, the default
                 group header, the plain cell text — working.
               -->
-              <template v-for="(_, name) in $slots" #[name]="slotProps">
+              <template v-for="name in forwardedSlotNames()" #[name]="slotProps">
                 <slot :name="name" v-bind="slotProps ?? {}" />
               </template>
             </DataTableBody>
