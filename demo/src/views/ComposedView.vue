@@ -29,6 +29,7 @@ import { columnFor, employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 import TableStatus from '../components/TableStatus.vue'
 import MiniRoot from '../components/MiniRoot.vue'
+import WiredRoot from '../components/WiredRoot.vue'
 
 const rows = shallowRef(employees.slice(0, 240))
 const state = useTableState({ pageSize: 6 })
@@ -43,6 +44,7 @@ const miniRows = employees.slice(0, 60)
 const miniColumns = employeeColumns.filter((column) =>
   ['name', 'role', 'salary'].includes(column.id),
 )
+
 </script>
 
 <template>
@@ -60,6 +62,8 @@ const miniColumns = employeeColumns.filter((column) =>
       'TablePagination',
       'SelectionCheckbox',
       'useTableContext',
+      'useTable',
+      'provideTableContext',
     ]"
   >
     <TableRoot
@@ -187,6 +191,41 @@ const miniColumns = employeeColumns.filter((column) =>
         </ul>
         <TablePagination :page-sizes="[4, 8]" />
       </MiniRoot>
+    </div>
+
+    <!-- ------------------------------------------- ...or one call: useTable -->
+
+    <div class="mini">
+      <h3>…or skip the assembly entirely</h3>
+      <p class="hint">
+        <code>MiniRoot</code> builds the context field by field to prove it is a plain object.
+        <code>WiredRoot.vue</code> builds the same thing with one call to <code>useTable()</code>,
+        which lives in <code>core/</code> — so none of the wiring involves a component. That leaves
+        the component with the two jobs only a component can do: <code>provide</code>, and turning
+        a change into an emit. The library's own <code>TableRoot</code> is exactly this.
+      </p>
+
+      <WiredRoot v-slot="{ rows: wiredPage, selection }" :columns="miniColumns" :rows="miniRows">
+        <div class="bar">
+          <SortTrigger column-id="name" label="Name" />
+          <SortTrigger column-id="salary" label="Salary" />
+          <ColumnFilterPopover column-id="role" type="enum" label="Role" />
+          <span class="spacer" />
+          <TableStatus />
+        </div>
+        <ul class="mini-list">
+          <li
+            v-for="row in wiredPage"
+            :key="row.id"
+            :data-selected="selection.isSelected(row) || undefined"
+            @click="selection.toggle(row)"
+          >
+            <span>{{ row.name }}</span>
+            <span class="muted">{{ row.role }}</span>
+          </li>
+        </ul>
+        <TablePagination :page-sizes="[4, 8]" />
+      </WiredRoot>
     </div>
   </DemoSection>
 </template>

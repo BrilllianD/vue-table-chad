@@ -40,6 +40,10 @@ export const API_KINDS: ApiKind[] = ['composable', 'function', 'component', 'con
 
 export const apiReference: ApiEntry[] = [
   /* ------------------------------------------------------------------ core */
+  { name: 'useTable', layer: 'core', kind: 'composable', summary: 'Wires a whole table — state, columns, drag, grouping, selection, cursor, pagination — into one `TableContext`, with no component involved.' },
+  { name: 'UseTable', layer: 'core', kind: 'type', summary: 'A wired table: the `TableContext` every primitive reads, plus the few derived values a renderer needs that no primitive reaches for.' },
+  { name: 'UseTableOptions', layer: 'core', kind: 'type', summary: 'Everything `useTable` accepts. See `useTable` for what is read when.' },
+
   { name: 'useTableState', layer: 'core', kind: 'composable', summary: "Owns the `QueryState`. Nothing here knows where rows come from — that is the data source's job — which is what lets one state object drive either." },
   { name: 'createQueryState', layer: 'core', kind: 'function', summary: 'A fresh QueryState with defaults filled in. Useful for seeding a store or a URL.' },
   { name: 'TableState', layer: 'core', kind: 'type', summary: 'What useTableState returns: refs plus the mutators that keep paging honest.' },

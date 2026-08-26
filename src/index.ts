@@ -8,6 +8,9 @@
 
 /* ------------------------------------------------------------------ core */
 
+export { useTable } from './core/useTable'
+export type { UseTable, UseTableOptions } from './core/useTable'
+
 export { useTableState, createQueryState } from './core/useTableState'
 export type { TableState, TableStateOptions } from './core/useTableState'
 

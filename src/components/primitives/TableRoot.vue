@@ -2,8 +2,16 @@
 /**
  * Wires everything together and renders nothing of its own — the slot decides
  * the markup entirely.
+ *
+ * Thin on purpose. All of the wiring lives in `useTable()`, in `core/`, where
+ * it can be reached and tested with no component involved; this component is
+ * the props-to-options adapter, the `provide`, and the three `update:*` emits.
+ * The rules that used to live here — how `initialGroupBy` seeds a state built
+ * elsewhere, why selection and the cursor are built unconditionally and gated
+ * on the way out, why `autofocusCursor` waits for `onMounted` — are all in
+ * `useTable`, with the comments that explain them.
  */
-import { computed, onMounted, toRef, watch } from 'vue'
+import { toRef, watch } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -13,21 +21,19 @@ import type {
   RowId,
   SelectionMode,
 } from '../../core/types'
-import { provideTableContext, type TableContext } from '../../core/context'
-import { useTableState, type TableState } from '../../core/useTableState'
-import { useColumns, type ColumnLayoutState } from '../../core/useColumns'
-import { buildHeaderRows } from '../../core/columnGroups'
+import { provideTableContext } from '../../core/context'
+import { useTable } from '../../core/useTable'
+import type { TableState } from '../../core/useTableState'
+import type { ColumnLayoutState } from '../../core/useColumns'
 import type { ColumnLayoutField } from '../../core/columnStorage'
-import { useColumnDnd, type DropSide } from '../../core/useColumnDnd'
-import { useRowGrouping } from '../../core/useRowGrouping'
-import { useRowSelection, defaultRowId } from '../../core/useRowSelection'
-import { useCellCursor } from '../../core/useCellCursor'
 import type { CellPosition } from '../../core/cellCursor'
 import type { UseRowEditing } from '../../core/useRowEditing'
-import { usePagination } from '../../core/usePagination'
-import { readValue } from '../../core/sorting'
-import { isEmptyFilter } from '../../core/filters/model'
 
+/**
+ * Every prop here is one `UseTableOptions` field. The documentation for what
+ * each one means, and when it is read, lives on that interface — written once,
+ * beside the code that acts on it.
+ */
 const props = withDefaults(
   defineProps<{
     columns: ColumnDef<TRow>[]
@@ -42,106 +48,33 @@ const props = withDefaults(
     selectable?: boolean | SelectionMode
     getRowId?: (row: TRow) => RowId
     isRowSelectable?: (row: TRow) => boolean
-    /**
-     * Header bands, giving a multi-row header and per-band collapse.
-     *
-     * Optional even when columns declare a `group`: a band forms because a
-     * column claims it, and these supply the label, the nesting and how it
-     * folds. With no column declaring one, the header stays a single row.
-     */
+    /** Header bands, giving a multi-row header and per-band collapse. */
     columnGroups?: ColumnGroupDef[]
     initialLayout?: Partial<ColumnLayoutState>
-    /**
-     * Saves the column layout under this key in `localStorage` and restores it
-     * on the next mount. Read once at setup, like `initialLayout` — a saved
-     * layout wins over it.
-     */
+    /** Saves the column layout under this key in `localStorage`. */
     storageKey?: string
     /** Which parts of the layout `storageKey` saves. Defaults to all four. */
     storageFields?: ColumnLayoutField[]
-    /**
-     * Rows per page. Left undefined here rather than defaulted, so the number
-     * lives in `useTableState` alone — see `DEFAULT_PAGE_SIZE`. Read once at
-     * setup, and ignored entirely when a `state` is supplied from outside,
-     * because that state is then the authority.
-     */
+    /** Rows per page. Ignored when a `state` is supplied — that state decides. */
     pageSize?: number
     siblingCount?: number
     /** Turns column drag-to-reorder off for the whole table. */
     reorderable?: boolean
-    /**
-     * Groups rows by these columns on first render, outermost level first.
-     *
-     * Seeds a `state` supplied from outside as well as one this component
-     * owns — unlike `pageSize` — but only when that state carries no grouping
-     * of its own, which keeps it a default rather than an override.
-     */
+    /** Groups rows by these columns on first render, outermost level first. */
     initialGroupBy?: string[]
-    /**
-     * Who performs the grouping.
-     *
-     *  - `'client'` (the default) bands the rows the source already returned.
-     *    Nothing enters `QueryState`, so no refetch is triggered and a server
-     *    never sees it; a band shows the part of its group that is loaded.
-     *  - `'server'` puts it in `QueryState.groupBy` and lets the data source
-     *    perform it — `useServerDataSource` sends it and refetches,
-     *    `useLocalDataSource` sorts the whole dataset by it — so groups stay
-     *    whole across pages and counts describe the entire group.
-     *
-     * Bound through to the state on every change, so it works with a `state`
-     * supplied from outside too. Leave it unset to keep whatever that state
-     * was built with.
-     */
+    /** Who performs the grouping — `'client'` (the default) or `'server'`. */
     groupMode?: GroupMode
     /** Renders every group folded shut until the user opens it. */
     groupsCollapsed?: boolean
     /** Header text for the bucket holding rows with no value. */
     blankGroupLabel?: string
-    /**
-     * An editing session, from `useRowEditing`. Passed in rather than built
-     * here, unlike selection: editing carries a `save`, a `validate`, an
-     * `apply` and a mode, and re-declaring all four as props would duplicate
-     * the composable's own surface for nothing. Leave it out and cells render
-     * read-only.
-     */
+    /** An editing session, from `useRowEditing`. Without one, cells are read-only. */
     editing?: UseRowEditing<TRow>
-    /**
-     * A keyboard cell cursor: arrow keys move a focused cell, and the theme
-     * rings it and crosses its row and column.
-     *
-     * A boolean rather than a session built outside, unlike `editing`. That one
-     * is passed in because it carries a `save`, a `validate`, an `apply` and a
-     * mode, and re-declaring all four as props would duplicate the composable's
-     * surface; a cursor carries no callbacks at all. It also *has* to be built
-     * here, because only this component knows the rendered row order — see
-     * `cursorRows` below.
-     *
-     * Off by default. With it off the table emits no `role`, no `tabindex` and
-     * no cursor attributes, and renders exactly what it always did.
-     */
+    /** A keyboard cell cursor: arrow keys move a focused cell. Off by default. */
     cellCursor?: boolean
-    /**
-     * Where the cursor starts, when the first cell is not where you want it.
-     *
-     * Omitted, the cursor takes the first rendered cell — a table asked for a
-     * keyboard should look like it has one before you press a key. Seeded
-     * silently either way: the ring appears, the caret does not move.
-     */
+    /** Where the cursor starts, when the first cell is not where you want it. */
     initialCursor?: CellPosition
-    /**
-     * Take the caret on load, instead of waiting for a Tab or a click.
-     *
-     * Off by default, and the default is the important one: a table that
-     * grabbed the focus on mount would scroll itself into view and swallow the
-     * first keystroke on every page where the table is not the point. Turn it
-     * on for the pages where it is.
-     *
-     * Asked for exactly once, when there is first a cell to give the focus to.
-     * A table that re-focused whenever the rows changed would pull the caret
-     * back out of the search box on every keystroke that re-filtered it.
-     *
-     * Does nothing without `cellCursor` — there is no cursor cell to focus.
-     */
+    /** Take the caret on load, instead of waiting for a Tab or a click. */
     autofocusCursor?: boolean
   }>(),
   {
@@ -160,303 +93,52 @@ const emit = defineEmits<{
   'update:columnOrder': [order: string[]]
 }>()
 
-const state =
-  props.state ?? useTableState({ pageSize: props.pageSize, initialGroupBy: props.initialGroupBy })
-
-const columns = useColumns<TRow>(
-  () => props.columns,
-  {
-    groups: () => props.columnGroups,
-    sortFor: state.sortFor,
-    sortIndexFor: state.sortIndexFor,
-    // Same test `ActiveFilters` uses, so the header's funnel and the chip row
-    // can never disagree about whether a column is filtered.
-    hasFilter: (id) => !isEmptyFilter(state.filters.value[id]),
-    initialLayout: props.initialLayout,
-    storage: props.storageKey
-      ? { key: props.storageKey, fields: props.storageFields }
-      : undefined,
-  },
-)
-
-/**
- * Applies a drop. Landing on a pinned column adopts that column's pin side —
- * without it, dragging into a pinned region would reorder the column but leave
- * it rendered back in the middle group, since `visible` hoists pins to the
- * edges regardless of order.
+/*
+ * Getters for everything that can change, plain values for what `useTable`
+ * reads once. Which is which is documented on `UseTableOptions`, not decided
+ * here.
  */
-function applyColumnMove(columnId: string, targetId: string, side: DropSide): void {
-  const all = columns.all.value
-  const dragged = all.find((column) => column.id === columnId)
-  const target = all.find((column) => column.id === targetId)
-  if (dragged && target && dragged.pinned !== target.pinned) {
-    columns.setPinned(columnId, target.pinned)
-  }
-  columns.moveColumnTo(columnId, targetId, side)
-}
-
-const dnd = useColumnDnd({
-  columnIds: () => columns.visible.value.map((column) => column.id),
-  move: applyColumnMove,
-  canDrag: (columnId) =>
-    props.reorderable &&
-    columns.all.value.find((column) => column.id === columnId)?.reorderable !== false,
+const table = useTable<TRow>({
+  columns: () => props.columns,
+  source: () => props.source,
+  state: props.state,
+  selectable: () => props.selectable,
+  getRowId: props.getRowId,
+  isRowSelectable: props.isRowSelectable,
+  columnGroups: () => props.columnGroups,
+  initialLayout: props.initialLayout,
+  storageKey: props.storageKey,
+  storageFields: props.storageFields,
+  pageSize: props.pageSize,
+  siblingCount: () => props.siblingCount,
+  reorderable: () => props.reorderable,
+  initialGroupBy: props.initialGroupBy,
+  groupMode: () => props.groupMode,
+  groupsCollapsed: props.groupsCollapsed,
+  blankGroupLabel: props.blankGroupLabel,
+  editing: () => props.editing,
+  cellCursor: () => props.cellCursor,
+  initialCursor: props.initialCursor,
+  autofocusCursor: props.autofocusCursor,
 })
 
-const rows = computed(() => props.source.rows.value)
+const { state, columns, grouping, dnd, pagination, selection, cursor, headerRows } = table
+const rows = table.rows
 
-/**
- * Grouping sits above the source and below the markup: it groups the page the
- * source produced, which is why it works the same for local and server data.
- *
- * `groupCounts` is what a source offers when it holds every row, so a header
- * can say "Engineering (240)" rather than "Engineering (12 of them on page 3)".
- * Server sources leave it undefined and the count falls back to the page.
- */
-const grouping = useRowGrouping<TRow>(
-  rows,
-  () => props.columns,
-  {
-    groupBy: () => state.groupBy.value,
-    sort: () => state.sort.value,
-    /**
-     * True group sizes, but only when the source is the one grouping. Under
-     * `'client'` the bands describe the loaded rows and nothing else, so a
-     * count reaching past them would contradict what is on screen.
-     */
-    totals: () =>
-      state.groupMode.value === 'server'
-        ? props.source.groupCounts?.(state.groupBy.value)
-        : undefined,
-    /** Same gate, same reason: a band's figures must describe the rows under it. */
-    aggregates: () =>
-      state.groupMode.value === 'server'
-        ? props.source.groupAggregates?.(state.groupBy.value)
-        : undefined,
-    collapsedByDefault: props.groupsCollapsed,
-    blankLabel: props.blankGroupLabel,
-  },
-)
-
-// Written through rather than read at setup, so the prop still governs a state
-// the caller built. Left alone when unset, so that state keeps its own setting.
-watch(
-  () => props.groupMode,
-  (mode) => {
-    if (mode) state.groupMode.value = mode
-  },
-  { immediate: true },
-)
+provideTableContext(table)
 
 /*
- * `initialGroupBy` is config set where the table is used, so it has to reach a
- * state built elsewhere too — hoisting the query into a store or the URL must
- * not silently drop the grouping the table asked for.
+ * The three emits, and why they stay here rather than becoming callbacks on
+ * `UseTableOptions`: an emit is a component's way of speaking, and `core/` has
+ * no components in it. `useTable` returns the sources; turning a change in one
+ * into an event is this component's job.
  *
- * Seeding only: a state that already carries a grouping keeps it, because the
- * prop is a default and the caller's own state outranks a default. Runs after
- * the mode is settled above, so the seed lands in the home that mode
- * designates rather than relying on the flip to carry it across.
- */
-if (props.state && props.initialGroupBy?.length && state.groupBy.value.length === 0) {
-  state.setGroupBy(props.initialGroupBy)
-}
-
-/**
- * Strict identity, for selection: a wrong id there silently corrupts the
- * selection, so a row with no id and no `getRowId` throws rather than guess.
- */
-function getRowId(row: TRow): RowId {
-  return (props.getRowId ?? defaultRowId<TRow>)(row)
-}
-
-/**
- * Identity for `v-for` keys. Honours `getRowId` — the whole point of the prop —
- * but falls back to the row's position rather than throwing, because a missing
- * id is a rendering inconvenience, not a reason to blow up the table.
- */
-function getRowKey(row: TRow, index: number): RowId {
-  if (props.getRowId) return props.getRowId(row)
-  return (row as { id?: RowId }).id ?? index
-}
-
-// Built unconditionally and gated on the way out: creating it lazily would
-// freeze the answer at setup, so flipping `selectable` on later would render a
-// checkbox column with nothing behind it.
-const rowSelection = useRowSelection<TRow>(rows, () => props.source.total.value, {
-  mode: () => (props.selectable === 'single' ? 'single' : 'multiple'),
-  getRowId,
-  isSelectable: (row) => props.isRowSelectable?.(row) ?? true,
-})
-
-const selection = computed(() => (props.selectable === false ? undefined : rowSelection))
-
-/**
- * The cells the cursor walks: the rows actually rendered, in the order they are
- * rendered in, under the columns actually on screen.
- *
- * Not `rows` — grouping bands the page into a different order, so the source's
- * page order and what is on screen are two different lists, and a cursor
- * walking the first would jump about under the user. Narrowing `displayRows`
- * gets a folded band right for nothing as well: its rows are already absent
- * here, so the cursor steps over it rather than into it, and a group header is
- * never a cursor target because it is not a row.
- *
- * `columns.visible` for the same reason: it has already dropped the columns the
- * user hid and the ones a folded header band is withholding.
- */
-const cursorRows = computed(() =>
-  grouping.displayRows.value.flatMap((item) => (item.kind === 'row' ? [item.row] : [])),
-)
-
-// Built unconditionally and gated on the way out, for the reason the selection
-// is: creating it lazily would freeze the answer at setup, so turning the prop
-// on later would render a grid with nothing behind it.
-const cellCursor = useCellCursor<TRow>(cursorRows, columns.visible, {
-  getRowId,
-  initial: props.initialCursor,
-})
-
-/*
- * The default start — the first rendered cell — waits for the cursor to be
- * switched on, and deliberately does not go through `useCellCursor`'s
- * `initial`.
- *
- * Two reasons, and the first is a bug the suite caught. Resolving "the first
- * rendered cell" reads every rendered row's identity, and `getRowId` throws for
- * rows carrying no `id` unless the caller supplied one. A table with the cursor
- * off never asked for identities and must not be made to produce them, so the
- * read cannot happen at setup, where `initial` is consumed. The second is the
- * reason the cursor is built unconditionally in the first place: the prop can
- * be switched on later, and an answer frozen at setup would leave that table
- * with a cursor starting nowhere.
- *
- * `immediate`, so the ordinary case — the prop true from the first render —
- * still seeds on mount; `anchorAt` then does the waiting when the rows have
- * not arrived. Silent, asking for no focus: a ring is a hint about where the
- * arrow keys will start, but a caret nobody asked for is a scroll and a lost
- * keystroke.
- */
-watch(
-  () => props.cellCursor,
-  (on) => {
-    if (!on || cellCursor.position.value) return
-    cellCursor.anchorAt(0)
-  },
-  { immediate: true },
-)
-
-/*
- * `autofocusCursor`, and the two things that make it more than one call.
- *
- * `onMounted` rather than setup: the watcher that moves the DOM focus lives in
- * `TableGrid` and is created during *its* setup, which runs after this
- * component's. A `focusRequests` bump made here at setup is therefore captured
- * as that watcher's starting value and never seen as a change — which would
- * make this silently do nothing against a source that answers immediately and
- * work against one that fetches, the worst of both.
- *
- * And it waits, because a server source has no rows at mount and so no cell to
- * hand the caret to. `tabStop` turning non-null is exactly "there is one now",
- * whether that happens on the first render or three ticks later. One shot
- * either way: the watcher stops itself, so nothing here survives to pull the
- * caret back out of the search box on the re-filter three keystrokes later.
- *
- * `flush: 'post'`, so the cell is in the DOM and the roving tabindex has been
- * patched before anything is focused. Same reason `TableGrid`'s own focus
- * watcher uses it.
- */
-onMounted(() => {
-  if (!props.autofocusCursor) return
-
-  /** Whether there is a cell to hand the caret to at all. */
-  const ready = (): boolean => props.cellCursor === true && cellCursor.tabStop.value !== null
-
-  // The ordinary case, answered outright rather than through a watcher with
-  // `immediate` — which would have to stop a handle it has not been given yet.
-  if (ready()) {
-    cellCursor.requestFocus()
-    return
-  }
-
-  const stop = watch(
-    ready,
-    (isReady) => {
-      if (!isReady) return
-      stop()
-      cellCursor.requestFocus()
-    },
-    { flush: 'post' },
-  )
-})
-
-const cursor = computed(() => (props.cellCursor ? cellCursor : undefined))
-
-const pagination = usePagination(
-  () => state.page.value,
-  () => state.pageSize.value,
-  () => props.source.total.value,
-  { siblingCount: () => props.siblingCount, onChange: state.setPage },
-)
-
-/**
- * The header, row by row.
- *
- * Derived rather than put on the context: a folded band has already taken its
- * columns out of `columns.visible`, so this describes whatever list survives
- * and needs no collapse state of its own. `buildHeaderRows` is exported from
- * core, so a hand-assembled table reaches the same answer without a context.
- */
-const headerRows = computed(() => buildHeaderRows(columns.visible.value, props.columnGroups))
-
-function getCellValue(row: TRow, column: ColumnDef<TRow>): unknown {
-  return readValue(row, column)
-}
-
-function getCellText(row: TRow, column: ColumnDef<TRow>): string {
-  const value = getCellValue(row, column)
-  if (column.format) return column.format(value, row)
-  if (value === null || value === undefined) return ''
-  return String(value)
-}
-
-const context: TableContext<TRow> = {
-  state,
-  columns,
-  // A getter, so swapping the `source` prop (local ⇄ server) reaches everyone
-  // holding the context rather than only the pieces that read it reactively.
-  get source() {
-    return props.source
-  },
-  selection,
-  pagination,
-  dnd,
-  grouping,
-  // A getter, for the same reason `source` is one: swapping the session must
-  // reach everyone holding the context, not only what reads it reactively.
-  get editing() {
-    return props.editing
-  },
-  rows,
-  displayRows: grouping.displayRows,
-  visibleColumns: columns.visible,
-  columnDefs: computed(() => props.columns),
-  getRowId,
-  getCellValue,
-  getCellText,
-}
-
-provideTableContext(context)
-
-/*
- * Both watchers below are shallow on purpose.
- *
- * `state.query` is a computed that mints a fresh object on every write, so its
- * identity already changes whenever anything inside it does — a deep traversal
- * of the filters and sort rules on top of that is pure cost. The selection
- * state is replaced wholesale by every write for the same reason (see
- * `useRowSelection`), so traversing an id list per checkbox click bought
- * nothing either.
+ * All three watchers are shallow on purpose. `state.query` is a computed that
+ * mints a fresh object on every write, so its identity already changes whenever
+ * anything inside it does — a deep traversal of the filters and sort rules on
+ * top of that is pure cost. The selection state is replaced wholesale by every
+ * write for the same reason (see `useRowSelection`), so traversing an id list
+ * per checkbox click bought nothing either.
  */
 watch(() => state.query.value, (query) => emit('update:query', query))
 // Watches the resolved order rather than `layout.order`, which stays empty
@@ -465,11 +147,13 @@ watch(
   () => columns.all.value.map((column) => column.id).join(' '),
   () => emit('update:columnOrder', columns.all.value.map((column) => column.id)),
 )
+// `rowSelection`, not `selection`: the ungated one, so that switching
+// `selectable` off is not itself reported as a selection change.
 watch(
-  () => rowSelection.state.value,
+  () => table.rowSelection.state.value,
   () => {
     if (props.selectable === false) return
-    emit('update:selection', rowSelection.selectedIds.value)
+    emit('update:selection', table.rowSelection.selectedIds.value)
   },
 )
 
@@ -509,9 +193,9 @@ defineExpose({
     :loading="source.loading.value"
     :error="source.error.value"
     :total="source.total.value"
-    :get-row-id="getRowId"
-    :get-row-key="getRowKey"
-    :get-cell-value="getCellValue"
-    :get-cell-text="getCellText"
+    :get-row-id="table.getRowId"
+    :get-row-key="table.getRowKey"
+    :get-cell-value="table.getCellValue"
+    :get-cell-text="table.getCellText"
   />
 </template>
