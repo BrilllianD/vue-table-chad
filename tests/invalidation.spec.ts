@@ -5,6 +5,7 @@ import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useRowGrouping } from '../src/core/useRowGrouping'
 import { useRowSelection } from '../src/core/useRowSelection'
 import { useCellCursor } from '../src/core/useCellCursor'
+import { useVirtualRows } from '../src/core/useVirtualRows'
 import { useRowEditing } from '../src/core/useRowEditing'
 import { replaceRowIn } from '../src/core/editing'
 import { useTableState } from '../src/core/useTableState'
@@ -26,11 +27,19 @@ import {
  * and invisible to a benchmark until someone reads the number and recognises it
  * as wrong. Counting passes catches it on the way in.
  *
- * The counters wrap the four functions that are O(dataset). An interaction that
+ * The counters wrap the functions that are O(dataset). An interaction that
  * changes nothing about which rows exist or what order they are in must move
  * none of them.
  */
-const counters = vi.hoisted(() => ({ filter: 0, sort: 0, count: 0, aggregate: 0, flatten: 0 }))
+const counters = vi.hoisted(() => ({
+  filter: 0,
+  sort: 0,
+  count: 0,
+  aggregate: 0,
+  flatten: 0,
+  tree: 0,
+  walk: 0,
+}))
 
 vi.mock('../src/core/filters/facets', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/core/filters/facets')>()
@@ -62,9 +71,29 @@ vi.mock('../src/core/grouping', async (importOriginal) => {
       counters.count += 1
       return actual.countGroups(...args)
     },
+    /*
+     * `flattenGroups` is the combined convenience function, and **nothing in
+     * the reactive path calls it** — `useRowGrouping` imports `buildGroupTree`
+     * and `flattenTree` and calls those. So this counter was dead, and every
+     * `expect(counters.flatten).toBe(0)` below was true by construction rather
+     * than by the code behaving. It is kept, because a stage that started
+     * calling the combined function would be a regression worth catching, and
+     * the two that actually run are counted beside it.
+     */
     flattenGroups: (...args: Parameters<typeof actual.flattenGroups>) => {
       counters.flatten += 1
       return actual.flattenGroups(...args)
+    },
+    // The expensive half. P1-6 split it from the walk precisely so that
+    // collapsing a band would not run it, and until now nothing said so.
+    buildGroupTree: (...args: Parameters<typeof actual.buildGroupTree>) => {
+      counters.tree += 1
+      return actual.buildGroupTree(...args)
+    },
+    // The cheap half, which a collapse *does* run — once.
+    flattenTree: (...args: Parameters<typeof actual.flattenTree>) => {
+      counters.walk += 1
+      return actual.flattenTree(...args)
     },
   }
 })
@@ -89,6 +118,8 @@ function reset(): void {
   counters.count = 0
   counters.aggregate = 0
   counters.flatten = 0
+  counters.tree = 0
+  counters.walk = 0
 }
 
 /**
@@ -323,6 +354,11 @@ describe('what an interaction is allowed to recompute', () => {
     // re-aggregating the whole filtered set is not.
     expect(counters.count).toBe(0)
     expect(counters.aggregate).toBe(0)
+    // And the tree it walks is the one it already had. This is the half P1-6
+    // split out, and the assertion it never got: rebuilding here would make a
+    // collapse cost what a regroup costs.
+    expect(counters.tree).toBe(0)
+    expect(counters.walk).toBe(1)
     h.stop()
   })
 
@@ -516,5 +552,130 @@ describe('what an interaction is allowed to recompute', () => {
 
     expect(counters.sort).toBe(1)
     h.stop()
+  })
+
+  /**
+   * The same claim for a scroll.
+   *
+   * Virtual mode is a page size of everything, so every pass below is running
+   * over the whole dataset rather than over 25 rows — which makes "a scroll
+   * costs none of them" a stronger statement here than the paging one it
+   * mirrors, not a weaker one.
+   */
+  describe('virtual mode', () => {
+    const ROW_HEIGHT = 38
+
+    function virtualHarness() {
+      const scope = effectScope()
+      const built = scope.run(() => {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
+          debounceMs: 0,
+        })
+        const grouping = useRowGrouping<Employee>(() => source.rows.value, employeeColumns, {
+          groupBy: () => state.groupBy.value,
+          sort: () => state.sort.value,
+        })
+        const virtual = useVirtualRows(() => grouping.displayRows.value, {
+          rowHeight: ROW_HEIGHT,
+          viewportHeight: 400,
+        })
+
+        state.setFilter('department', valuesFilter(['Engineering', 'Research', 'Design']))
+        state.setSort('name', 'asc')
+        // What `useTable`'s virtual watcher does, spelled out: the page is now
+        // the whole result set.
+        state.setPageSize(source.total.value)
+        return { state, source, grouping, virtual, stop: () => scope.stop() }
+      })!
+
+      built.source.rows.value
+      built.grouping.displayRows.value
+      built.virtual.items.value
+      reset()
+      return built
+    }
+
+    it('scrolling the window never reaches the pipeline', () => {
+      const h = virtualHarness()
+
+      // The window has to be a window, or every assertion below holds for the
+      // boring reason: an unwindowed list cannot move.
+      expect(h.virtual.items.value.length).toBeLessThan(h.grouping.displayRows.value.length)
+
+      for (const row of [1, 5, 50, 300, 12]) {
+        h.virtual.setScrollOffset(row * ROW_HEIGHT)
+        h.virtual.items.value
+      }
+      h.grouping.displayRows.value
+      h.source.rows.value
+
+      // Every one of them. A scroll moves a window over a list that already
+      // exists; it is not allowed to touch the list.
+      expect(counters.filter).toBe(0)
+      expect(counters.sort).toBe(0)
+      expect(counters.count).toBe(0)
+      expect(counters.aggregate).toBe(0)
+      expect(counters.flatten).toBe(0)
+      expect(counters.tree).toBe(0)
+      expect(counters.walk).toBe(0)
+      h.stop()
+    })
+
+    it('a scroll inside one row does not even move the window', () => {
+      const h = virtualHarness()
+      h.virtual.setScrollOffset(20 * ROW_HEIGHT)
+      const before = h.virtual.items.value
+
+      h.virtual.setScrollOffset(20 * ROW_HEIGHT + ROW_HEIGHT - 1)
+
+      // The same array by reference, so nothing downstream re-renders either.
+      // This is the floored-integer non-propagation the composable is built on,
+      // asserted where a future change would break it silently.
+      expect(h.virtual.items.value).toBe(before)
+      h.stop()
+    })
+
+    it('turning virtual mode on re-filters and re-sorts nothing', () => {
+      const scope = effectScope()
+      const built = scope.run(() => {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
+          debounceMs: 0,
+        })
+        state.setFilter('department', valuesFilter(['Engineering', 'Research', 'Design']))
+        state.setSort('name', 'asc')
+        return { state, source, stop: () => scope.stop() }
+      })!
+      built.source.rows.value
+      reset()
+
+      built.state.setPageSize(built.source.total.value)
+      built.source.rows.value
+
+      // A page size is a slice, and P1-4's field-level query dependencies are
+      // what keep it one. Widening the slice to everything must cost what
+      // widening it to 100 costs.
+      expect(counters.filter).toBe(0)
+      expect(counters.sort).toBe(0)
+      built.stop()
+    })
+
+    it('a virtual window still narrows when a filter does', () => {
+      const h = virtualHarness()
+      const listBefore = h.grouping.displayRows.value.length
+      const firstBefore = h.virtual.items.value[0]
+
+      h.state.setSearch('ada')
+      h.virtual.items.value
+
+      // The mirror image again: the window is a view of the pipeline's output,
+      // so it has to follow when the output changes. One filter pass, a
+      // genuinely shorter list under it, and different rows in the window.
+      expect(counters.filter).toBe(1)
+      expect(h.grouping.displayRows.value.length).toBeLessThan(listBefore)
+      expect(h.virtual.items.value[0]).not.toBe(firstBefore)
+      h.stop()
+    })
   })
 })
