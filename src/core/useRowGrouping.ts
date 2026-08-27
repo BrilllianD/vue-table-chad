@@ -46,6 +46,9 @@ export interface UseRowGrouping<TRow> {
   /**
    * Aggregates over every row it was handed, ignoring the grouping — what a
    * footer shows. Populated whether or not anything is grouped.
+   *
+   * A pass over every row, so read it only where a footer is actually rendered:
+   * in virtual mode the rows it was handed are the whole dataset.
    */
   overallAggregates: ComputedRef<Record<string, AggregateResult<TRow>>>
   /** Just the group headers, in display order. */
@@ -130,9 +133,19 @@ export function useRowGrouping<TRow>(
    * The bands themselves. Deliberately free of any dependency on `collapsed`:
    * folding a band shut changes which rows are listed, not which bands exist or
    * what they contain, so it must not cost a rebuild.
+   *
+   * Ungrouped, neither getter is read at all. `buildGroupTree` returns the rows
+   * untouched when there are no levels, so resolving `totals` and `aggregates`
+   * to hand it figures it will not look at spent two whole-dataset walks per
+   * data change on every table that never grouped anything.
    */
-  const tree = computed(() =>
-    buildGroupTree(orderedRows.value, groupBy.value, allColumns.value, {
+  const tree = computed(() => {
+    if (groupBy.value.length === 0) {
+      return buildGroupTree(orderedRows.value, groupBy.value, allColumns.value, {
+        blankLabel: options.blankLabel,
+      })
+    }
+    return buildGroupTree(orderedRows.value, groupBy.value, allColumns.value, {
       totals: suppliedTotals.value,
       aggregates: suppliedAggregates.value,
       computeAggregates:
@@ -140,8 +153,8 @@ export function useRowGrouping<TRow>(
           ? (rows) => aggregateRow(rows, aggregated.value)
           : undefined,
       blankLabel: options.blankLabel,
-    }),
-  )
+    })
+  })
 
   /** The cheap half: a walk of the tree above under the current collapse state. */
   const displayRows = computed<DisplayRow<TRow>[]>(() => flattenTree(tree.value, isCollapsed))

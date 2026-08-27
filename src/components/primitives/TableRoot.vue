@@ -11,7 +11,7 @@
  * on the way out, why `autofocusCursor` waits for `onMounted` — are all in
  * `useTable`, with the comments that explain them.
  */
-import { toRef, watch } from 'vue'
+import { computed, toRef, watch } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -140,6 +140,51 @@ const rows = table.rows
 
 provideTableContext(table)
 
+/**
+ * What the slot receives, built here rather than listed on the `<slot>` itself
+ * so that one of them can be a getter.
+ *
+ * `overallAggregates` is the reason. A template binding is read on every render
+ * of this component whether or not the caller wants a footer, and resolving it
+ * walks the whole filtered dataset — in virtual mode, where a page *is* the
+ * dataset, that is an O(n) pass per data change nobody asked for. As a getter
+ * it costs what it always cost when something reads it, and nothing when
+ * nothing does. Callers that destructure it in `v-slot` pay on destructure,
+ * which is the same as asking for it.
+ *
+ * `v-bind` on its own, deliberately: mixing it with static bindings compiles to
+ * `mergeProps`, which copies every property and so would call the getter.
+ */
+const slotBindings = computed(() => ({
+  rows: rows.value,
+  displayRows: grouping.displayRows.value,
+  get overallAggregates() {
+    return grouping.overallAggregates.value
+  },
+  grouping,
+  columns: columns.visible.value,
+  allColumns: columns.all.value,
+  headerRows: headerRows.value,
+  bandEdges: columns.bandEdges.value,
+  state,
+  // `.value` on both: they are gated computeds, and a template binding used to
+  // unwrap them on the way into the slot. Callers see the session or
+  // `undefined`, as they always did.
+  selection: selection.value,
+  cursor: cursor.value,
+  pagination,
+  dnd,
+  editing: props.editing,
+  source: props.source,
+  loading: props.source.loading.value,
+  error: props.source.error.value,
+  total: props.source.total.value,
+  getRowId: table.getRowId,
+  getRowKey: table.getRowKey,
+  getCellValue: table.getCellValue,
+  getCellText: table.getCellText,
+}))
+
 /*
  * The three emits, and why they stay here rather than becoming callbacks on
  * `UseTableOptions`: an emit is a component's way of speaking, and `core/` has
@@ -188,28 +233,5 @@ defineExpose({
     Renders nothing of its own by default: the slot receives everything, so the
     caller decides the markup entirely. `DataTable` is one such caller.
   -->
-  <slot
-    :rows="rows"
-    :display-rows="grouping.displayRows.value"
-    :overall-aggregates="grouping.overallAggregates.value"
-    :grouping="grouping"
-    :columns="columns.visible.value"
-    :all-columns="columns.all.value"
-    :header-rows="headerRows"
-    :band-edges="columns.bandEdges.value"
-    :state="state"
-    :selection="selection"
-    :cursor="cursor"
-    :pagination="pagination"
-    :dnd="dnd"
-    :editing="editing"
-    :source="source"
-    :loading="source.loading.value"
-    :error="source.error.value"
-    :total="source.total.value"
-    :get-row-id="table.getRowId"
-    :get-row-key="table.getRowKey"
-    :get-cell-value="table.getCellValue"
-    :get-cell-text="table.getCellText"
-  />
+  <slot v-bind="slotBindings" />
 </template>

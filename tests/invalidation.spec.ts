@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope, shallowRef } from 'vue'
+import { mount } from '@vue/test-utils'
+import { defineComponent, effectScope, h, nextTick, shallowRef } from 'vue'
+import DataTable from '../src/components/preset/DataTable.vue'
 import { useColumns } from '../src/core/useColumns'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useRowGrouping } from '../src/core/useRowGrouping'
@@ -36,6 +38,7 @@ const counters = vi.hoisted(() => ({
   sort: 0,
   count: 0,
   aggregate: 0,
+  aggregateRow: 0,
   flatten: 0,
   tree: 0,
   walk: 0,
@@ -106,6 +109,20 @@ vi.mock('../src/core/aggregation', async (importOriginal) => {
       counters.aggregate += 1
       return actual.aggregateGroups(...args)
     },
+    /*
+     * The footer's pass, and the one a client-side table actually runs:
+     * `aggregateGroups` is only reached when the *source* supplies the figures,
+     * which is the server-grouping case. Counted separately because it is also
+     * a band's own aggregate — per band, over a band's rows — so the number it
+     * reports says which of the two happened.
+     *
+     * Only external callers land here. `aggregateGroups` calls `aggregateRow`
+     * inside this module, and a module mock does not intercept that.
+     */
+    aggregateRow: (...args: Parameters<typeof actual.aggregateRow>) => {
+      counters.aggregateRow += 1
+      return actual.aggregateRow(...args)
+    },
   }
 })
 
@@ -117,6 +134,7 @@ function reset(): void {
   counters.sort = 0
   counters.count = 0
   counters.aggregate = 0
+  counters.aggregateRow = 0
   counters.flatten = 0
   counters.tree = 0
   counters.walk = 0
@@ -677,5 +695,73 @@ describe('what an interaction is allowed to recompute', () => {
       expect(h.virtual.items.value[0]).not.toBe(firstBefore)
       h.stop()
     })
+  })
+})
+
+/**
+ * The two stages a footer reaches, and the only two counted here that walk the
+ * *filtered dataset* rather than the page: `countGroups` and `aggregateGroups`,
+ * both resolved through the source. Everything above counts passes over a page;
+ * these two are the ones that cost what the dataset costs, which in virtual
+ * mode is the whole of it.
+ */
+describe('what whole-set figures are allowed to cost', () => {
+  it('an ungrouped table asks the source for no whole-set figures at all', () => {
+    const h = harness()
+    h.state.setSearch('a')
+    h.grouping.displayRows.value
+
+    // The filter is the work that was asked for. The other two are not:
+    // `buildGroupTree` returns the rows untouched when nothing is grouped, so
+    // resolving totals and aggregates to hand it produced two dataset walks
+    // whose results it then ignored.
+    expect(counters.filter).toBe(1)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    h.stop()
+  })
+
+  it('a grouped table still asks — the guard above is not vacuous', () => {
+    const h = harness(['department'])
+    h.state.setSearch('a')
+    h.grouping.displayRows.value
+
+    expect(counters.count).toBe(1)
+    expect(counters.aggregate).toBe(1)
+    h.stop()
+  })
+
+  /** The preset, because the eagerness this pins was in a template binding. */
+  function mountTable(props: Record<string, unknown> = {}) {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, { columns: employeeColumns, source, state, virtual: true, ...props })
+      },
+    })
+    return mount(Host, { attachTo: document.body })
+  }
+
+  it('a table with no footer never aggregates the rows it was handed', async () => {
+    const wrapper = mountTable()
+    await nextTick()
+
+    // Virtual mode, so "the rows it was handed" is the whole dataset. The
+    // footer is the only thing that wants this figure, and there is no footer.
+    expect(counters.aggregateRow).toBe(0)
+    wrapper.unmount()
+  })
+
+  it('a table with a footer aggregates them exactly once', async () => {
+    const wrapper = mountTable({ showFooter: true })
+    await nextTick()
+
+    // Once, not once per render: the pass is a computed and the footer reads it.
+    expect(counters.aggregateRow).toBe(1)
+    wrapper.unmount()
   })
 })

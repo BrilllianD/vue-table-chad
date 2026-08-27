@@ -418,7 +418,7 @@ function onActivate(
       error,
       total,
       displayRows,
-      overallAggregates,
+      grouping,
       getRowKey: rowKey,
     }"
     :columns="columns"
@@ -617,12 +617,18 @@ function onActivate(
               After `</tbody>`, which is where HTML wants it, and inside the same
               `TableGrid` slot — the grid is a bare `<slot />`, so a footer needs
               nothing from it but the `<colgroup>` widths it already applies.
+
+              `grouping.overallAggregates` rather than the slot's
+              `overallAggregates`: destructuring that in `v-slot` would resolve
+              it on every render, and it is a whole-dataset pass. Read here it
+              runs only behind the `v-if`, so a table with no footer never pays
+              for one.
             -->
             <DataTableFooter
               v-if="showFooter"
               :columns="cols"
               :band-edges="bandEdges"
-              :aggregates="overallAggregates"
+              :aggregates="grouping.overallAggregates.value"
               :label="footerLabel"
               :selectable="selectable"
               :actions-column="actionsColumn"
