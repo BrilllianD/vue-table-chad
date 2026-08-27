@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { effectScope, shallowRef } from 'vue'
+import { describe, expect, it, vi } from 'vitest'
+import { effectScope, nextTick, shallowRef } from 'vue'
 import { useTable, type UseTableOptions } from '../src/core/useTable'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
+import { useServerDataSource } from '../src/core/useServerDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { people, personColumns, personColumnGroups, groupedPersonColumns, type Person } from './fixtures'
 
@@ -151,6 +152,66 @@ describe('useTable column layout', () => {
 
     expect(table.grouping).toBeDefined()
     expect(table.dnd).toBeDefined()
+    dispose()
+  })
+})
+
+/**
+ * `virtual` sizes the page to the dataset, which means reading a total off the
+ * source — and a *server* source does not have one yet when this composable is
+ * first assembled.
+ */
+describe('useTable in virtual mode, over a source that has not loaded', () => {
+  function setupVirtualServer(total: number) {
+    const pageSizes: number[] = []
+    const scope = effectScope()
+    const result = scope.run(() => {
+      const state = useTableState({ pageSize: 20 })
+      const source = useServerDataSource<Person>(
+        async ({ query }) => {
+          pageSizes.push(query.pageSize)
+          return { rows: people.slice(0, query.pageSize), total }
+        },
+        state.query,
+        { debounceMs: 0 },
+      )
+      useTable<Person>({
+        columns: () => personColumns,
+        source: () => source,
+        state,
+        virtual: () => true,
+      })
+      return { state, source }
+    })!
+    return { ...result, pageSizes, dispose: () => scope.stop() }
+  }
+
+  it('never sizes the page to a total the source has not reported yet', async () => {
+    const { state, source, pageSizes, dispose } = setupVirtualServer(people.length)
+
+    await vi.waitFor(() => expect(state.pageSize.value).toBe(people.length))
+    await vi.waitFor(() => expect(source.loading.value).toBe(false))
+
+    // The bug this guards: the watcher is `immediate`, a server source reports
+    // `total: 0` until its first response lands, and sizing to that wrote a
+    // page size of 1 — a real query change, so the source spent a whole round
+    // trip fetching a single row before the true total arrived.
+    expect(pageSizes).not.toContain(1)
+    // The size it was given, then the dataset. Nothing in between.
+    expect(pageSizes).toEqual([20, people.length])
+    dispose()
+  })
+
+  it('leaves the page size alone when a filter matches nothing', async () => {
+    const { state, pageSizes, dispose } = setupVirtualServer(0)
+
+    await vi.waitFor(() => expect(pageSizes.length).toBeGreaterThan(0))
+    await nextTick()
+
+    // An empty result has no size to window to, and re-sizing to 1 would cost
+    // another fetch to learn what it already knows: there is nothing to show.
+    expect(state.pageSize.value).toBe(20)
+    expect(pageSizes).toEqual([20])
     dispose()
   })
 })
