@@ -1,0 +1,119 @@
+<script setup lang="ts" generic="TRow extends Record<string, unknown>">
+/**
+ * The preset's `<thead>`: the header bands, the sort triggers, the filter
+ * popovers and the resize handles, plus the two edge cells the body also has.
+ *
+ * Internal to the preset — not exported, not a primitive. It takes props rather
+ * than reading the context because that is what `DataTable` already resolved
+ * from the `TableRoot` slot; going back to the context for the same values
+ * would be a second route to them that could disagree.
+ *
+ * It renders a `<thead>` as its root, so it must stay a direct child of the
+ * `<table>` that `TableGrid` renders. That is the one thing a caller has to
+ * know about it.
+ */
+import SortTrigger from '../primitives/SortTrigger.vue'
+import TableHeaderCell from '../primitives/TableHeaderCell.vue'
+import TableHeaderGroupCell from '../primitives/TableHeaderGroupCell.vue'
+import ColumnFilterPopover from '../primitives/ColumnFilterPopover.vue'
+import ColumnResizeHandle from '../primitives/ColumnResizeHandle.vue'
+import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
+import type { HeaderRow, SelectionMode } from '../../core/types'
+import type { UseRowSelection } from '../../core/useRowSelection'
+import type { UseCellCursor } from '../../core/useCellCursor'
+
+defineProps<{
+  headerRows: HeaderRow<TRow>[]
+  /** Whether to render the leading selection cell at all. */
+  selectable: boolean
+  /**
+   * The selection *mode*, untouched. Kept apart from `selectable` because
+   * `'single'` renders the column but no header checkbox — there is nothing for
+   * "select all on this page" to mean when only one row can be selected.
+   */
+  selectionMode: boolean | SelectionMode
+  selection: UseRowSelection<TRow> | undefined
+  cursor: UseCellCursor<TRow> | undefined
+  /** Whether the trailing actions cell is present, so the header can span it. */
+  actionsColumn: boolean
+}>()
+</script>
+
+<template>
+  <thead class="vt-thead">
+    <tr v-for="(headerRow, headerLevel) in headerRows" :key="headerLevel">
+      <th
+        v-if="selectable && headerLevel === 0"
+        class="vt-th vt-th-selection"
+        scope="col"
+        :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
+      >
+        <SelectionCheckbox
+          v-if="selection && selectionMode !== 'single'"
+          :checked="selection.headerState.value === 'all'"
+          :indeterminate="selection.headerState.value === 'some'"
+          label="Select all rows on this page"
+          @change="selection.toggleAllOnPage()"
+        />
+      </th>
+
+      <template v-for="cell in headerRow" :key="cell.key">
+        <TableHeaderGroupCell v-if="cell.kind === 'group'" :cell="cell">
+          <template #default="bandProps">
+            <slot
+              name="headerGroup"
+              :cell="bandProps.cell"
+              :collapsed="bandProps.collapsed"
+              :label="bandProps.label"
+            >
+              <span class="vt-th-label">{{ bandProps.label }}</span>
+            </slot>
+          </template>
+        </TableHeaderGroupCell>
+
+        <TableHeaderCell
+          v-else
+          :column="cell.column"
+          :rowspan="cell.rowspan"
+          :depth="cell.depth"
+          :cursor="cursor?.isCursorColumn(cell.column.id) ? 'column' : undefined"
+        >
+          <template #default>
+            <SortTrigger
+              v-if="cell.column.sortable !== false"
+              :column-id="cell.column.id"
+              :label="cell.column.header ?? cell.column.id"
+            />
+            <span v-else class="vt-th-label">
+              {{ cell.column.header ?? cell.column.id }}
+            </span>
+
+            <ColumnFilterPopover
+              v-if="cell.column.filterable !== false"
+              :column-id="cell.column.id"
+              :type="cell.column.type ?? 'text'"
+              :label="cell.column.header ?? cell.column.id"
+            />
+          </template>
+          <template #resize>
+            <ColumnResizeHandle
+              v-if="cell.column.resizable !== false"
+              :column-id="cell.column.id"
+              :width="cell.column.resolvedWidth ?? 160"
+              :min-width="cell.column.minWidth"
+            />
+          </template>
+        </TableHeaderCell>
+      </template>
+
+      <th
+        v-if="actionsColumn && headerLevel === 0"
+        class="vt-th vt-th-actions"
+        scope="col"
+        :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
+      >
+        <span class="vt-visually-hidden">Row actions</span>
+      </th>
+    </tr>
+  </thead>
+</template>

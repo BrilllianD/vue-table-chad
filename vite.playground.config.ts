@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@brillliand/vue-table-chad': fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@fixtures': fileURLToPath(new URL('./bench/fixtures.ts', import.meta.url)),
     },
   },
   server: { port: 5173, open: false },

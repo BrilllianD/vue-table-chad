@@ -174,6 +174,14 @@ function bandLabel(group: RowGroup<Employee>): string {
       'groupKeys',
       'ROOT_GROUP_KEY',
       'BLANK_GROUP_LABEL',
+      'aggregateValue',
+      'aggregateRow',
+      'groupValueOf',
+      'groupPathKey',
+      'groupSortRules',
+      'buildGroupTree',
+      'flattenTree',
+      'TableGroupRow',
     ]"
   >
     <template #controls>

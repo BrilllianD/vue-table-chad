@@ -103,6 +103,7 @@ function forgetLayout(): void {
       'ColumnDef.aggregate',
       'DataTable showFooter',
       'DataTable storageKey',
+      'TableRow',
     ]"
   >
     <template #controls>

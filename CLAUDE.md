@@ -37,13 +37,18 @@ These are contracts, not conventions:
   demo's "Core only" view exists to prove it.
 - **Primitives ship no stylesheet.** They emit class names and `data-*` attributes and nothing else.
   Using only primitives must pull in zero CSS; that is what "headless" buys.
-- **The preset owns the theme.** `DataTable.vue` imports `table.css` itself. `src/index.ts`
+- **The preset owns the theme.** `DataTable.vue` imports `table.css` itself — the entry file, which
+  is now just an ordered list of `@import`s over `preset/styles/*`. **That order is behaviour**: the
+  pinned-cell z-index ladder, the cell background stack and the `[data-cursor]` overrides all depend
+  on source order rather than specificity, so the partitions are contiguous slices of the original
+  in its original order. `src/index.ts`
   deliberately does *not*, because `sideEffects: ["**/*.css"]` would let a bare CSS import there be
   tree-shaken away, silently shipping an unstyled table.
 - **Every primitive works standalone.** Given explicit props, it must render with no `<TableRoot>`
   above it — the specs assert this with a "renders standalone, with no table context above it" case,
-  `TableRow` and `TableHeaderGroupCell` among them. `TableGrid` is the one newer primitive with no
-  such case; it reads the optional context and is currently only covered through `DataTable`.
+  `TableRow`, `TableHeaderGroupCell` and `TableGrid` among them — the last of these in
+  `tests/tableGrid.spec.ts`, which also pins the other half of its contract: **with no `cursor`,
+  off means off** — no `role="grid"`, no `tabindex`, and none of the three gestures reported.
 
   Which side a primitive is on is declared in code, not by convention: `useTableContext()` returns
   `undefined` when there is no root, and is what an optional consumer calls. **`requireTableContext(name)`
@@ -114,9 +119,17 @@ because a background tab reports the browser's throttle rather than the table's 
   dense with this; match it rather than stripping it.
 - Prefer a named constant over a repeated literal when the name states a contract (`ROOT_GROUP_KEY`
   is the empty group path, not a coincidence two modules share).
+- **`noUncheckedIndexedAccess` is on.** `array[i]` is `T | undefined`, so an index read has to be
+  answered rather than assumed. In a hot loop, bind the element once (`const step = steps[i]!`)
+  rather than re-indexing — the same "derive per row, not per comparison" argument, one level up,
+  and worth 7–12% of a sort. Elsewhere a `!` is fine *with a one-line why*; the flag exists to make
+  that a decision instead of a default.
 - Public API changes go through `src/index.ts`. Anything exported carries a doc comment on its
   **declaration** whose first paragraph works as a one-line summary — `pnpm docs:api` harvests
   those into `demo/src/data/apiReference.ts`, and a test regenerates that file and fails if the
   committed copy differs. So the summary is written once, in `src/`, and never in the demo. An
-  export should also appear somewhere in `demo/`.
+  export should also appear somewhere in `demo/` — either named in a view's `:api` list or imported
+  by one. **`tests/apiSurface.spec.ts` enforces that** for every *value* export, and names the
+  offender when it fails: demonstrate it, or stop exporting it. Types are exempt, because a type
+  cannot be used in a view in a way a reader would see.
 - One commit per task, tests and typecheck green before each.

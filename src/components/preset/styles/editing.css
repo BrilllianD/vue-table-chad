@@ -1,0 +1,127 @@
+/*
+ * Cell editors, row actions and their error states.
+ *
+ * A slice of the preset theme. Imported by `../table.css` in source order —
+ * see the note there about why the order is not arbitrary.
+ */
+
+/* ---------------------------------------------------------------- editing */
+
+/*
+  The trigger that turns a cell into an editor.
+  
+  A button rather than a click handler on the `<td>`, so the cell can be tabbed
+  to and opened with Enter — but styled back down to look like the text it
+  replaces, the way `.vt-sort` does in the header. Full width so the whole cell
+  is the target, and `inherit`ing alignment so a right-aligned number stays
+  right-aligned once it becomes clickable.
+*/
+.vt-cell-trigger {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+  The same cell with a cursor over the table: the `<td>` is the focus target
+  itself, so the button would only add a second tab stop per editable cell —
+  which is the thing a roving tabindex exists to avoid. What is left to carry
+  over is the pointer, the one affordance that says "you can type here".
+*/
+.vt-cell-editable {
+  display: block;
+  width: 100%;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vt-cell-trigger:focus-visible {
+  outline: 2px solid var(--vt-accent);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+.vt-cell-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/*
+  The same five declarations every other control in this file uses. Sized to sit
+  inside `--vt-row-height` with the cell's own padding around it, because
+  `.vt-td` clips: an input taller than its row is an input with its bottom
+  sheared off.
+*/
+.vt-cell-input {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--vt-border-strong);
+  border-radius: 4px;
+  background: var(--vt-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.vt-cell-input:focus-visible {
+  outline: 2px solid var(--vt-accent);
+  outline-offset: -1px;
+}
+
+.vt-cell-checkbox { cursor: pointer; margin: 0; }
+
+/* The ring, not a message: there is no room under the input for words. */
+.vt-cell-editor[data-invalid] .vt-cell-input,
+.vt-cell-editor[data-invalid] .vt-cell-checkbox {
+  border-color: var(--vt-danger);
+  outline: 1px solid var(--vt-danger);
+  outline-offset: -1px;
+}
+
+/*
+  Row state, as a stripe down the leading edge rather than a background.
+  
+  A background here would join the queue of layers `.vt-td` already composes —
+  stripe, column tint, hover, selection — and would have to win against all of
+  them to be seen at all. A border does not compete with any of them.
+*/
+.vt-tr[data-row-state] > .vt-td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--vt-accent);
+}
+
+.vt-tr[data-row-state='error'] > .vt-td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--vt-danger);
+}
+
+.vt-tr[data-row-state='saving'] { opacity: 0.6; }
+
+.vt-td-actions { white-space: nowrap; }
+
+.vt-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vt-row-actions .vt-btn { padding: 2px 8px; }
+
+/*
+  Truncated rather than wrapped, and titled: the actions cell is one row tall
+  like every other, so a long message has to give way to the buttons.
+*/
+.vt-row-error {
+  color: var(--vt-danger);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

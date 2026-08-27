@@ -3,8 +3,15 @@ import { computed, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 
 /** siblingCount around the current page, and an onChange callback. */
 export interface UsePaginationOptions {
-  /** How many numbered links to show around the current page. */
-  siblingCount?: MaybeRefOrGetter<number>
+  /**
+   * How many numbered links to show around the current page. Defaults to 1.
+   *
+   * The getter may return `undefined` — that is "no opinion, use the default",
+   * which is what the `?? 1` below has always done. The type says so, so a
+   * caller forwarding an optional of its own does not have to re-state the
+   * default just to satisfy it.
+   */
+  siblingCount?: MaybeRefOrGetter<number | undefined>
   onChange?: (page: number) => void
 }
 

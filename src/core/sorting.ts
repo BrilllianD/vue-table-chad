@@ -225,23 +225,40 @@ export function sortRows<TRow>(
     return projected
   })
 
+  /**
+   * The four per-key arrays folded into one object per sort key, so the
+   * comparator does one lookup instead of four.
+   *
+   * Same argument as the projection above, one level up: `plan`, `blanks`,
+   * `keys` and `values` were each indexed by `planIndex` on every comparison,
+   * and comparisons outnumber sort keys by O(n log n). Resolving them once
+   * per key costs `plan.length` object literals.
+   */
+  const steps = plan.map((entry, planIndex) => ({
+    direction: entry.direction,
+    compare: entry.compare,
+    values: values[planIndex]!,
+    blanks: blanks[planIndex]!,
+    projected: keys[planIndex],
+  }))
+
   // Indices rather than decorated objects: the original position is the index
   // itself, so ties keep their incoming order with nothing to carry around.
   const order = new Array<number>(rows.length)
   for (let i = 0; i < rows.length; i += 1) order[i] = i
 
   order.sort((left, right) => {
-    for (let planIndex = 0; planIndex < plan.length; planIndex += 1) {
-      const aBlank = blanks[planIndex]![left]!
-      const bBlank = blanks[planIndex]![right]!
+    for (let planIndex = 0; planIndex < steps.length; planIndex += 1) {
+      const step = steps[planIndex]!
+      const aBlank = step.blanks[left]!
+      const bBlank = step.blanks[right]!
       if (aBlank || bBlank) {
         if (aBlank && bBlank) continue
         if (nullsLast) return aBlank ? 1 : -1
         return aBlank ? -1 : 1
       }
 
-      const { direction, compare } = plan[planIndex]!
-      const projected = keys[planIndex]
+      const projected = step.projected
       let result: number
       if (projected) {
         const a = projected[left]!
@@ -250,9 +267,9 @@ export function sortRows<TRow>(
         // map to +Infinity; comparing instead makes that case the tie it is.
         result = a === b ? 0 : a < b ? -1 : 1
       } else {
-        result = compare(values[planIndex]![left], values[planIndex]![right])
+        result = step.compare(step.values[left], step.values[right])
       }
-      if (result !== 0) return result * direction
+      if (result !== 0) return result * step.direction
     }
     return left - right
   })

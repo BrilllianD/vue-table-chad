@@ -122,6 +122,7 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       'moveColumnTo',
       'setOrder',
       'setWidth',
+      'resetWidth',
       'resetWidths',
       'setPinned',
       'resetLayout',
@@ -133,11 +134,15 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       'ColumnResizeHandle',
       'ColumnDragGhost',
       'ResolvedColumn.pinOffset',
+      'sanitizeColumnLayout',
+      'normalizeColumnStorage',
+      'DEFAULT_COLUMN_LAYOUT_FIELDS',
     ]"
   >
     <template #controls>
       <div class="controls">
         <button type="button" @click="columns.showAll()">showAll()</button>
+        <button type="button" @click="columns.resetWidth('name')">resetWidth('name')</button>
         <button type="button" @click="columns.resetWidths()">resetWidths()</button>
         <button type="button" @click="columns.resetLayout()">resetLayout()</button>
         <button type="button" @click="columns.setOrder(['active', 'name', 'salary'])">

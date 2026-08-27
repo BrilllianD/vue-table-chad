@@ -130,6 +130,11 @@ const editableColumns = computed(() =>
       'editorFor',
       'EditMode',
       'RowChange',
+      'validateCell',
+      'applyCellValue',
+      'isColumnEditable',
+      'REQUIRED_MESSAGE',
+      'SAVE_FAILED_MESSAGE',
     ]"
   >
     <template #controls>

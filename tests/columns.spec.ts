@@ -247,3 +247,68 @@ describe('useColumns header band collapse', () => {
     dispose()
   })
 })
+
+describe('useColumns width reset', () => {
+  /** One column declaring a width and one leaving it to the default. */
+  const widthDefs: ColumnDef<Person>[] = personColumns.map((column) =>
+    column.id === 'name' ? { ...column, width: 220 } : column,
+  )
+
+  function widthOf(result: ReturnType<typeof setup>['columns'], id: string) {
+    return result.all.value.find((column) => column.id === id)?.resolvedWidth
+  }
+
+  it('puts a resized column back to the width it declared', () => {
+    const { columns, dispose } = setup(widthDefs)
+
+    columns.setWidth('name', 400)
+    expect(widthOf(columns, 'name')).toBe(400)
+
+    columns.resetWidth('name')
+    expect(widthOf(columns, 'name')).toBe(220)
+    dispose()
+  })
+
+  it('puts a column that declared no width back to the default', () => {
+    const { columns, dispose } = setup(widthDefs)
+
+    columns.setWidth('salary', 400)
+    columns.resetWidth('salary')
+    expect(widthOf(columns, 'salary')).toBe(160)
+    dispose()
+  })
+
+  // The single-column version, so resetting one leaves the others resized —
+  // which is the whole difference from `resetWidths`.
+  it('leaves the other columns alone', () => {
+    const { columns, dispose } = setup(widthDefs)
+
+    columns.setWidth('name', 400)
+    columns.setWidth('salary', 300)
+    columns.resetWidth('name')
+
+    expect(widthOf(columns, 'salary')).toBe(300)
+    expect(columns.layout.value.widths).toEqual({ salary: 300 })
+    dispose()
+  })
+
+  it('is a no-op for a column that was never resized', () => {
+    const { columns, dispose } = setup(widthDefs)
+
+    const before = columns.layout.value
+    columns.resetWidth('name')
+    // Same object, not merely an equal one: an untouched layout must not
+    // invalidate everything computed off it.
+    expect(columns.layout.value).toBe(before)
+    dispose()
+  })
+
+  it('ignores a column id it does not know', () => {
+    const { columns, dispose } = setup(widthDefs)
+
+    columns.setWidth('name', 400)
+    columns.resetWidth('nonesuch')
+    expect(widthOf(columns, 'name')).toBe(400)
+    dispose()
+  })
+})

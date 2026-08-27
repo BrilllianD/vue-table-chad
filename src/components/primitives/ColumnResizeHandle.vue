@@ -50,6 +50,23 @@ function onPointerUp(event: PointerEvent): void {
   ;(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId)
 }
 
+/**
+ * Double-click puts the column back to the width it declared — or to the
+ * default when it declared none.
+ *
+ * Clearing the stored width rather than writing one: a number written here
+ * would be a number the column never asked for, and it would leave the column
+ * with no way back to its own. The emit is the second half of it — a caller
+ * mirroring widths into a store of its own hears about a drag and has to hear
+ * about this the same way, or the two quietly disagree.
+ */
+function onDoubleClick(): void {
+  if (!context) return
+  context.columns.resetWidth(props.columnId)
+  const restored = context.columns.all.value.find((column) => column.id === props.columnId)
+  if (restored?.resolvedWidth !== undefined) emit('resize', props.columnId, restored.resolvedWidth)
+}
+
 /** Keyboard resizing, so this is not mouse-only. */
 function onKeydown(event: KeyboardEvent): void {
   const step = event.shiftKey ? 40 : 10
@@ -76,6 +93,6 @@ function onKeydown(event: KeyboardEvent): void {
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
     @keydown="onKeydown"
-    @dblclick.stop="context?.columns.setWidth(columnId, 160)"
+    @dblclick.stop="onDoubleClick"
   />
 </template>

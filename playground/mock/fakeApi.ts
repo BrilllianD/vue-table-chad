@@ -2,7 +2,21 @@
  * An in-memory "server" that honours the exact same `QueryState` the client
  * sends. Its whole purpose is to prove the contract round-trips: it reuses the
  * library's own `filterRows` / `sortRows` / `computeFacets`, so if the server
- * and client ever disagree about what a filter means, the demo breaks loudly.
+ * and client ever disagree about what a filter means, the playground breaks
+ * loudly.
+ *
+ * The rows are **not** generated here. They come from `bench/fixtures.ts`, the
+ * one dataset the benchmarks measure, the invariant tests count passes over and
+ * the demo renders — this used to keep a second generator of its own, and the
+ * two had already drifted apart in the shape of a row.
+ *
+ * It stays separate from the demo's `fakeApi` on purpose, rather than both
+ * importing one server. The demo's counts requests, fails on demand and saves
+ * rows, because the Server view exists to *prove* that debouncing coalesces
+ * keystrokes; `playground/src/examples/ServerMocked.vue` is a minimal example
+ * someone reads to learn the shape of a data source, and a minimal example
+ * wants a minimal server. What they must not disagree about is the data, and
+ * now they cannot.
  */
 import {
   computeFacets,
@@ -14,70 +28,12 @@ import {
   type FetchResult,
   type QueryState,
 } from '@brillliand/vue-table-chad'
+import { makeRows, type Employee } from '@fixtures'
 
-export interface Employee extends Record<string, unknown> {
-  id: number
-  name: string
-  email: string
-  department: string
-  role: string
-  salary: number | null
-  hiredAt: string | null
-  active: boolean
-  rating: number
-}
+export type { Employee }
 
-const FIRST = ['Ada', 'Grace', 'Alan', 'Katherine', 'Barbara', 'Linus', 'Margaret', 'Donald', 'Edsger', 'Radia', 'Hedy', 'Jean', 'Anita', 'Shafi']
-const LAST = ['Lovelace', 'Hopper', 'Turing', 'Johnson', 'Liskov', 'Torvalds', 'Hamilton', 'Knuth', 'Dijkstra', 'Perlman', 'Lamarr', 'Bartik', 'Borg', 'Goldwasser']
-const DEPARTMENTS = ['Engineering', 'Research', 'Design', 'Support', 'Sales', 'Finance']
-const ROLES = ['Junior', 'Mid', 'Senior', 'Staff', 'Principal', 'Manager']
-
-/** Deterministic PRNG so the dataset is identical on every reload. */
-function mulberry32(seed: number): () => number {
-  return () => {
-    seed |= 0
-    seed = (seed + 0x6d2b79f5) | 0
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-export function generateEmployees(count = 10000): Employee[] {
-  const random = mulberry32(42)
-  const rows: Employee[] = []
-
-  for (let i = 1; i <= count; i += 1) {
-    const first = FIRST[Math.floor(random() * FIRST.length)]!
-    const last = LAST[Math.floor(random() * LAST.length)]!
-    const department = DEPARTMENTS[Math.floor(random() * DEPARTMENTS.length)]!
-
-    // ~6% blanks on purpose, so "(Blanks)" and null-sorting are visible.
-    const missingSalary = random() < 0.06
-    const missingDate = random() < 0.06
-
-    const year = 2015 + Math.floor(random() * 10)
-    const month = 1 + Math.floor(random() * 12)
-    const day = 1 + Math.floor(random() * 28)
-
-    rows.push({
-      id: i,
-      name: `${first} ${last}`,
-      email: `${first.toLowerCase()}.${last.toLowerCase()}${i}@example.com`,
-      department: random() < 0.04 ? '' : department,
-      role: ROLES[Math.floor(random() * ROLES.length)]!,
-      salary: missingSalary ? null : 45000 + Math.floor(random() * 130000),
-      hiredAt: missingDate
-        ? null
-        : `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-      active: random() < 0.82,
-      rating: Math.round(random() * 50) / 10,
-    })
-  }
-  return rows
-}
-
-export const employees = generateEmployees()
+/** 10k rows, generated once and shared by every example. */
+export const employees: Employee[] = makeRows()
 
 export interface ApiOptions {
   latencyMs?: number
