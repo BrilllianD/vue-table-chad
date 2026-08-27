@@ -359,6 +359,8 @@ thing runs against real data.
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence. |
 | [Header bands](column-groups.md) | Multi-row headers and folding a band shut. |
 | [Keyboard navigation](keyboard.md) | The cell cursor and how it drives editing. |
+| [Virtual rows](virtualization.md) | `virtual`, `rowHeight`, `overscan`, and what the window costs. |
+| [Editing](editing.md) | Drafts per row, validation, and a save the server can refuse. |
 | [Styling](styling.md) | The `--vt-*` variables and how cell backgrounds stack. |
 
 The full API — every export with what it is for — is the **API reference** tab of `pnpm demo`,
