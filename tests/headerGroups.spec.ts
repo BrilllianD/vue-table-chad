@@ -7,7 +7,12 @@ import { useTableState } from '../src/core/useTableState'
 import TableHeaderCell from '../src/components/primitives/TableHeaderCell.vue'
 import TableHeaderGroupCell from '../src/components/primitives/TableHeaderGroupCell.vue'
 import { buildHeaderRows } from '../src/core/columnGroups'
-import type { HeaderGroupCell, HeaderRow, ResolvedColumn } from '../src/core/types'
+import type {
+  ColumnGroupDef,
+  HeaderGroupCell,
+  HeaderRow,
+  ResolvedColumn,
+} from '../src/core/types'
 import {
   groupedPersonColumns,
   people,
@@ -141,6 +146,30 @@ describe('TableHeaderGroupCell as a primitive', () => {
 
     // Otherwise there would be no way back out of the fold.
     expect(wrapper.find('button').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('takes a band’s own border overrides and class through to the cell', () => {
+    const cell: HeaderGroupCell<Row> = {
+      ...bandCell(),
+      group: { id: 'identity', header: 'Identity', class: 'accented' },
+    }
+    const wrapper = mount(TableHeaderGroupCell, {
+      props: {
+        cell,
+        collapsed: false,
+        bandEdge: { depth: 0, color: 'rebeccapurple', width: '3px' },
+      },
+    })
+
+    // Custom properties rather than `border-color` and `border-width` directly:
+    // the stylesheet keeps ownership of whether the rule is drawn at all, so a
+    // zeroed `--vt-band-border-width` on the table still wins over a band that
+    // named a colour.
+    const th = wrapper.find('th')
+    expect(th.attributes('style')).toContain('--vt-band-border-color: rebeccapurple')
+    expect(th.attributes('style')).toContain('--vt-band-border-width: 3px')
+    expect(th.classes()).toContain('accented')
     wrapper.unmount()
   })
 
@@ -351,6 +380,99 @@ describe('DataTable with header bands', () => {
     expect(wrapper.findAll('thead th[data-column-group]')).toHaveLength(0)
     // The markup a table without bands emitted before any of this existed.
     expect(wrapper.find('thead th[data-column="name"]').attributes('rowspan')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  /** `data-band-edge` per column, from whichever section is asked about. */
+  const edgesIn = (wrapper: ReturnType<typeof mountTable>, section: string) =>
+    Object.fromEntries(
+      wrapper
+        .findAll(`${section} [data-column][data-band-edge]`)
+        .map((cell) => [cell.attributes('data-column'), cell.attributes('data-band-edge')]),
+    )
+
+  it('draws a band boundary down the header, the body and the footer alike', () => {
+    const wrapper = mountTable({ showFooter: true })
+
+    // `identity` gives way to `record` after `department`, so that boundary is
+    // outermost; `money` gives way to plain `record` after `salary`, one level
+    // in; and `record` gives way to unbanded `active` after `hiredAt`. `active`
+    // is last and gets nothing — its right edge is the table's own frame.
+    const expected = { department: '0', salary: '1', hiredAt: '0' }
+    expect(edgesIn(wrapper, 'thead')).toEqual(expected)
+    expect(edgesIn(wrapper, 'tbody tr:first-child')).toEqual(expected)
+    expect(edgesIn(wrapper, 'tfoot')).toEqual(expected)
+
+    wrapper.unmount()
+  })
+
+  it('puts a band cell’s rule at the end of the run it actually covers', () => {
+    const wrapper = mountTable()
+    const edgeOf = (groupId: string) =>
+      wrapper.find(`thead th[data-column-group="${groupId}"]`).attributes('data-band-edge')
+
+    // Each band cell asks about its own last column, which is what keeps a band
+    // split into several runs from drawing a rule inside itself.
+    expect(edgeOf('identity')).toBe('0')
+    expect(edgeOf('record')).toBe('0')
+    expect(edgeOf('money')).toBe('1')
+
+    wrapper.unmount()
+  })
+
+  it('moves the boundary when a fold takes the column it sat beside', async () => {
+    const wrapper = mountTable()
+    expect(edgesIn(wrapper, 'thead')).toHaveProperty('department', '0')
+
+    await wrapper.find('thead th[data-column-group="identity"] button').trigger('click')
+    await nextTick()
+
+    // `department` is gone, so the band now ends at the column it folded to.
+    expect(edgesIn(wrapper, 'thead')).toEqual({ name: '0', salary: '1', hiredAt: '0' })
+    expect(edgesIn(wrapper, 'tbody tr:first-child')).toEqual({
+      name: '0',
+      salary: '1',
+      hiredAt: '0',
+    })
+
+    wrapper.unmount()
+  })
+
+  it('marks nothing at all when no column claims a band', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, personColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () => h(DataTable as never, { columns: personColumns, source, state })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    expect(wrapper.findAll('[data-band-edge]')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('follows a band’s border override down into the body and the footer', () => {
+    const styled: ColumnGroupDef[] = personColumnGroups.map((band) =>
+      band.id === 'identity' ? { ...band, borderColor: 'rebeccapurple', borderWidth: '3px' } : band,
+    )
+    const wrapper = mountTable({ columnGroups: styled, showFooter: true })
+
+    // `identity` ends after `department`, so that is the boundary it owns —
+    // in the header, in every row and in the footer, since a rule that stopped
+    // at the header would not read as one line.
+    for (const section of ['thead', 'tbody tr:first-child', 'tfoot']) {
+      const style = wrapper.find(`${section} [data-column="department"]`).attributes('style')!
+      expect(style).toContain('--vt-band-border-color: rebeccapurple')
+      expect(style).toContain('--vt-band-border-width: 3px')
+    }
+
+    // Not the boundaries other bands own.
+    expect(wrapper.find('tbody [data-column="salary"]').attributes('style') ?? '').not.toContain(
+      '--vt-band-border-color',
+    )
     wrapper.unmount()
   })
 

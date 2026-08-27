@@ -1,7 +1,7 @@
 import { computed, ref, watch, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
 import { toValue } from 'vue'
 import type { ColumnDef, ColumnGroupDef, PinSide, ResolvedColumn, SortDirection } from './types'
-import { columnGroupPaths } from './columnGroups'
+import { columnBandEdges, columnGroupPaths, type BandEdge } from './columnGroups'
 import {
   clearColumnLayout,
   normalizeColumnStorage,
@@ -66,6 +66,11 @@ export interface UseColumnsResult<TRow> {
   all: ComputedRef<ResolvedColumn<TRow>[]>
   /** Visible columns in display order, with pin offsets resolved. */
   visible: ComputedRef<ResolvedColumn<TRow>[]>
+  /**
+   * Where a band's run ends, keyed by the column it falls to the right of.
+   * Empty for a table declaring no bands.
+   */
+  bandEdges: ComputedRef<Map<string, BandEdge>>
   layout: Ref<ColumnLayoutState>
 
   isVisible: (columnId: string) => boolean
@@ -294,6 +299,16 @@ export function useColumns<TRow>(
     return [...leftPinned, ...middle, ...rightPinned]
   })
 
+  /**
+   * The band boundaries in the visible order.
+   *
+   * Depends on `visible` and the band defs and on nothing else, so it moves
+   * when the layout does — a hide, a reorder, a resize, a pin, a fold — and
+   * never when a row changes. Column layout not reaching the row pipeline is
+   * the invariant; this is on the safe side of it by construction.
+   */
+  const bandEdges = computed(() => columnBandEdges(visible.value, groupDefs.value))
+
   function toggleVisibility(columnId: string, nextVisible?: boolean): void {
     const shouldShow = nextVisible ?? !isVisible(columnId)
     const hidden = new Set(layout.value.hidden)
@@ -429,6 +444,7 @@ export function useColumns<TRow>(
   return {
     all,
     visible,
+    bandEdges,
     layout,
     isVisible,
     toggleVisibility,

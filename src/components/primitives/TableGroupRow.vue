@@ -18,6 +18,7 @@
 import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
 import { formatAggregate } from '../../core/aggregation'
+import type { BandEdge } from '../../core/columnGroups'
 import type { AggregateResult, ResolvedColumn, RowGroup } from '../../core/types'
 import TableCell from './TableCell.vue'
 
@@ -26,6 +27,13 @@ const props = withDefaults(
     group: RowGroup<TRow>
     /** Columns to lay the aggregates out under. Defaults to the visible ones. */
     columns?: ResolvedColumn<TRow>[]
+    /**
+     * Band boundaries for the aggregate cells, keyed by the column each falls
+     * to the right of. Defaults to the injected ones. The spanning label cell
+     * gets none: it crosses band boundaries by definition, so a rule on its
+     * right edge would sit wherever the aggregates happen to start.
+     */
+    bandEdges?: ReadonlyMap<string, BandEdge>
     /** Extra cells before the first column — the selection checkbox column. */
     leading?: number
     /**
@@ -56,6 +64,10 @@ const collapsed = computed(
 
 const columns = computed<ResolvedColumn<TRow>[]>(
   () => props.columns ?? ((context?.visibleColumns.value ?? []) as ResolvedColumn<TRow>[]),
+)
+
+const bandEdges = computed<ReadonlyMap<string, BandEdge> | undefined>(
+  () => props.bandEdges ?? context?.columns.bandEdges.value,
 )
 
 /**
@@ -156,6 +168,7 @@ function toggle(): void {
       v-for="column in trailing"
       :key="column.id"
       :column="column"
+      :band-edge="bandEdges?.get(column.id)"
     >
       <slot name="aggregate" :column="column" :result="resultFor(column)" :text="textFor(column)">
         {{ textFor(column) }}

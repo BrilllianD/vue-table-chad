@@ -18,7 +18,9 @@
  * carry a column id in the name, which is why that forwarding is a generic
  * `v-for` over the slots rather than a list of names.
  */
+import { computed, nextTick, ref, watch } from 'vue'
 import CellEditor from '../primitives/CellEditor.vue'
+import VirtualBody from '../primitives/VirtualBody.vue'
 import TableRow from '../primitives/TableRow.vue'
 import TableGroupRow from '../primitives/TableGroupRow.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
@@ -52,6 +54,17 @@ const props = defineProps<{
   /** Leading and trailing cells, for the rows that have to span them all. */
   extraColumns: number
   emptyMessage: string
+  /**
+   * Renders only the rows the viewport can show. Off, every display row is
+   * rendered and the `<tbody>` is exactly what it always was.
+   */
+  virtual: boolean
+  /** The height one row is laid out at, which windowing has to agree with. */
+  rowHeight: number
+  /** Rows kept beyond each edge of the viewport. */
+  overscan?: number
+  /** The element that scrolls. `null` until `DataTable`'s template ref lands. */
+  scrollParent: HTMLElement | null
 }>()
 
 const emit = defineEmits<{
@@ -59,7 +72,116 @@ const emit = defineEmits<{
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]
   rowSaveError: [row: TRow, error: unknown]
+  /**
+   * Which rows the window actually rendered.
+   *
+   * Travels up because the cursor's roving tabindex has to land on a cell that
+   * exists, and only the body knows which rows those are. Ungrouped or not,
+   * windowed or not, it is always "what a Tab can reach".
+   */
+  'update:renderedRowIds': [ids: RowId[]]
 }>()
+
+/**
+ * What `VirtualBody` exposes, spelled out.
+ *
+ * `InstanceType<typeof VirtualBody>` does not work on a generic SFC — the
+ * component is a function with a type parameter rather than a constructor —
+ * and the two members below are all this component asks of it.
+ */
+interface VirtualBodyView {
+  start: number
+  end: number
+  scrollToIndex: (index: number) => boolean
+}
+
+const body = ref<VirtualBodyView | null>(null)
+
+/**
+ * The window, as row identities, reported upwards whenever it moves.
+ *
+ * Only under a cursor: nothing else reads it, and asking every row in the
+ * window for an id would make a read-only table pay for a feature it did not
+ * turn on — `getRowId` throws for a row with no `id`, so it would be worse
+ * than a waste.
+ *
+ * Read off `VirtualBody`'s exposed range rather than out of its slot, because
+ * a slot is a render and this is a side effect: emitting from inside one would
+ * write during the parent's own render pass.
+ */
+watch(
+  () => {
+    const view = body.value
+    if (!props.cursor || !view) return undefined
+    return [view.start, view.end, props.displayRows] as const
+  },
+  (window) => {
+    const cursor = props.cursor
+    if (!window || !cursor) return
+    const [start, end, rows] = window
+    const ids: RowId[] = []
+    for (let index = start; index < end; index += 1) {
+      const item = rows[index]
+      if (item?.kind === 'row') ids.push(cursor.getRowId(item.row))
+    }
+    emit('update:renderedRowIds', ids)
+  },
+  { flush: 'post', immediate: true },
+)
+
+/**
+ * Where each row sits in the display list, for finding the cursor's row when
+ * the window has evicted it.
+ *
+ * `cursor.rowOffset` is the wrong number here: it counts data rows, and the
+ * window counts display rows, so a table with group headers in it would scroll
+ * to the wrong place by however many bands are above.
+ *
+ * Built only when there is something to look up with — a virtual table with a
+ * cursor. At 100k rows this is a map the size of the dataset, and no table
+ * without both needs it at all.
+ */
+const rowIndexById = computed(() => {
+  const map = new Map<RowId, number>()
+  const cursor = props.cursor
+  if (!props.virtual || !cursor) return map
+  const rows = props.displayRows
+  for (let index = 0; index < rows.length; index += 1) {
+    const item = rows[index]!
+    if (item.kind === 'row') map.set(cursor.getRowId(item.row), index)
+  }
+  return map
+})
+
+/*
+ * The cursor bridge.
+ *
+ * A cursor position is an identity, so moving it onto a row the window has
+ * evicted is legal and does exactly the right thing to the model — but
+ * `TableGrid` focuses by querying the DOM for `[data-row-id]`, and an evicted
+ * row is not there to find, so the ring would walk off screen invisibly.
+ *
+ * So: scroll the window to it, then ask for focus again. Asking again rather
+ * than reaching for `focusCursorCell` keeps this ignorant of how focus is
+ * done; `requestFocus` is the same call every other mover here makes.
+ *
+ * `scrollToIndex` returning `false` — already rendered, or nothing to scroll —
+ * is what stops this asking forever.
+ */
+watch(
+  () => (props.cursor ? props.cursor.focusRequests.value : 0),
+  () => {
+    const cursor = props.cursor
+    if (!props.virtual || !cursor) return
+    const rowId = cursor.position.value?.rowId
+    if (rowId === undefined) return
+    const index = rowIndexById.value.get(rowId)
+    if (index === undefined) return
+    if (!body.value?.scrollToIndex(index)) return
+    void nextTick(() => cursor.requestFocus())
+  },
+  { flush: 'post' },
+)
 
 function canEdit(row: TRow, column: ResolvedColumn<TRow>): boolean {
   return props.editing?.isEditable(row, column) ?? false
@@ -188,208 +310,227 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
 </script>
 
 <template>
-  <tbody class="vt-tbody">
-    <tr v-if="error" class="vt-row-message">
-      <td :colspan="columns.length + extraColumns">
-        <slot name="error" :error="error" :refresh="source.refresh">
-          <span class="vt-error">
-            Failed to load data.
-            <button type="button" class="vt-btn vt-btn-link" @click="source.refresh()">
-              Retry
-            </button>
-          </span>
-        </slot>
-      </td>
-    </tr>
+  <!--
+    `VirtualBody` renders the `<tbody>` itself, so this component's root is the
+    same element it always was — and with `enabled: false` it renders every
+    item it is handed and no spacers, which is why there is one loop below
+    rather than a virtual branch and an ordinary one.
 
-    <tr v-else-if="rows.length === 0 && !loading" class="vt-row-message">
-      <td :colspan="columns.length + extraColumns">
-        <slot name="empty">{{ emptyMessage }}</slot>
-      </td>
-    </tr>
-
-    <!--
-      Iterates the display list, not `rows`: with nothing grouped the
-      two hold the same rows in the same order, so there is only one
-      code path to keep correct.
-    -->
-    <template v-for="item in displayRows" v-else>
-      <TableGroupRow
-        v-if="item.kind === 'group'"
-        :key="`group:${item.group.key}`"
-        :group="item.group"
-        :columns="columns"
-        :leading="selectable ? 1 : 0"
-        :trailing-cells="actionsColumn ? 1 : 0"
-      >
-        <template #default="slotProps">
-          <slot name="group" v-bind="slotProps">
-            <span class="vt-group-column">{{ slotProps.columnLabel }}</span>
-            <span class="vt-group-label">{{ slotProps.group.label }}</span>
-            <span class="vt-group-count">{{ slotProps.group.totalCount }}</span>
-          </slot>
-        </template>
-        <template #aggregate="slotProps">
-          <slot name="groupAggregate" v-bind="slotProps">{{ slotProps.text }}</slot>
-        </template>
-      </TableGroupRow>
-
-      <TableRow
-        v-else
-        :key="rowKey(item.row, item.index)"
-        :row="item.row"
-        :columns="columns"
-        :index="item.index"
-        :depth="item.depth"
-        :selected="selection ? selection.isSelected(item.row) : false"
-        :state="rowState(item.row)"
-        :cursor="cursor"
-        @click="$emit('rowClick', item.row, $event)"
-      >
-        <template v-if="selectable" #leading>
-          <SelectionCheckbox
-            v-if="selection"
-            :checked="selection.isSelected(item.row)"
-            :disabled="!selection.isSelectable(item.row)"
-            label="Select row"
-            @change="
-              (_checked, event) =>
-                event.shiftKey
-                  ? selection?.toggleRange(item.row)
-                  : selection?.toggle(item.row)
-            "
-          />
-        </template>
-
-        <!--
-          Forwards each cell to this component's own `cell:<id>` slot,
-          so the preset's slot API is exactly what it always was while
-          the row markup lives in the primitive.
-
-          Three branches rather than one wrapper around the slot: a
-          table with no editing session must not pay an extra DOM node
-          per cell for a feature it is not using, and the read-only
-          branch at the bottom is exactly what it always rendered.
-        -->
-        <template #cell="{ row, column, value, text }">
-          <CellEditor
-            v-if="props.editing && editorOpen(row, column)"
-            :column="column"
-            :row="row"
-            :value="props.editing.inputFor(row, column)"
-            :error="cellError(row, column)"
-            :label="column.header ?? column.id"
-            :trap-tab="!rowMode"
-            :autofocus="props.editing.stateFor(props.editing.getRowId(row))?.activeColumnId === column.id"
-            @update:value="props.editing.setValue(row, column, $event)"
-            @commit="commitCell(row, $event, cursor)"
-            @cancel="cancelCell(row, cursor)"
-            @blur="onCellBlur(row)"
-            @move="moveEdit(row, column, $event, columns)"
-          >
-            <template v-if="$slots[`editor:${column.id}`]" #default="editorProps">
-              <slot
-                :name="`editor:${column.id}`"
-                v-bind="editorProps"
-                :row="row"
-                :column="column"
-              />
-            </template>
-          </CellEditor>
-
-          <!--
-            A real button, not a click handler on the cell: a cell you
-            can only reach with a pointer is a cell half the users
-            cannot edit at all.
-
-            Only without a cursor, though. With one the `<td>` is
-            itself the focus target and Enter opens the editor, so
-            this button would add a second tab stop per editable cell
-            — which is exactly what a roving tabindex exists to avoid,
-            and it would nest a focusable inside a gridcell besides.
-          -->
-          <button
-            v-else-if="canEdit(row, column) && !cursor"
-            type="button"
-            class="vt-cell-trigger"
-            :aria-label="`Edit ${column.header ?? column.id}`"
-            @click="props.editing?.begin(row, column.id)"
-          >
-            <slot
-              :name="`cell:${column.id}`"
-              :row="row"
-              :column="column"
-              :value="value"
-              :text="text"
-            >
-              {{ text }}
-            </slot>
-          </button>
-
-          <!--
-            The same cell under a cursor. No button, but not bare
-            either: the pointer is the one thing the button carried
-            that is still worth having, because it is what says "you
-            can type here" before you try.
-          -->
-          <span v-else-if="canEdit(row, column)" class="vt-cell-editable">
-            <slot
-              :name="`cell:${column.id}`"
-              :row="row"
-              :column="column"
-              :value="value"
-              :text="text"
-            >
-              {{ text }}
-            </slot>
-          </span>
-
-          <slot
-            v-else
-            :name="`cell:${column.id}`"
-            :row="row"
-            :column="column"
-            :value="value"
-            :text="text"
-          >
-            {{ text }}
-          </slot>
-        </template>
-
-        <template v-if="actionsColumn" #trailing="{ row }">
-          <slot name="rowActions" :row="row" :state="rowState(row)" :editing="props.editing">
-            <span
-              v-if="props.editing && props.editing.isEditing(props.editing.getRowId(row))"
-              class="vt-row-actions"
-            >
-              <button
-                type="button"
-                class="vt-btn vt-btn-primary"
-                :disabled="rowState(row) === 'saving'"
-                @click="commitRow(row)"
-              >
-                Save
+    The slot's `items` is the whole display list when windowing is off, so the
+    only difference between the two modes is how long that list is.
+  -->
+  <VirtualBody
+    ref="body"
+    :items="displayRows"
+    :row-height="rowHeight"
+    :overscan="overscan"
+    :scroll-parent="scrollParent"
+    :enabled="virtual"
+    :colspan="columns.length + extraColumns"
+  >
+    <template #default="{ items }">
+      <tr v-if="error" class="vt-row-message">
+        <td :colspan="columns.length + extraColumns">
+          <slot name="error" :error="error" :refresh="source.refresh">
+            <span class="vt-error">
+              Failed to load data.
+              <button type="button" class="vt-btn vt-btn-link" @click="source.refresh()">
+                Retry
               </button>
-              <button
-                type="button"
-                class="vt-btn"
-                :disabled="rowState(row) === 'saving'"
-                @click="props.editing.cancel(row)"
-              >
-                Cancel
-              </button>
-              <span
-                v-if="props.editing.errorFor(props.editing.getRowId(row))"
-                class="vt-row-error"
-                role="alert"
-                :title="props.editing.errorFor(props.editing.getRowId(row)) ?? undefined"
-              >
-                {{ props.editing.errorFor(props.editing.getRowId(row)) }}
-              </span>
             </span>
           </slot>
-        </template>
-      </TableRow>
+        </td>
+      </tr>
+
+      <tr v-else-if="rows.length === 0 && !loading" class="vt-row-message">
+        <td :colspan="columns.length + extraColumns">
+          <slot name="empty">{{ emptyMessage }}</slot>
+        </td>
+      </tr>
+
+      <!--
+        Iterates the display list, not `rows`: with nothing grouped the
+        two hold the same rows in the same order, so there is only one
+        code path to keep correct.
+      -->
+      <template v-for="item in items" v-else>
+        <TableGroupRow
+          v-if="item.kind === 'group'"
+          :key="`group:${item.group.key}`"
+          :group="item.group"
+          :columns="columns"
+          :leading="selectable ? 1 : 0"
+          :trailing-cells="actionsColumn ? 1 : 0"
+        >
+          <template #default="slotProps">
+            <slot name="group" v-bind="slotProps">
+              <span class="vt-group-column">{{ slotProps.columnLabel }}</span>
+              <span class="vt-group-label">{{ slotProps.group.label }}</span>
+              <span class="vt-group-count">{{ slotProps.group.totalCount }}</span>
+            </slot>
+          </template>
+          <template #aggregate="slotProps">
+            <slot name="groupAggregate" v-bind="slotProps">{{ slotProps.text }}</slot>
+          </template>
+        </TableGroupRow>
+
+        <TableRow
+          v-else
+          :key="rowKey(item.row, item.index)"
+          :row="item.row"
+          :columns="columns"
+          :index="item.index"
+          :depth="item.depth"
+          :selected="selection ? selection.isSelected(item.row) : false"
+          :state="rowState(item.row)"
+          :cursor="cursor"
+          @click="$emit('rowClick', item.row, $event)"
+        >
+          <template v-if="selectable" #leading>
+            <SelectionCheckbox
+              v-if="selection"
+              :checked="selection.isSelected(item.row)"
+              :disabled="!selection.isSelectable(item.row)"
+              label="Select row"
+              @change="
+                (_checked, event) =>
+                  event.shiftKey
+                    ? selection?.toggleRange(item.row)
+                    : selection?.toggle(item.row)
+              "
+            />
+          </template>
+
+          <!--
+            Forwards each cell to this component's own `cell:<id>` slot,
+            so the preset's slot API is exactly what it always was while
+            the row markup lives in the primitive.
+
+            Three branches rather than one wrapper around the slot: a
+            table with no editing session must not pay an extra DOM node
+            per cell for a feature it is not using, and the read-only
+            branch at the bottom is exactly what it always rendered.
+          -->
+          <template #cell="{ row, column, value, text }">
+            <CellEditor
+              v-if="props.editing && editorOpen(row, column)"
+              :column="column"
+              :row="row"
+              :value="props.editing.inputFor(row, column)"
+              :error="cellError(row, column)"
+              :label="column.header ?? column.id"
+              :trap-tab="!rowMode"
+              :autofocus="props.editing.stateFor(props.editing.getRowId(row))?.activeColumnId === column.id"
+              @update:value="props.editing.setValue(row, column, $event)"
+              @commit="commitCell(row, $event, cursor)"
+              @cancel="cancelCell(row, cursor)"
+              @blur="onCellBlur(row)"
+              @move="moveEdit(row, column, $event, columns)"
+            >
+              <template v-if="$slots[`editor:${column.id}`]" #default="editorProps">
+                <slot
+                  :name="`editor:${column.id}`"
+                  v-bind="editorProps"
+                  :row="row"
+                  :column="column"
+                />
+              </template>
+            </CellEditor>
+
+            <!--
+              A real button, not a click handler on the cell: a cell you
+              can only reach with a pointer is a cell half the users
+              cannot edit at all.
+
+              Only without a cursor, though. With one the `<td>` is
+              itself the focus target and Enter opens the editor, so
+              this button would add a second tab stop per editable cell
+              — which is exactly what a roving tabindex exists to avoid,
+              and it would nest a focusable inside a gridcell besides.
+            -->
+            <button
+              v-else-if="canEdit(row, column) && !cursor"
+              type="button"
+              class="vt-cell-trigger"
+              :aria-label="`Edit ${column.header ?? column.id}`"
+              @click="props.editing?.begin(row, column.id)"
+            >
+              <slot
+                :name="`cell:${column.id}`"
+                :row="row"
+                :column="column"
+                :value="value"
+                :text="text"
+              >
+                {{ text }}
+              </slot>
+            </button>
+
+            <!--
+              The same cell under a cursor. No button, but not bare
+              either: the pointer is the one thing the button carried
+              that is still worth having, because it is what says "you
+              can type here" before you try.
+            -->
+            <span v-else-if="canEdit(row, column)" class="vt-cell-editable">
+              <slot
+                :name="`cell:${column.id}`"
+                :row="row"
+                :column="column"
+                :value="value"
+                :text="text"
+              >
+                {{ text }}
+              </slot>
+            </span>
+
+            <slot
+              v-else
+              :name="`cell:${column.id}`"
+              :row="row"
+              :column="column"
+              :value="value"
+              :text="text"
+            >
+              {{ text }}
+            </slot>
+          </template>
+
+          <template v-if="actionsColumn" #trailing="{ row }">
+            <slot name="rowActions" :row="row" :state="rowState(row)" :editing="props.editing">
+              <span
+                v-if="props.editing && props.editing.isEditing(props.editing.getRowId(row))"
+                class="vt-row-actions"
+              >
+                <button
+                  type="button"
+                  class="vt-btn vt-btn-primary"
+                  :disabled="rowState(row) === 'saving'"
+                  @click="commitRow(row)"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="vt-btn"
+                  :disabled="rowState(row) === 'saving'"
+                  @click="props.editing.cancel(row)"
+                >
+                  Cancel
+                </button>
+                <span
+                  v-if="props.editing.errorFor(props.editing.getRowId(row))"
+                  class="vt-row-error"
+                  role="alert"
+                  :title="props.editing.errorFor(props.editing.getRowId(row)) ?? undefined"
+                >
+                  {{ props.editing.errorFor(props.editing.getRowId(row)) }}
+                </span>
+              </span>
+            </slot>
+          </template>
+        </TableRow>
+      </template>
     </template>
-  </tbody>
+  </VirtualBody>
 </template>

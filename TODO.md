@@ -6,16 +6,18 @@ Where this stands, what to do next, and the phase plan behind it — one file.
 > they had drifted apart: the roadmap still told a cold reader that Phase 1 lived on a branch and
 > that there was no git remote, months after both stopped being true.
 
-**State as of 2026-08-26:** everything below is on **`main`**, which tracks `origin/main`. 638 tests
-across 34 files green, `pnpm typecheck` clean.
+**State as of 2026-08-27:** everything below is on **`main`**, which tracks `origin/main`. 698 tests
+across 37 files green, `pnpm typecheck` clean.
 
 | | |
 | --- | --- |
 | E1–E6 | Editable rows — `useRowEditing`, a draft per row, validated and saved against a server that can refuse |
 | G1–G6 | Header bands — multi-row `<thead>`, nested bands, folding one shut by subtracting from `visible` |
+| G7–G8 | Band rules — a vertical rule where a band ends, drawn the full height, and per-band overrides |
 | K1–K6 | The cell cursor — a focus grid, a roving tabindex, `Enter` to edit |
 | N1–N10 | Cursor polish — paging with `Ctrl`+arrow, a scroll box that knows its pins, `autofocusCursor` |
 | R1–R8 | Code health — see below. No feature changed; the shape of the code did. |
+| P2-1, P2-2 | Row virtualization — `useVirtualRows`, a `<VirtualBody>` primitive, and `virtual` on the preset |
 
 ---
 
@@ -29,15 +31,14 @@ Two things blocked that. One is now fixed.
 
 1. ~~**The speed claim was unbacked and, in places, untrue.**~~ Phase 1 built the benchmarks, found
    the pipeline redoing full-dataset work on interactions that should be free, and fixed it.
-2. **It still cannot be published.** Placeholder `@sandbox` scope, no LICENSE, no CI, no `default`
-   export condition, and `files: ["dist"]` with a gitignored `dist/` means a fresh clone publishes
-   an empty package. That is Phase 3, and it is next — and now unblocked, since R1–R8 landed the
-   code-health work that wanted to happen before the surface is frozen.
+2. **It still cannot be published.** The name, the LICENSE and the metadata landed in P3-1..3, but
+   there is still no CI, no `default` export condition, and `files: ["dist"]` with a gitignored
+   `dist/` means a fresh clone publishes an empty package. That is Phase 3, and it is what remains.
 
 Virtualization was deliberately *not* put first: pagination caps the DOM at `pageSize`, so the
 render layer was not the bottleneck — the reactive pipeline was. Fixing it was cheaper, produced the
 numbers that justify the claim, and the render refactor it needed is the same groundwork
-virtualization requires.
+virtualization requires. P2-1 and P2-2 have since landed on top of that groundwork.
 
 ## R1–R8 — code health ✅
 
@@ -57,14 +58,19 @@ changed; all 610 tests that existed at the start still pass untouched.
 | R8 | `tests/apiSurface.spec.ts` enforces "every value export appears in the demo". 22 had no demo home; the audit that said otherwise was reading the *generated* API reference. No export was dropped: the review found no leaked internals. |
 
 **What R4 did not do:** it is not P2-2. `v-memo` has no effect inside a `v-for`, and on a
-component's own root it does not gate slot updates either — both verified during P1-8. The body
-component is fed forwarded slots and inherits that, so the memoisation restructure is still P2-2's
-work, and P2-2 may have to undo R4's slot bridge to get there.
+component's own root it does not gate slot updates either — both verified during P1-8. *(P2-2 has
+since settled this the other way: the restructure was dropped and the slot bridge kept. See Phase 2
+below for why.)*
 
 ## Do this next: Phase 3
 
-Nothing blocks it now. R8 in particular was the piece that had to come first — publishing freezes
-the export surface, and it is now a reviewed one with a test keeping it honest.
+Virtualization went first, by decision on 2026-08-27, and P2-1 and P2-2 are done. What is left is
+the shipping work: P3-4 onwards, starting with the tarball. R8 was the piece that had to come before
+any of it — publishing freezes the export surface, and it is now a reviewed one with a test keeping
+it honest.
+
+The remaining Phase 2 work (P2-3 onwards) is polish on a feature that already works, so it does not
+block the package.
 
 ## Decisions, settled
 
@@ -98,20 +104,31 @@ query object per write. Each stage now depends only on the fields it reads.
 
 ---
 
-## Why Phase 3 before Phase 2
+## Why Phase 2 went first after all
 
-The original plan ordered it 2 → 3, written when Phase 1 still sat on an unmerged branch. That
-ordering no longer holds:
+This section used to argue the opposite, and the argument is kept because it was a good one and
+because half of it is now a debt rather than a hypothetical.
 
-- **The remote is no longer something P3-1 has to create — it is something already there.** That
-  makes P3-7 (CI) and P3-9 (docs site) available *today*, and those are exactly the guards worth
-  having *during* Phase 2. Landing a virtualizer with no CI means the bundle-size budget and the
-  bench regression signal arrive after the largest render change the project has made.
-- **Phase 3 is nine small, fully specified tasks with no design risk.** Phase 2 is open-ended and,
-  by its own note below, cannot be settled by counting recomputes; it needs hand-driven `PerfView`
-  sessions in a foregrounded tab.
-- The four series above were feature work, and the ten commits before them were ship-shaped polish.
-  Phase 3 finishes that arc.
+It said: the remote already exists, so P3-7 (CI) and P3-9 (docs site) are available *today*, and
+those are exactly the guards worth having **during** Phase 2 — landing a virtualizer with no CI
+means the bundle-size budget and the bench regression signal arrive after the largest render change
+the project has made. It also said Phase 3 is small and fully specified where Phase 2 is open-ended
+and cannot be settled by counting recomputes.
+
+Virtualization was done first anyway, by decision on 2026-08-27. What that cost, stated plainly:
+
+- **The render change landed with no CI.** `pnpm bench` was run before and after by hand and
+  `bench/BASELINE.md` records both, but nothing enforces it, and the bundle grew from 34.2 kB to
+  35.9 kB gzipped with nothing to notice if it had grown by ten times that. P3-7 should set its
+  budget from the *current* build, not from a figure written before this.
+- **The frame timings are still owed.** The one part of Phase 2 that genuinely cannot be automated
+  is the one part not done — see P2-2's note.
+
+What it bought: the counting *can* be done, and was. `tests/invalidation.spec.ts` now asserts that a
+scroll moves none of the dataset-wide passes, which is the same class of guard Phase 1 built and is
+stronger here than the paging equivalent — virtual mode is a page size of everything, so each pass
+it must not trigger would run over the whole dataset. The half of Phase 2 that needed a foregrounded
+tab turned out to be smaller than expected.
 
 ## Phase 3 — Ship to npm
 
@@ -175,30 +192,89 @@ host is serving the assets.
 
 ## Phase 2 — Virtualization
 
-Now measurable, on a render layer built for it.
+P2-1 and P2-2 landed on 2026-08-27. What is left is P2-3 onwards, and the list is shorter and more
+specific than it was — four of the five "hard interactions" turned out to need nothing.
 
-### P2-1 · `useVirtualRows()` core composable
-Windowed range over `displayRows`. Fixed row height first, variable height second. No DOM
-assumptions beyond a scroll container and a measured viewport.
+### P2-1 · `useVirtualRows()` ✅
+A windowed range over any list of equal-height items: item height, viewport height, scroll offset in;
+`start`, `end`, the windowed slice and two spacer sizes out. No DOM, no table — `core/`, and a spec
+that mounts nothing.
 
-**This is the one Phase 2 task that can start cold** — self-contained core work, depending on
-nothing in Phase 3. If you would rather build than ship, start here.
+`start` and `end` are floored integers, which is the whole performance story: a scroll that moves
+less than one row arrives at the same pair and propagates nothing. **There must never be a debounce
+on the scroll handler** — that would trade a free non-update for a late update.
 
-### P2-2 · `<VirtualBody>` primitive + `virtual` mode on `DataTable`
-Mutually exclusive with pagination. **This is where the cost lands.**
+Fixed row height, and the signature is shaped so variable height is additive: `spaceBefore`/
+`spaceAfter` are opaque pixel totals rather than `start * rowHeight`, and `offsetFor`/`indexAt` are
+functions rather than arithmetic a caller could do. What variable height adds is a
+`measureItem(index, height)` and a prefix sum behind those two.
 
-**Carries the `<tbody>` restructure deferred from P1-8.** `memoRows` was built during P1-8 and
-removed, because it did nothing: `v-memo` has no effect *inside* a `v-for` (every iteration shares
-one cache slot), and moving it onto `TableRow`'s own root did not gate slot updates either — both
-confirmed with a probe before drawing the conclusion. Making it work means collapsing the preset's
-`<template v-for>` + `v-if`/`v-else` into **one component per display row**, so `v-for` and `v-memo`
-sit on the same element. That is the same restructure virtualization forces, and row memoisation
-only pays at row counts pagination never reaches — hence here rather than there.
+### P2-2 · `<VirtualBody>` + `virtual` on `DataTable` ✅
 
-### P2-3 · The hard interactions — each needs an explicit decision and a test
-Sticky header · pinned columns (`pinOffset`) · group headers and collapse state · shift-range
-selection across the window boundary · the `tfoot` aggregate row. The cell cursor now joins this
-list: `K1–K6` gives the body a focus grid whose `tabStop` assumes a rendered row.
+**Virtual mode is a page size of everything.** That is the whole of it in `core/` — one watcher on
+`useTable`. The alternative the README used to predict, feeding the renderer from `filteredRows`,
+was rejected: `filteredRows` exists only on `LocalDataSource`, and a second row path would make
+`displayRows` mean one thing to the markup and another to the cursor and the selection. This way
+there is one list and `query.pageSize` stays truthful.
+
+**Spacer `<tr>`s, not padding and not a transform.** `padding` does not apply to a
+`table-row-group` box at all, and a transform on the `<tbody>` would make it the containing block
+for its positioned descendants — every `position: sticky` pinned cell inside it. The spacers also
+give the `<table>` its full height, so the scrollbar is right with no sizer element.
+
+**The `<tbody>` kept one code path.** `VirtualBody` yields the window through a default slot and the
+preset iterates `items` instead of `displayRows`; with `enabled: false` it hands back every item and
+emits no spacers. `tests/dataTable.spec.ts` is green *unmodified*, which is what says the
+non-virtual DOM did not change.
+
+**The cursor works**, and needed two halves. `tabStop` learned the difference between a row the
+cursor can address and one that is in the document — without it the grid drops out of the tab order
+whenever the ring scrolls out of view. And when a move lands on an evicted row the body scrolls the
+window to it and asks for focus again, because `TableGrid` focuses by querying the DOM and finds
+nothing there. `Ctrl`+arrow is a no-op where there are no pages.
+
+**`v-memo` was dropped, and the restructure with it.** This is a decision, not an omission:
+
+1. Through a slot outlet it fails exactly as it failed in P1-8 — one `_cache` slot shared across
+   every invocation. The only surviving shape is `<DataTableRow v-for v-memo>` in the preset.
+2. In that shape it is a *correctness hazard*: `v-memo` on a component reuses the whole vnode, slots
+   included, so memoising a row whose `cell:<id>` slots are the caller's freezes whatever those
+   slots close over, and no dependency array can enumerate a stranger's closure.
+3. Windowing already caps the rendered rows at ~30, which is what `pageSize: 25` had, where a page
+   turn costs 0.004ms of JS and paint dominates.
+
+R4's slot bridge therefore survives untouched — it only had to change if a per-row component
+existed.
+
+**Still owed:** the timed browser session. `PerfView` has the Virtual toggle, the 100k dataset and a
+*Scroll 2000 rows* button, but a hidden tab never fires `requestAnimationFrame`, so the numbers have
+to be taken by hand in a foregrounded tab. What Chrome could be asked *without* timing is recorded
+in `bench/BASELINE.md`: 20 rows in the `<tbody>` at 100k, a 1.83M-pixel table whose scrollbar agrees,
+and 600k pixels of height coming off when a band collapses.
+
+### P2-3 · What is actually left
+
+Four of the five interactions this task used to list turned out to need nothing, and each now has a
+test saying so rather than an assumption: **the sticky header** (sticky is relative to the
+scrollport; nothing in a `<tbody>` reaches it), **pinned columns** (`pinOffset` is horizontal and
+per cell, and a spacer's one spanning cell has nothing to pin), **the `tfoot` aggregate row**
+(outside the `<tbody>` entirely), and **shift-range selection across the window boundary**
+(`toggleRange` resolves both endpoints out of the in-memory array and never reads the DOM).
+
+What remains:
+
+- **Scroll anchoring across a collapse.** Folding a band while scrolled deep changes the total
+  height under you, and the offset stops meaning the same row.
+- **`overallAggregates` is bound eagerly.** `TableRoot.vue` passes it regardless of `showFooter`, so
+  in virtual mode it is an O(dataset) pass per data change nobody asked for. The cheapest win here.
+- **`selection.headerState` goes O(dataset) per selection write.** Not per data change, which is the
+  worse direction — 8.2ms a click at 100k, against 0.002ms for a page of 25. It is not caught by
+  `tests/invalidation.spec.ts`, because it is not one of the wrapped functions. The demo leaves
+  `selectable` off until this is fixed.
+- **Variable row height.** A group row lays out a pixel taller than a data row, which is the first
+  concrete case. The error is bounded by the window rather than accumulating, so this is a polish
+  item rather than a correctness one.
+- **`Ctrl`+arrow** meaning "scroll a viewport" rather than nothing.
 
 ### P2-4 · `useInfiniteDataSource`
 So server data can feed a continuous scroll rather than a page slice.
@@ -209,7 +285,9 @@ size. Keyboard grid navigation has since shipped — see [Keyboard navigation](d
 
 ### P2-6 · Acceptance
 `PerfView` at 100k rows scrolling smoothly **with pinned columns and collapsed groups active
-simultaneously** — that combination is where a naive virtualizer breaks.
+simultaneously** — that combination is where a naive virtualizer breaks. It is now reachable
+without building anything: the **Virtual rows** view has 100k, grouping and the cursor behind
+toggles, and `PerfView` has the scroll measurement. So this task confirms rather than discovers.
 
 **Note on verifying Phase 2:** unlike Phase 1 it cannot be settled by counting recomputes. It needs
 real frame timings in a foregrounded browser tab, and background throttling makes automated
@@ -267,7 +345,9 @@ All twelve tasks landed. Tests went 271 → 304.
 - **The bench also argues *against* work.** Three trims the plan listed were measured and turned out
   to be noise. `bench/BASELINE.md` records them as decisions.
 - **`v-memo` has no effect inside a `v-for`**, and on a component's own root it does not gate slot
-  updates either. Verified with a probe. See P2-2.
+  updates either. Verified with a probe. P2-2 then settled the question for good: through a slot
+  outlet it fails the same way, in the one shape where it *would* work it freezes the caller's own
+  cell slots, and windowing leaves only ~30 rows for it to save anything on. Dropped, not deferred.
 - **A hidden tab never fires `requestAnimationFrame`** and clamps `setTimeout` to ~1 s. Any
   browser-side measurement needs a visibility guard, and automated tab focus is unreliable.
 
@@ -298,7 +378,7 @@ Decisions, not oversights.
 ## Verification
 
 **Per task**
-- `pnpm test` — all 638 stay green.
+- `pnpm test` — all 698 stay green.
 - `pnpm typecheck` — clean.
 - `pnpm bench` — before/after against `bench/BASELINE.md`.
 - `tests/invalidation.spec.ts` — the perf invariants hold. A failure there is a broken feature, not
@@ -307,7 +387,7 @@ Decisions, not oversights.
 **End to end**
 - `pnpm demo` → **Performance** view: page through, type in search, toggle groups, push the page
   size to 5000. Foreground the tab; it refuses to measure a hidden one.
-- Walk all 16 demo views. **Composed** and **Core only** exercise the primitives and pure functions
+- Walk all 17 demo views. **Composed** and **Core only** exercise the primitives and pure functions
   directly and are the best canaries for a render-layer change.
 - `pnpm build` and `pnpm build:docs` clean.
 

@@ -70,6 +70,29 @@ const props = withDefaults(
     storageFields?: ColumnLayoutField[]
     /** Rows per page. Defaults to 10, from `useTableState` — see `DEFAULT_PAGE_SIZE`. */
     pageSize?: number
+    /**
+     * Renders every row as one continuous scroll, rendering only the ones the
+     * scroll box can show.
+     *
+     * Mutually exclusive with paging, and it is paging that gives way: the page
+     * size becomes the whole result set and the pager is not rendered, because
+     * a pager over exactly one page is a lie.
+     *
+     * The scroll box has to be height-constrained for this to mean anything —
+     * `.vt-scroll` caps itself at `70vh`, and a theme that overrides that to
+     * `none` has made the viewport as tall as the content and turned the window
+     * back off.
+     */
+    virtual?: boolean
+    /**
+     * How tall one row is, in CSS pixels. Only read in `virtual` mode, where it
+     * both drives the windowing arithmetic *and* is written to
+     * `--vt-row-height`, so the number the JS counts with and the number the
+     * browser lays out with cannot drift apart.
+     */
+    rowHeight?: number
+    /** Rows kept rendered beyond each edge of the viewport. Defaults to four. */
+    overscan?: number
     /** Drag column headers to reorder them. */
     reorderable?: boolean
     /**
@@ -144,6 +167,8 @@ const props = withDefaults(
     cellCursor: false,
     autofocusCursor: false,
     reorderable: true,
+    virtual: false,
+    rowHeight: 38,
     showFooter: false,
     footerLabel: 'Total',
     showToolbar: true,
@@ -227,6 +252,16 @@ function pageMove(
  * performing it.
  */
 const scrollBox = ref<HTMLElement | null>(null)
+
+/**
+ * Which rows the body has actually rendered, in virtual mode.
+ *
+ * It comes back up from `DataTableBody` and goes straight down into
+ * `TableRoot`, where the cursor uses it to keep its one `tabindex="0"` on a
+ * cell that exists. The round trip is the honest shape of it: the window is
+ * measured at the bottom of the tree and needed at the top.
+ */
+const renderedRowIds = ref<RowId[] | undefined>(undefined)
 
 /**
  * `Shift` + `←`/`→`: scroll one column sideways, and leave the cursor alone.
@@ -373,6 +408,7 @@ function onActivate(
       rows,
       columns: cols,
       headerRows,
+      bandEdges,
       state: tableState,
       selection,
       cursor,
@@ -396,6 +432,8 @@ function onActivate(
     :storage-key="storageKey"
     :storage-fields="storageFields"
     :page-size="pageSize"
+    :virtual="virtual"
+    :rendered-row-ids="renderedRowIds"
     :reorderable="reorderable"
     :initial-group-by="initialGroupBy"
     :group-mode="groupMode"
@@ -496,6 +534,11 @@ function onActivate(
             '--vt-header-rows': headerRows.length,
             '--vt-pin-left': pinnedWidth(cols, 'left'),
             '--vt-pin-right': pinnedWidth(cols, 'right'),
+            // Only in virtual mode, so an ordinary table keeps whatever height
+            // the theme gave it. Here the two have to agree: a row laid out
+            // taller than the window counted on drifts a pixel per row, and by
+            // row 5000 the spacers are describing a different table.
+            ...(virtual ? { '--vt-row-height': `${rowHeight}px` } : {}),
           }"
         >
           <TableGrid
@@ -532,7 +575,12 @@ function onActivate(
             <DataTableBody
               :columns="cols"
               :rows="rows"
+              :virtual="virtual"
+              :row-height="rowHeight"
+              :overscan="overscan"
+              :scroll-parent="scrollBox"
               :display-rows="displayRows"
+              @update:rendered-row-ids="renderedRowIds = $event"
               :source="src"
               :loading="loading"
               :error="error"
@@ -573,6 +621,7 @@ function onActivate(
             <DataTableFooter
               v-if="showFooter"
               :columns="cols"
+              :band-edges="bandEdges"
               :aggregates="overallAggregates"
               :label="footerLabel"
               :selectable="selectable"
@@ -602,7 +651,12 @@ function onActivate(
       <ColumnDragGhost v-if="reorderable" />
 
       <slot name="pagination" :state="tableState" :total="total">
-        <TablePagination v-if="showPagination" />
+        <!--
+          Never in virtual mode, whatever the prop says: there is exactly one
+          page there, and `showPagination` defaults to `true`, so refusing the
+          combination out loud would fire at people who never asked for it.
+        -->
+        <TablePagination v-if="showPagination && !virtual" />
       </slot>
     </div>
   </TableRoot>

@@ -65,8 +65,10 @@ export const apiReference: ApiEntry[] = [
   { name: 'StorageLike', layer: 'core', kind: 'type', summary: 'The slice of the `Storage` DOM interface this needs. Typed structurally so a plain object works in tests and on the server.' },
 
   { name: 'buildHeaderRows', layer: 'core', kind: 'function', summary: 'The rows of a multi-row header: one array of cells per `<tr>`, in order.' },
+  { name: 'columnBandEdges', layer: 'core', kind: 'function', summary: 'The band boundaries in a row of columns, keyed by the column each one falls to the right of.' },
   { name: 'columnGroupPath', layer: 'core', kind: 'function', summary: 'The chain of bands above a column, outermost first.' },
   { name: 'columnGroupPaths', layer: 'core', kind: 'function', summary: "Every column's band path at once, keyed by column id." },
+  { name: 'BandEdge', layer: 'core', kind: 'type', summary: "Where a band's run ends, and how heavy the rule there should be." },
 
   { name: 'useColumnDnd', layer: 'core', kind: 'composable', summary: 'Pointer-driven column reordering: a drag threshold, drop sides, Escape to cancel, and keyboard moves for anyone not using a pointer.' },
   { name: 'UseColumnDnd', layer: 'core', kind: 'type', summary: 'Drag state and handlers for a header cell to bind.' },
@@ -107,6 +109,11 @@ export const apiReference: ApiEntry[] = [
   { name: 'UsePagination', layer: 'core', kind: 'type', summary: 'Current page, bounds, the item list, and the navigation calls.' },
   { name: 'UsePaginationOptions', layer: 'core', kind: 'type', summary: 'siblingCount around the current page, and an onChange callback.' },
   { name: 'PageItem', layer: 'core', kind: 'type', summary: 'A page number or an ellipsis, ready to render.' },
+
+  { name: 'useVirtualRows', layer: 'core', kind: 'composable', summary: 'A windowed range over a list of equal-height items — what to render, and how much empty space stands in for the rest.' },
+  { name: 'OVERSCAN_ROWS', layer: 'core', kind: 'constant', summary: 'Rows kept rendered beyond each edge of the viewport.' },
+  { name: 'UseVirtualRows', layer: 'core', kind: 'type', summary: 'The window, the space standing in for what is outside it, and the scroll offset.' },
+  { name: 'UseVirtualRowsOptions', layer: 'core', kind: 'type', summary: 'rowHeight, viewportHeight, and the two knobs that turn windowing off.' },
 
   { name: 'provideTableContext', layer: 'core', kind: 'function', summary: 'Publishes a TableContext so primitives beneath can find it.' },
   { name: 'useTableContext', layer: 'core', kind: 'composable', summary: 'The table context, or `undefined` — which is what lets a primitive work standalone.' },
@@ -222,6 +229,8 @@ export const apiReference: ApiEntry[] = [
   { name: 'CellEditor', layer: 'primitives', kind: 'component', summary: 'The control that edits one cell, and the keyboard contract around it.' },
 
   { name: 'TableGroupRow', layer: 'primitives', kind: 'component', summary: "A group header row: the expand toggle and the group's label, followed by whatever the grouped rows aggregate to, under the columns those aggregates describe." },
+
+  { name: 'VirtualBody', layer: 'primitives', kind: 'component', summary: 'A `<tbody>` that renders only the rows the viewport can show, with empty space standing in for the rest.' },
 
   { name: 'SortTrigger', layer: 'primitives', kind: 'component', summary: 'The clickable header label: cycles asc → desc → unsorted, and shift-click stacks sort keys.' },
 

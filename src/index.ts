@@ -27,7 +27,13 @@ export {
 } from './core/columnStorage'
 export type { ColumnStorageOptions, ColumnLayoutField, StorageLike } from './core/columnStorage'
 
-export { buildHeaderRows, columnGroupPath, columnGroupPaths } from './core/columnGroups'
+export {
+  buildHeaderRows,
+  columnBandEdges,
+  columnGroupPath,
+  columnGroupPaths,
+} from './core/columnGroups'
+export type { BandEdge } from './core/columnGroups'
 
 export { useColumnDnd } from './core/useColumnDnd'
 export type {
@@ -64,6 +70,9 @@ export type {
 
 export { usePagination } from './core/usePagination'
 export type { UsePagination, UsePaginationOptions, PageItem } from './core/usePagination'
+
+export { useVirtualRows, OVERSCAN_ROWS } from './core/useVirtualRows'
+export type { UseVirtualRows, UseVirtualRowsOptions } from './core/useVirtualRows'
 
 export {
   provideTableContext,
@@ -201,6 +210,7 @@ export { default as TableCell } from './components/primitives/TableCell.vue'
 export { default as TableRow } from './components/primitives/TableRow.vue'
 export { default as CellEditor } from './components/primitives/CellEditor.vue'
 export { default as TableGroupRow } from './components/primitives/TableGroupRow.vue'
+export { default as VirtualBody } from './components/primitives/VirtualBody.vue'
 export { default as SortTrigger } from './components/primitives/SortTrigger.vue'
 export { default as ColumnFilterPopover } from './components/primitives/ColumnFilterPopover.vue'
 export { default as ValueListFilter } from './components/primitives/ValueListFilter.vue'

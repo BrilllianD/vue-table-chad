@@ -9,10 +9,17 @@
  */
 import TableCell from '../primitives/TableCell.vue'
 import { formatAggregate } from '../../core/aggregation'
+import type { BandEdge } from '../../core/columnGroups'
 import type { AggregateResult, ResolvedColumn } from '../../core/types'
 
 const props = defineProps<{
   columns: ResolvedColumn<TRow>[]
+  /**
+   * Band boundaries, so the footer carries the rules down to the bottom of the
+   * table. Passed rather than injected because this is the one place a bare
+   * `TableCell` is rendered with no row component above it to resolve them.
+   */
+  bandEdges: ReadonlyMap<string, BandEdge>
   aggregates: Record<string, AggregateResult<TRow>>
   /** Text for the leading cell, where it displaces no number of its own. */
   label: string
@@ -32,7 +39,12 @@ function footerText(column: ResolvedColumn<TRow>): string {
   <tfoot class="vt-tfoot">
     <tr class="vt-footer-row">
       <td v-if="selectable" class="vt-td vt-td-selection" />
-      <TableCell v-for="(column, columnIndex) in columns" :key="column.id" :column="column">
+      <TableCell
+        v-for="(column, columnIndex) in columns"
+        :key="column.id"
+        :column="column"
+        :band-edge="bandEdges.get(column.id)"
+      >
         <slot
           name="footer"
           :column="column"

@@ -227,3 +227,110 @@ export function buildHeaderRows<TRow>(
 
   return rows
 }
+
+/**
+ * Where a band's run ends, and how heavy the rule there should be.
+ *
+ * `depth` is the nesting level of the band that stops at this boundary, so `0`
+ * is the outermost one — a hook for drawing an outer boundary heavier than an
+ * inner one rather than a number the renderer has to interpret.
+ */
+export interface BandEdge {
+  depth: number
+  /** The ending band's `borderColor`, when it declares one. */
+  color?: string
+  /** The ending band's `borderWidth`, when it declares one. */
+  width?: string
+}
+
+/**
+ * The band boundaries in a row of columns, keyed by the column each one falls
+ * to the right of.
+ *
+ * A boundary is a property of a *position in the visible order*, not of a
+ * column, which is why this is a map rather than a field on `ResolvedColumn`:
+ * `useColumns().visible` passes unpinned columns through by reference, and
+ * writing a positional answer onto them would copy every one of them on every
+ * layout change and cost consumers the identity they memoise on.
+ *
+ * Reading the visible order is also what makes a *split* band come out right.
+ * Pinning or dragging one member out cuts a band into several runs; two members
+ * that ended up adjacent share a path and produce no boundary between them, so
+ * the rule lands where the run really stops rather than where the band was
+ * declared to.
+ *
+ * The last column never gets one — its right edge is the table's own frame,
+ * the same reasoning `:not(:last-child)` uses for the body's column separators.
+ */
+export function columnBandEdges<TRow>(
+  columns: readonly ResolvedColumn<TRow>[],
+  groups?: readonly ColumnGroupDef[],
+): Map<string, BandEdge> {
+  const edges = new Map<string, BandEdge>()
+  if (columns.length < 2) return edges
+
+  const byId = groupsById(groups)
+  // Walked pairwise with the previous path carried forward, so each column's
+  // path is built once rather than once as the left of a pair and again as the
+  // right of the next.
+  let path = pathFrom(columns[0]!.group, byId)
+
+  for (let index = 0; index < columns.length - 1; index += 1) {
+    const next = pathFrom(columns[index + 1]!.group, byId)
+    const depth = divergenceDepth(path, next)
+    if (depth !== undefined) {
+      // The band that *stops* here owns the rule. Where none does — an
+      // unbanded column with a band starting to its right — the band that
+      // begins owns it instead, so the boundary still has somewhere to read
+      // an override from.
+      const owner = path[depth] ?? next[depth]
+      const edge: BandEdge = { depth }
+      if (owner?.borderColor) edge.color = owner.borderColor
+      if (owner?.borderWidth) edge.width = owner.borderWidth
+      edges.set(columns[index]!.id, edge)
+    }
+    path = next
+  }
+
+  return edges
+}
+
+/**
+ * The shallowest level at which two band paths part company, or `undefined`
+ * when they never do.
+ *
+ * Compared by id at each level rather than by identity: `pathFrom` resolves a
+ * fresh def object per call, and two columns naming the same band must still
+ * count as being inside it. A prefix relationship counts as a divergence at the
+ * shorter length — a column sitting directly under `person` is not in `person`
+ * > `identity`, and the boundary between them is real.
+ */
+function divergenceDepth(
+  a: readonly ColumnGroupDef[],
+  b: readonly ColumnGroupDef[],
+): number | undefined {
+  const shared = Math.min(a.length, b.length)
+  for (let depth = 0; depth < shared; depth += 1) {
+    if (a[depth]!.id !== b[depth]!.id) return depth
+  }
+  return a.length === b.length ? undefined : shared
+}
+
+/**
+ * Writes a band edge's overrides into a cell's style object.
+ *
+ * Custom properties rather than `border-color` and `border-width` directly:
+ * the stylesheet keeps ownership of *whether* the rule is drawn at all, so a
+ * band naming a colour still disappears when `--vt-band-border-width` is
+ * zeroed, and a caller who has restyled the edge entirely is not overridden by
+ * a band def written for the default theme.
+ *
+ * Shared by the three cell components rather than repeated in each, since a
+ * boundary has to look the same in the header, the body and the footer or it
+ * stops reading as one line.
+ */
+export function paintBandEdge(style: Record<string, string>, edge: BandEdge | undefined): void {
+  if (!edge) return
+  if (edge.color) style['--vt-band-border-color'] = edge.color
+  if (edge.width) style['--vt-band-border-width'] = edge.width
+}

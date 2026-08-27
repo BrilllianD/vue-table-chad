@@ -297,6 +297,30 @@ export interface ColumnGroupDef {
    * as `ColumnDef.headerBackground` does.
    */
   background?: string
+  /**
+   * Colours the rule drawn where this band's run of columns ends, overriding
+   * `--vt-band-border-color` on the cells either side of it.
+   *
+   * Travels as a custom property rather than as a `border-color` of its own,
+   * for the reason `background` travels as one: an inline border would outrank
+   * every state rule and leave that edge unable to respond to anything.
+   */
+  borderColor?: string
+  /**
+   * Widens — or with `0px` removes — this band's rule, as
+   * `--vt-band-border-width`. Give it a unit: a bare `0` is not a length, and
+   * an invalid value takes the whole `border-right` with it.
+   */
+  borderWidth?: string
+  /**
+   * An extra class on this band's header cells, and on every run of them when
+   * a pin or a drag has split the band in two.
+   *
+   * Header cells only. A class cannot follow a band down into the body, because
+   * a `<td>` belongs to a column and knows nothing about the bands above it —
+   * `borderColor` and `background` are the hooks that do reach that far.
+   */
+  class?: string
 }
 
 /** A band's spanning `<th>`: which columns it covers, and where it sits. */

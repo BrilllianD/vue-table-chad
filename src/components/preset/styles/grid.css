@@ -178,6 +178,28 @@
 }
 
 /*
+  Where a band's run of columns ends, drawn the full height of the table —
+  header rows, body and footer alike — so a band reads as a region rather than
+  as a caption floating above one.
+
+  `data-band-edge` carries the nesting depth of the band that stops there, `0`
+  being the outermost, which is the hook for weighting an outer boundary
+  heavier than an inner one:
+
+      .vt-datatable .vt-th[data-band-edge='0'],
+      .vt-datatable .vt-td[data-band-edge='0'] { --vt-band-border-width: 2px; }
+
+  A plain `border-right`, not a `box-shadow`: pinned cells set the whole
+  `--vt-shadow-pin` slot for their own vertical edge and would wipe this out.
+  Same specificity as the generic column separator further up, so **source
+  order is what makes this win** where both apply — it has to stay below it.
+*/
+.vt-th[data-band-edge],
+.vt-td[data-band-edge] {
+  border-right: var(--vt-band-border-width) solid var(--vt-band-border-color);
+}
+
+/*
   Centred, unlike a column header: a band names what its columns have in
   common, and left-aligning it over four columns leaves it hovering above the
   first one as though it belonged to that.

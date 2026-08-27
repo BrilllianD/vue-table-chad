@@ -121,6 +121,17 @@
   */
   --vt-header-group-border-width: 1px;
   --vt-header-group-border-color: var(--vt-border);
+  /*
+    The rule *beside* a band, where its run of columns ends — drawn the full
+    height of the table rather than only in the header.
+
+    On by default, unlike `--vt-body-border-vertical-width`. It can afford to
+    be: it is emitted only where a band boundary actually falls, so a table
+    declaring no bands gets no `data-band-edge` anywhere and looks exactly as
+    it did.
+  */
+  --vt-band-border-width: 1px;
+  --vt-band-border-color: var(--vt-border);
   /* The frame around the scroll box. Zero on all three = no rules at all. */
   --vt-outer-border-width: 1px;
   --vt-text: #1f2933;

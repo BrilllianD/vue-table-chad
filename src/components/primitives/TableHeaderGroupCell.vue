@@ -13,6 +13,7 @@
  */
 import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
+import { paintBandEdge, type BandEdge } from '../../core/columnGroups'
 import type { HeaderGroupCell } from '../../core/types'
 
 const props = withDefaults(
@@ -23,6 +24,13 @@ const props = withDefaults(
     collapsed?: boolean
     /** Forces the toggle off, whatever the band declares. */
     collapsible?: boolean
+    /**
+     * The band boundary falling to this cell's right. Defaults to the injected
+     * edge of the *last column this cell covers*, which is what keeps a band
+     * split by a pin or a drag from drawing a rule inside itself: each run asks
+     * about the column it actually ends on.
+     */
+    bandEdge?: BandEdge
   }>(),
   // Vue casts an absent boolean prop to `false`, which would read as "this band
   // is open" and shadow the injected state for good. The explicit `undefined`
@@ -35,6 +43,12 @@ const emit = defineEmits<{ toggle: [groupId: string, collapsed: boolean] }>()
 const context = useTableContext<TRow>()
 
 const label = computed(() => props.cell.group.header ?? props.cell.group.id)
+
+const bandEdge = computed(() => {
+  if (props.bandEdge) return props.bandEdge
+  const last = props.cell.columns[props.cell.columns.length - 1]
+  return last ? context?.columns.bandEdges.value.get(last.id) : undefined
+})
 
 const collapsed = computed(
   () => props.collapsed ?? context?.columns.isGroupCollapsed(props.cell.group.id) ?? false,
@@ -67,6 +81,7 @@ const cellStyle = computed(() => {
   // Which row of the header this is, for the sticky offset. A second header row
   // stuck at `top: 0` would sit on top of the first.
   style['--vt-header-row'] = String(props.cell.depth)
+  paintBandEdge(style, bandEdge.value)
   return style
 })
 
@@ -80,6 +95,7 @@ function toggle(): void {
 <template>
   <th
     class="vt-th vt-th-group"
+    :class="cell.group.class"
     :colspan="cell.colspan"
     :scope="cell.colspan > 1 ? 'colgroup' : 'col'"
     :style="cellStyle"
@@ -87,6 +103,7 @@ function toggle(): void {
     :data-depth="cell.depth"
     :data-pinned="cell.pinned || undefined"
     :data-column-bg="cell.group.background ? '' : undefined"
+    :data-band-edge="bandEdge?.depth"
     :data-collapsed="collapsed || undefined"
     :data-collapsible="collapsible || undefined"
   >

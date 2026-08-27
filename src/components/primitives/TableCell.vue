@@ -2,6 +2,7 @@
 /** One `<td>`, sharing the header's sticky/pin logic so columns stay aligned. */
 import { computed } from 'vue'
 import type { CellCursorMark } from '../../core/cellCursor'
+import { paintBandEdge, type BandEdge } from '../../core/columnGroups'
 import type { ResolvedColumn } from '../../core/types'
 
 const props = defineProps<{
@@ -15,6 +16,12 @@ const props = defineProps<{
    * it out from.
    */
   cursor?: CellCursorMark
+  /**
+   * The band boundary falling to this cell's right, or `undefined` when none
+   * does. Positional rather than a property of the column, so the row works it
+   * out and hands it down — a cell has no idea what sits beside it.
+   */
+  bandEdge?: BandEdge
 }>()
 
 /**
@@ -29,6 +36,7 @@ const cellStyle = computed(() => {
     style[props.column.pinned === 'left' ? 'left' : 'right'] = `${props.column.pinOffset}px`
   }
   if (props.column.background) style['--vt-column-bg'] = props.column.background
+  paintBandEdge(style, props.bandEdge)
   return Object.keys(style).length > 0 ? style : undefined
 })
 
@@ -54,6 +62,7 @@ const tabIndex = computed(() => {
     :data-pinned="column.pinned || undefined"
     :data-column-bg="column.background ? '' : undefined"
     :data-cursor="cursor === 'cell' || cursor === 'column' ? cursor : undefined"
+    :data-band-edge="bandEdge?.depth"
     :tabindex="tabIndex"
   >
     <slot />

@@ -105,6 +105,39 @@ alongside visibility, order, widths and pins:
   :storage-fields="['hidden', 'order', 'pinned', 'collapsedGroups']" />
 ```
 
+## Styling a band
+
+A vertical rule marks where each band's run of columns ends, drawn the full height of the table.
+It is on by default and lives on two variables — see [Band rules](styling.md#band-rules) for the
+whole-table version. One band can also dress itself:
+
+```ts
+const columnGroups: ColumnGroupDef[] = [
+  {
+    id: 'record',
+    header: 'Employment record',
+    background: 'rgb(249 115 22 / 0.14)',   // the band's header cell
+    borderColor: 'rgb(249 115 22)',         // the rule where the band ends
+    borderWidth: '2px',
+    class: 'band-record',                   // header cells only
+  },
+]
+```
+
+The first three reach the cells as custom properties — `--vt-column-bg`, `--vt-band-border-color`,
+`--vt-band-border-width` — never as an inline `background` or `border`, which would outrank every
+state rule and leave that cell or that edge dead to hover, selection and the cursor. It also means
+the stylesheet keeps ownership of *whether* the rule is drawn at all: a band naming a colour still
+disappears under `--vt-band-border-width: 0px` on the table.
+
+`class` is the one that stops at the header. A `<td>` belongs to a column and knows nothing about
+the bands above it, so a class has nowhere to land in the body; `borderColor` does, because by the
+time it reaches a cell it is a colour rather than a band.
+
+The rule belongs to the band that **ends** at a boundary. Where none does — an unbanded column with
+a band beginning to its right — the band that begins owns it instead, so the edge still has a def to
+read from.
+
 ## Bands and pinned columns
 
 `useColumns().visible` hoists left-pinned columns to the front and right-pinned ones to the
@@ -121,10 +154,13 @@ band is allowed, and the header simply redraws to say so.
 The header shape is a pure function, exported from core and usable with no component at all:
 
 ```ts
-import { buildHeaderRows, columnGroupPath } from '@brillliand/vue-table-chad'
+import { buildHeaderRows, columnBandEdges, columnGroupPath } from '@brillliand/vue-table-chad'
 
 const rows = buildHeaderRows(columns.visible.value, columnGroups)
 // rows[0] → [{ kind: 'group', group, colspan, columns, … }, { kind: 'column', column, rowspan, … }]
+
+const edges = columnBandEdges(columns.visible.value, columnGroups)
+// Map { 'email' → { depth: 0 }, 'country' → { depth: 1 } }
 ```
 
 Each cell is either a band's spanning cell or a column's own, and `rowspan` is already worked
@@ -132,7 +168,13 @@ out — a column shallower than the deepest band spans down to the body from whe
 `buildHeaderRows` knows nothing about collapse: a folded band has already removed its columns
 from the list you hand it, so the builder only ever describes what is in front of it.
 
-`<TableRoot>` exposes the same thing as a `headerRows` slot prop, and `<TableHeaderGroupCell>`
+`columnBandEdges` answers the other half: which column each vertical rule falls to the right of,
+and the nesting depth of the band that stops there. A boundary is a property of a *position* in
+the visible order rather than of a column, which is why it is a map — and why reading the visible
+order is what keeps a band split by a pin or a drag from drawing a rule inside itself.
+`useColumns().bandEdges` is this same call, made for you.
+
+`<TableRoot>` exposes both as `headerRows` and `bandEdges` slot props, and `<TableHeaderGroupCell>`
 renders one band cell given nothing but the cell itself.
 
 See it running in the demo's **Header bands** view.

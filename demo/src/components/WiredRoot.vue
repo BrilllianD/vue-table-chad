@@ -17,7 +17,7 @@ import {
   useTable,
   useTableState,
   type ColumnDef,
-} from '@sandbox/vue-table'
+} from '@brillliand/vue-table-chad'
 import { toRef } from 'vue'
 import type { Employee } from '../data/dataset'
 
