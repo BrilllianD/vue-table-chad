@@ -57,6 +57,7 @@
     "build:demo": "vite build --config vite.demo.config.ts",
     "build:docs": "pnpm build:demo && node demo/inline.mjs",
     "docs:api": "node scripts/generate-api-reference.ts",
+    "size": "node scripts/check-bundle-size.ts",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",

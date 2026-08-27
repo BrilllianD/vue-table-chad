@@ -1,0 +1,47 @@
+# CI for @brillliand/vue-table-chad.
+#
+# Bitbucket, not GitHub: the remote is git@bitbucket.org:BrilllianD/vue-table-chad.git,
+# so there is no .github/workflows/ci.yml and no Pages to publish the demo to.
+#
+# One step, run on every pushed branch. The gating half is the same ritual the
+# working agreement asks for by hand before each commit — typecheck, test,
+# build — plus the bundle budget, which is the guard row virtualization landed
+# without.
+
+image: node:24
+
+definitions:
+  caches:
+    # The pnpm *store*, not node_modules: pnpm's tree is symlinks into the
+    # store, and a restored node_modules whose targets are gone is worse than
+    # no cache at all.
+    pnpm-store: $HOME/.local/share/pnpm/store
+
+pipelines:
+  default:
+    - step:
+        name: typecheck, test, build, budget
+        caches:
+          - pnpm-store
+        script:
+          # `packageManager: pnpm@11.3.0` in package.json is the single place
+          # the version is pinned; corepack reads it. The env var stops corepack
+          # blocking on a download prompt there is no TTY to answer.
+          - export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+          - corepack enable
+          - pnpm install --frozen-lockfile
+          - pnpm typecheck
+          - pnpm test
+          - pnpm build
+          - pnpm size
+          # Non-gating, deliberately. Two vue/no-dupe-keys errors in
+          # TableRoot.vue predate this pipeline; see TODO.md's housekeeping
+          # list. Gating on a known-red check would just teach everyone to
+          # ignore the pipeline.
+          - pnpm lint || true
+          # Non-gating for a different reason: bench numbers are
+          # machine-specific, and a shared runner's absolute milliseconds are a
+          # trend to read, not a threshold to fail. Compare against
+          # bench/BASELINE.md by eye; the invariants that *can* be asserted are
+          # in tests/invalidation.spec.ts, which the test step already ran.
+          - pnpm bench || true
