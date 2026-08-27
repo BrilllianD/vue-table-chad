@@ -107,12 +107,47 @@ export function useRowSelection<TRow>(
 
   const isEmpty = computed(() => count.value === 0)
 
+  /**
+   * The toggleable rows' ids, and *only* a function of the rows.
+   *
+   * Split out so that the walk over them is paid when the page changes rather
+   * than when the selection does. Virtual mode hands this composable the whole
+   * dataset as its "page", so an O(rows) pass per click is 8.2ms at 100k — see
+   * `bench/BASELINE.md`.
+   */
+  const selectableIds = computed(() => {
+    const ids = new Set<RowId>()
+    for (const row of rows.value) {
+      if (isSelectable(row)) ids.add(getRowId(row))
+    }
+    return ids
+  })
+
+  /**
+   * How many of them are selected, counted from the *selection* rather than
+   * from the rows: the state carries either the ids that are in or the ids that
+   * are out, and both lists are as long as the user's own clicks. Asking each
+   * row whether it is selected instead costs one pass over the dataset per
+   * click, which is the thing this avoids.
+   */
+  const selectedOnPageCount = computed(() => {
+    const onPage = selectableIds.value
+    const current = state.value
+    let counted = 0
+    if (current.mode === 'ids') {
+      for (const id of current.ids) if (onPage.has(id)) counted += 1
+      return counted
+    }
+    for (const id of current.excluded) if (onPage.has(id)) counted += 1
+    return onPage.size - counted
+  })
+
   const headerState = computed<HeaderCheckboxState>(() => {
-    const selectable = rows.value.filter(isSelectable)
-    if (selectable.length === 0) return 'none'
-    const selectedCount = selectable.filter(isSelected).length
-    if (selectedCount === 0) return 'none'
-    return selectedCount === selectable.length ? 'all' : 'some'
+    const selectable = selectableIds.value.size
+    if (selectable === 0) return 'none'
+    const selected = selectedOnPageCount.value
+    if (selected === 0) return 'none'
+    return selected === selectable ? 'all' : 'some'
   })
 
   function setIds(ids: Iterable<RowId>): void {

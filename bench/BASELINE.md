@@ -114,14 +114,24 @@ recording as such rather than as a win.
 | | Page of 25 (10k set) | Page of everything (100k set) |
 | --- | ---: | ---: |
 | search settling | 19.2 | **191** |
-| selection toggle | 0.002 | **8.2** |
+| selection toggle, before P2-3b | 0.002 | **8.2** |
+| selection toggle, after P2-3b | 0.002 | **0.0024** |
 
 The first is the dataset's own cost and is what any table filtering 100k rows pays — virtualization
-neither adds nor removes it. The second is the one to watch, because it scales with the
-*interaction* rather than with the data: `useRowSelection.headerState` asks "are all of these
-selected" over the rows it was handed, and virtual mode hands it the dataset instead of a page. 8ms
-per click is usable and not fine; a counting selection state is on P2-3's list because of this
-number.
+neither adds nor removes it. The second was the one to watch, because it scaled with the
+*interaction* rather than with the data: `useRowSelection.headerState` asked "are all of these
+selected" over the rows it was handed, and virtual mode hands it the dataset instead of a page.
+
+P2-3b turned it around. The header checkbox needs two numbers — how many rows may be toggled, and
+how many of those are selected — and only the first is a function of the rows. Split into its own
+computed it is paid when the page changes; the second is now counted by walking the *selection*,
+which is as long as the user's own clicks, and asking a `Set` of page ids about each. 3400× at 100k,
+and the click no longer knows how big the dataset is.
+
+Read the after number for what it measures: the bench toggles one row, so it counts one id. The cost
+is O(rows selected), not O(1) — "select all matching" is a single id-free state and stays free, but
+50k individually selected ids would be 50k `Set` lookups a click. That is proportional to what the
+user actually did, which is the property that was missing.
 
 **The grouping halves, split** — `useRowGrouping` calls `buildGroupTree` and `flattenTree`
 separately, and only the second depends on collapse state (P1-6). `flattenGroups` above is the

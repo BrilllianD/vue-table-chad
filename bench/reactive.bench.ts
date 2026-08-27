@@ -257,11 +257,12 @@ describe('virtual scroll · 100k rows, filtered and sorted', () => {
   })
 
   /*
-   * Selection is the one thing that scales with the *interaction* rather than
-   * with the data: `headerState` asks "are all of these selected" over the
-   * rows it was handed, and virtual mode hands it the dataset. Compare this
-   * against `selection toggle` in the 10k block above — that one is a page of
-   * 25.
+   * Selection used to be the one thing that scaled with the *interaction*
+   * rather than with the data: `headerState` asked "are all of these selected"
+   * over the rows it was handed, and virtual mode hands it the dataset. P2-3b
+   * made it count from the selection instead, so this should now measure the
+   * same as `selection toggle` in the 10k block above — that one is a page of
+   * 25, and the whole point is that the two no longer differ.
    */
   const selecting = virtualHarness()
   bench('selection toggle at a page size of everything', () => {

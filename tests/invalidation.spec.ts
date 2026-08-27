@@ -429,6 +429,48 @@ describe('what an interaction is allowed to recompute', () => {
     h.stop()
   })
 
+  /**
+   * The pipeline is not the only thing a click must not reach. `headerState`
+   * answers "are all of these selected", and virtual mode hands the composable
+   * the whole dataset as its page — 8.2ms a click at 100k before this counted
+   * from the selection instead of from the rows.
+   *
+   * `getRowId` is the probe: it is called once per row by anything walking
+   * them, so its call count *is* the pass count. No module mock can see this
+   * one — it is a computed, not an exported function.
+   */
+  it('a selection toggle costs no pass over the rows', () => {
+    let idReads = 0
+    const scope = effectScope()
+    const selection = scope.run(() =>
+      useRowSelection<Employee>(
+        () => rows,
+        () => rows.length,
+        {
+          getRowId: (row) => {
+            idReads += 1
+            return row.id
+          },
+        },
+      ),
+    )!
+
+    // Warming is the pass that is allowed: one walk of the rows, when the rows
+    // arrive. What follows is the interaction.
+    selection.headerState.value
+    expect(idReads).toBe(rows.length)
+    idReads = 0
+
+    selection.toggle(rows[0]!)
+    selection.headerState.value
+
+    // Twice for the row clicked — once to write it, once to read its current
+    // state — and once more for the single id now in the selection.
+    expect(idReads).toBeLessThan(10)
+    expect(selection.headerState.value).toBe('some')
+    scope.stop()
+  })
+
   it('a selection toggle never reaches the pipeline', () => {
     const h = harness()
     h.selection.toggle(h.source.rows.value[0]!)
