@@ -65,6 +65,8 @@ const props = defineProps<{
   overscan?: number
   /** Measure each rendered row rather than trusting `rowHeight`. */
   measureRows?: boolean
+  /** How close to the end of the list the window must come for `endReached`. */
+  endThreshold?: number
   /** The element that scrolls. `null` until `DataTable`'s template ref lands. */
   scrollParent: HTMLElement | null
 }>()
@@ -74,6 +76,8 @@ const emit = defineEmits<{
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]
   rowSaveError: [row: TRow, error: unknown]
+  /** The window reached the end of the list — an infinite source's cue. */
+  endReached: []
   /**
    * Which rows the window actually rendered.
    *
@@ -342,6 +346,8 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
     :enabled="virtual"
     :item-key="displayRowKey"
     :measure="measureRows"
+    :end-threshold="endThreshold"
+    @end-reached="$emit('endReached')"
     :colspan="columns.length + extraColumns"
   >
     <template #default="{ items }">

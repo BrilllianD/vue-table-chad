@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue'
 import OverviewView from './views/OverviewView.vue'
 import ServerView from './views/ServerView.vue'
+import InfiniteView from './views/InfiniteView.vue'
 import SelectionView from './views/SelectionView.vue'
 import EditingView from './views/EditingView.vue'
 import CursorView from './views/CursorView.vue'
@@ -34,6 +35,7 @@ const tabs: Tab[] = [
   { id: 'recipes', label: 'Recipes', layer: 'preset', component: RecipesView },
   { id: 'overview', label: 'Everything at once', layer: 'preset', component: OverviewView },
   { id: 'server', label: 'Server data', layer: 'preset', component: ServerView },
+  { id: 'infinite', label: 'Infinite scroll', layer: 'preset', component: InfiniteView },
   { id: 'filters', label: 'Filters', layer: 'preset', component: FiltersView },
   { id: 'grouping', label: 'Grouping', layer: 'preset', component: GroupingView },
   { id: 'editing', label: 'Editing', layer: 'preset', component: EditingView },

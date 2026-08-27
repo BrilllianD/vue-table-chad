@@ -102,6 +102,12 @@ const props = withDefaults(
      * bounded by the window rather than accumulating down the list.
      */
     measureRows?: boolean
+    /**
+     * How close to the end of the list a virtual window must come before
+     * `end-reached` fires, in rows. Larger fires earlier, which a slow request
+     * wants; `0` waits until the last row is rendered.
+     */
+    endThreshold?: number
     /** Rows kept rendered beyond each edge of the viewport. Defaults to four. */
     overscan?: number
     /** Drag column headers to reorder them. */
@@ -181,6 +187,7 @@ const props = withDefaults(
     virtual: false,
     rowHeight: 38,
     measureRows: false,
+    endThreshold: 0,
     showFooter: false,
     footerLabel: 'Total',
     showToolbar: true,
@@ -202,6 +209,15 @@ const emit = defineEmits<{
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]
   rowSaveError: [row: TRow, error: unknown]
+  /**
+   * A virtual window reached the end of the loaded rows.
+   *
+   * Wire it to an infinite source's `loadMore`, which is guarded against being
+   * asked twice, so the handler needs nothing around it. In paged mode the
+   * whole page is rendered and this fires once, on arrival, which is harmless
+   * for the same reason.
+   */
+  endReached: []
 }>()
 
 /**
@@ -621,6 +637,8 @@ function onActivate(
               :virtual="virtual"
               :row-height="rowHeight"
               :measure-rows="measureRows"
+              :end-threshold="endThreshold"
+              @end-reached="$emit('endReached')"
               :overscan="overscan"
               :scroll-parent="scrollBox"
               :display-rows="displayRows"

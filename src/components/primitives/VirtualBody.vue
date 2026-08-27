@@ -70,6 +70,12 @@ const props = withDefaults(
      * by the window rather than accumulating.
      */
     measure?: boolean
+    /**
+     * How close to the end of the list the window has to come for
+     * `end-reached`, in items. `0` means the last item is rendered; a larger
+     * number fires earlier, which is what a slow request wants.
+     */
+    endThreshold?: number
     /** How many cells one spacer row spans. */
     colspan?: number
   }>(),
@@ -79,10 +85,24 @@ const props = withDefaults(
     overscan: undefined,
     enabled: true,
     measure: false,
+    endThreshold: 0,
     colspan: 1,
     itemKey: undefined,
   },
 )
+
+const emit = defineEmits<{
+  /**
+   * The window has reached the end of the list — an infinite source's cue to
+   * load the next page.
+   *
+   * Reported rather than acted on: this component knows how far down the list
+   * the window is and nothing whatever about where more rows would come from.
+   * It fires when the window *moves* to the end rather than on every scroll
+   * event, so a handler can be `source.loadMore` with nothing around it.
+   */
+  endReached: []
+}>()
 
 const measured = ref(ASSUMED_VIEWPORT_HEIGHT)
 
@@ -163,6 +183,23 @@ watch(virtual.scrollOffset, (offset) => {
   if (Math.abs(box.scrollTop - offset) < 1) return
   box.scrollTop = offset
 })
+
+/*
+ * The end of the list, announced once per arrival rather than once per scroll.
+ *
+ * `end` is a computed over floored integers, so a scroll that does not move the
+ * window does not re-run this at all — the same mechanism that makes scrolling
+ * free makes this cheap. The guard is against the *list* growing: an appended
+ * page leaves the window where it was and must not read as a second arrival.
+ */
+watch(
+  () => [virtual.end.value, props.items.length] as const,
+  ([end, count]) => {
+    if (props.enabled === false || count === 0) return
+    if (end >= count - Math.max(0, props.endThreshold)) emit('endReached')
+  },
+  { immediate: true },
+)
 
 const tbody = ref<HTMLElement | null>(null)
 

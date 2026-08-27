@@ -378,4 +378,68 @@ describe('VirtualBody', () => {
       })
     })
   })
+
+  /**
+   * The cue an infinite source runs on. `VirtualBody` knows how far down the
+   * list the window is and nothing about where more rows would come from, so it
+   * reports rather than acts.
+   */
+  describe('end-reached', () => {
+    /*
+     * The same cast `api()` above makes, for the same reason: `findComponent`
+     * on a generic SFC widens to `WrapperLike`, which has no `emitted`.
+     */
+    function emissions(wrapper: ReturnType<typeof mountBody>): number {
+      const body = wrapper.findComponent(VirtualBody as never) as unknown as {
+        emitted: (name: string) => unknown[] | undefined
+      }
+      return body.emitted('endReached')?.length ?? 0
+    }
+
+    it('fires when the window reaches the end of the list, and not before', async () => {
+      const wrapper = mountBody()
+      await wrapper.attach()
+      expect(emissions(wrapper)).toBe(0)
+
+      await wrapper.scrollTo(ROW_HEIGHT * 500)
+      expect(emissions(wrapper)).toBe(0)
+
+      await wrapper.scrollTo(ROW_HEIGHT * 1000)
+      expect(emissions(wrapper)).toBe(1)
+
+      // A scroll that does not move the window says nothing further: `end` is a
+      // computed over floored integers, so the watcher never runs.
+      await wrapper.scrollTo(ROW_HEIGHT * 1000 + 3)
+      expect(emissions(wrapper)).toBe(1)
+
+      wrapper.unmount()
+    })
+
+    it('fires immediately for a list that already ends inside the viewport', () => {
+      const wrapper = mountBody({ items: makeItems(4) })
+
+      expect(emissions(wrapper)).toBe(1)
+      wrapper.unmount()
+    })
+
+    it('fires early by endThreshold rows', async () => {
+      const wrapper = mountBody({ endThreshold: 300 })
+      await wrapper.attach()
+
+      // The window ends around row 715, which is inside the last 300 — and that
+      // is what a slow server wants: the request goes out while there is still
+      // list left to scroll through.
+      await wrapper.scrollTo(ROW_HEIGHT * 700)
+      expect(emissions(wrapper)).toBe(1)
+      wrapper.unmount()
+    })
+
+    it('says nothing at all when windowing is off', async () => {
+      const wrapper = mountBody({ enabled: false })
+      await wrapper.attach()
+
+      expect(emissions(wrapper)).toBe(0)
+      wrapper.unmount()
+    })
+  })
 })

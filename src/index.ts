@@ -51,6 +51,11 @@ export type { LocalDataSource, LocalDataSourceOptions } from './core/useLocalDat
 
 export { useServerDataSource } from './core/useServerDataSource'
 export type { ServerDataSource, ServerDataSourceOptions } from './core/useServerDataSource'
+export { useInfiniteDataSource, INFINITE_PAGE_SIZE } from './core/useInfiniteDataSource'
+export type {
+  InfiniteDataSource,
+  InfiniteDataSourceOptions,
+} from './core/useInfiniteDataSource'
 
 export { useRowSelection } from './core/useRowSelection'
 export type { UseRowSelection, UseRowSelectionOptions } from './core/useRowSelection'

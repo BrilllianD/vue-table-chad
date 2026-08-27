@@ -1,4 +1,4 @@
-# Local and server data
+# Local, server and infinite data
 
 ## Local data
 
@@ -45,6 +45,38 @@ What it handles for you:
 - **Facet scoping** — the column's own filter is stripped before the facet request, so its checklist
   keeps offering the values you just unchecked.
 
+## Infinite data
+
+```ts
+const source = useInfiniteDataSource(fetchPage, state.query, { pageSize: 100 })
+```
+
+```vue
+<DataTable virtual :source="source" :end-threshold="10" @end-reached="source.loadMore" />
+```
+
+The same fetcher and the same surface as the server source. One thing is different, and everything
+else follows from it: a page **adds to** the list rather than replacing it.
+
+- **It owns its paging.** `query.page` and `query.pageSize` are ignored — `virtual` writes the
+  dataset's length into the second one, and a source that read it would ask the server for
+  everything at once. `pageSize` is an option of its own, defaulting to `INFINITE_PAGE_SIZE`.
+- **`rows` and `total` are different numbers.** `rows` is what has been loaded, `total` is what the
+  server says matches; `loaded` and `hasMore` are the two derived from them. That is what makes the
+  scrollbar grow as you go: it describes the list you have.
+- **`loadMore` refuses to be asked twice.** It is a no-op while a request is in flight and a no-op
+  at the end of the list, which is what lets `@end-reached` be wired straight to it and fire as
+  often as the window moves.
+- **A filter, a search or a sort starts the list again**, debounced. What "the next page" means
+  changed with them.
+- `initialLoading` is the first page and `loadingMore` is every page after it — one blanks the
+  table, the other should not.
+
+`end-threshold` is how early the window asks, in rows. `0` waits until the last row is rendered;
+raise it and the request goes out while there are still rows to scroll through, which is what hides
+the latency of a slow server.
+
 ---
 
-Live: the **Server data** tab of `pnpm demo` (`#server`). Back to the [docs index](../README.md#docs).
+Live: the **Server data** tab of `pnpm demo` (`#server`), and **Infinite scroll** (`#infinite`).
+Back to the [docs index](../README.md#docs).

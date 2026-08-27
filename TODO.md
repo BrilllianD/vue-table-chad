@@ -188,7 +188,7 @@ so a shared runner's absolute milliseconds are a trend to read rather than a thr
 **End to end**
 - `pnpm demo` → **Performance** view: page through, type in search, toggle groups, push the page
   size to 5000. Foreground the tab; it refuses to measure a hidden one.
-- Walk all 17 demo views. **Composed** and **Core only** exercise the primitives and pure functions
+- Walk all 18 demo views. **Composed** and **Core only** exercise the primitives and pure functions
   directly and are the best canaries for a render-layer change.
 - `pnpm build` and `pnpm build:docs` clean.
 

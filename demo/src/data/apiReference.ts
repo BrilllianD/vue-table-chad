@@ -88,6 +88,11 @@ export const apiReference: ApiEntry[] = [
   { name: 'ServerDataSource', layer: 'core', kind: 'type', summary: 'A DataSource plus initialLoading, true only before anything has arrived.' },
   { name: 'ServerDataSourceOptions', layer: 'core', kind: 'type', summary: 'debounceMs, keepPreviousData, immediate, fetchFacets and onError.' },
 
+  { name: 'useInfiniteDataSource', layer: 'core', kind: 'composable', summary: 'Server-backed rows that **accumulate** instead of being replaced: one continuous list that grows as something asks for more of it.' },
+  { name: 'INFINITE_PAGE_SIZE', layer: 'core', kind: 'constant', summary: 'How many rows one request asks for, when nothing says otherwise.' },
+  { name: 'InfiniteDataSource', layer: 'core', kind: 'type', summary: 'A DataSource that grows, plus what a scroll handler needs to grow it.' },
+  { name: 'InfiniteDataSourceOptions', layer: 'core', kind: 'type', summary: 'pageSize, debounceMs, immediate, fetchFacets and onError.' },
+
   { name: 'useRowSelection', layer: 'core', kind: 'composable', summary: 'Selection that survives paging, and that can represent "everything matching the filters" without materialising an id per row.' },
   { name: 'UseRowSelection', layer: 'core', kind: 'type', summary: 'Selection state, predicates and mutators.' },
   { name: 'UseRowSelectionOptions', layer: 'core', kind: 'type', summary: 'Row identity, selectability, mode, and an initial selection.' },
