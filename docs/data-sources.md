@@ -78,5 +78,4 @@ the latency of a slow server.
 
 ---
 
-Live: the **Server data** tab of `pnpm demo` (`#server`), and **Infinite scroll** (`#infinite`).
-Back to the [docs index](/).
+Live: the **Server data** tab of `pnpm demo` (`#server`), and **Infinite scroll** (`#infinite`). Back to the [docs index](/).

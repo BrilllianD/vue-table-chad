@@ -58,6 +58,7 @@
     "build:demo": "vite build --config vite.demo.config.ts",
     "build:docs": "pnpm build:demo && node demo/inline.mjs",
     "docs:api": "node scripts/generate-api-reference.ts",
+    "docs:index": "node scripts/generate-docs-index.ts",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",

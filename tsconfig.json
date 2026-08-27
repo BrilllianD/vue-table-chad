@@ -19,6 +19,7 @@
     "esModuleInterop": true,
     "useDefineForClassFields": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["vitest/globals"],
     "baseUrl": ".",
     "paths": {

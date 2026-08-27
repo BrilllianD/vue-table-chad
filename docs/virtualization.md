@@ -170,5 +170,4 @@ yours.
 
 ---
 
-Live: the **Virtual rows** tab of `pnpm demo` (`#virtual`). Back to the
-[docs index](/).
+Live: the **Virtual rows** tab of `pnpm demo` (`#virtual`). Back to the [docs index](/).
