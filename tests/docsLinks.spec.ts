@@ -17,6 +17,7 @@ function markdownFiles(dir = ROOT): string[] {
   const found: string[] = []
   for (const entry of readdirSync(dir)) {
     if (SKIP.has(entry)) continue
+    if (entry === 'DOC_PLAN.md') continue // working plan, not shipped documentation
     const path = join(dir, entry)
     if (statSync(path).isDirectory()) found.push(...markdownFiles(path))
     else if (entry.endsWith('.md')) found.push(path)
@@ -80,6 +81,7 @@ describe('docs links', () => {
     const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
     const orphans = readdirSync(resolve(ROOT, 'docs'))
       .filter((name) => name.endsWith('.md'))
+      .filter((name) => name !== 'index.md') // VitePress site home, not a topic page
       .filter((name) => !readme.includes(`docs/${name}`))
     expect(orphans, 'docs/ pages the README never links to').toEqual([])
   })
