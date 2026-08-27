@@ -312,4 +312,70 @@ describe('VirtualBody', () => {
 
     wrapper.unmount()
   })
+
+  /**
+   * Measured heights, through the DOM the way the prop actually works.
+   *
+   * happy-dom lays nothing out and reports every `offsetHeight` as 0 — which is
+   * the "not a measurement" case the composable ignores — so the property is
+   * stubbed for the duration. Stubbing it is what makes the test about the
+   * wiring rather than about happy-dom.
+   */
+  describe('measure', () => {
+    const TALL = 60
+
+    function withStubbedHeights<T>(run: () => T): T {
+      const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+        configurable: true,
+        get(this: HTMLElement) {
+          return this.dataset.row === 'row-0' ? TALL : ROW_HEIGHT
+        },
+      })
+      try {
+        return run()
+      } finally {
+        if (original) Object.defineProperty(HTMLElement.prototype, 'offsetHeight', original)
+        else delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetHeight
+      }
+    }
+
+    /** The spacer standing in for everything above the window, in pixels. */
+    function spaceBefore(wrapper: ReturnType<typeof mountBody>): number {
+      const style = wrapper.find('.vt-virtual-spacer').attributes('style') ?? ''
+      return Number(/height:\s*(\d+(?:\.\d+)?)px/.exec(style)?.[1] ?? 0)
+    }
+
+    /*
+     * One array, held across renders. `mountBody` builds its default inline, so
+     * every render hands the composable a *different* list — and measurements
+     * describe indices in a list, so a new one drops them. A caller whose rows
+     * come from a computed, as the preset's do, has this for free.
+     */
+    const stable = makeItems(1000)
+
+    it('follows a row that is taller than rowHeight', async () => {
+      await withStubbedHeights(async () => {
+        const wrapper = mountBody({ measure: true, items: stable })
+        await wrapper.attach()
+        await wrapper.scrollTo(ROW_HEIGHT * 500)
+
+        // 495 rows of 40 plus the 20 extra pixels `row-0` measured. The
+        // unmeasured answer is 19840, which is what the assertion below pins.
+        expect(spaceBefore(wrapper)).toBe(495 * ROW_HEIGHT + (TALL - ROW_HEIGHT))
+        wrapper.unmount()
+      })
+    })
+
+    it('trusts rowHeight when it is off, which is the default', async () => {
+      await withStubbedHeights(async () => {
+        const wrapper = mountBody({ items: stable })
+        await wrapper.attach()
+        await wrapper.scrollTo(ROW_HEIGHT * 500)
+
+        expect(spaceBefore(wrapper)).toBe(496 * ROW_HEIGHT)
+        wrapper.unmount()
+      })
+    })
+  })
 })

@@ -92,6 +92,16 @@ const props = withDefaults(
      * browser lays out with cannot drift apart.
      */
     rowHeight?: number
+    /**
+     * Measure each rendered row instead of trusting `rowHeight`.
+     *
+     * For a body whose rows are not all one height — a group header laying out
+     * taller than a data row is the usual case. It costs one forced layout per
+     * update, on the rows in the window, which is why it is off by default:
+     * `rowHeight` alone is exact for a uniform body, and its error elsewhere is
+     * bounded by the window rather than accumulating down the list.
+     */
+    measureRows?: boolean
     /** Rows kept rendered beyond each edge of the viewport. Defaults to four. */
     overscan?: number
     /** Drag column headers to reorder them. */
@@ -170,6 +180,7 @@ const props = withDefaults(
     reorderable: true,
     virtual: false,
     rowHeight: 38,
+    measureRows: false,
     showFooter: false,
     footerLabel: 'Total',
     showToolbar: true,
@@ -609,6 +620,7 @@ function onActivate(
               :rows="rows"
               :virtual="virtual"
               :row-height="rowHeight"
+              :measure-rows="measureRows"
               :overscan="overscan"
               :scroll-parent="scrollBox"
               :display-rows="displayRows"

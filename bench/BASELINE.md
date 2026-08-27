@@ -96,11 +96,17 @@ virtual mode implies is not.
 
 **The window itself**, 100k display rows, filtered and sorted, 38px rows in a 640px viewport:
 
-| Interaction | Now |
-| --- | ---: |
-| scroll one row — the window moves by one | **0.0020** |
-| scroll one viewport — the window moves wholesale | **0.0021** |
-| scroll within one row — the window does not move | **0.0021** |
+| Interaction | P2-1 | After P2-3e |
+| --- | ---: | ---: |
+| scroll one row — the window moves by one | **0.0020** | **0.0025** |
+| scroll one viewport — the window moves wholesale | **0.0021** | **0.0026** |
+| scroll within one row — the window does not move | **0.0021** | **0.0026** |
+
+The second column is what variable row heights cost the uniform case: `start` and `end` go through
+`indexAt`, which reads the measured-offsets computed before deciding it is empty and falling back to
+the same integer division. Half a microsecond a scroll event, paid whether or not anything is
+measured — accepted, and recorded rather than rounded away, because it is the kind of drift that is
+invisible one change at a time.
 
 All three are one ref write and two integer divisions. The third was expected to be *cheaper* than
 the first — a floored `start` that recomputes to the same integer propagates nothing, so no slice

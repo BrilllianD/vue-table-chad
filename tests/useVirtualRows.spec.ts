@@ -300,4 +300,91 @@ describe('useVirtualRows', () => {
       dispose()
     })
   })
+
+  /**
+   * Measured heights. The declared `rowHeight` is an estimate, and a group row
+   * that lays out a pixel taller than a data row makes every offset below it
+   * wrong by a pixel — bounded by the window rather than accumulating, which is
+   * why this is polish, but wrong is wrong.
+   */
+  describe('measured item heights', () => {
+    it('reports nothing measured as the uniform arithmetic', () => {
+      const { virtual, dispose } = setup(1000)
+
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT)
+      expect(virtual.offsetFor(10)).toBe(10 * ROW_HEIGHT)
+      expect(virtual.indexAt(10 * ROW_HEIGHT)).toBe(10)
+
+      // A row that measures exactly what it was declared to be records nothing:
+      // the whole measured path stays switched off for a uniform list.
+      virtual.measureItem(3, ROW_HEIGHT)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT)
+      dispose()
+    })
+
+    it('moves every offset below a taller item', () => {
+      const { virtual, dispose } = setup(1000)
+
+      virtual.measureItem(2, ROW_HEIGHT + 20)
+
+      expect(virtual.offsetFor(2)).toBe(2 * ROW_HEIGHT)
+      expect(virtual.offsetFor(3)).toBe(3 * ROW_HEIGHT + 20)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT + 20)
+      dispose()
+    })
+
+    it('finds the item covering an offset, still the inverse of offsetFor', () => {
+      const { virtual, dispose } = setup(1000)
+      virtual.measureItem(2, ROW_HEIGHT + 20)
+
+      // The taller item spans its own 60px, and item 3 starts after them.
+      expect(virtual.indexAt(2 * ROW_HEIGHT)).toBe(2)
+      expect(virtual.indexAt(2 * ROW_HEIGHT + 59)).toBe(2)
+      expect(virtual.indexAt(3 * ROW_HEIGHT + 20)).toBe(3)
+      expect(virtual.indexAt(0)).toBe(0)
+      expect(virtual.indexAt(-100)).toBe(0)
+      expect(virtual.indexAt(1e9)).toBe(999)
+      dispose()
+    })
+
+    it('windows against the measured heights, spacers included', () => {
+      const { virtual, dispose } = setup(1000)
+      // Everything above the window one row taller: 100 rows, 100 extra pixels.
+      for (let index = 0; index < 100; index += 1) virtual.measureItem(index, ROW_HEIGHT + 1)
+
+      virtual.setScrollOffset(100 * ROW_HEIGHT + 100)
+
+      // The offset still lands on item 100 — which is the point, and what the
+      // uniform arithmetic would have got wrong by two and a half rows.
+      expect(virtual.start.value).toBe(100 - OVERSCAN_ROWS)
+      expect(virtual.spaceBefore.value).toBe(virtual.offsetFor(100 - OVERSCAN_ROWS))
+      expect(virtual.spaceBefore.value + virtual.spaceAfter.value).toBeLessThan(
+        virtual.totalSize.value,
+      )
+      dispose()
+    })
+
+    it('drops measurements when the list changes under them', () => {
+      const { virtual, items, dispose } = setup(1000)
+      virtual.measureItem(2, ROW_HEIGHT + 20)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT + 20)
+
+      // Index 2 is a different item now, so what was measured about it says
+      // nothing about the item that took its place.
+      items.value = items.value.slice(10)
+      expect(virtual.totalSize.value).toBe(990 * ROW_HEIGHT)
+      dispose()
+    })
+
+    it('ignores a zero or negative height', () => {
+      const { virtual, dispose } = setup(1000)
+
+      // What an unrendered element reports, and what happy-dom reports for
+      // everything: not a measurement, and it must not be recorded as one.
+      virtual.measureItem(2, 0)
+      virtual.measureItem(3, -5)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT)
+      dispose()
+    })
+  })
 })

@@ -32,16 +32,24 @@ The pager is not rendered, whatever `show-pagination` says. There is exactly one
 | `virtual` | On or off. Off is the default and off is unchanged. |
 | `row-height` | How tall one row is, in CSS pixels. Defaults to 38. |
 | `overscan` | Rows kept rendered beyond each edge. Defaults to `OVERSCAN_ROWS`, which is 4. |
+| `measure-rows` | Measure each rendered row rather than trusting `row-height`. Off by default. |
 
 `row-height` is written to `--vt-row-height` on the scroll box, so the number the windowing counts
 with and the number the browser lays out with cannot drift apart. **Change the prop, not the token**
 — setting `--vt-row-height` in your own CSS while `virtual` is on gives the two different answers,
 and the window starts landing a little further off with every row.
 
-Heights are assumed uniform. A group header row lays out about a pixel taller than a data row,
-which shifts the window's own rows by that much and nothing more — the spacers are computed from
-the assumed height, and only the rendered rows are laid out, so the error is bounded by the window
-rather than accumulating down the list. Variable row heights are not supported yet.
+Heights are assumed uniform by default. A group header row lays out about a pixel taller than a
+data row, which shifts the window's own rows by that much and nothing more — the spacers are
+computed from the assumed height, and only the rendered rows are laid out, so the error is bounded
+by the window rather than accumulating down the list.
+
+`measure-rows` removes the assumption: every rendered row reports its real height, and the offsets,
+the spacers and the scrollbar follow it. It costs one forced layout per update, on the rows in the
+window, which is why it is opt-in — a uniform body is exact without it. A row that measures exactly
+`row-height` is not recorded at all, so a body that turns out to be uniform anyway pays for the
+measuring and nothing else. Measurements describe indices in a list, so they are dropped when the
+list changes and taken again on the next render.
 
 ## It needs a box with a height
 
@@ -119,7 +127,9 @@ box.value.addEventListener('scroll', () => virtual.setScrollOffset(box.value.scr
 ```
 
 It returns `start`, `end`, the windowed `items`, `spaceBefore`, `spaceAfter` and `totalSize`, plus
-`offsetFor(index)` and `indexAt(offset)`. Pass `itemKey` as well and the scroll offset follows the
+`offsetFor(index)`, `indexAt(offset)` and `measureItem(index, height)` — report a height and the two
+lookups become a prefix sum and a binary search over it, which is why they were functions and the
+spacers were opaque pixel totals from the start. Pass `itemKey` as well and the scroll offset follows the
 item it pointed at when the list changes under it. `VirtualBody` is the `<tbody>` around it, and it yields
 the window through its default slot rather than looping itself, so the markup for a row stays
 yours.

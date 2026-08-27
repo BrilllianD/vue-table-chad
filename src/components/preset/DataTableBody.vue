@@ -63,6 +63,8 @@ const props = defineProps<{
   rowHeight: number
   /** Rows kept beyond each edge of the viewport. */
   overscan?: number
+  /** Measure each rendered row rather than trusting `rowHeight`. */
+  measureRows?: boolean
   /** The element that scrolls. `null` until `DataTable`'s template ref lands. */
   scrollParent: HTMLElement | null
 }>()
@@ -339,6 +341,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
     :scroll-parent="scrollParent"
     :enabled="virtual"
     :item-key="displayRowKey"
+    :measure="measureRows"
     :colspan="columns.length + extraColumns"
   >
     <template #default="{ items }">
