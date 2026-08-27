@@ -85,10 +85,25 @@ rather than over 25 rows. At 100k that is roughly 190ms for a search to settle a
 two-level group tree — the same work any table filtering 100k rows does, arriving in one place
 instead of being hidden by a page slice. `bench/BASELINE.md` has the numbers.
 
-One thing scales with the *interaction* rather than with the data, which is the worse direction:
-selection. The header checkbox's tri-state asks "are all of these selected" over the rows it was
-handed, and virtual mode hands it the dataset — about 8ms per click at 100k. Usable, but it is why
-the demo leaves `selectable` off.
+Selection used to be the exception that scaled with the *interaction* rather than with the data —
+the header checkbox's tri-state asked "are all of these selected" over every row it was handed, and
+virtual mode hands it the dataset. It now counts from the selection instead, so a click costs the
+same at 100k as it does on a page of 25.
+
+## Where you land when the list changes
+
+Fold a band shut while scrolled deep and every row below it moves up by the height the band was
+holding — 600k pixels, at 100k rows. The browser leaves `scrollTop` where it was, so the viewport
+would silently be somewhere else in the data.
+
+`VirtualBody` takes an `item-key` and anchors the offset to it. The row at the top of the viewport
+goes back to the top of the viewport, down to the pixel it was scrolled past by; if that row was
+*inside* the band that just closed, the nearest surviving item above it — the band's own header row
+— takes the top instead, which is where "where did I go" ought to answer. The preset passes the
+same key its `v-for` uses, so this is on by default.
+
+`useVirtualRows` takes the same `itemKey` and does the arithmetic; without one it installs no
+watcher at all and the offset stays a number of pixels.
 
 ## Composing your own
 
@@ -103,7 +118,8 @@ box.value.addEventListener('scroll', () => virtual.setScrollOffset(box.value.scr
 ```
 
 It returns `start`, `end`, the windowed `items`, `spaceBefore`, `spaceAfter` and `totalSize`, plus
-`offsetFor(index)` and `indexAt(offset)`. `VirtualBody` is the `<tbody>` around it, and it yields
+`offsetFor(index)` and `indexAt(offset)`. Pass `itemKey` as well and the scroll offset follows the
+item it pointed at when the list changes under it. `VirtualBody` is the `<tbody>` around it, and it yields
 the window through its default slot rather than looping itself, so the markup for a row stays
 yours.
 

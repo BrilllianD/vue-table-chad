@@ -98,6 +98,18 @@ interface VirtualBodyView {
 const body = ref<VirtualBodyView | null>(null)
 
 /**
+ * A display row's identity — the same string the `v-for` below keys on.
+ *
+ * `VirtualBody` uses it to keep the scroll offset pointing at the row it
+ * pointed at before the list changed, which is what makes collapsing a band
+ * while scrolled deep land somewhere the user recognises: the band's own header
+ * row, since every row it was holding has just left the list.
+ */
+function displayRowKey(item: DisplayRow<TRow>, _index: number): unknown {
+  return item.kind === 'group' ? `group:${item.group.key}` : props.rowKey(item.row, item.index)
+}
+
+/**
  * The window, as row identities, reported upwards whenever it moves.
  *
  * Only under a cursor: nothing else reads it, and asking every row in the
@@ -326,6 +338,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
     :overscan="overscan"
     :scroll-parent="scrollParent"
     :enabled="virtual"
+    :item-key="displayRowKey"
     :colspan="columns.length + extraColumns"
   >
     <template #default="{ items }">

@@ -54,6 +54,12 @@ const props = withDefaults(
     overscan?: number
     /** Off renders every item and no spacers. */
     enabled?: boolean
+    /**
+     * Identity for an item, which keeps the scroll offset pointing at the same
+     * item when the list changes under it. See `UseVirtualRowsOptions.itemKey`
+     * — the `v-for` key the caller already writes is usually the right one.
+     */
+    itemKey?: (item: TItem, index: number) => unknown
     /** How many cells one spacer row spans. */
     colspan?: number
   }>(),
@@ -63,6 +69,7 @@ const props = withDefaults(
     overscan: undefined,
     enabled: true,
     colspan: 1,
+    itemKey: undefined,
   },
 )
 
@@ -75,6 +82,10 @@ const virtual = useVirtualRows<TItem>(
     viewportHeight: () => props.viewportHeight ?? measured.value,
     overscan: () => props.overscan,
     enabled: () => props.enabled,
+    // Forwarded through a lambda rather than by reference, so a caller passing
+    // a different function later is honoured. An item with no key is not an
+    // anchor, which is what a caller passing none at all means.
+    itemKey: (item, index) => props.itemKey?.(item, index),
   },
 )
 
@@ -125,6 +136,22 @@ watch(
 )
 
 onScopeDispose(() => detach?.())
+
+/*
+ * The corrected offset, written back to the element that owns the scrollbar.
+ *
+ * `useVirtualRows` re-anchors by moving `scrollOffset`, which is enough to fix
+ * *which rows render* — but the box would still be scrolled where it was, so
+ * the two would disagree and the next scroll event would undo the correction.
+ * Assigning `scrollTop` fires a scroll event that reports the number just
+ * written, so this settles rather than loops.
+ */
+watch(virtual.scrollOffset, (offset) => {
+  const box = props.scrollParent
+  if (!box || props.enabled === false) return
+  if (Math.abs(box.scrollTop - offset) < 1) return
+  box.scrollTop = offset
+})
 
 const spaceBefore = computed(() => virtual.spaceBefore.value)
 const spaceAfter = computed(() => virtual.spaceAfter.value)

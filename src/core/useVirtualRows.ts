@@ -2,6 +2,7 @@ import {
   computed,
   shallowRef,
   toValue,
+  watch,
   type ComputedRef,
   type MaybeRefOrGetter,
   type ShallowRef,
@@ -19,7 +20,7 @@ import {
 export const OVERSCAN_ROWS = 4
 
 /** rowHeight, viewportHeight, and the two knobs that turn windowing off. */
-export interface UseVirtualRowsOptions {
+export interface UseVirtualRowsOptions<TItem = unknown> {
   /**
    * The height of one item, in CSS pixels. Uniform: every item is assumed to
    * be exactly this tall, which is what makes the window two integer divisions
@@ -38,6 +39,21 @@ export interface UseVirtualRowsOptions {
   overscan?: MaybeRefOrGetter<number | undefined>
   /** Off renders every item, by the reference it was handed. Defaults to on. */
   enabled?: MaybeRefOrGetter<boolean | undefined>
+  /**
+   * Identity for an item, which turns the scroll offset into a *place in the
+   * list* rather than a number of pixels.
+   *
+   * Supply it and the offset is corrected whenever the list changes under the
+   * window: a band collapsing 600k pixels above the viewport otherwise leaves
+   * the same `scrollTop` pointing at a row a thousand rows further down. An
+   * item whose key is `undefined` is not an anchor, so a caller can key some
+   * items and not others; with no `itemKey` at all nothing is watched and the
+   * composable stays the pure arithmetic it is without one.
+   *
+   * A plain function rather than a `MaybeRefOrGetter`, because `toValue` cannot
+   * tell a getter from the function it would be returning.
+   */
+  itemKey?: (item: TItem, index: number) => unknown
 }
 
 /** The window, the space standing in for what is outside it, and the scroll offset. */
@@ -92,7 +108,7 @@ export interface UseVirtualRows<TItem> {
  */
 export function useVirtualRows<TItem>(
   items: MaybeRefOrGetter<readonly TItem[]>,
-  options: UseVirtualRowsOptions,
+  options: UseVirtualRowsOptions<TItem>,
 ): UseVirtualRows<TItem> {
   const all = computed<readonly TItem[]>(() => toValue(items) ?? [])
   const rowHeight = computed(() => Math.max(0, toValue(options.rowHeight) || 0))
@@ -165,6 +181,68 @@ export function useVirtualRows<TItem>(
     if (rowHeight.value <= 0) return 0
     const index = Math.floor(Math.max(0, offset) / rowHeight.value)
     return Math.min(index, Math.max(0, all.value.length - 1))
+  }
+
+  /**
+   * Keeps the offset pointing at the item it pointed at before the list changed.
+   *
+   * The pixel the user scrolled to means "row 4,300", and only while the rows
+   * above it stay where they are. Fold a band shut and every row below it moves
+   * up by the height the band was holding — the browser leaves `scrollTop` alone,
+   * so the viewport silently lands somewhere else in the data.
+   *
+   * Two outcomes, and the second is the one that matters. If the row that was at
+   * the top of the viewport still exists, it goes back to the top of the
+   * viewport, down to the pixel it was scrolled past by. If it does not — it was
+   * *inside* the band that just closed — the search walks back up the old list
+   * for the nearest item that does still exist, which is that band's own header
+   * row, and puts that at the top instead. Landing on the band you just folded is
+   * the right answer to "where did I go".
+   *
+   * Nothing happens when the anchor cannot be found at all (every candidate
+   * gone, as after a filter that matches none of them) or when the list was
+   * already at the top, where the offset means the same thing either way.
+   */
+  function reanchor(next: readonly TItem[], previous: readonly TItem[]): void {
+    const keyOf = options.itemKey
+    if (!keyOf || !windowed.value || next.length === 0 || previous.length === 0) return
+
+    const height = rowHeight.value
+    const firstVisible = Math.min(Math.floor(scrollOffset.value / height), previous.length - 1)
+    if (firstVisible <= 0) return
+    // How far the row at the top of the viewport is scrolled past, which is
+    // preserved exactly when that row survives.
+    const withinRow = scrollOffset.value - firstVisible * height
+    if (keyOf(previous[firstVisible]!, firstVisible) === undefined) return
+
+    const positions = new Map<unknown, number>()
+    next.forEach((item, index) => {
+      const key = keyOf(item, index)
+      // First wins: a duplicated key is a caller's bug, and the earlier item is
+      // the one the old offset was nearer to.
+      if (key !== undefined && !positions.has(key)) positions.set(key, index)
+    })
+
+    for (let index = firstVisible; index >= 0; index -= 1) {
+      const found = positions.get(keyOf(previous[index]!, index))
+      if (found === undefined) continue
+      // The row that was at the top, back where it was — or, when that row is
+      // gone, the surviving item above it brought to the top of the viewport.
+      const offset = index === firstVisible ? found * height + withinRow : found * height
+      scrollOffset.value = Math.max(0, offset)
+      return
+    }
+  }
+
+  /*
+   * Only when a caller asked for it. Without an `itemKey` this composable
+   * installs no effect at all: `all` stays lazy, and a caller that never reads
+   * the window never walks the list.
+   */
+  if (options.itemKey) {
+    watch(all, (next, previous) => {
+      if (previous) reanchor(next, previous)
+    })
   }
 
   return {

@@ -21,10 +21,12 @@
  * tab stop falls to a rendered row rather than to a row that is no longer
  * there.
  *
- * **Group it, then collapse a band.** The virtual height shrinks by the rows
- * the band was holding. Folding does not rebuild the group tree — that is
- * P1-6's split, and `tests/invalidation.spec.ts` holds it to it — so a collapse
- * at 100k costs a walk, not a regroup.
+ * **Group it, scroll deep, then collapse the band you are inside.** The virtual
+ * height shrinks by the rows the band was holding, and you land on that band's
+ * header row rather than a thousand rows further down — the offset is anchored
+ * to an item, not to a pixel. Folding does not rebuild the group tree either —
+ * that is P1-6's split, and `tests/invalidation.spec.ts` holds it to it — so a
+ * collapse at 100k costs a walk, not a regroup.
  *
  * What it costs is worth being straight about: virtual mode is a page size of
  * everything, so the filter, the sort and the grouping all run over the whole

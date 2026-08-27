@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, ref, shallowRef } from 'vue'
 import VirtualBody from '../src/components/primitives/VirtualBody.vue'
 
 /**
@@ -256,6 +256,59 @@ describe('VirtualBody', () => {
     await wrapper.attach()
 
     expect(api(wrapper).scrollToIndex(500)).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  /**
+   * The other half of anchoring. `useVirtualRows` corrects the offset it holds,
+   * which fixes *which rows render*; the element that owns the scrollbar has to
+   * be told too, or the box stays where it was and the next scroll event undoes
+   * the correction.
+   */
+  it('writes the re-anchored offset back to the scroll container', async () => {
+    const box = document.createElement('div')
+    const items = shallowRef(makeItems(1000))
+    const scrollParent = ref<HTMLElement | null>(null)
+
+    const Host = defineComponent({
+      setup() {
+        return () =>
+          h('table', [
+            h(
+              VirtualBody as never,
+              {
+                items: items.value,
+                rowHeight: ROW_HEIGHT,
+                viewportHeight: VIEWPORT,
+                scrollParent: scrollParent.value,
+                itemKey: (item: string) => item,
+              },
+              {
+                default: ({ items: window }: { items: readonly string[] }) =>
+                  window.map((item) => h('tr', { 'data-row': item }, [h('td', item)])),
+              },
+            ),
+          ])
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    scrollParent.value = box
+    await nextTick()
+
+    box.scrollTop = ROW_HEIGHT * 500
+    box.dispatchEvent(new Event('scroll'))
+    await nextTick()
+    expect(renderedRows(wrapper)[0]).toBe(`row-${500 - 4}`)
+
+    // Fifty rows removed from above the window — a band folding shut.
+    items.value = items.value.filter((_, index) => index >= 100 || index % 2 === 0)
+    await nextTick()
+    await nextTick()
+
+    expect(box.scrollTop).toBe(ROW_HEIGHT * 450)
+    expect(renderedRows(wrapper)[0]).toBe(`row-${500 - 4}`)
 
     wrapper.unmount()
   })
