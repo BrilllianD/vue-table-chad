@@ -168,6 +168,9 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `storageKey` | `string` | — | Remembers the column layout in `localStorage`. |
 | `storageFields` | `ColumnLayoutField[]` | all four | Which of visibility/order/width/pin to remember. |
 | `pageSize` | `number` | `10` | Ignored when `state` is supplied — that state is the authority. |
+| `virtual` | `boolean` | `false` | Every row as one continuous scroll, only the visible ones in the DOM. Mutually exclusive with paging: the page size becomes the whole result set and no pager is rendered. |
+| `rowHeight` | `number` | `38` | Row height in CSS px. Read only in `virtual` mode, where it also becomes `--vt-row-height` — change the prop, never the token. |
+| `overscan` | `number` | `4` | Rows kept rendered beyond each edge of the viewport. |
 | `reorderable` | `boolean` | `true` | Drag headers to reorder. |
 | `initialGroupBy` | `string[]` | `[]` | Outermost level first. |
 | `groupMode` | `'client' \| 'server'` | `'client'` | See [Grouping](grouping.md). |
@@ -375,11 +378,15 @@ you page 3.
 
 ## What is not included
 
-Row virtualization, tree rows, expandable detail rows, pinned rows, pivoting, and CSV or clipboard
+Tree rows, expandable detail rows, pinned rows, pivoting, and CSV or clipboard
 export. Aggregation covers `sum`/`avg`/`min`/`max` with no custom reducer. There is no i18n: around
-35 English strings are hardcoded across the components, `aria-label`s included. Pagination caps the
-DOM at `pageSize`, which is why virtualization was not the first thing built —
-[`TODO.md`](../TODO.md) has the reasoning for each.
+35 English strings are hardcoded across the components, `aria-label`s included, and only
+`emptyMessage`, `loadingMessage` and `footerLabel` are props. [`TODO.md`](../TODO.md) has the
+reasoning for each.
+
+Row virtualization *is* included — see [Virtual rows](virtualization.md). Note what it means for a
+**server** source: `virtual` sets the page size to the size of the result set, so every request
+fetches the whole matching set rather than a page.
 
 ## Where to go next
 
@@ -395,6 +402,8 @@ Every page below has a matching view in `pnpm demo`, where the same thing runs a
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence. |
 | [Header bands](column-groups.md) | Multi-row headers and folding a band shut. |
 | [Keyboard navigation](keyboard.md) | The cell cursor and how it drives editing. |
+| [Virtual rows](virtualization.md) | `virtual`, `rowHeight`, `overscan`, and what the window costs. |
+| [Editing](editing.md) | Drafts per row, validation, and a save the server can refuse. |
 | [Composing your own](composing.md) | The longer version of §"Building your own table". |
 | [Styling](styling.md) | The `--vt-*` variables and how cell backgrounds stack. |
 

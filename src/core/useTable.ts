@@ -248,10 +248,28 @@ export function useTable<TRow>(
         sizeBeforeVirtual = undefined
         return
       }
+      /*
+       * A total of zero is "nothing to size to", not "size to nothing".
+       *
+       * A server source starts at `total: 0` and stays there until its first
+       * response lands, so this watcher — which is `immediate` — used to fire
+       * on mount and write a page size of 1. That is a real query change, so
+       * `useServerDataSource` refetched at `pageSize: 1`, and every virtual
+       * server-backed table spent one wasted round trip fetching a single row
+       * before the real total arrived and sized the page properly. A local
+       * source never showed it, knowing its total synchronously.
+       *
+       * Returning also covers a filter that matches nothing: the page size
+       * stays whatever the last non-empty set asked for, which is the size the
+       * next non-empty one will most likely want, and there are no rows to
+       * window either way.
+       */
+      if (total <= 0) return
+
       // Captured on the way in, not on the way out: by then the page size is
       // the dataset's length and the number the caller chose is gone.
       if (sizeBeforeVirtual === undefined) sizeBeforeVirtual = state.pageSize.value
-      state.setPageSize(Math.max(1, total))
+      state.setPageSize(total)
     },
     { immediate: true },
   )
