@@ -159,30 +159,69 @@ shape for. Measured, and argued against.
 `flattenTree` at two levels is 16.8ms at 100k, and that one runs on every band collapse. It is the
 next real number in this area.
 
-### What the browser still owes (P2-2)
+### What the browser said (P2-2's debt, paid at P2-6)
 
-The numbers above are JavaScript. The ones that decide whether virtual mode is *worth* it are
-layout and paint, and those need `pnpm demo` → **Performance** → 100k, **Virtual** on, two group
-levels, and the **Scroll 2000 rows** button, in a **foregrounded** tab. That run has not been made
-yet: a hidden tab never fires `requestAnimationFrame`, and `PerfView` refuses to report the
-browser's throttle as the table's cost.
+The numbers above are JavaScript. The ones that decide whether virtual mode is *worth* it are layout
+and paint, and only a foregrounded tab can produce them — a hidden tab never fires
+`requestAnimationFrame`, and `PerfView` refuses to report the browser's throttle as the table's cost.
+That session has now been run.
 
-What *was* checked in Chrome at 100k rows, where no timing is involved and a hidden tab is
-therefore no obstacle:
+**Measure the built demo, not the dev server.** This is the first thing the run turned up and it
+changes every number below: `pnpm demo` reports 24–25ms medians where `pnpm build:demo` served from
+`demo/dist` reports 16.4. The ~8ms is Vue's development build creating components — a CPU profile of
+the dev run is topped by `createComponentInstance`, `setupStatefulComponent` and `initProps`, none of
+which the production build does. A dev-server frame time describes the dev server.
+
+The setup, which is P2-6's acceptance case: Chrome 151 on Linux, 60Hz display, foregrounded tab, the
+production demo's **Performance** view at **100 000 rows** filtered to three departments (48 189
+match) and sorted by name, `virtual` on, `name` pinned left and `active` pinned right, grouped
+two levels with two of the three departments collapsed. A 541px viewport, 26 rows in the `<tbody>`.
+
+Frame cadence while scrolling continuously — `scrollTop` advanced once per `requestAnimationFrame`
+for 180 frames, which asks the window to move on *every* frame and is harsher than any wheel:
+
+| | median | p95 | worst |
+| --- | --- | --- | --- |
+| idle, nothing scrolling | 16.7ms | 17.1ms | 17.3ms |
+| 2px a frame — sub-row, the window never moves | 16.7ms | 17.1ms | 32.8ms |
+| 3 rows a frame, flat | 16.4ms | 26.1ms | 99.3ms |
+| 10 rows a frame, flat | 16.8ms | 24.5ms | 84.5ms |
+| 3 rows a frame, grouped two levels | 16.4ms | 24.8ms | 50.6ms |
+| **3 rows a frame, grouped + two departments collapsed** | **16.5ms** | **24.9ms** | **54.4ms** |
+| 10 rows a frame, grouped + collapsed | 16.2ms | 26.0ms | 57.8ms |
+
+16.7ms is the display's own frame, so a median *at* the vsync means the window move finished inside
+the frame it belonged to. Three readings matter more than the medians themselves:
+
+- **The acceptance combination is free.** Pinned columns and collapsed groups together cost nothing
+  over the flat case — 16.5 against 16.4. That combination is where a naive virtualizer breaks, and
+  the reason it does not break here is structural: pinning is a per-cell offset the window never
+  reads, and a collapse is a shorter `displayRows` the window slices the same way.
+- **Distance is free too.** 1, 3 and 10 rows a frame all cost the same, because they are all one
+  window move per frame. What a scroll costs is the move, not how far it went.
+- **A sub-row scroll costs nothing at all** — 16.7ms, the idle number. That is
+  `tests/invalidation.spec.ts`'s "a scroll that does not move the window propagates nothing",
+  visible in the frame times rather than in a recompute count.
+
+`PerfView`'s own **Scroll 2000 rows** button, in that configuration: **47.2ms median, 57.6ms worst
+over 12 runs**. Read it against its own floor — it times from the click to the *second*
+`requestAnimationFrame`, so two vsyncs (33.4ms here) are in the number by construction, leaving ~14ms
+of work for a 76 000px jump whose window shares nothing with the one before it.
+
+The structural checks, where no timing is involved:
 
 | | |
 | --- | --- |
-| rows in the `<tbody>` | **20**, at a 414px viewport — 11 visible, 1 straddling, 8 overscan |
-| `<table>` height | 1,831,220px, matching the scroll box's `scrollHeight` exactly — the spacers size the scrollbar correctly |
-| scrolling 40,000 rows | window follows, still 20 rows, stripes still alternating |
-| collapsing a band | 1,832,020px → 1,215,812px of virtual height |
+| rows in the `<tbody>` | **26** at a 541px viewport, whatever the dataset — 14 visible, 1 straddling, overscan either side |
+| `<table>` height | 1 831 220px, matching the scroll box's `scrollHeight` exactly — the spacers size the scrollbar correctly |
+| scrolling 250 000px in | window follows, still 26 rows, both pinned columns still pinned, stripes still alternating |
+| collapsing two departments | 1 831 220px → 606 822px of virtual height |
 | the sticky header | still `position: sticky` with a 1.8M-pixel spacer under it |
 
-One thing that measurement turned up: a **group row lays out at 39px where a data row lays out at
-38**. The window assumes one height for both. It does not accumulate — the spacers are computed
-from the assumed height and only the window's own ~20 rows are laid out, so the error is bounded by
-the window rather than by the dataset — but it is the first concrete argument for variable row
-heights, and belongs to P2-3 with the rest of them.
+An earlier session at a 414px viewport turned up a **group row laying out at 39px where a data row
+lays out at 38**. The window assumed one height for both; the error was bounded by the window rather
+than by the dataset, which is why it was polish rather than correctness. P2-3e answered it with
+`measureRows`, opt-in, so the default path still pays nothing to assume a uniform height.
 
 ## Choices the bench argued *against*
 
@@ -230,7 +269,9 @@ Between 1.6× and 1.9×, for one word in the caller's code. This is why the READ
 `bench/` measures JavaScript. It does not measure layout, paint, or Vue's patch — the demo's
 **Performance** view (P1-9) exists for that, and it declines to measure a background tab rather than
 report the browser's throttle as the table's cost. A win here is necessary for a table that feels
-fast, and nowhere near sufficient.
+fast, and nowhere near sufficient — what that view and a scripted scroll actually reported is above,
+under *What the browser said*, and it is measured against the production build for the reason given
+there.
 
 Global search is the one number that stayed large: 30ms at 10k. Most of it is the columns' own
 `format` functions — `Intl.NumberFormat` and `toLocaleDateString` per cell — because search matches
