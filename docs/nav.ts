@@ -59,7 +59,13 @@ export const docPages: DocPage[] = [
     demoTabs: ['filters'],
     section: 'Data',
   },
-  // sorting-and-pagination.md is added here by D6, which writes the page.
+  {
+    file: 'sorting-and-pagination.md',
+    title: 'Sorting and pagination',
+    blurb: '`usePagination`, `PageItem`, `SortOptions`, per-column comparators, and null-sorting.',
+    demoTabs: ['overview'],
+    section: 'Data',
+  },
   {
     file: 'selection.md',
     title: 'Selection',
@@ -124,5 +130,18 @@ export const docPages: DocPage[] = [
     demoTabs: ['composed', 'state'],
     section: 'Going further',
   },
-  // performance.md and recipes.md are added here by D6, which writes those pages.
+  {
+    file: 'performance.md',
+    title: 'Performance',
+    blurb: 'The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them.',
+    demoTabs: ['perf'],
+    section: 'Going further',
+  },
+  {
+    file: 'recipes.md',
+    title: 'Recipes',
+    blurb: 'Six worked recipes, from a bare table to retheming without touching a component.',
+    demoTabs: ['recipes'],
+    section: 'Going further',
+  },
 ]

@@ -355,6 +355,7 @@ thing runs against real data.
 | [The two contracts](contracts.md) | `QueryState` and `DataSource` — the two interfaces everything else is written against. |
 | [Local, server and infinite data](data-sources.md) | `useLocalDataSource`, `useServerDataSource`, `useInfiniteDataSource`, and why swapping one for another changes nothing above. |
 | [Excel-style filters](filtering.md) | The value checklist, condition rules, and facets. |
+| [Sorting and pagination](sorting-and-pagination.md) | `usePagination`, `PageItem`, `SortOptions`, per-column comparators, and null-sorting. |
 | [Selection](selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. |
 | [Grouping rows](grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. |
 | [Editing cells](editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. |
@@ -364,6 +365,8 @@ thing runs against real data.
 | [Styling](styling.md) | The `--vt-*` variables, striping, and how cell backgrounds stack. |
 | [Virtual rows](virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. |
 | [Composing your own](composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. |
+| [Performance](performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. |
+| [Recipes](recipes.md) | Six worked recipes, from a bare table to retheming without touching a component. |
 <!-- docs:index:short end -->
 
 The full API — every export with what it is for — is the **API reference** tab of `pnpm demo`,

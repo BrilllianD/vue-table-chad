@@ -108,6 +108,7 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 | [The two contracts](docs/contracts.md) | `QueryState` and `DataSource` — the two interfaces everything else is written against. | Core only |
 | [Local, server and infinite data](docs/data-sources.md) | `useLocalDataSource`, `useServerDataSource`, `useInfiniteDataSource`, and why swapping one for another changes nothing above. | Server data, Infinite scroll |
 | [Excel-style filters](docs/filtering.md) | The value checklist, condition rules, and facets. | Filters |
+| [Sorting and pagination](docs/sorting-and-pagination.md) | `usePagination`, `PageItem`, `SortOptions`, per-column comparators, and null-sorting. | Everything at once |
 | [Selection](docs/selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. | Selection |
 | [Grouping rows](docs/grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. | Grouping |
 | [Editing cells](docs/editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. | Editing |
@@ -117,6 +118,8 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 | [Styling](docs/styling.md) | The `--vt-*` variables, striping, and how cell backgrounds stack. | Theming |
 | [Virtual rows](docs/virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. | Virtual rows |
 | [Composing your own](docs/composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. | Composed, Hoisted state |
+| [Performance](docs/performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. | Performance |
+| [Recipes](docs/recipes.md) | Six worked recipes, from a bare table to retheming without touching a component. | Recipes |
 <!-- docs:index:full end -->
 
 Also: [Porting an existing table](docs/examples/) — a real server-paginated Options API component
