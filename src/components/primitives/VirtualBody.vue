@@ -299,8 +299,10 @@ defineExpose({
       the one thing this row is for. Everything it needs is inline geometry, the
       way `TableCell` places a pin.
 
-      Hidden from assistive technology, because it is not a row. That the
-      remaining rows still lie about how many there are is P2-5's `aria-rowcount`.
+      Hidden from assistive technology, because it is not a row. What the
+      remaining rows say about how many there are is `aria-rowcount` and
+      `aria-rowindex`, which the caller sets — this component knows the window,
+      not what a row means.
     -->
     <tr
       v-if="spaceBefore > 0"

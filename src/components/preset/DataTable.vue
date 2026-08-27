@@ -235,6 +235,26 @@ const selectable = computed(() => props.selectable !== false)
 const rowMode = computed(() => props.editing?.mode.value === 'row')
 const actionsColumn = computed(() => Boolean(props.editing) && rowMode.value)
 
+/**
+ * `aria-rowcount` and the numbering that has to go with it — only in virtual
+ * mode.
+ *
+ * A screen reader counts the rows in the document, and a windowed body has
+ * about thirty of them however long the list is. Paged, the document is already
+ * the truth: every row of the page is there, the pager says which page it is,
+ * and numbering rows 1..25 over and over would be a second, worse answer.
+ *
+ * A table still loading its first page reports `-1`, which is what ARIA has for
+ * "many, and not known yet" — and an infinite source, whose `total` is the
+ * server's count rather than what is loaded, reports that count, because it is
+ * the honest size of the thing being scrolled.
+ */
+function ariaRowCount(headerRows: unknown[], displayRows: unknown[], total: number): number | undefined {
+  if (!props.virtual) return undefined
+  if (total <= 0 && displayRows.length === 0) return -1
+  return headerRows.length + Math.max(total, displayRows.length)
+}
+
 /** Extra leading and trailing cells, for the rows that have to span them all. */
 const extraColumns = computed(() => (selectable.value ? 1 : 0) + (actionsColumn.value ? 1 : 0))
 
@@ -601,6 +621,7 @@ function onActivate(
         >
           <TableGrid
             :columns="cols"
+            :row-count="ariaRowCount(headerRows, displayRows, total)"
             :selection-column="selectable"
             :actions-column="actionsColumn"
             :cursor="cursor"
@@ -625,6 +646,7 @@ function onActivate(
               :selection="selection"
               :cursor="cursor"
               :actions-column="actionsColumn"
+              :numbered="virtual"
             >
               <template v-if="$slots.headerGroup" #headerGroup="bandProps">
                 <slot name="headerGroup" v-bind="bandProps" />
@@ -634,6 +656,7 @@ function onActivate(
             <DataTableBody
               :columns="cols"
               :rows="rows"
+              :header-row-count="virtual ? headerRows.length : undefined"
               :virtual="virtual"
               :row-height="rowHeight"
               :measure-rows="measureRows"

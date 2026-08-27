@@ -67,6 +67,12 @@ const props = defineProps<{
   measureRows?: boolean
   /** How close to the end of the list the window must come for `endReached`. */
   endThreshold?: number
+  /**
+   * How many header rows sit above the body, so a windowed row can number
+   * itself over the whole table. `undefined` means "do not number" — which is
+   * the right answer when every row is rendered.
+   */
+  headerRowCount?: number
   /** The element that scrolls. `null` until `DataTable`'s template ref lands. */
   scrollParent: HTMLElement | null
 }>()
@@ -350,7 +356,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
     @end-reached="$emit('endReached')"
     :colspan="columns.length + extraColumns"
   >
-    <template #default="{ items }">
+    <template #default="{ items, start }">
       <tr v-if="error" class="vt-row-message">
         <td :colspan="columns.length + extraColumns">
           <slot name="error" :error="error" :refresh="source.refresh">
@@ -375,10 +381,16 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
         two hold the same rows in the same order, so there is only one
         code path to keep correct.
       -->
-      <template v-for="item in items" v-else>
+      <!--
+        `offset` is the item's place in the *window*; `start` is where the
+        window begins, and `headerRowCount` is what sits above the body. Their
+        sum plus one is `aria-rowindex`, which is 1-based over the whole table.
+      -->
+      <template v-for="(item, offset) in items" v-else>
         <TableGroupRow
           v-if="item.kind === 'group'"
           :key="`group:${item.group.key}`"
+          :row-index="headerRowCount === undefined ? undefined : headerRowCount + start + offset + 1"
           :group="item.group"
           :columns="columns"
           :leading="selectable ? 1 : 0"
@@ -399,6 +411,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
         <TableRow
           v-else
           :key="rowKey(item.row, item.index)"
+          :row-index="headerRowCount === undefined ? undefined : headerRowCount + start + offset + 1"
           :row="item.row"
           :columns="columns"
           :index="item.index"

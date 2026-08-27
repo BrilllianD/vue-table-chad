@@ -46,6 +46,17 @@ const props = defineProps<{
    * keyboard. Absent, nothing here runs at all.
    */
   cursor?: UseCellCursor<TRow>
+  /**
+   * How many rows the table has in total, header rows included —
+   * `aria-rowcount`.
+   *
+   * For a body rendering a window: a screen reader counts the rows in the
+   * document, so a virtual table of 100k announces itself as a table of thirty.
+   * Left `undefined` when every row is rendered, where the document is already
+   * the truth. `-1` is the ARIA way to say "many, and unknown", which is what a
+   * source still loading its first page knows.
+   */
+  rowCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -294,6 +305,7 @@ defineExpose({ focusCursorCell })
     class="vt-table"
     :data-layout="layout ?? 'fixed'"
     :role="cursor ? 'grid' : undefined"
+    :aria-rowcount="rowCount"
     v-on="cursorHandlers"
   >
     <colgroup>

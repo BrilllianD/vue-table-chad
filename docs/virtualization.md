@@ -114,6 +114,24 @@ same key its `v-for` uses, so this is on by default.
 `useVirtualRows` takes the same `itemKey` and does the arithmetic; without one it installs no
 watcher at all and the offset stays a number of pixels.
 
+## What a screen reader is told
+
+A windowed `<tbody>` holds about thirty rows however long the list is, and the DOM is the only thing
+an assistive technology can count — so without help a table of 100,000 announces itself as a table
+of thirty, and the row you are on is "row 4 of 30" wherever you have scrolled to.
+
+In `virtual` mode the preset sets `aria-rowcount` on the `<table>` and `aria-rowindex` on every
+rendered row, header rows included and group headers included, numbered over the whole list rather
+than over the window. A source that has not answered yet reports `-1`, which is ARIA's way of saying
+"many, and not known yet"; an infinite source reports the server's count rather than what it has
+loaded, because that is the size of the thing being scrolled.
+
+Paged, neither attribute is set. Every row of the page is in the document, the pager says which page
+it is, and numbering each page's rows 1..25 again would be a second and worse answer to the same
+question.
+
+The spacer rows are `aria-hidden`: they are geometry, not rows.
+
 ## Composing your own
 
 `useVirtualRows` is pure arithmetic over three numbers — item height, viewport height, scroll

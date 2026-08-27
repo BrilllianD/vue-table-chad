@@ -308,4 +308,78 @@ describe('DataTable in virtual mode', () => {
 
     wrapper.unmount()
   })
+
+  /**
+   * The size a screen reader is told about.
+   *
+   * A windowed `<tbody>` holds about thirty rows however long the list is, so a
+   * table of 400 announces itself as a table of thirty — the DOM is the only
+   * thing an assistive technology can count, and here the DOM is a sample.
+   * `aria-rowcount` and `aria-rowindex` are the two attributes that say
+   * otherwise.
+   */
+  describe('what it tells a screen reader about its size', () => {
+    it('counts the whole list, not the window', () => {
+      const wrapper = mountTable({ virtual: true })
+
+      // Every row plus the one header row above them.
+      expect(wrapper.find('table').attributes('aria-rowcount')).toBe(String(ROWS + 1))
+      wrapper.unmount()
+    })
+
+    it('numbers every rendered row over the whole table', async () => {
+      const wrapper = mountTable({ virtual: true })
+      await nextTick()
+
+      // One header row, so the first body row is row 2.
+      expect(wrapper.findAll('thead tr')[0]!.attributes('aria-rowindex')).toBe('1')
+      expect(bodyRows(wrapper)[0]!.attributes('aria-rowindex')).toBe('2')
+
+      const box = wrapper.find('.vt-scroll').element
+      box.scrollTop = 38 * 200
+      box.dispatchEvent(new Event('scroll'))
+      await nextTick()
+
+      // Scrolled, the numbers describe where in the *list* the window is —
+      // which is the whole point of them, and what the count of rows in the
+      // document cannot say.
+      const first = bodyRows(wrapper)[0]!
+      expect(first.text()).toContain('Person 197')
+      expect(first.attributes('aria-rowindex')).toBe('198')
+      wrapper.unmount()
+    })
+
+    it('numbers group headers too, since a screen reader counts them as rows', async () => {
+      const wrapper = mountTable({ virtual: true, initialGroupBy: ['team'] })
+      await nextTick()
+
+      const rows = wrapper.findAll('tbody tr')
+      const indices = rows
+        .filter((row) => !row.classes('vt-virtual-spacer'))
+        .map((row) => Number(row.attributes('aria-rowindex')))
+      // Contiguous, group headers included: a gap would tell a reader there are
+      // rows between these two that it cannot reach.
+      expect(indices).toEqual(indices.map((_, offset) => indices[0]! + offset))
+      wrapper.unmount()
+    })
+
+    it('says -1 while it does not know, which is what ARIA has for that', () => {
+      const wrapper = mountTable({ virtual: true }, [])
+
+      // A source that has not answered yet: `total` is 0 and nothing is
+      // rendered, and "0 rows" would be a claim rather than an absence.
+      expect(wrapper.find('table').attributes('aria-rowcount')).toBe('-1')
+      wrapper.unmount()
+    })
+
+    it('says nothing at all when every row is rendered', () => {
+      const wrapper = mountTable()
+
+      // The document is already the truth here, and numbering the ten rows of
+      // every page 1..10 would be a second, worse answer to the same question.
+      expect(wrapper.find('table').attributes('aria-rowcount')).toBeUndefined()
+      expect(bodyRows(wrapper)[0]!.attributes('aria-rowindex')).toBeUndefined()
+      wrapper.unmount()
+    })
+  })
 })

@@ -42,6 +42,16 @@ const props = withDefaults(
     index?: number
     /** How many group levels sit above this row; `0` when nothing is grouped. */
     depth?: number
+    /**
+     * This row's 1-based position in the **whole** table, header rows included
+     * — `aria-rowindex`.
+     *
+     * For a body that renders a window rather than the list: without it a
+     * screen reader counts the rows in the document and announces a table of
+     * thirty. Left `undefined` when every row is rendered, where the count in
+     * the document is already the truth and the attribute would be noise.
+     */
+    rowIndex?: number
     /** Overrides the injected selection state. */
     selected?: boolean
     /**
@@ -191,6 +201,7 @@ function cursorFor(columnId: string): CellCursorMark | undefined {
     :data-selected="selected || undefined"
     :data-row-state="state"
     :data-parity="index % 2 === 0 ? 'odd' : 'even'"
+    :aria-rowindex="rowIndex"
     @click="emit('click', $event)"
   >
     <!--
