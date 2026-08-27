@@ -2,7 +2,7 @@
  * The whole table, assembled — everything `<TableRoot>` used to do in a
  * component, with no component in it.
  */
-import { computed, onMounted, watch, type ComputedRef } from 'vue'
+import { computed, onMounted, watch, watchEffect, type ComputedRef } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -15,6 +15,7 @@ import type {
 import type { TableContext } from './context'
 import { useTableState, type TableState } from './useTableState'
 import { useColumns, type ColumnLayoutState } from './useColumns'
+import { devChecksEnabled, devWarn } from './devWarn'
 import { buildHeaderRows } from './columnGroups'
 import type { ColumnLayoutField } from './columnStorage'
 import { useColumnDnd, type DropSide, type UseColumnDnd } from './useColumnDnd'
@@ -270,6 +271,32 @@ export function useTable<TRow>(
         : undefined,
     },
   )
+
+  /*
+   * A sort naming a column nobody declared sorts by nothing at all: `sortRows`
+   * looks the column up to find its accessor and skips a rule it cannot
+   * resolve. That is the right behaviour — a typo in restored state or a URL
+   * must not break the table — but it is indistinguishable from a sort that
+   * simply did not work, which is the kind of thing a reader blames on the
+   * library.
+   *
+   * A watcher rather than a check inside the pipeline, because the pipeline is
+   * where this must *not* live: the stages are what the perf invariants count,
+   * and the whole `devChecksEnabled()` block folds away in a consumer's
+   * production build only if nothing downstream depends on it.
+   */
+  if (devChecksEnabled()) {
+    watchEffect(() => {
+      const declared = new Set(options.columns().map((column) => column.id))
+      for (const rule of state.sort.value) {
+        if (declared.has(rule.columnId)) continue
+        devWarn(
+          `Sorting by "${rule.columnId}", which no column declares. The rule is ignored — ` +
+            'check the id against the column definitions.',
+        )
+      }
+    })
+  }
 
   /**
    * Applies a drop. Landing on a pinned column adopts that column's pin side —
