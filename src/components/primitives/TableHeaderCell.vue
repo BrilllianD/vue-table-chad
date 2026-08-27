@@ -9,7 +9,7 @@
  */
 import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
-import type { BandEdge } from '../../core/columnGroups'
+import { paintBandEdge, type BandEdge } from '../../core/columnGroups'
 import type { ResolvedColumn } from '../../core/types'
 
 const props = withDefaults(
@@ -60,6 +60,7 @@ const cellStyle = computed(() => {
   // header emits no custom property at all, and the stylesheet's `0` fallback
   // keeps it sticking exactly where it always did.
   if (props.depth) style['--vt-header-row'] = String(props.depth)
+  paintBandEdge(style, bandEdge.value)
   return Object.keys(style).length > 0 ? style : undefined
 })
 

@@ -237,6 +237,10 @@ export function buildHeaderRows<TRow>(
  */
 export interface BandEdge {
   depth: number
+  /** The ending band's `borderColor`, when it declares one. */
+  color?: string
+  /** The ending band's `borderWidth`, when it declares one. */
+  width?: string
 }
 
 /**
@@ -274,7 +278,17 @@ export function columnBandEdges<TRow>(
   for (let index = 0; index < columns.length - 1; index += 1) {
     const next = pathFrom(columns[index + 1]!.group, byId)
     const depth = divergenceDepth(path, next)
-    if (depth !== undefined) edges.set(columns[index]!.id, { depth })
+    if (depth !== undefined) {
+      // The band that *stops* here owns the rule. Where none does — an
+      // unbanded column with a band starting to its right — the band that
+      // begins owns it instead, so the boundary still has somewhere to read
+      // an override from.
+      const owner = path[depth] ?? next[depth]
+      const edge: BandEdge = { depth }
+      if (owner?.borderColor) edge.color = owner.borderColor
+      if (owner?.borderWidth) edge.width = owner.borderWidth
+      edges.set(columns[index]!.id, edge)
+    }
     path = next
   }
 
@@ -300,4 +314,23 @@ function divergenceDepth(
     if (a[depth]!.id !== b[depth]!.id) return depth
   }
   return a.length === b.length ? undefined : shared
+}
+
+/**
+ * Writes a band edge's overrides into a cell's style object.
+ *
+ * Custom properties rather than `border-color` and `border-width` directly:
+ * the stylesheet keeps ownership of *whether* the rule is drawn at all, so a
+ * band naming a colour still disappears when `--vt-band-border-width` is
+ * zeroed, and a caller who has restyled the edge entirely is not overridden by
+ * a band def written for the default theme.
+ *
+ * Shared by the three cell components rather than repeated in each, since a
+ * boundary has to look the same in the header, the body and the footer or it
+ * stops reading as one line.
+ */
+export function paintBandEdge(style: Record<string, string>, edge: BandEdge | undefined): void {
+  if (!edge) return
+  if (edge.color) style['--vt-band-border-color'] = edge.color
+  if (edge.width) style['--vt-band-border-width'] = edge.width
 }

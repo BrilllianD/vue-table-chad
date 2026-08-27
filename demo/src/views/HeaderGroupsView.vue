@@ -36,6 +36,42 @@ const selectable = ref(false)
 const stickyHeader = ref(true)
 
 /**
+ * The rule between bands, as a width.
+ *
+ * `--vt-band-border-width` is on by default — unlike the body's column
+ * separators — because it is emitted only where a boundary falls: a table
+ * declaring no bands never sees it. `0px` is how you turn it off; a bare `0`
+ * would not be a length and would take the whole `border-right` with it.
+ */
+const bandRule = ref('1px')
+
+/** Whether *Employment record* declares styling of its own. */
+const styledBand = ref(true)
+
+/**
+ * The same bands, with one of them dressed up.
+ *
+ * `borderColor` and `borderWidth` reach the cells either side of the boundary
+ * as custom properties, so they follow the band down through the body and the
+ * footer. `class` does not, and cannot: a `<td>` belongs to a column and knows
+ * nothing about the bands above it, so a class can only ever reach the band's
+ * own header cells.
+ */
+const styledBands = computed<ColumnGroupDef[]>(() =>
+  employeeColumnGroups.map((band) =>
+    styledBand.value && band.id === 'record'
+      ? {
+          ...band,
+          background: 'rgb(249 115 22 / 0.14)',
+          borderColor: 'rgb(249 115 22)',
+          borderWidth: '2px',
+          class: 'band-record',
+        }
+      : band,
+  ),
+)
+
+/**
  * A second, standalone `useColumns` over the same declarations.
  *
  * Not the one the table below is using — this is the point the "Core only"
@@ -94,6 +130,15 @@ function toggle(band: ColumnGroupDef): void {
       <div class="controls">
         <label><input v-model="selectable" type="checkbox" /> selectable</label>
         <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
+        <label>
+          --vt-band-border-width
+          <select v-model="bandRule">
+            <option value="0px">0px</option>
+            <option value="1px">1px</option>
+            <option value="3px">3px</option>
+          </select>
+        </label>
+        <label><input v-model="styledBand" type="checkbox" /> style one band</label>
 
         <span class="divider" />
 
@@ -130,9 +175,19 @@ function toggle(band: ColumnGroupDef): void {
       them. Drag a column out of its band to split one yourself.
     </p>
 
+    <p class="note">
+      A vertical rule marks where each band's run of columns ends, drawn the full height of the
+      table rather than only in the header — <code>data-band-edge</code> carries the depth of the
+      band that stops there, so <code>[data-band-edge='0']</code> is the outermost boundary and
+      can be weighted heavier than the ones inside it. Change the width above, or let
+      <strong>Employment record</strong> declare a <code>borderColor</code>,
+      <code>borderWidth</code>, <code>background</code> and <code>class</code> of its own — the
+      first three follow it down into the body, the class stays in the header.
+    </p>
+
     <DataTable
       :columns="groupedEmployeeColumns"
-      :column-groups="employeeColumnGroups"
+      :column-groups="styledBands"
       :source="source"
       :state="state"
       :selectable="selectable"
@@ -175,6 +230,17 @@ function toggle(band: ColumnGroupDef): void {
 </template>
 
 <style scoped>
+/*
+ * The variables are declared on `.vt-datatable` itself, so an ancestor cannot
+ * win on specificity — the override has to land on that element, which is what
+ * `:deep` reaches. A band's own `borderWidth` beats this in turn, because that
+ * one arrives as an inline custom property on the cells at the boundary.
+ */
+:deep(.vt-datatable) { --vt-band-border-width: v-bind(bandRule); }
+
+/* What `ColumnGroupDef.class` buys: a hook on the band's header cells only. */
+:deep(.band-record) { font-style: italic; letter-spacing: 0.02em; }
+
 .divider { width: 1px; align-self: stretch; background: var(--line); }
 .note { border-left: 2px solid var(--line); padding-left: 10px; }
 

@@ -354,6 +354,10 @@ const hoverOverrides = [
 const hooks = [
   { selector: ".vt-th[data-sorted='asc' | 'desc']", when: 'the column is a sort key' },
   { selector: '.vt-th[data-filtered]', when: 'the column has an active filter' },
+  {
+    selector: ".vt-th[data-band-edge='0'], .vt-td[data-band-edge='0']",
+    when: 'a header band ends here — the digit is the band’s nesting depth',
+  },
   { selector: ".vt-th[data-pinned='left' | 'right']", when: 'the column is pinned to an edge' },
   { selector: ".vt-td[data-align='right' | 'center']", when: 'the column def sets align' },
   { selector: ".vt-td[data-column='salary']", when: 'you want to style one column only' },

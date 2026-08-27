@@ -38,6 +38,35 @@ Three widths, each independently zeroable — all three at `0` is a table with n
 The header underline is its own variable on purpose: a borderless body usually still wants the
 header separated from the rows.
 
+## Band rules
+
+Where a [header band](column-groups.md)'s run of columns ends, a vertical rule is drawn the full
+height of the table — through every header row, the body and the footer — so a band reads as a
+region rather than as a caption floating above one:
+
+```css
+.vt-datatable {
+  --vt-band-border-width: 1px;
+  --vt-band-border-color: var(--vt-border);
+}
+```
+
+**On by default**, unlike `--vt-body-border-vertical-width`. It can afford to be: the attribute
+that triggers it is emitted only where a boundary actually falls, so a table declaring no bands
+never sees it. `0px` turns it off — with a unit, since a bare `0` is not a length and an invalid
+value takes the whole `border-right` with it.
+
+Each edge carries the nesting depth of the band that stops there, `0` being the outermost, which
+is the hook for weighting one boundary heavier than another:
+
+```css
+.vt-datatable .vt-th[data-band-edge='0'],
+.vt-datatable .vt-td[data-band-edge='0'] { --vt-band-border-width: 2px; }
+```
+
+One band can also differ from the rest without a stylesheet knowing which — see
+[Styling a band](column-groups.md#styling-a-band).
+
 Row striping is off by default — both stripes inherit `--vt-bg`, so setting one is enough:
 
 ```css
@@ -187,4 +216,4 @@ tint over whatever the row is doing; use an opaque colour and the column wins ou
 
 ---
 
-Live: the **Theming** tab of `pnpm demo` (`#theming`). Back to the [docs index](../README.md#docs).
+Live: the **Theming** tab of `pnpm demo` (`#theming`), and **Header bands** for the band rules. Back to the [docs index](../README.md#docs).

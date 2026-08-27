@@ -13,7 +13,7 @@
  */
 import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
-import type { BandEdge } from '../../core/columnGroups'
+import { paintBandEdge, type BandEdge } from '../../core/columnGroups'
 import type { HeaderGroupCell } from '../../core/types'
 
 const props = withDefaults(
@@ -81,6 +81,7 @@ const cellStyle = computed(() => {
   // Which row of the header this is, for the sticky offset. A second header row
   // stuck at `top: 0` would sit on top of the first.
   style['--vt-header-row'] = String(props.cell.depth)
+  paintBandEdge(style, bandEdge.value)
   return style
 })
 
@@ -94,6 +95,7 @@ function toggle(): void {
 <template>
   <th
     class="vt-th vt-th-group"
+    :class="cell.group.class"
     :colspan="cell.colspan"
     :scope="cell.colspan > 1 ? 'colgroup' : 'col'"
     :style="cellStyle"

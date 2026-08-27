@@ -2,7 +2,7 @@
 /** One `<td>`, sharing the header's sticky/pin logic so columns stay aligned. */
 import { computed } from 'vue'
 import type { CellCursorMark } from '../../core/cellCursor'
-import type { BandEdge } from '../../core/columnGroups'
+import { paintBandEdge, type BandEdge } from '../../core/columnGroups'
 import type { ResolvedColumn } from '../../core/types'
 
 const props = defineProps<{
@@ -36,6 +36,7 @@ const cellStyle = computed(() => {
     style[props.column.pinned === 'left' ? 'left' : 'right'] = `${props.column.pinOffset}px`
   }
   if (props.column.background) style['--vt-column-bg'] = props.column.background
+  paintBandEdge(style, props.bandEdge)
   return Object.keys(style).length > 0 ? style : undefined
 })
 

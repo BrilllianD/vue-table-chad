@@ -248,6 +248,32 @@ describe('columnBandEdges', () => {
     ).toEqual({ department: 0, hiredAt: 0 })
   })
 
+  it('reads the border overrides off the band that ends there', () => {
+    const groups: ColumnGroupDef[] = [
+      { id: 'identity', borderColor: 'rebeccapurple', borderWidth: '3px' },
+      { id: 'record' },
+    ]
+    const edges = columnBandEdges(
+      [resolved('name', 'identity'), resolved('hiredAt', 'record'), resolved('active')],
+      groups,
+    )
+
+    // `identity` stops after `name` and owns that rule. `record` declares
+    // nothing, so its own boundary carries only a depth.
+    expect(edges.get('name')).toEqual({ depth: 0, color: 'rebeccapurple', width: '3px' })
+    expect(edges.get('hiredAt')).toEqual({ depth: 0 })
+  })
+
+  it('falls back to the band that starts where none ends', () => {
+    const groups: ColumnGroupDef[] = [{ id: 'record', borderColor: 'teal' }]
+
+    // An unbanded column with a band beginning to its right: no band stops at
+    // the boundary, so the one that begins owns it and the rule still has
+    // somewhere to read a colour from.
+    const edges = columnBandEdges([resolved('active'), resolved('hiredAt', 'record')], groups)
+    expect(edges.get('active')).toEqual({ depth: 0, color: 'teal' })
+  })
+
   it('finds nothing at all when no column claims a band', () => {
     expect(columnBandEdges([resolved('name'), resolved('active')], personColumnGroups).size).toBe(0)
   })

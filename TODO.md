@@ -6,13 +6,14 @@ Where this stands, what to do next, and the phase plan behind it — one file.
 > they had drifted apart: the roadmap still told a cold reader that Phase 1 lived on a branch and
 > that there was no git remote, months after both stopped being true.
 
-**State as of 2026-08-27:** everything below is on **`main`**, which tracks `origin/main`. 682 tests
+**State as of 2026-08-27:** everything below is on **`main`**, which tracks `origin/main`. 698 tests
 across 37 files green, `pnpm typecheck` clean.
 
 | | |
 | --- | --- |
 | E1–E6 | Editable rows — `useRowEditing`, a draft per row, validated and saved against a server that can refuse |
 | G1–G6 | Header bands — multi-row `<thead>`, nested bands, folding one shut by subtracting from `visible` |
+| G7–G8 | Band rules — a vertical rule where a band ends, drawn the full height, and per-band overrides |
 | K1–K6 | The cell cursor — a focus grid, a roving tabindex, `Enter` to edit |
 | N1–N10 | Cursor polish — paging with `Ctrl`+arrow, a scroll box that knows its pins, `autofocusCursor` |
 | R1–R8 | Code health — see below. No feature changed; the shape of the code did. |
@@ -379,7 +380,7 @@ Decisions, not oversights.
 ## Verification
 
 **Per task**
-- `pnpm test` — all 682 stay green.
+- `pnpm test` — all 698 stay green.
 - `pnpm typecheck` — clean.
 - `pnpm bench` — before/after against `bench/BASELINE.md`.
 - `tests/invalidation.spec.ts` — the perf invariants hold. A failure there is a broken feature, not
