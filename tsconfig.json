@@ -25,7 +25,8 @@
     "paths": {
       "@brillliand/vue-table-chad": ["./src/index.ts"],
       "@/*": ["./src/*"],
-      "@fixtures": ["./bench/fixtures.ts"]
+      "@fixtures": ["./bench/fixtures.ts"],
+      "@docs": ["./docs/nav.ts"]
     }
   },
   "include": [

@@ -18,12 +18,28 @@ import VirtualView from './views/VirtualView.vue'
 import PerfView from './views/PerfView.vue'
 import ApiView from './views/ApiView.vue'
 import RecipesView from './views/RecipesView.vue'
+import { docPages } from '@docs'
 
 interface Tab {
   id: string
   label: string
   layer: 'preset' | 'primitives' | 'core'
   component: Component
+  /** The docs page that covers this tab, if any — see `docsByTab` below. */
+  docs?: string
+}
+
+/**
+ * `docPages` names its tabs; this is the inverse, a tab id to the page that
+ * claims it. Built once from `docs/nav.ts` rather than hand-kept in step with
+ * it, which is what closes the loop `tests/docsIndex.spec.ts` case 5 checks
+ * from the other direction: every `demoTabs` entry names a real tab here.
+ */
+const docsByTab = new Map<string, string>()
+for (const page of docPages) {
+  for (const tabId of page.demoTabs) {
+    docsByTab.set(tabId, `/${page.file.replace(/\.md$/, '')}`)
+  }
 }
 
 /**
@@ -31,26 +47,28 @@ interface Tab {
  * assembled from, then the pure core underneath both. Reading top to bottom is
  * the same as taking the library apart.
  */
-const tabs: Tab[] = [
-  { id: 'recipes', label: 'Recipes', layer: 'preset', component: RecipesView },
-  { id: 'overview', label: 'Everything at once', layer: 'preset', component: OverviewView },
-  { id: 'server', label: 'Server data', layer: 'preset', component: ServerView },
-  { id: 'infinite', label: 'Infinite scroll', layer: 'preset', component: InfiniteView },
-  { id: 'filters', label: 'Filters', layer: 'preset', component: FiltersView },
-  { id: 'grouping', label: 'Grouping', layer: 'preset', component: GroupingView },
-  { id: 'editing', label: 'Editing', layer: 'preset', component: EditingView },
-  { id: 'cursor', label: 'Cell cursor', layer: 'preset', component: CursorView },
-  { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },
-  { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
-  { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
-  { id: 'virtual', label: 'Virtual rows', layer: 'preset', component: VirtualView },
-  { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },
-  { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },
-  { id: 'selection', label: 'Selection', layer: 'primitives', component: SelectionView },
-  { id: 'columns', label: 'Column layout', layer: 'primitives', component: ColumnsView },
-  { id: 'composed', label: 'Composed', layer: 'primitives', component: ComposedView },
-  { id: 'core', label: 'Core only', layer: 'core', component: HeadlessView },
-]
+const tabs: Tab[] = (
+  [
+    { id: 'recipes', label: 'Recipes', layer: 'preset', component: RecipesView },
+    { id: 'overview', label: 'Everything at once', layer: 'preset', component: OverviewView },
+    { id: 'server', label: 'Server data', layer: 'preset', component: ServerView },
+    { id: 'infinite', label: 'Infinite scroll', layer: 'preset', component: InfiniteView },
+    { id: 'filters', label: 'Filters', layer: 'preset', component: FiltersView },
+    { id: 'grouping', label: 'Grouping', layer: 'preset', component: GroupingView },
+    { id: 'editing', label: 'Editing', layer: 'preset', component: EditingView },
+    { id: 'cursor', label: 'Cell cursor', layer: 'preset', component: CursorView },
+    { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },
+    { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
+    { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
+    { id: 'virtual', label: 'Virtual rows', layer: 'preset', component: VirtualView },
+    { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },
+    { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },
+    { id: 'selection', label: 'Selection', layer: 'primitives', component: SelectionView },
+    { id: 'columns', label: 'Column layout', layer: 'primitives', component: ColumnsView },
+    { id: 'composed', label: 'Composed', layer: 'primitives', component: ComposedView },
+    { id: 'core', label: 'Core only', layer: 'core', component: HeadlessView },
+  ] satisfies Omit<Tab, 'docs'>[]
+).map((tab) => ({ ...tab, docs: docsByTab.get(tab.id) }))
 
 /**
  * The open tab lives in the URL, so a docs page can link at the running view of
@@ -120,6 +138,10 @@ const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
         </button>
       </template>
     </nav>
+
+    <p v-if="current.docs" class="hint docs-link">
+      <a :href="current.docs">Read the docs for this view</a>
+    </p>
 
     <!-- Keyed so each view gets a clean state when you switch to it — several
          of them own module-level data and deliberately mutable layout. -->

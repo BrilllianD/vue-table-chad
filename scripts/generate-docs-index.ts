@@ -32,12 +32,16 @@ const DEMO_APP = resolve(ROOT, 'demo/src/App.vue')
  * Scoped to that one array on purpose: `App.vue` also declares a `layers`
  * array whose entries reuse the same ids (`core`, `preset`, …) with generic
  * lowercase labels, which would otherwise silently overwrite the real ones.
+ * The scope ends at the `satisfies Omit<Tab, 'docs'>[]` clause that closes
+ * the array literal, not a bare `]`, since the literal is now wrapped in
+ * `(...).map(...)` to append `docs`.
  */
 function readTabLabels(): Map<string, string> {
   const text = readFileSync(DEMO_APP, 'utf8')
   const start = text.indexOf('const tabs')
   if (start === -1) throw new Error(`${DEMO_APP}: no \`const tabs\` array found`)
-  const end = text.indexOf('\n]', start)
+  const end = text.indexOf('satisfies', start)
+  if (end === -1) throw new Error(`${DEMO_APP}: no \`satisfies\` closing the \`tabs\` array`)
   const tabsSource = text.slice(start, end)
 
   const labels = new Map<string, string>()

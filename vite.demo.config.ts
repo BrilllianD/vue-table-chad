@@ -10,6 +10,7 @@ export default defineConfig({
       '@brillliand/vue-table-chad': fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@fixtures': fileURLToPath(new URL('./bench/fixtures.ts', import.meta.url)),
+      '@docs': fileURLToPath(new URL('./docs/nav.ts', import.meta.url)),
     },
   },
   // 5174 so the demo and the playground can run side by side.
