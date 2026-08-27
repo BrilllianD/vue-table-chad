@@ -21,6 +21,7 @@ import { useTableContext } from '../../core/context'
 import { readValue } from '../../core/sorting'
 import type { CellCursorMark } from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
+import type { BandEdge } from '../../core/columnGroups'
 import type { ColumnDef, ResolvedColumn, RowId } from '../../core/types'
 import TableCell from './TableCell.vue'
 
@@ -29,6 +30,11 @@ const props = withDefaults(
     row: TRow
     /** Columns to render. Defaults to the injected visible ones. */
     columns?: ResolvedColumn<TRow>[]
+    /**
+     * Band boundaries, keyed by the column each falls to the right of.
+     * Defaults to the injected ones; pass an empty map to draw none.
+     */
+    bandEdges?: ReadonlyMap<string, BandEdge>
     /**
      * The row's position in the array it came from — not in the rendered list,
      * so group headers interleaving cannot upset the stripe parity.
@@ -63,6 +69,7 @@ const props = withDefaults(
     depth: 0,
     selected: undefined,
     columns: undefined,
+    bandEdges: undefined,
     state: undefined,
     cursor: undefined,
     rowId: undefined,
@@ -80,6 +87,10 @@ const context = useTableContext<TRow>()
 
 const columns = computed<ResolvedColumn<TRow>[]>(
   () => props.columns ?? ((context?.visibleColumns.value ?? []) as ResolvedColumn<TRow>[]),
+)
+
+const bandEdges = computed<ReadonlyMap<string, BandEdge> | undefined>(
+  () => props.bandEdges ?? context?.columns.bandEdges.value,
 )
 
 const selected = computed(
@@ -105,7 +116,11 @@ const cells = computed(() =>
         : value === null || value === undefined
           ? ''
           : String(value)
-    return { column, value, text }
+    // Folded in here rather than resolved from the template like `cursorFor`:
+    // band edges move only when the columns do, which is exactly when this
+    // computed already re-runs, so it costs nothing extra. The cursor moves on
+    // its own cadence, which is why that one is a function.
+    return { column, value, text, bandEdge: bandEdges.value?.get(column.id) }
   }),
 )
 
@@ -191,6 +206,7 @@ function cursorFor(columnId: string): CellCursorMark | undefined {
       v-for="(cell, cellIndex) in cells"
       :key="cell.column.id"
       :column="cell.column"
+      :band-edge="cell.bandEdge"
       :cursor="cursorFor(cell.column.id)"
     >
       <!--

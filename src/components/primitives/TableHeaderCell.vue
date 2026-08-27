@@ -9,6 +9,7 @@
  */
 import { computed } from 'vue'
 import { useTableContext } from '../../core/context'
+import type { BandEdge } from '../../core/columnGroups'
 import type { ResolvedColumn } from '../../core/types'
 
 const props = withDefaults(
@@ -30,6 +31,12 @@ const props = withDefaults(
      * the body and never enters the header, so a `<th>` is never the ring.
      */
     cursor?: 'column'
+    /**
+     * The band boundary falling to this cell's right. Defaults to the injected
+     * one for this column, so a `<th>` under a `<TableRoot>` needs nothing
+     * passed and a standalone one can still be told.
+     */
+    bandEdge?: BandEdge
   }>(),
   // Vue casts an absent boolean prop to `false`; the explicit `undefined`
   // default keeps "not passed" distinguishable from "passed as false".
@@ -37,6 +44,10 @@ const props = withDefaults(
 )
 
 const context = useTableContext()
+
+const bandEdge = computed(
+  () => props.bandEdge ?? context?.columns.bandEdges.value.get(props.column.id),
+)
 
 /** Pin offset plus the column's header background, as a custom property. */
 const cellStyle = computed(() => {
@@ -111,6 +122,7 @@ function onKeydown(event: KeyboardEvent): void {
     :data-reorderable="draggable || undefined"
     :data-dragging="dnd?.isDragged(column.id) || undefined"
     :data-drop="dnd?.dropSideFor(column.id) || undefined"
+    :data-band-edge="bandEdge?.depth"
     :data-cursor="cursor"
     :aria-sort="
       column.sortDirection === 'asc'

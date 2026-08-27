@@ -354,6 +354,77 @@ describe('DataTable with header bands', () => {
     wrapper.unmount()
   })
 
+  /** `data-band-edge` per column, from whichever section is asked about. */
+  const edgesIn = (wrapper: ReturnType<typeof mountTable>, section: string) =>
+    Object.fromEntries(
+      wrapper
+        .findAll(`${section} [data-column][data-band-edge]`)
+        .map((cell) => [cell.attributes('data-column'), cell.attributes('data-band-edge')]),
+    )
+
+  it('draws a band boundary down the header, the body and the footer alike', () => {
+    const wrapper = mountTable({ showFooter: true })
+
+    // `identity` gives way to `record` after `department`, so that boundary is
+    // outermost; `money` gives way to plain `record` after `salary`, one level
+    // in; and `record` gives way to unbanded `active` after `hiredAt`. `active`
+    // is last and gets nothing — its right edge is the table's own frame.
+    const expected = { department: '0', salary: '1', hiredAt: '0' }
+    expect(edgesIn(wrapper, 'thead')).toEqual(expected)
+    expect(edgesIn(wrapper, 'tbody tr:first-child')).toEqual(expected)
+    expect(edgesIn(wrapper, 'tfoot')).toEqual(expected)
+
+    wrapper.unmount()
+  })
+
+  it('puts a band cell’s rule at the end of the run it actually covers', () => {
+    const wrapper = mountTable()
+    const edgeOf = (groupId: string) =>
+      wrapper.find(`thead th[data-column-group="${groupId}"]`).attributes('data-band-edge')
+
+    // Each band cell asks about its own last column, which is what keeps a band
+    // split into several runs from drawing a rule inside itself.
+    expect(edgeOf('identity')).toBe('0')
+    expect(edgeOf('record')).toBe('0')
+    expect(edgeOf('money')).toBe('1')
+
+    wrapper.unmount()
+  })
+
+  it('moves the boundary when a fold takes the column it sat beside', async () => {
+    const wrapper = mountTable()
+    expect(edgesIn(wrapper, 'thead')).toHaveProperty('department', '0')
+
+    await wrapper.find('thead th[data-column-group="identity"] button').trigger('click')
+    await nextTick()
+
+    // `department` is gone, so the band now ends at the column it folded to.
+    expect(edgesIn(wrapper, 'thead')).toEqual({ name: '0', salary: '1', hiredAt: '0' })
+    expect(edgesIn(wrapper, 'tbody tr:first-child')).toEqual({
+      name: '0',
+      salary: '1',
+      hiredAt: '0',
+    })
+
+    wrapper.unmount()
+  })
+
+  it('marks nothing at all when no column claims a band', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, personColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () => h(DataTable as never, { columns: personColumns, source, state })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    expect(wrapper.findAll('[data-band-edge]')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
   it('takes the header rows through the headerGroup slot', () => {
     const Host = defineComponent({
       setup() {

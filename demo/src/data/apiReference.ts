@@ -65,8 +65,10 @@ export const apiReference: ApiEntry[] = [
   { name: 'StorageLike', layer: 'core', kind: 'type', summary: 'The slice of the `Storage` DOM interface this needs. Typed structurally so a plain object works in tests and on the server.' },
 
   { name: 'buildHeaderRows', layer: 'core', kind: 'function', summary: 'The rows of a multi-row header: one array of cells per `<tr>`, in order.' },
+  { name: 'columnBandEdges', layer: 'core', kind: 'function', summary: 'The band boundaries in a row of columns, keyed by the column each one falls to the right of.' },
   { name: 'columnGroupPath', layer: 'core', kind: 'function', summary: 'The chain of bands above a column, outermost first.' },
   { name: 'columnGroupPaths', layer: 'core', kind: 'function', summary: "Every column's band path at once, keyed by column id." },
+  { name: 'BandEdge', layer: 'core', kind: 'type', summary: "Where a band's run ends, and how heavy the rule there should be." },
 
   { name: 'useColumnDnd', layer: 'core', kind: 'composable', summary: 'Pointer-driven column reordering: a drag threshold, drop sides, Escape to cancel, and keyboard moves for anyone not using a pointer.' },
   { name: 'UseColumnDnd', layer: 'core', kind: 'type', summary: 'Drag state and handlers for a header cell to bind.' },

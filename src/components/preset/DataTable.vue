@@ -408,6 +408,7 @@ function onActivate(
       rows,
       columns: cols,
       headerRows,
+      bandEdges,
       state: tableState,
       selection,
       cursor,
@@ -620,6 +621,7 @@ function onActivate(
             <DataTableFooter
               v-if="showFooter"
               :columns="cols"
+              :band-edges="bandEdges"
               :aggregates="overallAggregates"
               :label="footerLabel"
               :selectable="selectable"

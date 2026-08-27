@@ -196,6 +196,7 @@ defineExpose({
     :columns="columns.visible.value"
     :all-columns="columns.all.value"
     :header-rows="headerRows"
+    :band-edges="columns.bandEdges.value"
     :state="state"
     :selection="selection"
     :cursor="cursor"

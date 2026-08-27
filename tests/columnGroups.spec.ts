@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildHeaderRows, columnGroupPath } from '../src/core/columnGroups'
+import { buildHeaderRows, columnBandEdges, columnGroupPath } from '../src/core/columnGroups'
 import type { ColumnGroupDef, HeaderRow, PinSide, ResolvedColumn } from '../src/core/types'
 import { groupedPersonColumns, personColumnGroups, type Person } from './fixtures'
 
@@ -187,5 +187,84 @@ describe('buildHeaderRows', () => {
 
   it('handles an empty column list', () => {
     expect(buildHeaderRows<Person>([], personColumnGroups)).toEqual([[]])
+  })
+})
+
+describe('columnBandEdges', () => {
+  /** Compact shape of the map, so an expectation reads left to right. */
+  const depths = (columns: ResolvedColumn<Person>[], groups = personColumnGroups) =>
+    Object.fromEntries(
+      [...columnBandEdges(columns, groups)].map(([columnId, edge]) => [columnId, edge.depth]),
+    )
+
+  it('marks a boundary at the depth the two paths part company', () => {
+    // `salary` is record > money, `hiredAt` is record alone: they share the
+    // outer band and split at depth 1. `department` against `salary` splits at
+    // the top, because `identity` and `record` are different bands entirely.
+    expect(
+      depths([
+        resolved('name', 'identity'),
+        resolved('department', 'identity'),
+        resolved('salary', 'money'),
+        resolved('hiredAt', 'record'),
+      ]),
+    ).toEqual({ department: 0, salary: 1 })
+  })
+
+  it('scores an unbanded column against a band as an outermost boundary', () => {
+    expect(depths([resolved('name', 'identity'), resolved('active')])).toEqual({ name: 0 })
+  })
+
+  it('treats a prefix relationship as a boundary at the shorter length', () => {
+    // A column sitting directly under `record` is not inside record > money,
+    // so the rule between them is real and belongs at depth 1.
+    expect(depths([resolved('salary', 'money'), resolved('hiredAt', 'record')])).toEqual({
+      salary: 1,
+    })
+  })
+
+  it('never marks the last column', () => {
+    // Its right-hand edge is the table's own frame — the same reasoning
+    // `:not(:last-child)` uses for the body's column separators.
+    const edges = columnBandEdges(
+      [resolved('name', 'identity'), resolved('hiredAt', 'record')],
+      personColumnGroups,
+    )
+    expect([...edges.keys()]).toEqual(['name'])
+  })
+
+  it('draws no rule inside a band split across the pin boundary', () => {
+    const pinned = (id: string, side: PinSide | false) => resolved(id, 'identity', { pinned: side })
+
+    // Three runs on screen, one band. The two that ended up adjacent share a
+    // path and get nothing between them; the boundary is where the band stops.
+    expect(
+      depths([
+        pinned('name', 'left'),
+        pinned('department', false),
+        resolved('hiredAt', 'record'),
+        pinned('active', 'right'),
+      ]),
+    ).toEqual({ department: 0, hiredAt: 0 })
+  })
+
+  it('finds nothing at all when no column claims a band', () => {
+    expect(columnBandEdges([resolved('name'), resolved('active')], personColumnGroups).size).toBe(0)
+  })
+
+  it('has nothing to say about a single column', () => {
+    expect(columnBandEdges([resolved('name', 'identity')], personColumnGroups).size).toBe(0)
+  })
+
+  it('separates two bands that share an id under different parents', () => {
+    // The prefix is what is compared, so the divergence lands at the parents
+    // rather than at the identically named children.
+    const groups: ColumnGroupDef[] = [
+      { id: 'left' },
+      { id: 'right' },
+      { id: 'detailA', header: 'Detail', parent: 'left' },
+      { id: 'detailB', header: 'Detail', parent: 'right' },
+    ]
+    expect(depths([resolved('a', 'detailA'), resolved('b', 'detailB')], groups)).toEqual({ a: 0 })
   })
 })

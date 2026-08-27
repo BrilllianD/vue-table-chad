@@ -16,6 +16,7 @@ import { computed, ref, shallowRef } from 'vue'
 import {
   DataTable,
   buildHeaderRows,
+  columnBandEdges,
   useColumns,
   useLocalDataSource,
   useTableState,
@@ -47,6 +48,19 @@ const previewRows = computed(() =>
   buildHeaderRows(preview.visible.value, employeeColumnGroups),
 )
 
+/**
+ * Where the vertical rules come from.
+ *
+ * A boundary belongs to a *position* in the visible order rather than to a
+ * column, so it is a map keyed by the column each rule falls to the right of —
+ * and the depth in it is the nesting level of the band that stops there, which
+ * is what `[data-band-edge='0']` keys off to weight an outer rule heavier.
+ * `useColumns().bandEdges` is this same call, made for you.
+ */
+const previewEdges = computed(() =>
+  columnBandEdges(preview.visible.value, employeeColumnGroups),
+)
+
 /** Every band the columns claim, for the fold-them-by-hand controls. */
 const bands = computed<ColumnGroupDef[]>(() => employeeColumnGroups)
 
@@ -72,6 +86,8 @@ function toggle(band: ColumnGroupDef): void {
       'useColumns groups',
       'ColumnLayoutState.collapsedGroups',
       'columnGroupPaths',
+      'columnBandEdges',
+      'BandEdge',
     ]"
   >
     <template #controls>
@@ -144,6 +160,13 @@ function toggle(band: ColumnGroupDef): void {
         </li>
       </ol>
       <p class="note">
+        <code>columnBandEdges(columns, bands)</code> — the boundary to the right of each
+        column, and the depth of the band that ends there:
+        <code v-for="[columnId, edge] in previewEdges" :key="columnId" class="edge">
+          {{ columnId }} → {{ edge.depth }}
+        </code>
+      </p>
+      <p class="note">
         <code>collapsedGroups</code>:
         <code>{{ JSON.stringify(preview.layout.value.collapsedGroups) }}</code>
       </p>
@@ -176,4 +199,5 @@ function toggle(band: ColumnGroupDef): void {
   gap: 6px;
 }
 .cell em { color: var(--muted); font-style: normal; font-variant-numeric: tabular-nums; }
+.edge { margin-right: 6px; }
 </style>

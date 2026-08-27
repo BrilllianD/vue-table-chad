@@ -27,7 +27,13 @@ export {
 } from './core/columnStorage'
 export type { ColumnStorageOptions, ColumnLayoutField, StorageLike } from './core/columnStorage'
 
-export { buildHeaderRows, columnGroupPath, columnGroupPaths } from './core/columnGroups'
+export {
+  buildHeaderRows,
+  columnBandEdges,
+  columnGroupPath,
+  columnGroupPaths,
+} from './core/columnGroups'
+export type { BandEdge } from './core/columnGroups'
 
 export { useColumnDnd } from './core/useColumnDnd'
 export type {
