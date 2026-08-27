@@ -6,8 +6,10 @@ import {
   cursorMoveFor,
   nextPosition,
   nextScrollLeft,
+  nextScrollTop,
   pageMoveFor,
   scrollMoveFor,
+  viewportMoveFor,
   type CellPosition,
 } from '../src/core/cellCursor'
 import { useCellCursor } from '../src/core/useCellCursor'
@@ -88,18 +90,14 @@ describe('cursorMoveFor', () => {
     expect(cursorMoveFor({ key: 'Home', altKey: true })).toBeUndefined()
   })
 
-  it('gives the modified horizontal arrows up entirely', () => {
-    // They mean a page change, which is not a position move — and if both
-    // decoders claimed them the cursor would step a column *and* turn the page.
+  it('gives the modified arrows up entirely', () => {
+    // The horizontal pair means a page change and the vertical pair means a
+    // screenful of scrolling, neither of which is a position move — and if two
+    // decoders claimed one key the cursor would step *and* the other happen.
     expect(cursorMoveFor({ key: 'ArrowRight', ctrlKey: true })).toBeUndefined()
     expect(cursorMoveFor({ key: 'ArrowLeft', metaKey: true })).toBeUndefined()
-    // The vertical pair is untouched: there is no such thing as a modified
-    // ArrowDown here, so it must keep meaning one row.
-    expect(cursorMoveFor({ key: 'ArrowDown', ctrlKey: true })).toEqual({
-      kind: 'by',
-      rows: 1,
-      columns: 0,
-    })
+    expect(cursorMoveFor({ key: 'ArrowDown', ctrlKey: true })).toBeUndefined()
+    expect(cursorMoveFor({ key: 'ArrowUp', metaKey: true })).toBeUndefined()
   })
 
   it('claims nothing else', () => {
@@ -139,6 +137,7 @@ describe('pageMoveFor', () => {
       ['cursorMoveFor', cursorMoveFor],
       ['pageMoveFor', pageMoveFor],
       ['scrollMoveFor', scrollMoveFor],
+      ['viewportMoveFor', viewportMoveFor],
     ] as const
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp',
       'PageDown', 'Enter', 'F2', 'Tab', 'a']
@@ -194,6 +193,70 @@ describe('scrollMoveFor', () => {
     expect(cursorMoveFor({ key: 'ArrowDown', shiftKey: true })).toEqual(
       { kind: 'by', rows: 1, columns: 0 },
     )
+  })
+})
+
+describe('viewportMoveFor', () => {
+  it('reads the primary modifier plus a vertical arrow as a screenful', () => {
+    expect(viewportMoveFor({ key: 'ArrowDown', ctrlKey: true })).toBe(1)
+    expect(viewportMoveFor({ key: 'ArrowUp', metaKey: true })).toBe(-1)
+    // Shift is a spare finger, not a fifth meaning — the rule `pageMoveFor`
+    // follows for the horizontal pair.
+    expect(viewportMoveFor({ key: 'ArrowDown', ctrlKey: true, shiftKey: true })).toBe(1)
+  })
+
+  it('claims nothing bare, nothing with Alt, and no other key', () => {
+    expect(viewportMoveFor({ key: 'ArrowDown' })).toBeUndefined()
+    expect(viewportMoveFor({ key: 'ArrowUp', shiftKey: true })).toBeUndefined()
+    expect(viewportMoveFor({ key: 'ArrowDown', ctrlKey: true, altKey: true })).toBeUndefined()
+    expect(viewportMoveFor({ key: 'ArrowRight', ctrlKey: true })).toBeUndefined()
+    expect(viewportMoveFor({ key: 'PageDown', ctrlKey: true })).toBeUndefined()
+    expect(viewportMoveFor({ key: 'Home', ctrlKey: true })).toBeUndefined()
+  })
+
+  it('takes the modified vertical arrows off the cursor, and leaves the bare ones', () => {
+    // The other half of the exclusivity, and the behaviour that changed:
+    // vertical arrows used to ignore the modifier entirely.
+    expect(cursorMoveFor({ key: 'ArrowDown', ctrlKey: true })).toBeUndefined()
+    expect(cursorMoveFor({ key: 'ArrowUp', metaKey: true })).toBeUndefined()
+    expect(cursorMoveFor({ key: 'ArrowDown' })).toEqual({ kind: 'by', rows: 1, columns: 0 })
+    expect(cursorMoveFor({ key: 'ArrowUp', shiftKey: true })).toEqual(
+      { kind: 'by', rows: -1, columns: 0 },
+    )
+  })
+})
+
+describe('nextScrollTop', () => {
+  const VIEWPORT = 600
+  const HEADER = 40
+  const ROW = 38
+  const MAX = 10_000
+
+  it('steps a screenful less the header and one row of overlap', () => {
+    expect(nextScrollTop(0, VIEWPORT, MAX, 1, HEADER, ROW)).toBe(VIEWPORT - HEADER - ROW)
+    expect(nextScrollTop(1000, VIEWPORT, MAX, -1, HEADER, ROW)).toBe(1000 - (VIEWPORT - HEADER - ROW))
+  })
+
+  it('takes the whole viewport when there is no header and no row height', () => {
+    expect(nextScrollTop(0, VIEWPORT, MAX, 1)).toBe(VIEWPORT)
+  })
+
+  it('never steps less than one row, however tall the header', () => {
+    // A box barely taller than its own header would otherwise step zero pixels,
+    // which is a gesture that does nothing rather than a short scroll.
+    expect(nextScrollTop(0, 50, MAX, 1, 48, ROW)).toBe(ROW)
+  })
+
+  it('clamps at both ends', () => {
+    expect(nextScrollTop(MAX - 10, VIEWPORT, MAX, 1, HEADER, ROW)).toBe(MAX)
+    expect(nextScrollTop(10, VIEWPORT, MAX, -1, HEADER, ROW)).toBe(0)
+  })
+
+  it('reports nowhere new as undefined, so holding the key costs nothing', () => {
+    expect(nextScrollTop(MAX, VIEWPORT, MAX, 1, HEADER, ROW)).toBeUndefined()
+    expect(nextScrollTop(0, VIEWPORT, MAX, -1, HEADER, ROW)).toBeUndefined()
+    // Nothing overflows: there is no scrolling to do at all.
+    expect(nextScrollTop(0, VIEWPORT, 0, 1, HEADER, ROW)).toBeUndefined()
   })
 })
 

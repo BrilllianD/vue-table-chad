@@ -26,6 +26,7 @@ import {
   cursorMoveFor,
   pageMoveFor,
   scrollMoveFor,
+  viewportMoveFor,
   type CellPosition,
 } from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
@@ -77,6 +78,15 @@ const emit = defineEmits<{
    * caller wrote.
    */
   scrollMove: [columns: number]
+  /**
+   * The user asked to scroll the table by a screenful — `Ctrl`/`Cmd` + `↑`/`↓`.
+   * `-1` up, `1` down. The cursor does not move.
+   *
+   * Reported rather than acted on, for the same reason `scroll-move` is: the
+   * scroll box is an ancestor of this component and belongs to whoever wrote
+   * the markup around it.
+   */
+  viewportMove: [screens: number]
 }>()
 
 const context = useTableContext<TRow>()
@@ -173,14 +183,21 @@ function onKeydown(event: KeyboardEvent): void {
     return
   }
 
-  // Before `cursorMoveFor`, which returns nothing for a modified horizontal
-  // arrow — the one place all three decoders see the same key press, and only
-  // one of them may claim it. The order between these two is free; that they
-  // both come first is not.
+  // Before `cursorMoveFor`, which returns nothing for a modified arrow — the
+  // one place all four decoders see the same key press, and only one of them
+  // may claim it. The order between these is free; that they all come first is
+  // not.
   const pages = pageMoveFor(event)
   if (pages) {
     event.preventDefault()
     emit('pageMove', pages)
+    return
+  }
+
+  const screens = viewportMoveFor(event)
+  if (screens) {
+    event.preventDefault()
+    emit('viewportMove', screens)
     return
   }
 

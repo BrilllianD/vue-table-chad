@@ -176,8 +176,10 @@ export {
   commitMoveFor,
   pageMoveFor,
   scrollMoveFor,
+  viewportMoveFor,
   nextPosition,
   nextScrollLeft,
+  nextScrollTop,
   PAGE_MOVE_ROWS,
 } from './core/cellCursor'
 export type {

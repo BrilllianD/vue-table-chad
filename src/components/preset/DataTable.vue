@@ -25,6 +25,7 @@ import type { ColumnLayoutState } from '../../core/useColumns'
 import {
   commitMoveFor,
   nextScrollLeft,
+  nextScrollTop,
   type CellPosition,
 } from '../../core/cellCursor'
 import type { UsePagination } from '../../core/usePagination'
@@ -321,6 +322,36 @@ function scrollColumns(direction: number): void {
 }
 
 /**
+ * `Ctrl`/`Cmd` + `↑`/`↓`: scroll one screenful, and leave the cursor alone.
+ *
+ * The vertical twin of `scrollColumns`, and the gesture a virtual table needs
+ * most: with no pages, `Ctrl`/`Cmd`+`←`/`→` has nothing to turn, and the arrows
+ * move one row at a time through however many rows there are.
+ *
+ * The header is measured rather than assumed, because it is `position: sticky`
+ * and covers the top of the scrollport: a step of the full viewport height
+ * would slide a header's worth of rows past unseen. One
+ * `getBoundingClientRect` per press, on one element.
+ */
+function scrollViewport(direction: number): void {
+  const box = scrollBox.value
+  if (!box) return
+
+  const header = box.querySelector<HTMLElement>('thead')
+  const next = nextScrollTop(
+    box.scrollTop,
+    box.clientHeight,
+    box.scrollHeight - box.clientHeight,
+    direction < 0 ? -1 : 1,
+    header?.getBoundingClientRect().height ?? 0,
+    props.rowHeight,
+  )
+  // Assigned rather than smooth-scrolled, for the reason `scrollColumns` is:
+  // key repeat against a running animation queues scrolls that fight.
+  if (next !== undefined) box.scrollTop = next
+}
+
+/**
  * How wide the pinned band on one side is, in CSS pixels, for the scroll box to
  * inset its idea of "in view" by.
  *
@@ -549,6 +580,7 @@ function onActivate(
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
             @page-move="(pages) => pageMove(pages, cursor, pagination)"
             @scroll-move="scrollColumns"
+            @viewport-move="scrollViewport"
           >
             <!--
               One `<tr>` per header row. With no band declared `headerRows` is a

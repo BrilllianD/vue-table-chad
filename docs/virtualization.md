@@ -70,6 +70,7 @@ stop falls to the first *rendered* row. Without that the grid would drop out of 
 entirely whenever you scrolled away from the ring.
 
 `Ctrl`/`Cmd` + `←`/`→` — turn the page — does nothing here, since there are no pages.
+`Ctrl`/`Cmd`+`↑`/`↓` is what replaces it: one screenful of scroll, with the ring left where it was.
 `PageUp`/`PageDown` still move ten rows, and still work.
 
 ## What it costs

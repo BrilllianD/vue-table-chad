@@ -105,12 +105,13 @@ describe('TableGrid without a cursor', () => {
     const table = wrapper.find('table')
     expect(table.attributes('role')).toBeUndefined()
 
-    // The three gestures the cursor owns, all inert. A bound listener that
+    // The four gestures the cursor owns, all inert. A bound listener that
     // found no cursor would still emit nothing, so the events are the test:
-    // no `activate`, no `page-move`, no `scroll-move`, ever.
+    // no `activate`, no `page-move`, no `scroll-move`, no `viewport-move`, ever.
     await table.trigger('keydown', { key: 'Enter' })
     await table.trigger('keydown', { key: 'ArrowRight', ctrlKey: true })
     await table.trigger('keydown', { key: 'ArrowRight', shiftKey: true })
+    await table.trigger('keydown', { key: 'ArrowDown', ctrlKey: true })
     await table.trigger('dblclick')
     await table.trigger('focusin')
 
@@ -120,6 +121,7 @@ describe('TableGrid without a cursor', () => {
     expect(wrapper.emitted('activate')).toBeUndefined()
     expect(wrapper.emitted('pageMove')).toBeUndefined()
     expect(wrapper.emitted('scrollMove')).toBeUndefined()
+    expect(wrapper.emitted('viewportMove')).toBeUndefined()
     wrapper.unmount()
   })
 
@@ -226,10 +228,15 @@ describe('TableGrid with a cursor', () => {
 
     await cell.trigger('keydown', { key: 'ArrowLeft', shiftKey: true })
     expect(grid.emitted('scrollMove')?.[0]).toEqual([-1])
+
+    // The vertical pair, which a virtual table needs and a paged one is welcome
+    // to: a screenful of scroll, and the ring stays where it is.
+    await cell.trigger('keydown', { key: 'ArrowDown', ctrlKey: true })
+    expect(grid.emitted('viewportMove')?.[0]).toEqual([1])
     wrapper.unmount()
   })
 
-  // The one press all three decoders see. Only one may claim it, and the
+  // The presses more than one decoder sees. Only one may claim each, and the
   // modified arrows are claimed before the plain move decoder runs.
   it('does not also move the cursor on a modified arrow', async () => {
     const wrapper = mountWithCursor()
@@ -240,6 +247,16 @@ describe('TableGrid with a cursor', () => {
     expect(grid.emitted('pageMove')).toBeTruthy()
     // Still on the first column: the page move consumed the press.
     expect(wrapper.find('td[tabindex="0"]').attributes('data-column')).toBe('name')
+
+    // And the vertical one, where the cursor used to ignore the modifier and
+    // step a row: the scroll consumed it, so the ring has not moved.
+    const rowOf = () =>
+      wrapper.find('td[tabindex="0"]').element.closest('.vt-tr')?.getAttribute('data-row-id')
+    const before = rowOf()
+    expect(before).toBeTruthy()
+    await cell.trigger('keydown', { key: 'ArrowDown', ctrlKey: true })
+    expect(grid.emitted('viewportMove')).toBeTruthy()
+    expect(rowOf()).toBe(before)
     wrapper.unmount()
   })
 

@@ -120,7 +120,8 @@ function onRowSaved(row: Employee): void {
     blurb="A focused cell you move with the arrow keys, ringed and crossed by a tint down its
            row and its column. Enter opens the editor on a cell that has one; Enter again
            commits and steps down, Shift up, Ctrl right, Ctrl+Shift left. Shift and a horizontal
-           arrow scrolls the box instead, leaving the ring where it is. One tab stop for the
+           arrow scrolls the box instead, leaving the ring where it is, and Ctrl with a vertical
+           one scrolls it a screenful. One tab stop for the
            whole grid, and the cursor reaches the row pipeline not at all."
     :api="[
       'DataTable cellCursor',
@@ -130,8 +131,10 @@ function onRowSaved(row: Employee): void {
       'commitMoveFor',
       'pageMoveFor',
       'scrollMoveFor',
+      'viewportMoveFor',
       'nextPosition',
       'nextScrollLeft',
+      'nextScrollTop',
       'CellPosition',
       'CellCursorMark',
       'PAGE_MOVE_ROWS',
