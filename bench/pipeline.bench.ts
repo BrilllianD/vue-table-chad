@@ -1,10 +1,12 @@
 import { bench, describe } from 'vitest'
 import {
   aggregateGroups,
+  buildGroupTree,
   computeFacets,
   countGroups,
   filterRows,
   flattenGroups,
+  flattenTree,
   sortRows,
   valuesFilter,
 } from '@brillliand/vue-table-chad'
@@ -106,6 +108,33 @@ for (const size of SIZES) {
 
     bench('flatten, two levels', () => {
       flattenGroups(rows, ['department', 'role'], employeeColumns)
+    })
+
+    /*
+     * The two halves separately, because `useRowGrouping` calls them
+     * separately and only the second depends on collapse state — the split is
+     * what makes folding a band cost a walk rather than a rebuild (P1-6).
+     * `flattenGroups` above is the combined convenience function, which
+     * nothing in the reactive path calls.
+     *
+     * Both matter more under virtualization than they did under paging: with a
+     * page size of everything they run over the whole dataset on each filter
+     * or sort, where before they ran over 25 rows.
+     */
+    bench('buildGroupTree, two levels — the half a collapse must not redo', () => {
+      buildGroupTree(rows, ['department', 'role'], employeeColumns)
+    })
+
+    const twoLevelTree = buildGroupTree(rows, ['department', 'role'], employeeColumns)
+    bench('flattenTree, two levels — the half a collapse does redo', () => {
+      flattenTree(twoLevelTree)
+    })
+
+    // Ungrouped is not a no-op: the flatten still allocates one DisplayRow per
+    // row, and under virtualization it allocates one per row of the dataset.
+    const flatTree = buildGroupTree(rows, [], employeeColumns)
+    bench('flattenTree, ungrouped — one DisplayRow per row, and nothing else', () => {
+      flattenTree(flatTree)
     })
 
     bench('count, two levels', () => {

@@ -89,6 +89,60 @@ per row. It now keeps the winner's projected key.
 `min` on a date is still 2× a number reducer at 20.2ms: 10k date parses remain, one per row, which
 is the floor without a cache.
 
+## What windowing costs, and what a page size of everything costs (P2-1)
+
+Two different numbers, and conflating them is the easy mistake. Windowing is free; the page size
+virtual mode implies is not.
+
+**The window itself**, 100k display rows, filtered and sorted, 38px rows in a 640px viewport:
+
+| Interaction | Now |
+| --- | ---: |
+| scroll one row — the window moves by one | **0.0020** |
+| scroll one viewport — the window moves wholesale | **0.0021** |
+| scroll within one row — the window does not move | **0.0021** |
+
+All three are one ref write and two integer divisions. The third was expected to be *cheaper* than
+the first — a floored `start` that recomputes to the same integer propagates nothing, so no slice
+happens at all — and it is not measurably so, because slicing 30 elements out of 100k is already
+below the noise floor of writing the ref. The invariant is real and
+`tests/invalidation.spec.ts` asserts it; the bench simply cannot see a saving that small. Worth
+recording as such rather than as a win.
+
+**The pipeline underneath**, at 100k with a page size of everything:
+
+| | Page of 25 (10k set) | Page of everything (100k set) |
+| --- | ---: | ---: |
+| search settling | 19.2 | **191** |
+| selection toggle | 0.002 | **8.2** |
+
+The first is the dataset's own cost and is what any table filtering 100k rows pays — virtualization
+neither adds nor removes it. The second is the one to watch, because it scales with the
+*interaction* rather than with the data: `useRowSelection.headerState` asks "are all of these
+selected" over the rows it was handed, and virtual mode hands it the dataset instead of a page. 8ms
+per click is usable and not fine; a counting selection state is on P2-3's list because of this
+number.
+
+**The grouping halves, split** — `useRowGrouping` calls `buildGroupTree` and `flattenTree`
+separately, and only the second depends on collapse state (P1-6). `flattenGroups` above is the
+combined convenience function, which nothing in the reactive path calls, so it was the only one
+measured until now:
+
+| | 10k | 100k |
+| --- | ---: | ---: |
+| `buildGroupTree`, two levels | 5.35 | 65.3 |
+| `flattenTree`, two levels | 0.46 | 16.8 |
+| `flattenTree`, ungrouped | 0.12 | **3.1** |
+
+The last row is the one virtualization needed: with nothing grouped, the flatten still allocates one
+`DisplayRow` per row, and under a page size of everything it allocates 100k of them per filter or
+sort. At 3.1ms that is inside a frame, so the short-circuit that would avoid it — a `displayRows`
+that hands back the rows themselves when nothing is grouped — is not worth changing `DisplayRow`'s
+shape for. Measured, and argued against.
+
+`flattenTree` at two levels is 16.8ms at 100k, and that one runs on every band collapse. It is the
+next real number in this area.
+
 ## Choices the bench argued *against*
 
 Bench-gating cuts both ways. These looked worth doing and measurably were not:

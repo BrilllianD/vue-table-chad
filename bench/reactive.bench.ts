@@ -10,6 +10,10 @@ import {
   useTableState,
   valuesFilter,
 } from '@brillliand/vue-table-chad'
+// Relative rather than through the package alias every other import here
+// uses: the export lands with its demo view, and `tests/apiSurface.spec.ts`
+// fails a value export that no view demonstrates yet.
+import { useVirtualRows } from '../src/core/useVirtualRows'
 import {
   employeeColumnGroups,
   employeeColumns,
@@ -159,6 +163,110 @@ describe(`interaction · ${SIZE / 1000}k rows, grouped two levels`, () => {
     page = page === 2 ? 3 : 2
     groupedPaging.state.setPage(page)
     groupedPaging.grouping.displayRows.value
+  })
+})
+
+/**
+ * What scrolling a virtual window costs.
+ *
+ * A separate, larger harness, because the question is only interesting where
+ * pagination has stopped being an answer — and because virtual mode is a page
+ * size of everything, so the pipeline below it is running over 100k rows
+ * rather than over 25.
+ *
+ * The third case is the one to watch. `start` and `end` are floored integers,
+ * so a scroll that moves less than one row recomputes two divisions, arrives
+ * at the same pair, and propagates nothing: it should cost what writing a ref
+ * costs, and nothing near what the case above it costs.
+ */
+describe('virtual scroll · 100k rows, filtered and sorted', () => {
+  const SCROLL_SIZE = 100_000
+  const ROW_HEIGHT = 38
+  const bigRows = makeRows(SCROLL_SIZE)
+
+  function virtualHarness() {
+    const scope = effectScope()
+    const built = scope.run(() => {
+      // A page size of everything, which is what `virtual` sets.
+      const state = useTableState({ pageSize: SCROLL_SIZE })
+      const source = useLocalDataSource<Employee>(
+        bigRows,
+        employeeColumns,
+        () => state.query.value,
+        { debounceMs: 0 },
+      )
+      const grouping = useRowGrouping<Employee>(() => source.rows.value, employeeColumns, {
+        groupBy: () => state.groupBy.value,
+        sort: () => state.sort.value,
+      })
+      const selection = useRowSelection<Employee>(
+        () => source.rows.value,
+        () => source.total.value,
+        { getRowId: (row) => row.id },
+      )
+      const virtual = useVirtualRows(() => grouping.displayRows.value, {
+        rowHeight: ROW_HEIGHT,
+        viewportHeight: 640,
+      })
+
+      state.setFilter('department', seedFilter)
+      state.setSort('name', 'asc')
+      return { state, source, grouping, selection, virtual }
+    })!
+
+    built.source.rows.value
+    built.grouping.displayRows.value
+    built.selection.headerState.value
+    built.virtual.items.value
+    return built
+  }
+
+  const stepping = virtualHarness()
+  let row = 500
+  bench('scroll one row — the window moves by one', () => {
+    row += 1
+    stepping.virtual.setScrollOffset(row * ROW_HEIGHT)
+    stepping.virtual.items.value
+  })
+
+  const paging = virtualHarness()
+  let screen = 10
+  bench('scroll one viewport — the window moves wholesale', () => {
+    screen += 1
+    paging.virtual.setScrollOffset(screen * 640)
+    paging.virtual.items.value
+  })
+
+  const jittering = virtualHarness()
+  let pixel = 0
+  bench('scroll within one row — should move the window not at all', () => {
+    pixel = (pixel + 1) % ROW_HEIGHT
+    jittering.virtual.setScrollOffset(500 * ROW_HEIGHT + pixel)
+    jittering.virtual.items.value
+  })
+
+  // The pipeline underneath, at the size virtual mode hands it. This is the
+  // cost virtual mode *adds*: the same passes as before over the whole dataset
+  // instead of over a page.
+  const filtering = virtualHarness()
+  let term = 'ada'
+  bench('search settling at a page size of everything', () => {
+    term = term === 'ada' ? 'adam' : 'ada'
+    filtering.state.setSearch(term)
+    filtering.virtual.items.value
+  })
+
+  /*
+   * Selection is the one thing that scales with the *interaction* rather than
+   * with the data: `headerState` asks "are all of these selected" over the
+   * rows it was handed, and virtual mode hands it the dataset. Compare this
+   * against `selection toggle` in the 10k block above — that one is a page of
+   * 25.
+   */
+  const selecting = virtualHarness()
+  bench('selection toggle at a page size of everything', () => {
+    selecting.selection.toggle(selecting.source.rows.value[0]!)
+    selecting.selection.headerState.value
   })
 })
 
