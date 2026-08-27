@@ -1,6 +1,6 @@
 # Examples
 
-## [`AddressesTable.vue`](AddressesTable.vue) — porting an existing Options API table
+## [`AddressesTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/AddressesTable.vue) — porting an existing Options API table
 
 A real server-paginated table with the app's own markup, moved onto `vue-table`. It keeps the
 `<table>` and every CSS class the app's stylesheet expects, and takes everything behind them from
@@ -47,7 +47,7 @@ makes that impossible and removes the `@change="refresh"` handler entirely.
 ### Four things that will bite anyone doing this port
 
 1. **Return everything from `setup()` flat.** Only top-level refs are unwrapped in a template.
-   Return `source` whole and `{{ source.total }}` still *prints* the right number — Vue's
+   Return `source` whole and <code v-pre>{{ source.total }}</code> still *prints* the right number — Vue's
    `toDisplayString` unwraps refs for display — while `source.total > 0` is silently `false` and
    `v-for="o in source.rows"` throws `Cannot read properties of undefined (reading 'id')`. A
    display that lies is the worst version of this bug; return flat refs and it cannot happen.
@@ -142,4 +142,4 @@ pin a fluid column to a fixed width if you were not expecting it.
 
 ---
 
-Back to the [docs index](../../README.md#docs).
+Back to the [docs index](/).

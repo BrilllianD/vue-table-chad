@@ -132,6 +132,22 @@ question.
 
 The spacer rows are `aria-hidden`: they are geometry, not rows.
 
+## Server sources
+
+`virtual` sets the page size to the size of the result set, not to some fixed window — so a server
+request fetches the whole matching set in one round trip rather than a page of it. That is what
+[Using it in another project](getting-started.md) means by "every request fetches the whole
+matching set rather than a page" when it warns about turning `virtual` on over a `DataSource` that
+hits a network.
+
+A total of zero is "nothing to size to", not "size to nothing". A server source starts at `total: 0`
+and stays there until its first response lands; without a guard, the watcher that sizes the page to
+the total is `immediate` and fires on mount, writing a page size of 1 — a real query change, so
+`useServerDataSource` would refetch at `pageSize: 1` and every virtual server-backed table would
+spend one wasted round trip fetching a single row before the real total arrived. `useTable` guards
+exactly this case: a total of zero or a filter that matches nothing leaves the page size alone
+rather than shrinking it to fit nothing.
+
 ## Composing your own
 
 `useVirtualRows` is pure arithmetic over three numbers — item height, viewport height, scroll
@@ -155,4 +171,4 @@ yours.
 ---
 
 Live: the **Virtual rows** tab of `pnpm demo` (`#virtual`). Back to the
-[docs index](../README.md#docs).
+[docs index](/).

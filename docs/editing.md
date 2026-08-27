@@ -305,4 +305,4 @@ selection layers `.vt-td` already composes.
 
 ---
 
-Live: the **Editing** tab of `pnpm demo` (`#editing`). Back to the [docs index](../README.md#docs).
+Live: the **Editing** tab of `pnpm demo` (`#editing`). Back to the [docs index](/).

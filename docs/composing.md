@@ -75,4 +75,4 @@ gives you page 3. Live example: `playground/src/examples/UrlSyncedState.vue`.
 
 ---
 
-Live: the **Composed** tab of `pnpm demo` (`#composed`). Back to the [docs index](../README.md#docs).
+Live: the **Composed** tab of `pnpm demo` (`#composed`). Back to the [docs index](/).

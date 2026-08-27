@@ -10,7 +10,7 @@ difference matters, because a consumer gets the generated `.d.ts`, not the sourc
 
 ## Install
 
-The package is not on npm yet (see [`TODO.md`](../TODO.md)), and `dist/` is gitignored, so a git
+The package is not on npm yet (see [`TODO.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TODO.md)), and `dist/` is gitignored, so a git
 dependency would install an empty package. Until the first release, build a tarball and install
 that:
 
@@ -55,6 +55,22 @@ That path compiles the library's `.vue` files in *your* build, so your Vite need
 Vue **3.5+**, declared as a peer dependency — the library brings no runtime dependency of its own.
 TypeScript is optional but is most of the value: the column definitions are where the types earn
 their keep.
+
+### Packaging
+
+ESM only — there is no `main` and no CJS build. Vue 3.5 plus Node 24 makes a CJS consumer largely
+theoretical, and a second output format is a cost paid on every release; `attw --profile esm-only`
+is the check that reflects the gap as deliberate rather than a failure.
+
+The stylesheet is a subpath export, `@brillliand/vue-table-chad/style.css`, not bundled into the JS
+entry — so importing the library never pulls in CSS you did not ask for, and a core-only or
+primitives-only consumer stays at zero.
+
+Type declarations are rolled up into one file (`rollupTypes: true`). The per-file emit would
+re-export through extensionless relative specifiers like `'./components/primitives/TableRoot.vue'`,
+which TypeScript cannot follow under `node16`/`nodenext` resolution — a consumer set to `nodenext`
+would see every accessor parameter degrade silently to `any` while their own build stayed green.
+Rolling up leaves no relative specifier in the shipped types, so that failure mode cannot happen.
 
 ## The row type constraint
 
@@ -138,7 +154,7 @@ Four things are load-bearing there:
 
 - **`shallowRef`, not `ref`.** A plain `ref` deep-proxies every row object, so each cell read in the
   filter, sort, group and aggregate passes goes through a Proxy trap. Worth 1.6–1.9× on filter and
-  sort — the README's [quick start](../README.md#hold-rows-in-a-shallowref) has the numbers.
+  sort — the README's [quick start](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/README.md) has the numbers.
 - **`type` decides behaviour**, not just formatting: it picks the comparator and it decides which
   operators the filter panel offers (`contains` for text, `between` for numbers, `before`/`after`
   for dates).
@@ -381,7 +397,7 @@ you page 3.
 Tree rows, expandable detail rows, pinned rows, pivoting, and CSV or clipboard
 export. Aggregation covers `sum`/`avg`/`min`/`max` with no custom reducer. There is no i18n: around
 35 English strings are hardcoded across the components, `aria-label`s included, and only
-`emptyMessage`, `loadingMessage` and `footerLabel` are props. [`TODO.md`](../TODO.md) has the
+`emptyMessage`, `loadingMessage` and `footerLabel` are props. [`TODO.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TODO.md) has the
 reasoning for each.
 
 Row virtualization *is* included — see [Virtual rows](virtualization.md). Note what it means for a

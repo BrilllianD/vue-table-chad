@@ -177,4 +177,4 @@ order is what keeps a band split by a pin or a drag from drawing a rule inside i
 `<TableRoot>` exposes both as `headerRows` and `bandEdges` slot props, and `<TableHeaderGroupCell>`
 renders one band cell given nothing but the cell itself.
 
-See it running in the demo's **Header bands** view.
+Live: the **Header bands** tab of `pnpm demo` (`#header-groups`). Back to the [docs index](/).

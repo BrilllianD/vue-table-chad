@@ -82,7 +82,7 @@ Four things are load-bearing:
 
 - **`shallowRef`, not `ref`.** A plain `ref` deep-proxies the array *and* every row object in it, so
   each cell read in the filter, sort, group and aggregate passes goes through a Proxy trap. Worth
-  1.6–1.9× on filter and sort — see the README's [quick start](../README.md#hold-rows-in-a-shallowref).
+  1.6–1.9× on filter and sort — see the README's [quick start](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/README.md).
 - **`type` decides behaviour**, not just formatting: it picks the comparator and decides which
   operators the filter panel offers. Getting it wrong is the most common JS-only bug here, because
   nothing tells you — a `salary` column left at the default `'text'` sorts `100` before `99`.

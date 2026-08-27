@@ -39,4 +39,4 @@ difference is the two lines that build the source.
 
 ---
 
-Live: the **Core only** tab of `pnpm demo` (`#core`). Back to the [docs index](../README.md#docs).
+Live: the **Core only** tab of `pnpm demo` (`#core`). Back to the [docs index](/).

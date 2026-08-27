@@ -149,7 +149,7 @@ interface CellPosition { rowId: RowId; columnId: string }
 
 An index is meaningless the moment the table is re-sorted, re-filtered or paged. An id survives all
 three, so the cursor stays on the row you put it on while that row moves under it — the same reason
-[an open draft](../README.md) survives a re-sort. Sort by a column with the cursor set and watch the
+[an open draft](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/README.md) survives a re-sort. Sort by a column with the cursor set and watch the
 ring travel with its row.
 
 The cursor walks the rows **as rendered**, which matters as soon as anything is grouped: the source
@@ -256,4 +256,4 @@ vertical move leaves them identical for every row but two and the rest stop at a
 The ring and the crosshair are `--vt-*` variables like everything else — see
 [Styling](styling.md#the-cell-cursor).
 
-See it running in the demo's **Cell cursor** view.
+Live: the **Cell cursor** tab of `pnpm demo` (`#cursor`). Back to the [docs index](/).

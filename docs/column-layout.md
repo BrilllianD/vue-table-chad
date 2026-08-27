@@ -91,4 +91,4 @@ Styling hooks: `[data-reorderable]`, `[data-dragging]` and `[data-drop='before'|
 
 ---
 
-Live: the **Column layout** tab of `pnpm demo` (`#columns`). Back to the [docs index](../README.md#docs).
+Live: the **Column layout** tab of `pnpm demo` (`#columns`). Back to the [docs index](/).

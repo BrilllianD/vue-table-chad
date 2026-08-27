@@ -33,4 +33,4 @@ its filter panel but drop it from search hits.
 
 ---
 
-Live: the **Filters** tab of `pnpm demo` (`#filters`). Back to the [docs index](../README.md#docs).
+Live: the **Filters** tab of `pnpm demo` (`#filters`). Back to the [docs index](/).

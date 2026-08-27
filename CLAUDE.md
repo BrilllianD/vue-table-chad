@@ -11,7 +11,7 @@ however the plan moves.
 ## Commands
 
 ```bash
-pnpm test          # vitest, ~740 tests
+pnpm test          # vitest, 754 tests across 39 files
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
