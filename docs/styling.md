@@ -1,5 +1,13 @@
 # Styling
 
+<script setup>
+import Example from './.vitepress/examples/styling.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/styling.vue
+
 Primitives ship **no CSS** — they emit class names and `data-*` attributes only:
 
 ```css

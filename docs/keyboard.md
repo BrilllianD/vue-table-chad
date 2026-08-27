@@ -1,5 +1,13 @@
 # Keyboard navigation
 
+<script setup>
+import Example from './.vitepress/examples/keyboard.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/keyboard.vue
+
 A **cell cursor**: a focused cell you move with the arrow keys, ringed and crossed by a tint down
 its column and across its row. On a table that can edit, `Enter` opens the cell's editor and
 `Enter` again commits and steps on — so a column of numbers can be typed without reaching for the

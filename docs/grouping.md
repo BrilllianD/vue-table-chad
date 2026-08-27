@@ -1,5 +1,13 @@
 # Grouping rows
 
+<script setup>
+import Example from './.vitepress/examples/grouping.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/grouping.vue
+
 ```vue
 <DataTable :columns="columns" :source="source" :initial-group-by="['department']" />
 ```

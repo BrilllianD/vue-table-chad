@@ -1,5 +1,13 @@
 # Composing your own
 
+<script setup>
+import Example from './.vitepress/examples/composing.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/composing.vue
+
 The `TableRoot` slot hands you everything; the markup is yours. This renders cards, not a table,
 using the same sort triggers, filter popovers and pager as the preset:
 

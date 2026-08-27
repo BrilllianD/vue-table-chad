@@ -1,5 +1,13 @@
 # Editing cells
 
+<script setup>
+import Example from './.vitepress/examples/editing.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/editing.vue
+
 ```ts
 const rows = shallowRef(employees)
 const state = useTableState({ pageSize: 20 })

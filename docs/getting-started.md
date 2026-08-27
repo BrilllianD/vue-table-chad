@@ -1,5 +1,13 @@
 # Using vue-table in another project
 
+<script setup>
+import Example from './.vitepress/examples/getting-started.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/getting-started.vue
+
 Installing it, the row type it insists on, and the three ways to build a table with it. Every
 snippet on this page was type-checked against the built package rather than against `src/` — the
 difference matters, because a consumer gets the generated `.d.ts`, not the source.

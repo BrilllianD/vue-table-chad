@@ -1,5 +1,13 @@
 # Column layout
 
+<script setup>
+import Example from './.vitepress/examples/column-layout.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/column-layout.vue
+
 Visibility, ordering, resizing and pinning all live in `useColumns` and are driven from
 `ColumnVisibilityMenu`, or programmatically:
 

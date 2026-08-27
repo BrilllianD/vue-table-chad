@@ -1,5 +1,13 @@
 # Local, server and infinite data
 
+<script setup>
+import Example from './.vitepress/examples/data-sources.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/data-sources.vue
+
 ## Local data
 
 ```ts
