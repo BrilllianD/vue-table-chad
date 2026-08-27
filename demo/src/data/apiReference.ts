@@ -108,6 +108,11 @@ export const apiReference: ApiEntry[] = [
   { name: 'UsePaginationOptions', layer: 'core', kind: 'type', summary: 'siblingCount around the current page, and an onChange callback.' },
   { name: 'PageItem', layer: 'core', kind: 'type', summary: 'A page number or an ellipsis, ready to render.' },
 
+  { name: 'useVirtualRows', layer: 'core', kind: 'composable', summary: 'A windowed range over a list of equal-height items — what to render, and how much empty space stands in for the rest.' },
+  { name: 'OVERSCAN_ROWS', layer: 'core', kind: 'constant', summary: 'Rows kept rendered beyond each edge of the viewport.' },
+  { name: 'UseVirtualRows', layer: 'core', kind: 'type', summary: 'The window, the space standing in for what is outside it, and the scroll offset.' },
+  { name: 'UseVirtualRowsOptions', layer: 'core', kind: 'type', summary: 'rowHeight, viewportHeight, and the two knobs that turn windowing off.' },
+
   { name: 'provideTableContext', layer: 'core', kind: 'function', summary: 'Publishes a TableContext so primitives beneath can find it.' },
   { name: 'useTableContext', layer: 'core', kind: 'composable', summary: 'The table context, or `undefined` — which is what lets a primitive work standalone.' },
   { name: 'requireTableContext', layer: 'core', kind: 'function', summary: 'The context, or a thrown error, for the primitives that genuinely need one.' },
@@ -222,6 +227,8 @@ export const apiReference: ApiEntry[] = [
   { name: 'CellEditor', layer: 'primitives', kind: 'component', summary: 'The control that edits one cell, and the keyboard contract around it.' },
 
   { name: 'TableGroupRow', layer: 'primitives', kind: 'component', summary: "A group header row: the expand toggle and the group's label, followed by whatever the grouped rows aggregate to, under the columns those aggregates describe." },
+
+  { name: 'VirtualBody', layer: 'primitives', kind: 'component', summary: 'A `<tbody>` that renders only the rows the viewport can show, with empty space standing in for the rest.' },
 
   { name: 'SortTrigger', layer: 'primitives', kind: 'component', summary: 'The clickable header label: cycles asc → desc → unsorted, and shift-click stacks sort keys.' },
 

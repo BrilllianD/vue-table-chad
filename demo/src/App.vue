@@ -13,6 +13,7 @@ import ComposedView from './views/ComposedView.vue'
 import HeadlessView from './views/HeadlessView.vue'
 import StateView from './views/StateView.vue'
 import ThemingView from './views/ThemingView.vue'
+import VirtualView from './views/VirtualView.vue'
 import PerfView from './views/PerfView.vue'
 import ApiView from './views/ApiView.vue'
 import RecipesView from './views/RecipesView.vue'
@@ -40,6 +41,7 @@ const tabs: Tab[] = [
   { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },
   { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
   { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
+  { id: 'virtual', label: 'Virtual rows', layer: 'preset', component: VirtualView },
   { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },
   { id: 'api', label: 'API reference', layer: 'preset', component: ApiView },
   { id: 'selection', label: 'Selection', layer: 'primitives', component: SelectionView },
