@@ -68,6 +68,31 @@ export interface UseTableOptions<TRow> {
    * is then the authority.
    */
   pageSize?: number
+  /**
+   * Renders every row as one continuous scroll instead of a page at a time.
+   *
+   * Here it means one thing only: **a page size of everything.** The window
+   * itself is the render layer's business (`VirtualBody`), and nothing in
+   * `core/` knows a window exists. Everything downstream — the grouping, the
+   * selection, the cursor's row list, the footer's totals — keeps the meaning
+   * it already had, because "the page" has simply become the whole result set.
+   *
+   * The size the table had is restored when this goes back off.
+   */
+  virtual?: () => boolean
+  /**
+   * Which rows are actually in the document, when a virtual body is rendering
+   * fewer than the table holds.
+   *
+   * Reaches `useCellCursor` and nothing else, where it decides which cell may
+   * carry `tabindex="0"`. The cursor still *addresses* every row — a position
+   * is an identity, and scrolling does not change which row it names — but the
+   * one cell a Tab lands on has to be one that exists.
+   *
+   * It travels up from the render layer rather than down, because the window
+   * is the renderer's business: `core/` has no viewport to measure.
+   */
+  renderedRowIds?: () => RowId[] | undefined
   siblingCount?: () => number | undefined
   /** Turns column drag-to-reorder off for the whole table. Defaults to on. */
   reorderable?: () => boolean
@@ -199,6 +224,36 @@ export function useTable<TRow>(
   const state =
     options.state ??
     useTableState({ pageSize: options.pageSize, initialGroupBy: options.initialGroupBy })
+
+  /*
+   * Virtual mode, in its entirety, as far as `core/` is concerned.
+   *
+   * Writing the page size rather than adding a second row path is what keeps
+   * `query.pageSize` truthful — a URL-synced query still describes what was
+   * asked for — and what keeps `source.rows` the one list every composable
+   * below reads. The alternative, feeding the renderer from `filteredRows`,
+   * would make `displayRows` mean one thing to the markup and another to the
+   * cursor and the selection.
+   *
+   * `setPageSize` returns early on an unchanged size, which is what stops the
+   * `total` dependency here from writing in a loop.
+   */
+  let sizeBeforeVirtual: number | undefined
+  watch(
+    [() => options.virtual?.() ?? false, () => options.source().total.value],
+    ([on, total]) => {
+      if (!on) {
+        if (sizeBeforeVirtual !== undefined) state.setPageSize(sizeBeforeVirtual)
+        sizeBeforeVirtual = undefined
+        return
+      }
+      // Captured on the way in, not on the way out: by then the page size is
+      // the dataset's length and the number the caller chose is gone.
+      if (sizeBeforeVirtual === undefined) sizeBeforeVirtual = state.pageSize.value
+      state.setPageSize(Math.max(1, total))
+    },
+    { immediate: true },
+  )
 
   const columns = useColumns<TRow>(
     () => options.columns(),
@@ -347,6 +402,7 @@ export function useTable<TRow>(
   const cellCursor = useCellCursor<TRow>(cursorRows, columns.visible, {
     getRowId,
     initial: options.initialCursor,
+    renderedRowIds: () => options.renderedRowIds?.(),
   })
 
   /*

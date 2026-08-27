@@ -143,6 +143,31 @@ shape for. Measured, and argued against.
 `flattenTree` at two levels is 16.8ms at 100k, and that one runs on every band collapse. It is the
 next real number in this area.
 
+### What the browser still owes (P2-2)
+
+The numbers above are JavaScript. The ones that decide whether virtual mode is *worth* it are
+layout and paint, and those need `pnpm demo` → **Performance** → 100k, **Virtual** on, two group
+levels, and the **Scroll 2000 rows** button, in a **foregrounded** tab. That run has not been made
+yet: a hidden tab never fires `requestAnimationFrame`, and `PerfView` refuses to report the
+browser's throttle as the table's cost.
+
+What *was* checked in Chrome at 100k rows, where no timing is involved and a hidden tab is
+therefore no obstacle:
+
+| | |
+| --- | --- |
+| rows in the `<tbody>` | **20**, at a 414px viewport — 11 visible, 1 straddling, 8 overscan |
+| `<table>` height | 1,831,220px, matching the scroll box's `scrollHeight` exactly — the spacers size the scrollbar correctly |
+| scrolling 40,000 rows | window follows, still 20 rows, stripes still alternating |
+| collapsing a band | 1,832,020px → 1,215,812px of virtual height |
+| the sticky header | still `position: sticky` with a 1.8M-pixel spacer under it |
+
+One thing that measurement turned up: a **group row lays out at 39px where a data row lays out at
+38**. The window assumes one height for both. It does not accumulate — the spacers are computed
+from the assumed height and only the window's own ~20 rows are laid out, so the error is bounded by
+the window rather than by the dataset — but it is the first concrete argument for variable row
+heights, and belongs to P2-3 with the rest of them.
+
 ## Choices the bench argued *against*
 
 Bench-gating cuts both ways. These looked worth doing and measurably were not:

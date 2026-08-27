@@ -57,6 +57,17 @@ const props = withDefaults(
     storageFields?: ColumnLayoutField[]
     /** Rows per page. Ignored when a `state` is supplied — that state decides. */
     pageSize?: number
+    /**
+     * Renders every row as one scroll rather than a page at a time: here that
+     * means a page size of everything. The window itself belongs to whatever
+     * renders the body — `VirtualBody`, in the preset.
+     */
+    virtual?: boolean
+    /**
+     * Which rows a virtual body actually rendered, so the roving tabindex lands
+     * on a cell that exists. Ordinary tables leave it undefined.
+     */
+    renderedRowIds?: RowId[]
     siblingCount?: number
     /** Turns column drag-to-reorder off for the whole table. */
     reorderable?: boolean
@@ -110,6 +121,8 @@ const table = useTable<TRow>({
   storageKey: props.storageKey,
   storageFields: props.storageFields,
   pageSize: props.pageSize,
+  virtual: () => props.virtual ?? false,
+  renderedRowIds: () => props.renderedRowIds,
   siblingCount: () => props.siblingCount,
   reorderable: () => props.reorderable,
   initialGroupBy: props.initialGroupBy,

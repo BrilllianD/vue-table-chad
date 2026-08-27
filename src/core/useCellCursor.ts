@@ -27,6 +27,20 @@ export interface UseCellCursorOptions<TRow> {
    * read at setup cannot do.
    */
   initial?: CellPosition
+  /**
+   * Which of the rows are actually in the document, when that is a smaller set
+   * than the rows the cursor can address.
+   *
+   * Read by `tabStop` and by nothing else. A virtualized body renders a window
+   * — the cursor still walks every row, because a position is an identity and
+   * scrolling does not change which row it names, but the cell carrying
+   * `tabindex="0"` has to be one a Tab can actually reach. Without this the
+   * grid drops out of the tab order entirely whenever the ring is scrolled out
+   * of view, which is the opposite of what a roving tabindex is for.
+   *
+   * Omitted — the ordinary case — every addressable row is a rendered one.
+   */
+  renderedRowIds?: MaybeRefOrGetter<RowId[] | undefined>
 }
 
 /** Cursor position, predicates, and the movers. */
@@ -156,18 +170,27 @@ export function useCellCursor<TRow>(
     return map
   })
 
+  /**
+   * The rows a Tab can land on. The addressable ones unless a caller has said
+   * otherwise — see `renderedRowIds`.
+   */
+  const tabbableRowIds = computed<RowId[]>(
+    () => toValue(options.renderedRowIds) ?? rowIds.value,
+  )
+
   const tabStop = computed<CellPosition | null>(() => {
     const current = position.value
     if (
       current &&
-      rowIds.value.includes(current.rowId) &&
+      tabbableRowIds.value.includes(current.rowId) &&
       columnIds.value.includes(current.columnId)
     ) {
       return current
     }
-    // No cursor, or one pointing at a row that is no longer rendered. Either
-    // way the grid still needs a way in, so the first cell nominates itself.
-    const firstRow = rowIds.value[0]
+    // No cursor, or one pointing at a row that is not in the document — off
+    // this page, or outside a virtual window. Either way the grid still needs
+    // a way in, so the first rendered cell nominates itself.
+    const firstRow = tabbableRowIds.value[0]
     const firstColumn = columnIds.value[0]
     if (firstRow === undefined || firstColumn === undefined) return null
     return { rowId: firstRow, columnId: firstColumn }
