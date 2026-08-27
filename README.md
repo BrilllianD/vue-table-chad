@@ -104,6 +104,7 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 | --- | --- | --- |
 | [Using it in another project](docs/getting-started.md) | Installing it, the row type it insists on, the `DataTable` props and slots, and the three levels you can build a table at. | Overview |
 | […from plain JavaScript](docs/getting-started-js.md) | The same, without TypeScript: what a column accepts, the four mistakes the compiler would have caught, and how to get autocomplete back with JSDoc. | Overview |
+| [Porting an existing table](docs/examples/) | A real server-paginated Options API component moved onto `useTableState` + `useServerDataSource`, keeping its own markup, mixins and widgets. | — |
 | [The two contracts](docs/contracts.md) | `QueryState` and `DataSource` — the two interfaces everything else is written against. | Core only |
 | [Local and server data](docs/data-sources.md) | `useLocalDataSource`, `useServerDataSource`, and why swapping one for the other changes nothing above. | Server data |
 | [Excel-style filters](docs/filtering.md) | The value checklist, condition rules, and facets. | Filters |
@@ -114,10 +115,7 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 | [Column layout](docs/column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. | Column layout |
 | [Header bands](docs/column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. | Header bands |
 | [Keyboard navigation](docs/keyboard.md) | The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it. | Cell cursor |
-
-Editable rows — `useRowEditing`, a draft per row, cell or row mode, validation, and a save the
-server can refuse — have no page of their own yet. They run in the demo's **Editing** view, and
-[Keyboard navigation](docs/keyboard.md) covers how the cursor drives them.
+| [Editing cells](docs/editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. | Editing |
 
 The full API — every export, with what it is for — is the **API reference** tab of `pnpm demo`.
 It is generated from the doc comments in `src/`, so it cannot fall behind the code.

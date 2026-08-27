@@ -219,9 +219,7 @@ measurement unreliable — expect to drive `PerfView` by hand.
 
 ## Housekeeping, independent of the above
 
-- **Editable rows shipped without a docs page.** Every other feature has a topic page in README's
-  docs table; editing appears only inside [`docs/keyboard.md`](docs/keyboard.md), as the thing
-  `Enter` opens. It wants a `docs/editing.md` and a row in that table.
+- Nothing outstanding.
 
 ---
 
