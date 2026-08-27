@@ -12,6 +12,9 @@ pointer.
 Off by default, and off means off: no `role="grid"`, no `tabindex`, no cursor attributes, and
 editable cells keep the button that is their only keyboard route without one.
 
+The editing session the cursor drives — drafts, validation, and what a save does — is
+[Editing cells](editing.md); this page is only the navigation over it.
+
 ## The keys
 
 | Key | |
