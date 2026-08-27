@@ -1,5 +1,13 @@
 # Virtual rows
 
+<script setup>
+import Example from './.vitepress/examples/virtualization.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/virtualization.vue
+
 A hundred thousand rows as one continuous scroll, with about thirty of them in the document.
 
 ```vue

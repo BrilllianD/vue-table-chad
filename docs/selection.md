@@ -1,5 +1,13 @@
 # Selection
 
+<script setup>
+import Example from './.vitepress/examples/selection.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/selection.vue
+
 ```ts
 const source = /* … */
 <DataTable :columns="columns" :source="source" selectable @update:selection="ids = $event" />

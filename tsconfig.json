@@ -38,6 +38,8 @@
     "demo/**/*.vue",
     "bench/**/*.ts",
     "scripts/**/*.ts",
-    "*.config.ts"
+    "*.config.ts",
+    "docs/**/*.ts",
+    "docs/**/*.vue"
   ]
 }

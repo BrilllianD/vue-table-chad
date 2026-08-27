@@ -1,5 +1,13 @@
 # The two contracts
 
+<script setup>
+import Example from './.vitepress/examples/contracts.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/contracts.vue
+
 Everything hangs off these. Learn them and the rest follows.
 
 ## `QueryState` — what to show
