@@ -45,6 +45,19 @@ const stickyHeader = ref(true)
  */
 const bandRule = ref('1px')
 
+/**
+ * The same rule again, as a prop rather than a variable.
+ *
+ * Three states, not two, because `undefined` is a real one: the prop then
+ * emits nothing and the `--vt-band-border-width` select above governs. Pass it
+ * and it wins — it arrives as an inline custom property on `.vt-datatable`,
+ * which is the element the token is declared on.
+ */
+const bandRulesProp = ref<'unset' | 'on' | 'off'>('unset')
+const bandRules = computed(() =>
+  bandRulesProp.value === 'unset' ? undefined : bandRulesProp.value === 'on',
+)
+
 /** Whether *Employment record* declares styling of its own. */
 const styledBand = ref(true)
 
@@ -123,6 +136,7 @@ function toggle(band: ColumnGroupDef): void {
       'ColumnLayoutState.collapsedGroups',
       'columnGroupPaths',
       'columnBandEdges',
+      'DataTable bandRules',
       'BandEdge',
     ]"
   >
@@ -136,6 +150,14 @@ function toggle(band: ColumnGroupDef): void {
             <option value="0px">0px</option>
             <option value="1px">1px</option>
             <option value="3px">3px</option>
+          </select>
+        </label>
+        <label>
+          band-rules
+          <select v-model="bandRulesProp">
+            <option value="unset">(unset)</option>
+            <option value="on">true</option>
+            <option value="off">false</option>
           </select>
         </label>
         <label><input v-model="styledBand" type="checkbox" /> style one band</label>
@@ -185,6 +207,15 @@ function toggle(band: ColumnGroupDef): void {
       first three follow it down into the body, the class stays in the header.
     </p>
 
+    <p class="note">
+      <code>band-rules</code> is the same width as a prop. Left
+      <strong>(unset)</strong> it emits nothing and the variable above governs —
+      which is what lets a stylesheet keep setting its own width. Pass it and the prop wins,
+      because it lands as an inline custom property on the element the token is declared on.
+      <code>column-rules</code> is its counterpart for the separators between <em>all</em>
+      columns, shown on the <strong>Column layout</strong> view.
+    </p>
+
     <DataTable
       :columns="groupedEmployeeColumns"
       :column-groups="styledBands"
@@ -192,6 +223,7 @@ function toggle(band: ColumnGroupDef): void {
       :state="state"
       :selectable="selectable"
       :sticky-header="stickyHeader"
+      :band-rules="bandRules"
       storage-key="vt-demo-header-bands"
       show-footer
       footer-label="All 400"

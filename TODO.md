@@ -14,7 +14,7 @@ One line per series. The commits carry the detail; this is the map.
 | --- | --- |
 | P1-1–P1-12 | **Prove and fix.** Benchmarks, then the pipeline work they justified — stages depending on query *fields*, a split group tree, sort keys projected per row. `tests/invalidation.spec.ts` counts the passes each interaction is allowed to move; the numbers are in [`bench/BASELINE.md`](bench/BASELINE.md). |
 | E1–E6 | Editable rows — `useRowEditing`, a draft per row, validated and saved against a server that can refuse |
-| G1–G8 | Header bands — multi-row `<thead>`, nested bands, folding one shut by subtracting from `visible`, a rule where a band ends, per-band overrides |
+| G1–G9 | Header bands — multi-row `<thead>`, nested bands, folding one shut by subtracting from `visible`, a rule where a band ends, per-band overrides, both vertical rules as props |
 | K1–K6, N1–N10 | The cell cursor — a focus grid, a roving tabindex, `Enter` to edit, paging with `Ctrl`+arrow, `autofocusCursor`. See [Keyboard navigation](docs/keyboard.md). |
 | R1–R8 | **Code health.** No feature changed: `useTable()` out of `TableRoot.vue`, `DataTable.vue` 972 → 588 lines, `table.css` into ten partials with a byte-identical build, `noUncheckedIndexedAccess` on, and `tests/apiSurface.spec.ts` enforcing that every value export appears in the demo. |
 | P2-1, P2-2 | Row virtualization — `useVirtualRows`, a `<VirtualBody>` primitive, and `virtual` on the preset. See [Virtualization](docs/virtualization.md). |

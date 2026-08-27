@@ -179,6 +179,8 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `showFooter` | `boolean` | `false` | Aggregates every loaded row using the columns' `aggregate`. |
 | `footerLabel` | `string` | `'Total'` | Text in the footer's leading cell. |
 | `showToolbar` / `showSearch` / `showColumnsMenu` / `showGroupMenu` / `showPagination` | `boolean` | `true` | Regions on or off. |
+| `columnRules` | `boolean` | unset | Vertical rules between every pair of columns. Unset emits nothing, so a stylesheet setting `--vt-body-border-vertical-width` still governs. |
+| `bandRules` | `boolean` | unset | The rule where a band's columns end. Needs `columnGroups`; unset emits nothing and `--vt-band-border-width` governs. |
 | `stickyHeader` | `boolean` | `true` | |
 | `emptyMessage` / `loadingMessage` | `string` | see below | `'No rows match the current filters.'` / `'Loading…'` |
 | `editing` | `UseRowEditing<TRow>` | — | A session from `useRowEditing`. Absent means read-only. |

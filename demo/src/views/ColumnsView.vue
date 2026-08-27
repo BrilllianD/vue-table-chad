@@ -68,6 +68,9 @@ const columns: UseColumnsResult<Employee> = useColumns<Employee>(
  * reload, and it is still there. Unticking it drops the saved entry — that is
  * the whole point of owning the writes by hand instead of passing `storage`.
  */
+/** `column-rules`: vertical separators between every pair of columns. */
+const columnRules = ref(false)
+
 const persist = ref(true)
 
 watch(
@@ -127,6 +130,7 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       'setPinned',
       'resetLayout',
       'DataTable storageKey',
+      'DataTable columnRules',
       'readColumnLayout',
       'writeColumnLayout',
       'useColumnDnd',
@@ -152,6 +156,12 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
           <input v-model="persist" type="checkbox" />
           Persist to localStorage
         </label>
+        <!--
+          The prop form of `--vt-body-border-vertical-width`, which is `0px` by
+          default. Off is what the table always looked like; on is the
+          separators without reaching for the variable.
+        -->
+        <label><input v-model="columnRules" type="checkbox" /> column-rules</label>
         <span class="hint">(the table below does the same with one prop)</span>
         <button type="button" @click="pushToTable()">Push layout into the table ↓</button>
         <button type="button" @click="forgetTableLayout()">Forget the table's saved layout</button>
@@ -268,6 +278,7 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       :source="source"
       :state="state"
       :storage-key="TABLE_STORAGE.key"
+      :column-rules="columnRules"
       @update:column-order="columns.setOrder($event)"
     />
 

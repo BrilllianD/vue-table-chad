@@ -119,6 +119,32 @@ const props = withDefaults(
     showFooter?: boolean
     /** Text for the footer's leading cell. */
     footerLabel?: string
+    /**
+     * Vertical rules between every pair of columns, header and body alike.
+     *
+     * The declarative form of `--vt-body-border-vertical-width`, which is `0px`
+     * by default because column separators are a deliberate look rather than
+     * one every table should start with.
+     *
+     * Left unset it emits nothing at all, so a stylesheet that sets the
+     * variable itself — to `3px`, or to a width that varies by breakpoint —
+     * keeps working. Pass it and the prop wins, because it arrives as an inline
+     * custom property on the same element the token is declared on.
+     */
+    columnRules?: boolean
+    /**
+     * The rule beside a band, where its run of columns ends — drawn the full
+     * height of the table rather than only in the header.
+     *
+     * The declarative form of `--vt-band-border-width`, which unlike the column
+     * separators is `1px` by default: it is emitted only where a boundary
+     * actually falls, so a table declaring no `columnGroups` never sees it.
+     * Which is also why this prop does nothing on a table without bands —
+     * there is no `data-band-edge` for it to reach.
+     *
+     * Unset emits nothing, exactly as `columnRules` does.
+     */
+    bandRules?: boolean
     showToolbar?: boolean
     showSearch?: boolean
     showColumnsMenu?: boolean
@@ -163,6 +189,12 @@ const props = withDefaults(
     autofocusCursor?: boolean
   }>(),
   {
+    // Vue casts an absent boolean prop to `false`, which would make "not
+    // passed" indistinguishable from "passed as false" — and these two have to
+    // stay apart, because unset means "emit nothing and let the stylesheet's
+    // own `--vt-*` value stand".
+    columnRules: undefined,
+    bandRules: undefined,
     selectable: false,
     cellCursor: false,
     autofocusCursor: false,
@@ -198,6 +230,28 @@ const emit = defineEmits<{
  * `selectable="single"` into multi-select.
  */
 const selectable = computed(() => props.selectable !== false)
+
+/**
+ * The two rule widths, as inline custom properties on `.vt-datatable`.
+ *
+ * That element and no other: both tokens are declared on `.vt-datatable`
+ * itself, so a value set on an ancestor never reaches them — which is also why
+ * an inline style here beats the stylesheet without needing `!important`.
+ *
+ * An untouched prop contributes nothing rather than a zero. Emitting `0px` for
+ * "unset" would silently overrule any stylesheet that had set these itself,
+ * turning a prop nobody passed into a restyle nobody asked for.
+ */
+const ruleStyle = computed(() => {
+  const style: Record<string, string> = {}
+  if (props.columnRules !== undefined) {
+    style['--vt-body-border-vertical-width'] = props.columnRules ? '1px' : '0px'
+  }
+  if (props.bandRules !== undefined) {
+    style['--vt-band-border-width'] = props.bandRules ? '1px' : '0px'
+  }
+  return Object.keys(style).length > 0 ? style : undefined
+})
 
 /**
  * Row mode needs somewhere to put Save and Cancel, so it takes a trailing
@@ -449,6 +503,7 @@ function onActivate(
   >
     <div
       class="vt-datatable"
+      :style="ruleStyle"
       :data-loading="loading || undefined"
       :aria-busy="loading || undefined"
     >
