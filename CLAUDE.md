@@ -16,7 +16,7 @@ pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
 pnpm build         # typecheck + vite lib build -> dist/
-pnpm demo          # http://localhost:5174 — 16 views, every feature one view each
+pnpm demo          # http://localhost:5174 — 17 views, every feature one view each
 pnpm dev           # http://localhost:5173 — the smaller playground
 pnpm build:docs    # the demo, folded into one self-contained page
 ```
@@ -78,6 +78,11 @@ The rules it encodes:
   what a group collapse costs.
 - **The cell cursor never reaches the pipeline.** Moving it, clamping it at an edge, or turning the
   page from it costs what turning the page always cost. A clamped move writes no state at all.
+- **Scrolling a virtual window redoes nothing.** A scroll that does not move the window propagates
+  nothing at all — `start` and `end` are floored integers, and a computed returning the same value
+  notifies nobody — and one that does move it moves the window and no pipeline stage. This matters
+  more than the paging equivalent it mirrors: `virtual` is a page size of *everything*, so each
+  pass it must not trigger would be running over the whole dataset.
 - **Editing never reaches the pipeline until a save succeeds.** Opening a draft, typing into it, a
   draft that fails validation, and a save the server rejects all leave the dataset alone. A save
   that succeeds does redo it — exactly once.

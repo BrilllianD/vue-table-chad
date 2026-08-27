@@ -32,7 +32,7 @@ pnpm build       # library -> dist/
 pnpm build:docs  # the demo, folded into one self-contained page
 ```
 
-`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 16 views, every export, one
+`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 17 views, every export, one
 view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
 
 Not on npm yet: `@brillliand/vue-table-chad` is the name the examples import from — an alias onto
@@ -127,11 +127,15 @@ turned out not to be worth it, [`TODO.md`](TODO.md) for where this stands and wh
 
 ## Not included
 
-Row virtualization, tree rows (parent/child hierarchies, as opposed to the value-based grouping in
+Tree rows (parent/child hierarchies, as opposed to the value-based grouping in
 [Grouping rows](docs/grouping.md)), expandable detail rows, pinned rows, pivoting, and CSV or
 clipboard export. Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer. There is no
 i18n either: around 35 English strings are hardcoded across the components, `aria-label`s included.
 
-The core is structured so virtualization slots in at the rendering layer without touching the
-pipeline — `filteredRows` on the local source is the hook for it. [`TODO.md`](TODO.md) carries the
-rest, and why each of these is a decision rather than an oversight.
+Row virtualization has since landed — see [Virtual rows](docs/virtualization.md) — though with
+uniform row heights only. It did slot in at the rendering layer without touching the pipeline, but
+not through the hook this file used to predict: `filteredRows` on the local source would have meant
+a second row path, one the grouping, the selection and the cursor all read differently. What it
+took instead was a page size of everything, so there is still exactly one list.
+[`TODO.md`](TODO.md) carries the rest, and why each of these is a decision rather than an
+oversight.
