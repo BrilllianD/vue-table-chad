@@ -102,6 +102,8 @@ Each page is one topic, and each has a matching view in `pnpm demo` where the sa
 
 | Page | What it covers | See it live |
 | --- | --- | --- |
+| [Using it in another project](docs/getting-started.md) | Installing it, the row type it insists on, the `DataTable` props and slots, and the three levels you can build a table at. | Overview |
+| […from plain JavaScript](docs/getting-started-js.md) | The same, without TypeScript: what a column accepts, the four mistakes the compiler would have caught, and how to get autocomplete back with JSDoc. | Overview |
 | [The two contracts](docs/contracts.md) | `QueryState` and `DataSource` — the two interfaces everything else is written against. | Core only |
 | [Local and server data](docs/data-sources.md) | `useLocalDataSource`, `useServerDataSource`, and why swapping one for the other changes nothing above. | Server data |
 | [Excel-style filters](docs/filtering.md) | The value checklist, condition rules, and facets. | Filters |
