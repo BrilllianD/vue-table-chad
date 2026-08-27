@@ -6,7 +6,7 @@ import dts from 'vite-plugin-dts'
 export default defineConfig({
   plugins: [
     vue(),
-    dts({ tsconfigPath: './tsconfig.build.json', rollupTypes: false }),
+    dts({ tsconfigPath: './tsconfig.build.json', rollupTypes: true }),
   ],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
@@ -14,13 +14,15 @@ export default defineConfig({
   build: {
     lib: {
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
-      name: 'VueTable',
       fileName: 'vue-table',
+      // ESM only, deliberately — see package.json's exports map. `name` and
+      // `output.globals` were the UMD/IIFE half of this config and did nothing
+      // under `formats: ['es']`.
       formats: ['es'],
     },
     rollupOptions: {
       external: ['vue'],
-      output: { globals: { vue: 'Vue' }, assetFileNames: 'vue-table.[ext]' },
+      output: { assetFileNames: 'vue-table.[ext]' },
     },
   },
 })

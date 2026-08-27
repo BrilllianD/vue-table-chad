@@ -36,15 +36,16 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/vue-table.js",
   "module": "./dist/vue-table.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/vue-table.js"
+      "import": "./dist/vue-table.js",
+      "default": "./dist/vue-table.js"
     },
-    "./style.css": "./dist/vue-table.css"
+    "./style.css": "./dist/vue-table.css",
+    "./package.json": "./package.json"
   },
   "sideEffects": [
     "**/*.css"
@@ -57,11 +58,13 @@
     "build:demo": "vite build --config vite.demo.config.ts",
     "build:docs": "pnpm build:demo && node demo/inline.mjs",
     "docs:api": "node scripts/generate-api-reference.ts",
+    "size": "node scripts/check-bundle-size.ts",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "bench": "vitest bench --run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm test && pnpm build"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

@@ -2,6 +2,7 @@ import { computed, ref, watch, type ComputedRef, type MaybeRefOrGetter, type Ref
 import { toValue } from 'vue'
 import type { ColumnDef, ColumnGroupDef, PinSide, ResolvedColumn, SortDirection } from './types'
 import { columnBandEdges, columnGroupPaths, type BandEdge } from './columnGroups'
+import { devChecksEnabled, devWarn } from './devWarn'
 import {
   clearColumnLayout,
   normalizeColumnStorage,
@@ -113,6 +114,37 @@ export interface UseColumnsResult<TRow> {
 
 const DEFAULT_WIDTH = 160
 
+/**
+ * Says out loud what a bad column set does quietly.
+ *
+ * Neither problem throws. A table that refuses to render because one id is
+ * empty is worse than one that renders and complains, and both mistakes are
+ * recoverable: the column still appears, it just cannot be addressed by id —
+ * which is how every layout, sort and filter lookup finds it.
+ *
+ * Deduped by message in `devWarn`, so the same duplicate reported on a later
+ * re-evaluation stays quiet while a *different* one still gets through.
+ */
+function warnAboutColumns<TRow>(defs: ColumnDef<TRow>[]): void {
+  const seen = new Set<string>()
+  for (const column of defs) {
+    if (!column.id) {
+      devWarn(
+        'A column was declared with no `id`. Layout, sorting and filtering all address ' +
+          'columns by id, so this one cannot be hidden, reordered, resized or sorted.',
+      )
+      continue
+    }
+    if (seen.has(column.id)) {
+      devWarn(
+        `Duplicate column id "${column.id}". Ids address columns, so the layout, sort and ` +
+          'filter state for these two is one entry that both will answer to.',
+      )
+    }
+    seen.add(column.id)
+  }
+}
+
 function clampWidth<TRow>(column: ColumnDef<TRow>, width: number): number {
   const min = column.minWidth ?? 60
   const max = column.maxWidth ?? Number.POSITIVE_INFINITY
@@ -150,9 +182,31 @@ export function useColumns<TRow>(
 
   const source = computed(() => toValue(columns))
 
+  /**
+   * The declared columns, scanned for the two mistakes that corrupt a table
+   * silently rather than erroring: a column with no `id`, and two columns
+   * sharing one.
+   *
+   * Its own computed rather than a check inside `ordered` or `all`, so the walk
+   * depends on the column *definitions* alone. Reordering, resizing or pinning
+   * re-evaluates those; the defs are what a mistake lives in, and rescanning
+   * every column on every drag would put an O(columns) pass on the one path
+   * the layout work is careful to keep off it.
+   *
+   * Returns `defs` by identity, so standing in front of `ordered` costs
+   * nothing: a computed handing back the same reference notifies nobody.
+   */
+  const checked = computed<ColumnDef<TRow>[]>(() => {
+    const defs = source.value
+    // The guard skips the *scan*, not merely the message — `devWarn` alone
+    // would still pay for the walk in a consumer's production build.
+    if (devChecksEnabled()) warnAboutColumns(defs)
+    return defs
+  })
+
   /** Declared order, overridden by any explicit ordering the user set. */
   const ordered = computed<ColumnDef<TRow>[]>(() => {
-    const defs = source.value
+    const defs = checked.value
     const order = layout.value.order
     if (order.length === 0) return defs
 
