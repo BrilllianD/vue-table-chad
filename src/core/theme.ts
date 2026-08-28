@@ -108,6 +108,11 @@ const THEME_TOKENS = [
   'bandBorderColor',
   'outerBorderWidth',
   'outerBorderColor',
+  'pinBorderWidth',
+  'pinBorderColor',
+  'rowStateBorderWidth',
+  'rowStateBorderColor',
+  'rowStateErrorBorderColor',
 
   // Metrics.
   'radius',

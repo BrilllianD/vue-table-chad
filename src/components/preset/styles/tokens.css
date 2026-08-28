@@ -157,6 +157,22 @@
   /* The frame around the scroll box. Zero on all three = no rules at all. */
   --vtc-outer-border-width: var(--vtc-stroke-1);
   --vtc-outer-border-color: var(--vtc-border);
+  /*
+    The separator a pinned column draws against the columns it scrolls over.
+    An inset shadow rather than a border, so pinning a column does not change
+    its width and reflow the row — which is also why it needs its own width
+    token rather than borrowing a body rule's.
+  */
+  --vtc-pin-border-width: var(--vtc-stroke-1);
+  --vtc-pin-border-color: var(--vtc-border);
+  /*
+    The stripe down the leading edge of a row carrying `data-row-state`. Two
+    colours, because the error state is the one a reader has to be able to pick
+    out of a column of saving rows at a glance.
+  */
+  --vtc-row-state-border-width: var(--vtc-stroke-2);
+  --vtc-row-state-border-color: var(--vtc-accent);
+  --vtc-row-state-error-border-color: var(--vtc-danger);
   --vtc-text: #1f2933;
   --vtc-text-muted: #66727f;
   --vtc-accent: #2563eb;

@@ -106,11 +106,13 @@
   keep them adjacent.
 */
 .vt-tr[data-row-state] > .vt-td:first-child {
-  --_vtc-shadow-row-state: inset var(--vtc-stroke-2) 0 0 0 var(--vtc-accent);
+  --_vtc-shadow-row-state: inset var(--vtc-row-state-border-width) 0 0 0
+    var(--vtc-row-state-border-color);
 }
 
 .vt-tr[data-row-state='error'] > .vt-td:first-child {
-  --_vtc-shadow-row-state: inset var(--vtc-stroke-2) 0 0 0 var(--vtc-danger);
+  --_vtc-shadow-row-state: inset var(--vtc-row-state-border-width) 0 0 0
+    var(--vtc-row-state-error-border-color);
 }
 
 .vt-tr[data-row-state='saving'] { opacity: var(--vtc-opacity-busy); }

@@ -297,11 +297,11 @@
 .vt-scroll[data-sticky] .vt-thead .vt-th[data-pinned] { z-index: var(--vtc-z-sticky-pinned); }
 
 .vt-th[data-pinned='left'], .vt-td[data-pinned='left'] {
-  --_vtc-shadow-pin: 1px 0 0 var(--vtc-border);
+  --_vtc-shadow-pin: var(--vtc-pin-border-width) 0 0 var(--vtc-pin-border-color);
 }
 
 .vt-th[data-pinned='right'], .vt-td[data-pinned='right'] {
-  --_vtc-shadow-pin: -1px 0 0 var(--vtc-border);
+  --_vtc-shadow-pin: calc(-1 * var(--vtc-pin-border-width)) 0 0 var(--vtc-pin-border-color);
 }
 
 /* The opaque base each layer sits on. */

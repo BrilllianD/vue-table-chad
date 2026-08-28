@@ -148,6 +148,19 @@ Every width has a colour beside it. The frame's went missing for a while — it 
 `--vtc-border` in the stylesheet while this list implied otherwise — which is worth knowing if you
 recall setting it and seeing nothing happen.
 
+Two more rules are drawn as inset shadows rather than as borders, because they appear and disappear
+with state and a real border would resize the cell under the pointer:
+
+```css
+.vt-datatable {
+  --vtc-pin-border-width: 1px;                        /* a pinned column's separator */
+  --vtc-pin-border-color: var(--vtc-border);
+  --vtc-row-state-border-width: 2px;                  /* the stripe on an editing row */
+  --vtc-row-state-border-color: var(--vtc-accent);
+  --vtc-row-state-error-border-color: var(--vtc-danger);
+}
+```
+
 The header underline is its own variable on purpose: a borderless body usually still wants the
 header separated from the rows.
 
