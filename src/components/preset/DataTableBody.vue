@@ -63,6 +63,16 @@ const props = defineProps<{
   rowHeight: number
   /** Rows kept beyond each edge of the viewport. */
   overscan?: number
+  /** Measure each rendered row rather than trusting `rowHeight`. */
+  measureRows?: boolean
+  /** How close to the end of the list the window must come for `endReached`. */
+  endThreshold?: number
+  /**
+   * How many header rows sit above the body, so a windowed row can number
+   * itself over the whole table. `undefined` means "do not number" — which is
+   * the right answer when every row is rendered.
+   */
+  headerRowCount?: number
   /** The element that scrolls. `null` until `DataTable`'s template ref lands. */
   scrollParent: HTMLElement | null
 }>()
@@ -72,6 +82,8 @@ const emit = defineEmits<{
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]
   rowSaveError: [row: TRow, error: unknown]
+  /** The window reached the end of the list — an infinite source's cue. */
+  endReached: []
   /**
    * Which rows the window actually rendered.
    *
@@ -96,6 +108,18 @@ interface VirtualBodyView {
 }
 
 const body = ref<VirtualBodyView | null>(null)
+
+/**
+ * A display row's identity — the same string the `v-for` below keys on.
+ *
+ * `VirtualBody` uses it to keep the scroll offset pointing at the row it
+ * pointed at before the list changed, which is what makes collapsing a band
+ * while scrolled deep land somewhere the user recognises: the band's own header
+ * row, since every row it was holding has just left the list.
+ */
+function displayRowKey(item: DisplayRow<TRow>, _index: number): unknown {
+  return item.kind === 'group' ? `group:${item.group.key}` : props.rowKey(item.row, item.index)
+}
 
 /**
  * The window, as row identities, reported upwards whenever it moves.
@@ -326,9 +350,13 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
     :overscan="overscan"
     :scroll-parent="scrollParent"
     :enabled="virtual"
+    :item-key="displayRowKey"
+    :measure="measureRows"
+    :end-threshold="endThreshold"
+    @end-reached="$emit('endReached')"
     :colspan="columns.length + extraColumns"
   >
-    <template #default="{ items }">
+    <template #default="{ items, start }">
       <tr v-if="error" class="vt-row-message">
         <td :colspan="columns.length + extraColumns">
           <slot name="error" :error="error" :refresh="source.refresh">
@@ -353,10 +381,16 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
         two hold the same rows in the same order, so there is only one
         code path to keep correct.
       -->
-      <template v-for="item in items" v-else>
+      <!--
+        `offset` is the item's place in the *window*; `start` is where the
+        window begins, and `headerRowCount` is what sits above the body. Their
+        sum plus one is `aria-rowindex`, which is 1-based over the whole table.
+      -->
+      <template v-for="(item, offset) in items" v-else>
         <TableGroupRow
           v-if="item.kind === 'group'"
           :key="`group:${item.group.key}`"
+          :row-index="headerRowCount === undefined ? undefined : headerRowCount + start + offset + 1"
           :group="item.group"
           :columns="columns"
           :leading="selectable ? 1 : 0"
@@ -377,6 +411,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
         <TableRow
           v-else
           :key="rowKey(item.row, item.index)"
+          :row-index="headerRowCount === undefined ? undefined : headerRowCount + start + offset + 1"
           :row="item.row"
           :columns="columns"
           :index="item.index"

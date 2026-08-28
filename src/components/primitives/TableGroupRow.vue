@@ -47,6 +47,12 @@ const props = withDefaults(
     colspan?: number
     /** Overrides the injected collapse state. */
     collapsed?: boolean
+    /**
+     * This row's 1-based position in the whole table, header rows included —
+     * `aria-rowindex`. A group header is a row like any other to a screen
+     * reader, so a windowed body has to number it too. See `TableRow.rowIndex`.
+     */
+    rowIndex?: number
   }>(),
   // Vue casts an absent boolean prop to `false`, which would read as "this
   // group is open" and shadow the injected state for good. The explicit
@@ -131,6 +137,7 @@ function toggle(): void {
     :data-depth="group.depth"
     :data-collapsed="collapsed || undefined"
     :data-column="group.columnId"
+    :aria-rowindex="rowIndex"
   >
     <td class="vt-group-cell" :colspan="colspan" :style="{ '--vt-group-depth': group.depth }">
       <button

@@ -25,6 +25,7 @@ The editing session the cursor drives — drafts, validation, and what a save do
 | `PageUp` / `PageDown` | ten rows |
 | `Ctrl`/`Cmd`+`←` / `→` | previous / next **page** |
 | `Shift`+`←` / `→` | scroll one column sideways, cursor stays put |
+| `Ctrl`/`Cmd`+`↑` / `↓` | scroll one screenful, cursor stays put |
 | `Enter` / `F2` | open this cell's editor |
 | `Esc` | cancel the edit, and hand the focus back to the cell |
 
@@ -73,9 +74,16 @@ band rather than under it, and the last press of all goes to the far end rather 
 of a column wider than the box. `Ctrl`/`Cmd`+`Shift`+`←`/`→` stays a page turn rather than becoming
 a fourth thing.
 
-The vertical pair is deliberately unclaimed. `Shift`+`↑`/`↓` is the spreadsheet gesture for
-extending a selection, and spending it on scrolling would take the obvious binding away from a
-feature the table may yet grow.
+`Ctrl`/`Cmd`+`↑`/`↓` is its vertical twin, and the gesture a **virtual** table was missing: with no
+pages, `Ctrl`/`Cmd`+`←`/`→` has nothing to turn, and the bare arrows step one row through however
+many rows there are. It scrolls one screenful and leaves the ring where it is — which is what
+separates it from `PageUp`/`PageDown`, where the cursor moves ten rows and drags the viewport along
+behind it. A screenful is the box's height less the sticky header, which covers the top of it
+permanently, and less one row of overlap, so the row you were reading is still on screen afterwards.
+
+`Shift`+`↑`/`↓` stays deliberately unclaimed. It is the spreadsheet gesture for extending a
+selection, and spending it on scrolling would take the obvious binding away from a feature the table
+may yet grow.
 
 Whichever way it moves, the ring is scrolled into view — the *least* that works, and clear of the
 sticky header and of either pinned band rather than underneath them. Pinned cells are
@@ -203,18 +211,25 @@ cursorMoveFor(event)              // what a key press asked for, or undefined
 commitMoveFor(event, editorKind)  // where an Enter that commits should land
 pageMoveFor(event)                // -1, 1, or undefined — a page turn
 scrollMoveFor(event)              // -1, 1, or undefined — a sideways scroll
+viewportMoveFor(event)            // -1, 1, or undefined — a screenful of scroll
 nextPosition(from, move, rowIds, columnIds)   // where that lands, clamped
 nextScrollLeft(scrollLeft, inset, boundaries, direction, maxScrollLeft)  // and where that does
+nextScrollTop(scrollTop, viewportHeight, maxScrollTop, direction, inset, rowHeight)
 ```
 
-The four decoders are exclusive: no gesture is claimed by more than one, which is why a caller can
-try them in any order and act on the first that answers.
+The five decoders are exclusive: no gesture is claimed by more than one, which is why a caller can
+try them in any order and act on the first that answers. `tests/cellCursor.spec.ts` proves it by
+running every key against every combination of modifiers and failing if two of them answer.
 
 `nextScrollLeft` is the arithmetic behind `scrollMoveFor` with the DOM taken out of it. `boundaries`
 are the left edges of the columns that actually scroll and `inset` is the width of the left-pinned
 band, both measured by the caller — declared widths part company with rendered ones as soon as a
 `<colgroup>` carries a column the caller did not declare, which is exactly what the preset's
 selection and actions columns are.
+
+`nextScrollTop` is the same for the vertical gesture: a step is the viewport less `inset` — the
+sticky header, which sits over the top of the scrollport — less one row of overlap, clamped at both
+ends, and `undefined` when the box is already there.
 
 `cursorMoveFor` takes a structural gesture rather than a `KeyboardEvent`, so a key table can be
 tested with a plain object and with no DOM at all.
@@ -227,6 +242,11 @@ asserts all four O(dataset) counters stay at zero across an arrow, a `Home`/`End
 a `Ctrl`+`End`, and that a re-sort under a set cursor still costs exactly one sort pass. Turning
 the page with `Ctrl`+`←`/`→` costs what turning it by the pager costs — it is the same `setPage`,
 and the suite says so rather than assuming it.
+
+The two scroll gestures cost less still: they write no reactive state at all. `Shift`+`←`/`→` and
+`Ctrl`/`Cmd`+`↑`/`↓` each end in one assignment to the scroll box, and a press that would land where
+the box already is writes nothing — so holding either key at the end of its travel costs no scroll
+events either.
 
 Within the page, a row subscribes to two *fields* of the cursor rather than to its position, so a
 vertical move leaves them identical for every row but two and the rest stop at a string compare.

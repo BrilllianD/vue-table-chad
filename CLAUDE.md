@@ -11,12 +11,12 @@ however the plan moves.
 ## Commands
 
 ```bash
-pnpm test          # vitest, ~600 tests
+pnpm test          # vitest, ~740 tests
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
 pnpm build         # typecheck + vite lib build -> dist/
-pnpm demo          # http://localhost:5174 — 17 views, every feature one view each
+pnpm demo          # http://localhost:5174 — 18 views, every feature one view each
 pnpm dev           # http://localhost:5173 — the smaller playground
 pnpm build:docs    # the demo, folded into one self-contained page
 ```

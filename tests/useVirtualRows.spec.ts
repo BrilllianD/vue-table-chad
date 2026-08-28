@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectScope, ref, shallowRef, watch } from 'vue'
+import { effectScope, nextTick, ref, shallowRef, watch } from 'vue'
 import { OVERSCAN_ROWS, useVirtualRows } from '../src/core/useVirtualRows'
 
 /**
@@ -198,5 +198,193 @@ describe('useVirtualRows', () => {
     expect(virtual.end.value).toBe(100 + VISIBLE)
 
     dispose()
+  })
+
+  /**
+   * Anchoring: the offset means a place in the list, not a number of pixels.
+   *
+   * Every case here changes the list *above* the window and asks what the
+   * offset now points at. Without an anchor the answer is "whatever row now
+   * happens to sit at that pixel", which is what makes collapsing a band while
+   * scrolled deep feel like being teleported.
+   */
+  describe('scroll anchoring', () => {
+    /** The list, with an `itemKey`, scrolled to row 500. */
+    function anchored(count = 1000) {
+      const scope = effectScope()
+      const items = shallowRef(Array.from({ length: count }, (_, i) => `row-${i}`))
+      const virtual = scope.run(() =>
+        useVirtualRows(items, {
+          rowHeight: ROW_HEIGHT,
+          viewportHeight: VIEWPORT,
+          itemKey: (item: string) => item,
+        }),
+      )!
+      virtual.setScrollOffset(ROW_HEIGHT * 500)
+      virtual.items.value
+      return { virtual, items, dispose: () => scope.stop() }
+    }
+
+    it('keeps the row at the top of the viewport there when the list shortens above it', async () => {
+      const { virtual, items, dispose } = anchored()
+
+      // 100 rows removed from above the window — a band folding shut.
+      items.value = items.value.filter((_, index) => index >= 100 || index % 2 === 0)
+      await nextTick()
+
+      // `row-500` moved up by the 50 rows that went, and the offset moved with it.
+      expect(virtual.scrollOffset.value).toBe(ROW_HEIGHT * 450)
+      expect(virtual.items.value[OVERSCAN_ROWS]).toBe('row-500')
+      dispose()
+    })
+
+    it('keeps the fraction of a row the viewport is scrolled past', async () => {
+      const { virtual, items, dispose } = anchored()
+      virtual.setScrollOffset(ROW_HEIGHT * 500 + 13)
+
+      items.value = items.value.slice(10)
+      await nextTick()
+
+      expect(virtual.scrollOffset.value).toBe(ROW_HEIGHT * 490 + 13)
+      dispose()
+    })
+
+    it('falls back to the nearest surviving item above when the anchor itself goes', async () => {
+      const { virtual, items, dispose } = anchored()
+
+      // Everything from `row-460` to `row-540` gone, the anchor among them:
+      // the band the viewport was inside, folded shut.
+      items.value = items.value.filter((_, index) => index < 460 || index > 540)
+      await nextTick()
+
+      // `row-459` survived and is now the top of the viewport — you land on the
+      // band you just folded rather than 80 rows further down.
+      expect(virtual.scrollOffset.value).toBe(ROW_HEIGHT * 459)
+      expect(virtual.items.value[OVERSCAN_ROWS]).toBe('row-459')
+      dispose()
+    })
+
+    it('leaves the offset alone when nothing above the window survives', async () => {
+      const { virtual, items, dispose } = anchored()
+
+      items.value = Array.from({ length: 1000 }, (_, i) => `other-${i}`)
+      await nextTick()
+
+      expect(virtual.scrollOffset.value).toBe(ROW_HEIGHT * 500)
+      dispose()
+    })
+
+    it('leaves a list scrolled to the top alone', async () => {
+      const { virtual, items, dispose } = anchored()
+      virtual.setScrollOffset(0)
+
+      items.value = items.value.slice(10)
+      await nextTick()
+
+      expect(virtual.scrollOffset.value).toBe(0)
+      dispose()
+    })
+
+    it('does nothing at all without an itemKey', async () => {
+      const { virtual, items, dispose } = setup(1000)
+      virtual.setScrollOffset(ROW_HEIGHT * 500)
+      virtual.items.value
+
+      items.value = items.value.slice(10)
+      await nextTick()
+
+      // The old behaviour, and still the right one for a caller who has not
+      // said what an item *is*: the pixel stays put and the rows slide under it.
+      expect(virtual.scrollOffset.value).toBe(ROW_HEIGHT * 500)
+      expect(virtual.items.value[OVERSCAN_ROWS]).toBe('row-510')
+      dispose()
+    })
+  })
+
+  /**
+   * Measured heights. The declared `rowHeight` is an estimate, and a group row
+   * that lays out a pixel taller than a data row makes every offset below it
+   * wrong by a pixel — bounded by the window rather than accumulating, which is
+   * why this is polish, but wrong is wrong.
+   */
+  describe('measured item heights', () => {
+    it('reports nothing measured as the uniform arithmetic', () => {
+      const { virtual, dispose } = setup(1000)
+
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT)
+      expect(virtual.offsetFor(10)).toBe(10 * ROW_HEIGHT)
+      expect(virtual.indexAt(10 * ROW_HEIGHT)).toBe(10)
+
+      // A row that measures exactly what it was declared to be records nothing:
+      // the whole measured path stays switched off for a uniform list.
+      virtual.measureItem(3, ROW_HEIGHT)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT)
+      dispose()
+    })
+
+    it('moves every offset below a taller item', () => {
+      const { virtual, dispose } = setup(1000)
+
+      virtual.measureItem(2, ROW_HEIGHT + 20)
+
+      expect(virtual.offsetFor(2)).toBe(2 * ROW_HEIGHT)
+      expect(virtual.offsetFor(3)).toBe(3 * ROW_HEIGHT + 20)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT + 20)
+      dispose()
+    })
+
+    it('finds the item covering an offset, still the inverse of offsetFor', () => {
+      const { virtual, dispose } = setup(1000)
+      virtual.measureItem(2, ROW_HEIGHT + 20)
+
+      // The taller item spans its own 60px, and item 3 starts after them.
+      expect(virtual.indexAt(2 * ROW_HEIGHT)).toBe(2)
+      expect(virtual.indexAt(2 * ROW_HEIGHT + 59)).toBe(2)
+      expect(virtual.indexAt(3 * ROW_HEIGHT + 20)).toBe(3)
+      expect(virtual.indexAt(0)).toBe(0)
+      expect(virtual.indexAt(-100)).toBe(0)
+      expect(virtual.indexAt(1e9)).toBe(999)
+      dispose()
+    })
+
+    it('windows against the measured heights, spacers included', () => {
+      const { virtual, dispose } = setup(1000)
+      // Everything above the window one row taller: 100 rows, 100 extra pixels.
+      for (let index = 0; index < 100; index += 1) virtual.measureItem(index, ROW_HEIGHT + 1)
+
+      virtual.setScrollOffset(100 * ROW_HEIGHT + 100)
+
+      // The offset still lands on item 100 — which is the point, and what the
+      // uniform arithmetic would have got wrong by two and a half rows.
+      expect(virtual.start.value).toBe(100 - OVERSCAN_ROWS)
+      expect(virtual.spaceBefore.value).toBe(virtual.offsetFor(100 - OVERSCAN_ROWS))
+      expect(virtual.spaceBefore.value + virtual.spaceAfter.value).toBeLessThan(
+        virtual.totalSize.value,
+      )
+      dispose()
+    })
+
+    it('drops measurements when the list changes under them', () => {
+      const { virtual, items, dispose } = setup(1000)
+      virtual.measureItem(2, ROW_HEIGHT + 20)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT + 20)
+
+      // Index 2 is a different item now, so what was measured about it says
+      // nothing about the item that took its place.
+      items.value = items.value.slice(10)
+      expect(virtual.totalSize.value).toBe(990 * ROW_HEIGHT)
+      dispose()
+    })
+
+    it('ignores a zero or negative height', () => {
+      const { virtual, dispose } = setup(1000)
+
+      // What an unrendered element reports, and what happy-dom reports for
+      // everything: not a measurement, and it must not be recorded as one.
+      virtual.measureItem(2, 0)
+      virtual.measureItem(3, -5)
+      expect(virtual.totalSize.value).toBe(1000 * ROW_HEIGHT)
+      dispose()
+    })
   })
 })

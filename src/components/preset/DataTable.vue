@@ -25,6 +25,7 @@ import type { ColumnLayoutState } from '../../core/useColumns'
 import {
   commitMoveFor,
   nextScrollLeft,
+  nextScrollTop,
   type CellPosition,
 } from '../../core/cellCursor'
 import type { UsePagination } from '../../core/usePagination'
@@ -91,6 +92,22 @@ const props = withDefaults(
      * browser lays out with cannot drift apart.
      */
     rowHeight?: number
+    /**
+     * Measure each rendered row instead of trusting `rowHeight`.
+     *
+     * For a body whose rows are not all one height — a group header laying out
+     * taller than a data row is the usual case. It costs one forced layout per
+     * update, on the rows in the window, which is why it is off by default:
+     * `rowHeight` alone is exact for a uniform body, and its error elsewhere is
+     * bounded by the window rather than accumulating down the list.
+     */
+    measureRows?: boolean
+    /**
+     * How close to the end of the list a virtual window must come before
+     * `end-reached` fires, in rows. Larger fires earlier, which a slow request
+     * wants; `0` waits until the last row is rendered.
+     */
+    endThreshold?: number
     /** Rows kept rendered beyond each edge of the viewport. Defaults to four. */
     overscan?: number
     /** Drag column headers to reorder them. */
@@ -201,6 +218,8 @@ const props = withDefaults(
     reorderable: true,
     virtual: false,
     rowHeight: 38,
+    measureRows: false,
+    endThreshold: 0,
     showFooter: false,
     footerLabel: 'Total',
     showToolbar: true,
@@ -222,6 +241,15 @@ const emit = defineEmits<{
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]
   rowSaveError: [row: TRow, error: unknown]
+  /**
+   * A virtual window reached the end of the loaded rows.
+   *
+   * Wire it to an infinite source's `loadMore`, which is guarded against being
+   * asked twice, so the handler needs nothing around it. In paged mode the
+   * whole page is rendered and this fires once, on arrival, which is harmless
+   * for the same reason.
+   */
+  endReached: []
 }>()
 
 /**
@@ -260,6 +288,26 @@ const ruleStyle = computed(() => {
  */
 const rowMode = computed(() => props.editing?.mode.value === 'row')
 const actionsColumn = computed(() => Boolean(props.editing) && rowMode.value)
+
+/**
+ * `aria-rowcount` and the numbering that has to go with it — only in virtual
+ * mode.
+ *
+ * A screen reader counts the rows in the document, and a windowed body has
+ * about thirty of them however long the list is. Paged, the document is already
+ * the truth: every row of the page is there, the pager says which page it is,
+ * and numbering rows 1..25 over and over would be a second, worse answer.
+ *
+ * A table still loading its first page reports `-1`, which is what ARIA has for
+ * "many, and not known yet" — and an infinite source, whose `total` is the
+ * server's count rather than what is loaded, reports that count, because it is
+ * the honest size of the thing being scrolled.
+ */
+function ariaRowCount(headerRows: unknown[], displayRows: unknown[], total: number): number | undefined {
+  if (!props.virtual) return undefined
+  if (total <= 0 && displayRows.length === 0) return -1
+  return headerRows.length + Math.max(total, displayRows.length)
+}
 
 /** Extra leading and trailing cells, for the rows that have to span them all. */
 const extraColumns = computed(() => (selectable.value ? 1 : 0) + (actionsColumn.value ? 1 : 0))
@@ -375,6 +423,36 @@ function scrollColumns(direction: number): void {
 }
 
 /**
+ * `Ctrl`/`Cmd` + `↑`/`↓`: scroll one screenful, and leave the cursor alone.
+ *
+ * The vertical twin of `scrollColumns`, and the gesture a virtual table needs
+ * most: with no pages, `Ctrl`/`Cmd`+`←`/`→` has nothing to turn, and the arrows
+ * move one row at a time through however many rows there are.
+ *
+ * The header is measured rather than assumed, because it is `position: sticky`
+ * and covers the top of the scrollport: a step of the full viewport height
+ * would slide a header's worth of rows past unseen. One
+ * `getBoundingClientRect` per press, on one element.
+ */
+function scrollViewport(direction: number): void {
+  const box = scrollBox.value
+  if (!box) return
+
+  const header = box.querySelector<HTMLElement>('thead')
+  const next = nextScrollTop(
+    box.scrollTop,
+    box.clientHeight,
+    box.scrollHeight - box.clientHeight,
+    direction < 0 ? -1 : 1,
+    header?.getBoundingClientRect().height ?? 0,
+    props.rowHeight,
+  )
+  // Assigned rather than smooth-scrolled, for the reason `scrollColumns` is:
+  // key repeat against a running animation queues scrolls that fight.
+  if (next !== undefined) box.scrollTop = next
+}
+
+/**
  * How wide the pinned band on one side is, in CSS pixels, for the scroll box to
  * inset its idea of "in view" by.
  *
@@ -472,7 +550,7 @@ function onActivate(
       error,
       total,
       displayRows,
-      overallAggregates,
+      grouping,
       getRowKey: rowKey,
     }"
     :columns="columns"
@@ -598,12 +676,14 @@ function onActivate(
         >
           <TableGrid
             :columns="cols"
+            :row-count="ariaRowCount(headerRows, displayRows, total)"
             :selection-column="selectable"
             :actions-column="actionsColumn"
             :cursor="cursor"
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
             @page-move="(pages) => pageMove(pages, cursor, pagination)"
             @scroll-move="scrollColumns"
+            @viewport-move="scrollViewport"
           >
             <!--
               One `<tr>` per header row. With no band declared `headerRows` is a
@@ -621,6 +701,7 @@ function onActivate(
               :selection="selection"
               :cursor="cursor"
               :actions-column="actionsColumn"
+              :numbered="virtual"
             >
               <template v-if="$slots.headerGroup" #headerGroup="bandProps">
                 <slot name="headerGroup" v-bind="bandProps" />
@@ -630,8 +711,12 @@ function onActivate(
             <DataTableBody
               :columns="cols"
               :rows="rows"
+              :header-row-count="virtual ? headerRows.length : undefined"
               :virtual="virtual"
               :row-height="rowHeight"
+              :measure-rows="measureRows"
+              :end-threshold="endThreshold"
+              @end-reached="$emit('endReached')"
               :overscan="overscan"
               :scroll-parent="scrollBox"
               :display-rows="displayRows"
@@ -672,12 +757,18 @@ function onActivate(
               After `</tbody>`, which is where HTML wants it, and inside the same
               `TableGrid` slot — the grid is a bare `<slot />`, so a footer needs
               nothing from it but the `<colgroup>` widths it already applies.
+
+              `grouping.overallAggregates` rather than the slot's
+              `overallAggregates`: destructuring that in `v-slot` would resolve
+              it on every render, and it is a whole-dataset pass. Read here it
+              runs only behind the `v-if`, so a table with no footer never pays
+              for one.
             -->
             <DataTableFooter
               v-if="showFooter"
               :columns="cols"
               :band-edges="bandEdges"
-              :aggregates="overallAggregates"
+              :aggregates="grouping.overallAggregates.value"
               :label="footerLabel"
               :selectable="selectable"
               :actions-column="actionsColumn"

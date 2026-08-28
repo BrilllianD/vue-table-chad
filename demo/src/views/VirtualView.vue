@@ -21,17 +21,29 @@
  * tab stop falls to a rendered row rather than to a row that is no longer
  * there.
  *
- * **Group it, then collapse a band.** The virtual height shrinks by the rows
- * the band was holding. Folding does not rebuild the group tree — that is
- * P1-6's split, and `tests/invalidation.spec.ts` holds it to it — so a collapse
- * at 100k costs a walk, not a regroup.
+ * **Group it, scroll deep, then collapse the band you are inside.** The virtual
+ * height shrinks by the rows the band was holding, and you land on that band's
+ * header row rather than a thousand rows further down — the offset is anchored
+ * to an item, not to a pixel. Folding does not rebuild the group tree either —
+ * that is P1-6's split, and `tests/invalidation.spec.ts` holds it to it — so a
+ * collapse at 100k costs a walk, not a regroup.
+ *
+ * **Set the row height wrong, then turn `measureRows` on.** The spacers and the
+ * scrollbar are arithmetic over a declared height, so a group row that lays out
+ * taller than a data row makes the table slightly taller than its rows —
+ * bounded by the window rather than accumulating, which is why the switch is
+ * off by default: it buys exactness for one forced layout per update.
  *
  * What it costs is worth being straight about: virtual mode is a page size of
  * everything, so the filter, the sort and the grouping all run over the whole
  * dataset on every change rather than over a page. The scroll is free; the
  * pipeline underneath is the same pipeline, doing the same work at full size.
- * `selectable` is off by default here for that reason — the header checkbox's
- * tri-state asks "are all of these selected" over every row, on every click.
+ *
+ * **Turn selection on and click a row.** It used to be off here: the header
+ * checkbox's tri-state asked "are all of these selected" over every row on
+ * every click, which is 8.2ms at 100k. It now counts from the selection — a
+ * list as long as your own clicks — rather than from the rows, so the click
+ * costs the same here as it does on a page of 25.
  */
 import { computed, ref, shallowRef } from 'vue'
 import {
@@ -51,6 +63,8 @@ const rows = shallowRef<Employee[]>(makeRows(count.value))
 const virtual = ref(true)
 const grouped = ref(false)
 const cursor = ref(false)
+const selectable = ref(false)
+const measureRows = ref(false)
 const rowHeight = ref(38)
 
 const state: TableState = useTableState({ pageSize: 25 })
@@ -97,6 +111,7 @@ const windowSize = computed(() => `${OVERSCAN_ROWS} beyond each edge`)
     :api="[
       'DataTable virtual',
       'DataTable rowHeight',
+      'DataTable measureRows',
       'DataTable overscan',
       'useVirtualRows',
       'VirtualBody',
@@ -114,12 +129,20 @@ const windowSize = computed(() => `${OVERSCAN_ROWS} beyond each edge`)
           Cell cursor
         </label>
         <label>
+          <input v-model="selectable" type="checkbox" />
+          Selectable
+        </label>
+        <label>
           <input v-model="grouped" type="checkbox" @change="toggleGrouping" />
           Group by department + role
         </label>
         <label>
           Row height
           <input v-model.number="rowHeight" type="number" min="24" max="80" step="2" />
+        </label>
+        <label>
+          <input v-model="measureRows" type="checkbox" />
+          measureRows
         </label>
         <span class="virtual-group">
           <button
@@ -148,7 +171,9 @@ const windowSize = computed(() => `${OVERSCAN_ROWS} beyond each edge`)
       :state="state"
       :virtual="virtual"
       :row-height="rowHeight"
+      :measure-rows="measureRows"
       :cell-cursor="cursor"
+      :selectable="selectable"
       :group-mode="'client'"
     />
   </DemoSection>

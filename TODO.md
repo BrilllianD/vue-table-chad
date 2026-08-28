@@ -2,9 +2,10 @@
 
 Where this stands, what to do next, and the phase plan behind it — one file.
 
-**State as of 2026-08-27:** everything below is on **`main`**, which tracks `origin/main`. 705 tests
-across 38 files green, `pnpm typecheck` clean, and CI now runs all of it per push
-(`bitbucket-pipelines.yml`).
+**State as of 2026-08-28:** everything below is on **`main`**, which tracks `origin/main`. 752 tests
+across 39 files green, `pnpm typecheck` clean, and CI runs all of it per push
+(`bitbucket-pipelines.yml`). **Phase 2 is done** — the browser session it was waiting on has been
+run, and its numbers are in [`bench/BASELINE.md`](bench/BASELINE.md). Phase 3 is what remains.
 
 ## Shipped
 
@@ -18,6 +19,10 @@ One line per series. The commits carry the detail; this is the map.
 | K1–K6, N1–N10 | The cell cursor — a focus grid, a roving tabindex, `Enter` to edit, paging with `Ctrl`+arrow, `autofocusCursor`. See [Keyboard navigation](docs/keyboard.md). |
 | R1–R8 | **Code health.** No feature changed: `useTable()` out of `TableRoot.vue`, `DataTable.vue` 972 → 588 lines, `table.css` into ten partials with a byte-identical build, `noUncheckedIndexedAccess` on, and `tests/apiSurface.spec.ts` enforcing that every value export appears in the demo. |
 | P2-1, P2-2 | Row virtualization — `useVirtualRows`, a `<VirtualBody>` primitive, and `virtual` on the preset. See [Virtualization](docs/virtualization.md). |
+| P2-3a–P2-3e | What windowing turned out to still owe — whole-set aggregates only when a footer asks, a header checkbox costing the selection rather than the dataset, scroll anchoring by row instead of by pixel, `Ctrl`+arrow as a viewport move, and opt-in `measureRows` for rows that are not the height they were declared to be. |
+| P2-4, P2-4a | `useInfiniteDataSource` — server rows that accumulate, asked for by the window reaching the end of them; the query half of a remote source extracted first, unchanged. See [Data sources](docs/data-sources.md). |
+| P2-5 | `aria-rowcount` / `aria-rowindex` over the whole list, so a windowed table does not tell a screen reader it is thirty rows long. |
+| P2-6 | Acceptance, in a foregrounded Chrome: 100k rows, pinned columns and collapsed groups at once, scrolling at the display's own frame. The numbers, and the production-build caveat that changes them, are in [`bench/BASELINE.md`](bench/BASELINE.md). |
 | P3-1–P3-3 | Identity, legal, metadata — the name, the LICENSE, `repository`/`homepage`/`bugs`/`keywords`/`engines`. |
 | P3-7 | CI — `bitbucket-pipelines.yml`, and `pnpm size`, a bundle budget measured from the build it shipped with. |
 | P3-4–P3-6 | The tarball — `prepublishOnly`, ESM-only with `main` dropped, rolled-up declarations. |
@@ -60,53 +65,6 @@ host is serving the assets.
   so the next reader can tell drift from slack. The number this file used to carry was about 35%
   low after four feature series — re-measure rather than copy.
 
-## Phase 2 — what is left
-
-P2-1 and P2-2 landed on 2026-08-27. Four of the five interactions P2-3 used to list turned out to
-need nothing, and each now has a test saying so rather than an assumption: **the sticky header**
-(sticky is relative to the scrollport; nothing in a `<tbody>` reaches it), **pinned columns**
-(`pinOffset` is horizontal and per cell, and a spacer's one spanning cell has nothing to pin), **the
-`tfoot` aggregate row** (outside the `<tbody>` entirely), and **shift-range selection across the
-window boundary** (`toggleRange` resolves both endpoints out of the in-memory array and never reads
-the DOM).
-
-### P2-3 · What is actually left
-
-- **`overallAggregates` is bound eagerly.** `TableRoot.vue` passes it regardless of `showFooter`, so
-  in virtual mode it is an O(dataset) pass per data change nobody asked for. The cheapest win here.
-- **`selection.headerState` goes O(dataset) per selection write.** Not per data change, which is the
-  worse direction — 8.2 ms a click at 100k, against 0.002 ms for a page of 25. It is not caught by
-  `tests/invalidation.spec.ts`, because it is not one of the wrapped functions; fixing it should
-  wrap it. The demo leaves `selectable` off until this is fixed.
-- **Scroll anchoring across a collapse.** Folding a band while scrolled deep changes the total
-  height under you, and the offset stops meaning the same row.
-- **`Ctrl`+arrow** meaning "scroll a viewport" rather than nothing.
-- **Variable row height.** A group row lays out a pixel taller than a data row, which is the first
-  concrete case. The error is bounded by the window rather than accumulating, so this is polish
-  rather than correctness. `useVirtualRows` is already shaped for it: `spaceBefore`/`spaceAfter` are
-  opaque pixel totals and `offsetFor`/`indexAt` are functions, so what it adds is a
-  `measureItem(index, height)` and a prefix sum behind those two.
-
-### P2-4 · `useInfiniteDataSource`
-So server data can feed a continuous scroll rather than a page slice.
-
-### P2-5 · Accessibility floor
-`aria-rowcount` / `aria-rowindex`, so a virtualized table does not lie to screen readers about its
-size.
-
-### P2-6 · Acceptance
-`PerfView` at 100k rows scrolling smoothly **with pinned columns and collapsed groups active
-simultaneously** — that combination is where a naive virtualizer breaks. Reachable without building
-anything: the **Virtual rows** view has 100k, grouping and the cursor behind toggles, and `PerfView`
-has the scroll measurement.
-
-**Still owed from P2-2: the timed browser session.** This is the one part of Phase 2 that cannot be
-settled by counting recomputes, and the one part not done. `PerfView` has the Virtual toggle, the
-100k dataset and a *Scroll 2000 rows* button, but a hidden tab never fires `requestAnimationFrame`,
-so the numbers have to be taken by hand in a foregrounded tab. What Chrome could be asked *without*
-timing is in [`bench/BASELINE.md`](bench/BASELINE.md): 20 rows in the `<tbody>` at 100k, a 1.83M-pixel
-table whose scrollbar agrees, and 600k pixels of height coming off when a band collapses.
-
 ## Housekeeping, independent of the above
 
 - **`pnpm lint` is red.** Two `vue/no-dupe-keys` errors at `src/components/primitives/TableRoot.vue:138`,
@@ -116,9 +74,6 @@ table whose scrollbar agrees, and 600k pixels of height coming off when a band c
   rename the bindings, or disable the rule for this file with a one-line why — rather than a bug to
   fix. CI runs lint **non-gating** until then: gating on a known-red check only teaches everyone to
   ignore the pipeline.
-- **Editable rows shipped without a docs page.** Every other feature has a topic page in README's
-  docs table; editing appears only inside [`docs/keyboard.md`](docs/keyboard.md), as the thing
-  `Enter` opens. It wants a `docs/editing.md` and a row in that table.
 
 ## Explicitly deferred
 
@@ -187,8 +142,11 @@ so a shared runner's absolute milliseconds are a trend to read rather than a thr
 
 **End to end**
 - `pnpm demo` → **Performance** view: page through, type in search, toggle groups, push the page
-  size to 5000. Foreground the tab; it refuses to measure a hidden one.
-- Walk all 17 demo views. **Composed** and **Core only** exercise the primitives and pure functions
+  size to 5000. Foreground the tab; it refuses to measure a hidden one. When the *number* is the
+  point rather than the behaviour, run it against `pnpm build:demo` served from `demo/dist` instead:
+  the dev build costs about 8ms a frame in component creation alone, which is most of what a
+  scrolling measurement reports (see [`bench/BASELINE.md`](bench/BASELINE.md)).
+- Walk all 18 demo views. **Composed** and **Core only** exercise the primitives and pure functions
   directly and are the best canaries for a render-layer change.
 - `pnpm build` and `pnpm build:docs` clean.
 

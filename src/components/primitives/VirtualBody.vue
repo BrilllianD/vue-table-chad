@@ -18,7 +18,7 @@
  * props, so it works with no `TableRoot` above it, and windowing a list that
  * is not this library's table is a supported use rather than an accident.
  */
-import { computed, onScopeDispose, ref, watch } from 'vue'
+import { computed, onMounted, onScopeDispose, onUpdated, ref, watch } from 'vue'
 import { useVirtualRows } from '../../core/useVirtualRows'
 
 /**
@@ -54,6 +54,28 @@ const props = withDefaults(
     overscan?: number
     /** Off renders every item and no spacers. */
     enabled?: boolean
+    /**
+     * Identity for an item, which keeps the scroll offset pointing at the same
+     * item when the list changes under it. See `UseVirtualRowsOptions.itemKey`
+     * — the `v-for` key the caller already writes is usually the right one.
+     */
+    itemKey?: (item: TItem, index: number) => unknown
+    /**
+     * Measure each rendered row and report its real height, so the spacers and
+     * the window follow rows that are not the declared height — a group header
+     * laying out taller than a data row being the case it exists for.
+     *
+     * Off by default, and deliberately: it is one forced layout per update, on
+     * about thirty rows. `rowHeight` alone costs none, and its error is bounded
+     * by the window rather than accumulating.
+     */
+    measure?: boolean
+    /**
+     * How close to the end of the list the window has to come for
+     * `end-reached`, in items. `0` means the last item is rendered; a larger
+     * number fires earlier, which is what a slow request wants.
+     */
+    endThreshold?: number
     /** How many cells one spacer row spans. */
     colspan?: number
   }>(),
@@ -62,9 +84,25 @@ const props = withDefaults(
     viewportHeight: undefined,
     overscan: undefined,
     enabled: true,
+    measure: false,
+    endThreshold: 0,
     colspan: 1,
+    itemKey: undefined,
   },
 )
+
+const emit = defineEmits<{
+  /**
+   * The window has reached the end of the list — an infinite source's cue to
+   * load the next page.
+   *
+   * Reported rather than acted on: this component knows how far down the list
+   * the window is and nothing whatever about where more rows would come from.
+   * It fires when the window *moves* to the end rather than on every scroll
+   * event, so a handler can be `source.loadMore` with nothing around it.
+   */
+  endReached: []
+}>()
 
 const measured = ref(ASSUMED_VIEWPORT_HEIGHT)
 
@@ -75,6 +113,10 @@ const virtual = useVirtualRows<TItem>(
     viewportHeight: () => props.viewportHeight ?? measured.value,
     overscan: () => props.overscan,
     enabled: () => props.enabled,
+    // Forwarded through a lambda rather than by reference, so a caller passing
+    // a different function later is honoured. An item with no key is not an
+    // anchor, which is what a caller passing none at all means.
+    itemKey: (item, index) => props.itemKey?.(item, index),
   },
 )
 
@@ -125,6 +167,73 @@ watch(
 )
 
 onScopeDispose(() => detach?.())
+
+/*
+ * The corrected offset, written back to the element that owns the scrollbar.
+ *
+ * `useVirtualRows` re-anchors by moving `scrollOffset`, which is enough to fix
+ * *which rows render* — but the box would still be scrolled where it was, so
+ * the two would disagree and the next scroll event would undo the correction.
+ * Assigning `scrollTop` fires a scroll event that reports the number just
+ * written, so this settles rather than loops.
+ */
+watch(virtual.scrollOffset, (offset) => {
+  const box = props.scrollParent
+  if (!box || props.enabled === false) return
+  if (Math.abs(box.scrollTop - offset) < 1) return
+  box.scrollTop = offset
+})
+
+/*
+ * The end of the list, announced once per arrival rather than once per scroll.
+ *
+ * `end` is a computed over floored integers, so a scroll that does not move the
+ * window does not re-run this at all — the same mechanism that makes scrolling
+ * free makes this cheap. The guard is against the *list* growing: an appended
+ * page leaves the window where it was and must not read as a second arrival.
+ */
+watch(
+  () => [virtual.end.value, props.items.length] as const,
+  ([end, count]) => {
+    if (props.enabled === false || count === 0) return
+    if (end >= count - Math.max(0, props.endThreshold)) emit('endReached')
+  },
+  { immediate: true },
+)
+
+const tbody = ref<HTMLElement | null>(null)
+
+/**
+ * What the rows this `<tbody>` just rendered actually measured.
+ *
+ * `offsetHeight` rather than `getBoundingClientRect`, because it is what a row
+ * *occupies* — the fractional rect of a row inside a table with collapsed
+ * borders is not the number the spacers need to agree with.
+ *
+ * The count guard is what keeps it honest through a caller's own extra rows: a
+ * slot may render a message row instead of the window (the preset's "nothing
+ * matched" is one), and measuring that as item `start` would report a row that
+ * is not there. When the two disagree, nothing is measured and the declared
+ * height stands.
+ */
+function measureRendered(): void {
+  const element = tbody.value
+  if (!props.measure || props.enabled === false || !element) return
+
+  const rows: HTMLElement[] = []
+  for (const child of element.children) {
+    if (!child.classList.contains('vt-virtual-spacer')) rows.push(child as HTMLElement)
+  }
+  if (rows.length !== virtual.items.value.length) return
+
+  const first = virtual.start.value
+  rows.forEach((row, offset) => virtual.measureItem(first + offset, row.offsetHeight))
+}
+
+onMounted(measureRendered)
+// After the patch, which is the only moment the rendered rows and the window
+// they came from are the same thing.
+onUpdated(measureRendered)
 
 const spaceBefore = computed(() => virtual.spaceBefore.value)
 const spaceAfter = computed(() => virtual.spaceAfter.value)
@@ -178,7 +287,7 @@ defineExpose({
 </script>
 
 <template>
-  <tbody class="vt-tbody">
+  <tbody ref="tbody" class="vt-tbody">
     <!--
       A spacer row rather than padding on the `<tbody>` or a transform:
       `padding` does not apply to a `table-row-group` box at all, and a
@@ -190,8 +299,10 @@ defineExpose({
       the one thing this row is for. Everything it needs is inline geometry, the
       way `TableCell` places a pin.
 
-      Hidden from assistive technology, because it is not a row. That the
-      remaining rows still lie about how many there are is P2-5's `aria-rowcount`.
+      Hidden from assistive technology, because it is not a row. What the
+      remaining rows say about how many there are is `aria-rowcount` and
+      `aria-rowindex`, which the caller sets — this component knows the window,
+      not what a row means.
     -->
     <tr
       v-if="spaceBefore > 0"

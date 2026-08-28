@@ -32,16 +32,24 @@ The pager is not rendered, whatever `show-pagination` says. There is exactly one
 | `virtual` | On or off. Off is the default and off is unchanged. |
 | `row-height` | How tall one row is, in CSS pixels. Defaults to 38. |
 | `overscan` | Rows kept rendered beyond each edge. Defaults to `OVERSCAN_ROWS`, which is 4. |
+| `measure-rows` | Measure each rendered row rather than trusting `row-height`. Off by default. |
 
 `row-height` is written to `--vt-row-height` on the scroll box, so the number the windowing counts
 with and the number the browser lays out with cannot drift apart. **Change the prop, not the token**
 — setting `--vt-row-height` in your own CSS while `virtual` is on gives the two different answers,
 and the window starts landing a little further off with every row.
 
-Heights are assumed uniform. A group header row lays out about a pixel taller than a data row,
-which shifts the window's own rows by that much and nothing more — the spacers are computed from
-the assumed height, and only the rendered rows are laid out, so the error is bounded by the window
-rather than accumulating down the list. Variable row heights are not supported yet.
+Heights are assumed uniform by default. A group header row lays out about a pixel taller than a
+data row, which shifts the window's own rows by that much and nothing more — the spacers are
+computed from the assumed height, and only the rendered rows are laid out, so the error is bounded
+by the window rather than accumulating down the list.
+
+`measure-rows` removes the assumption: every rendered row reports its real height, and the offsets,
+the spacers and the scrollbar follow it. It costs one forced layout per update, on the rows in the
+window, which is why it is opt-in — a uniform body is exact without it. A row that measures exactly
+`row-height` is not recorded at all, so a body that turns out to be uniform anyway pays for the
+measuring and nothing else. Measurements describe indices in a list, so they are dropped when the
+list changes and taken again on the next render.
 
 ## It needs a box with a height
 
@@ -70,6 +78,7 @@ stop falls to the first *rendered* row. Without that the grid would drop out of 
 entirely whenever you scrolled away from the ring.
 
 `Ctrl`/`Cmd` + `←`/`→` — turn the page — does nothing here, since there are no pages.
+`Ctrl`/`Cmd`+`↑`/`↓` is what replaces it: one screenful of scroll, with the ring left where it was.
 `PageUp`/`PageDown` still move ten rows, and still work.
 
 ## What it costs
@@ -85,10 +94,43 @@ rather than over 25 rows. At 100k that is roughly 190ms for a search to settle a
 two-level group tree — the same work any table filtering 100k rows does, arriving in one place
 instead of being hidden by a page slice. `bench/BASELINE.md` has the numbers.
 
-One thing scales with the *interaction* rather than with the data, which is the worse direction:
-selection. The header checkbox's tri-state asks "are all of these selected" over the rows it was
-handed, and virtual mode hands it the dataset — about 8ms per click at 100k. Usable, but it is why
-the demo leaves `selectable` off.
+Selection used to be the exception that scaled with the *interaction* rather than with the data —
+the header checkbox's tri-state asked "are all of these selected" over every row it was handed, and
+virtual mode hands it the dataset. It now counts from the selection instead, so a click costs the
+same at 100k as it does on a page of 25.
+
+## Where you land when the list changes
+
+Fold a band shut while scrolled deep and every row below it moves up by the height the band was
+holding — 600k pixels, at 100k rows. The browser leaves `scrollTop` where it was, so the viewport
+would silently be somewhere else in the data.
+
+`VirtualBody` takes an `item-key` and anchors the offset to it. The row at the top of the viewport
+goes back to the top of the viewport, down to the pixel it was scrolled past by; if that row was
+*inside* the band that just closed, the nearest surviving item above it — the band's own header row
+— takes the top instead, which is where "where did I go" ought to answer. The preset passes the
+same key its `v-for` uses, so this is on by default.
+
+`useVirtualRows` takes the same `itemKey` and does the arithmetic; without one it installs no
+watcher at all and the offset stays a number of pixels.
+
+## What a screen reader is told
+
+A windowed `<tbody>` holds about thirty rows however long the list is, and the DOM is the only thing
+an assistive technology can count — so without help a table of 100,000 announces itself as a table
+of thirty, and the row you are on is "row 4 of 30" wherever you have scrolled to.
+
+In `virtual` mode the preset sets `aria-rowcount` on the `<table>` and `aria-rowindex` on every
+rendered row, header rows included and group headers included, numbered over the whole list rather
+than over the window. A source that has not answered yet reports `-1`, which is ARIA's way of saying
+"many, and not known yet"; an infinite source reports the server's count rather than what it has
+loaded, because that is the size of the thing being scrolled.
+
+Paged, neither attribute is set. Every row of the page is in the document, the pager says which page
+it is, and numbering each page's rows 1..25 again would be a second and worse answer to the same
+question.
+
+The spacer rows are `aria-hidden`: they are geometry, not rows.
 
 ## Composing your own
 
@@ -103,7 +145,10 @@ box.value.addEventListener('scroll', () => virtual.setScrollOffset(box.value.scr
 ```
 
 It returns `start`, `end`, the windowed `items`, `spaceBefore`, `spaceAfter` and `totalSize`, plus
-`offsetFor(index)` and `indexAt(offset)`. `VirtualBody` is the `<tbody>` around it, and it yields
+`offsetFor(index)`, `indexAt(offset)` and `measureItem(index, height)` — report a height and the two
+lookups become a prefix sum and a binary search over it, which is why they were functions and the
+spacers were opaque pixel totals from the start. Pass `itemKey` as well and the scroll offset follows the
+item it pointed at when the list changes under it. `VirtualBody` is the `<tbody>` around it, and it yields
 the window through its default slot rather than looping itself, so the markup for a row stays
 yours.
 

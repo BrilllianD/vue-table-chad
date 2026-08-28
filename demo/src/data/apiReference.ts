@@ -88,6 +88,11 @@ export const apiReference: ApiEntry[] = [
   { name: 'ServerDataSource', layer: 'core', kind: 'type', summary: 'A DataSource plus initialLoading, true only before anything has arrived.' },
   { name: 'ServerDataSourceOptions', layer: 'core', kind: 'type', summary: 'debounceMs, keepPreviousData, immediate, fetchFacets and onError.' },
 
+  { name: 'useInfiniteDataSource', layer: 'core', kind: 'composable', summary: 'Server-backed rows that **accumulate** instead of being replaced: one continuous list that grows as something asks for more of it.' },
+  { name: 'INFINITE_PAGE_SIZE', layer: 'core', kind: 'constant', summary: 'How many rows one request asks for, when nothing says otherwise.' },
+  { name: 'InfiniteDataSource', layer: 'core', kind: 'type', summary: 'A DataSource that grows, plus what a scroll handler needs to grow it.' },
+  { name: 'InfiniteDataSourceOptions', layer: 'core', kind: 'type', summary: 'pageSize, debounceMs, immediate, fetchFacets and onError.' },
+
   { name: 'useRowSelection', layer: 'core', kind: 'composable', summary: 'Selection that survives paging, and that can represent "everything matching the filters" without materialising an id per row.' },
   { name: 'UseRowSelection', layer: 'core', kind: 'type', summary: 'Selection state, predicates and mutators.' },
   { name: 'UseRowSelectionOptions', layer: 'core', kind: 'type', summary: 'Row identity, selectability, mode, and an initial selection.' },
@@ -137,8 +142,10 @@ export const apiReference: ApiEntry[] = [
   { name: 'commitMoveFor', layer: 'core', kind: 'function', summary: 'Where the cursor goes after an Enter that commits an open editor, or `undefined` when this key press is not a commit at all.' },
   { name: 'pageMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `←`/`→` asked to turn the page — `-1` back, `1` on — or `undefined` for any other key.' },
   { name: 'scrollMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Shift` + `←`/`→` asked to scroll the table sideways — `-1` left, `1` right — or `undefined` for any other key.' },
+  { name: 'viewportMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `↑`/`↓` asked to scroll the table — `-1` up, `1` down, one screenful a press — or `undefined` for any other key.' },
   { name: 'nextPosition', layer: 'core', kind: 'function', summary: 'Where `move` lands, given the cells currently on screen — or `undefined` when it lands nowhere new.' },
   { name: 'nextScrollLeft', layer: 'core', kind: 'function', summary: 'Where a sideways scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `scrollMoveFor`, with the DOM read out of it.' },
+  { name: 'nextScrollTop', layer: 'core', kind: 'function', summary: 'Where a vertical scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `viewportMoveFor`, with the DOM read out of it.' },
   { name: 'PAGE_MOVE_ROWS', layer: 'core', kind: 'constant', summary: 'How far PageUp and PageDown jump.' },
   { name: 'CellPosition', layer: 'core', kind: 'type', summary: 'Where the cursor is: a row and a column, by identity rather than by position.' },
   { name: 'CellCursorMark', layer: 'core', kind: 'type', summary: 'How the cursor touches one cell, as a renderer needs to know it.' },

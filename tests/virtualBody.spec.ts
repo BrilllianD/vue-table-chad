@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, ref, shallowRef } from 'vue'
 import VirtualBody from '../src/components/primitives/VirtualBody.vue'
 
 /**
@@ -258,5 +258,188 @@ describe('VirtualBody', () => {
     expect(api(wrapper).scrollToIndex(500)).toBe(false)
 
     wrapper.unmount()
+  })
+
+  /**
+   * The other half of anchoring. `useVirtualRows` corrects the offset it holds,
+   * which fixes *which rows render*; the element that owns the scrollbar has to
+   * be told too, or the box stays where it was and the next scroll event undoes
+   * the correction.
+   */
+  it('writes the re-anchored offset back to the scroll container', async () => {
+    const box = document.createElement('div')
+    const items = shallowRef(makeItems(1000))
+    const scrollParent = ref<HTMLElement | null>(null)
+
+    const Host = defineComponent({
+      setup() {
+        return () =>
+          h('table', [
+            h(
+              VirtualBody as never,
+              {
+                items: items.value,
+                rowHeight: ROW_HEIGHT,
+                viewportHeight: VIEWPORT,
+                scrollParent: scrollParent.value,
+                itemKey: (item: string) => item,
+              },
+              {
+                default: ({ items: window }: { items: readonly string[] }) =>
+                  window.map((item) => h('tr', { 'data-row': item }, [h('td', item)])),
+              },
+            ),
+          ])
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    scrollParent.value = box
+    await nextTick()
+
+    box.scrollTop = ROW_HEIGHT * 500
+    box.dispatchEvent(new Event('scroll'))
+    await nextTick()
+    expect(renderedRows(wrapper)[0]).toBe(`row-${500 - 4}`)
+
+    // Fifty rows removed from above the window — a band folding shut.
+    items.value = items.value.filter((_, index) => index >= 100 || index % 2 === 0)
+    await nextTick()
+    await nextTick()
+
+    expect(box.scrollTop).toBe(ROW_HEIGHT * 450)
+    expect(renderedRows(wrapper)[0]).toBe(`row-${500 - 4}`)
+
+    wrapper.unmount()
+  })
+
+  /**
+   * Measured heights, through the DOM the way the prop actually works.
+   *
+   * happy-dom lays nothing out and reports every `offsetHeight` as 0 — which is
+   * the "not a measurement" case the composable ignores — so the property is
+   * stubbed for the duration. Stubbing it is what makes the test about the
+   * wiring rather than about happy-dom.
+   */
+  describe('measure', () => {
+    const TALL = 60
+
+    function withStubbedHeights<T>(run: () => T): T {
+      const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+        configurable: true,
+        get(this: HTMLElement) {
+          return this.dataset.row === 'row-0' ? TALL : ROW_HEIGHT
+        },
+      })
+      try {
+        return run()
+      } finally {
+        if (original) Object.defineProperty(HTMLElement.prototype, 'offsetHeight', original)
+        else delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetHeight
+      }
+    }
+
+    /** The spacer standing in for everything above the window, in pixels. */
+    function spaceBefore(wrapper: ReturnType<typeof mountBody>): number {
+      const style = wrapper.find('.vt-virtual-spacer').attributes('style') ?? ''
+      return Number(/height:\s*(\d+(?:\.\d+)?)px/.exec(style)?.[1] ?? 0)
+    }
+
+    /*
+     * One array, held across renders. `mountBody` builds its default inline, so
+     * every render hands the composable a *different* list — and measurements
+     * describe indices in a list, so a new one drops them. A caller whose rows
+     * come from a computed, as the preset's do, has this for free.
+     */
+    const stable = makeItems(1000)
+
+    it('follows a row that is taller than rowHeight', async () => {
+      await withStubbedHeights(async () => {
+        const wrapper = mountBody({ measure: true, items: stable })
+        await wrapper.attach()
+        await wrapper.scrollTo(ROW_HEIGHT * 500)
+
+        // 495 rows of 40 plus the 20 extra pixels `row-0` measured. The
+        // unmeasured answer is 19840, which is what the assertion below pins.
+        expect(spaceBefore(wrapper)).toBe(495 * ROW_HEIGHT + (TALL - ROW_HEIGHT))
+        wrapper.unmount()
+      })
+    })
+
+    it('trusts rowHeight when it is off, which is the default', async () => {
+      await withStubbedHeights(async () => {
+        const wrapper = mountBody({ items: stable })
+        await wrapper.attach()
+        await wrapper.scrollTo(ROW_HEIGHT * 500)
+
+        expect(spaceBefore(wrapper)).toBe(496 * ROW_HEIGHT)
+        wrapper.unmount()
+      })
+    })
+  })
+
+  /**
+   * The cue an infinite source runs on. `VirtualBody` knows how far down the
+   * list the window is and nothing about where more rows would come from, so it
+   * reports rather than acts.
+   */
+  describe('end-reached', () => {
+    /*
+     * The same cast `api()` above makes, for the same reason: `findComponent`
+     * on a generic SFC widens to `WrapperLike`, which has no `emitted`.
+     */
+    function emissions(wrapper: ReturnType<typeof mountBody>): number {
+      const body = wrapper.findComponent(VirtualBody as never) as unknown as {
+        emitted: (name: string) => unknown[] | undefined
+      }
+      return body.emitted('endReached')?.length ?? 0
+    }
+
+    it('fires when the window reaches the end of the list, and not before', async () => {
+      const wrapper = mountBody()
+      await wrapper.attach()
+      expect(emissions(wrapper)).toBe(0)
+
+      await wrapper.scrollTo(ROW_HEIGHT * 500)
+      expect(emissions(wrapper)).toBe(0)
+
+      await wrapper.scrollTo(ROW_HEIGHT * 1000)
+      expect(emissions(wrapper)).toBe(1)
+
+      // A scroll that does not move the window says nothing further: `end` is a
+      // computed over floored integers, so the watcher never runs.
+      await wrapper.scrollTo(ROW_HEIGHT * 1000 + 3)
+      expect(emissions(wrapper)).toBe(1)
+
+      wrapper.unmount()
+    })
+
+    it('fires immediately for a list that already ends inside the viewport', () => {
+      const wrapper = mountBody({ items: makeItems(4) })
+
+      expect(emissions(wrapper)).toBe(1)
+      wrapper.unmount()
+    })
+
+    it('fires early by endThreshold rows', async () => {
+      const wrapper = mountBody({ endThreshold: 300 })
+      await wrapper.attach()
+
+      // The window ends around row 715, which is inside the last 300 — and that
+      // is what a slow server wants: the request goes out while there is still
+      // list left to scroll through.
+      await wrapper.scrollTo(ROW_HEIGHT * 700)
+      expect(emissions(wrapper)).toBe(1)
+      wrapper.unmount()
+    })
+
+    it('says nothing at all when windowing is off', async () => {
+      const wrapper = mountBody({ enabled: false })
+      await wrapper.attach()
+
+      expect(emissions(wrapper)).toBe(0)
+      wrapper.unmount()
+    })
   })
 })

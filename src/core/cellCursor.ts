@@ -111,10 +111,13 @@ export function cursorMoveFor(gesture: CursorKeyGesture): CursorMove | undefined
   const primary = isPrimaryModifier(gesture)
 
   switch (gesture.key) {
+    // The primary modifier means "a screenful" here, the way it means "a page"
+    // on the horizontal pair — `viewportMoveFor` claims it. Shift is left
+    // alone, and so still moves the cursor one row.
     case 'ArrowDown':
-      return { kind: 'by', rows: 1, columns: 0 }
+      return primary ? undefined : { kind: 'by', rows: 1, columns: 0 }
     case 'ArrowUp':
-      return { kind: 'by', rows: -1, columns: 0 }
+      return primary ? undefined : { kind: 'by', rows: -1, columns: 0 }
     // A *modified* horizontal arrow is not a position move at all: the primary
     // modifier turns the page (`pageMoveFor`) and Shift scrolls the viewport
     // sideways (`scrollMoveFor`). Claiming them here as well would move the
@@ -162,6 +165,28 @@ export function pageMoveFor(gesture: CursorKeyGesture): -1 | 1 | undefined {
   if (gesture.altKey || !isPrimaryModifier(gesture)) return undefined
   if (gesture.key === 'ArrowRight') return 1
   if (gesture.key === 'ArrowLeft') return -1
+  return undefined
+}
+
+/**
+ * Which way `Ctrl`/`Cmd` + `↑`/`↓` asked to scroll the table — `-1` up, `1`
+ * down, one screenful a press — or `undefined` for any other key.
+ *
+ * The gesture virtual mode was missing. `Ctrl`/`Cmd`+`←`/`→` turns the page,
+ * and a virtual table has no pages, so the vertical pair was the only way
+ * through 100k rows and it moved one row at a time. `PageUp`/`PageDown` are not
+ * that gesture: they move the **cursor** ten rows and drag the viewport along
+ * behind it, where this leaves the cursor exactly where it was and moves the
+ * viewport out from under it — the vertical twin of `Shift`+`←`/`→`.
+ *
+ * Shift is ignored rather than refused, for the reason `pageMoveFor` ignores
+ * it: `Ctrl`+`Shift`+`↑` is the same intent with a spare finger on the keyboard,
+ * and leaving it unclaimed would make it silently do nothing.
+ */
+export function viewportMoveFor(gesture: CursorKeyGesture): -1 | 1 | undefined {
+  if (gesture.altKey || !isPrimaryModifier(gesture)) return undefined
+  if (gesture.key === 'ArrowDown') return 1
+  if (gesture.key === 'ArrowUp') return -1
   return undefined
 }
 
@@ -244,6 +269,41 @@ export function nextScrollLeft(
   // end costs no scroll events — the rule `nextPosition` follows for the same
   // reason.
   if (Math.abs(clamped - scrollLeft) < 1) return undefined
+  return clamped
+}
+
+/**
+ * Where a vertical scroll lands the scroll box, or `undefined` when it cannot
+ * move — the arithmetic behind `viewportMoveFor`, with the DOM read out of it.
+ *
+ * A screenful is the viewport **minus** `inset` and minus one row. The inset is
+ * the sticky header, which covers the top of the scrollport permanently, so a
+ * step of the full height would slide a band of rows behind it unseen; the
+ * extra row is the overlap every pager keeps, so the row you were reading when
+ * you pressed the key is still on screen after it.
+ *
+ * It clamps at both ends rather than wrapping, and answers `undefined` for a
+ * press that would land within a pixel of where the box already is — so holding
+ * the key at the bottom costs no scroll events, the same rule `nextScrollLeft`
+ * and `nextPosition` follow.
+ */
+export function nextScrollTop(
+  scrollTop: number,
+  viewportHeight: number,
+  maxScrollTop: number,
+  direction: -1 | 1,
+  inset = 0,
+  rowHeight = 0,
+): number | undefined {
+  if (maxScrollTop <= 0) return undefined
+
+  // Never less than one row, however small the box or however tall the header:
+  // a step of zero would make the gesture a no-op rather than a short scroll.
+  const step = Math.max(rowHeight, viewportHeight - Math.max(0, inset) - rowHeight)
+  const target = scrollTop + step * direction
+  const clamped = target < 0 ? 0 : target > maxScrollTop ? maxScrollTop : target
+
+  if (Math.abs(clamped - scrollTop) < 1) return undefined
   return clamped
 }
 

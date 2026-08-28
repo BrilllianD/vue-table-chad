@@ -36,12 +36,22 @@ defineProps<{
   cursor: UseCellCursor<TRow> | undefined
   /** Whether the trailing actions cell is present, so the header can span it. */
   actionsColumn: boolean
+  /**
+   * Number the header rows for `aria-rowindex`, which is 1-based over the whole
+   * table. Only set when the body renders a window: numbering some rows and not
+   * others is worse than numbering none.
+   */
+  numbered?: boolean
 }>()
 </script>
 
 <template>
   <thead class="vt-thead">
-    <tr v-for="(headerRow, headerLevel) in headerRows" :key="headerLevel">
+    <tr
+      v-for="(headerRow, headerLevel) in headerRows"
+      :key="headerLevel"
+      :aria-rowindex="numbered ? headerLevel + 1 : undefined"
+    >
       <th
         v-if="selectable && headerLevel === 0"
         class="vt-th vt-th-selection"
