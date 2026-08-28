@@ -1,5 +1,5 @@
 <!--
-  Adopting vue-table in an existing Options API component, with a SERVER-paginated
+  Adopting vue-table-chad in an existing Options API component, with a SERVER-paginated
   table and the app's own markup.
 
   A real component ported rather than a table built from scratch. It keeps the

@@ -38,8 +38,8 @@ interface Budget {
 }
 
 const BUDGETS: Budget[] = [
-  { file: 'dist/vue-table.js', budgetKb: 42, measuredKb: 35.7 },
-  { file: 'dist/vue-table.css', budgetKb: 5, measuredKb: 3.9 },
+  { file: 'dist/vue-table-chad.js', budgetKb: 42, measuredKb: 35.7 },
+  { file: 'dist/vue-table-chad.css', budgetKb: 5, measuredKb: 3.9 },
 ]
 
 const KB = 1024

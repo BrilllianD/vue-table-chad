@@ -1,4 +1,4 @@
-# Using vue-table in another project
+# Using vue-table-chad in another project
 
 <script setup>
 import Example from './.vitepress/examples/getting-started.vue'
@@ -12,7 +12,7 @@ Installing it, the row type it insists on, and the three ways to build a table w
 snippet on this page was type-checked against the built package rather than against `src/` — the
 difference matters, because a consumer gets the generated `.d.ts`, not the source.
 
-> **Not using TypeScript?** [Using vue-table from plain JavaScript](getting-started-js.md) is the
+> **Not using TypeScript?** [Using vue-table-chad from plain JavaScript](getting-started-js.md) is the
 > same ground without it — and the constraint in §"The row type constraint" below, the one real
 > friction point here, does not exist there at all.
 

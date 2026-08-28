@@ -19,6 +19,6 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
     :columns="employeeColumns"
     :source="source"
     :state="state"
-    storage-key="vue-table-docs:column-layout"
+    storage-key="vue-table-chad-docs:column-layout"
   />
 </template>

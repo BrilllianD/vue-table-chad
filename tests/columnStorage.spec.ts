@@ -16,7 +16,7 @@ import {
 import type { Person } from './fixtures'
 import { people, personColumns } from './fixtures'
 
-const KEY = 'vue-table:test'
+const KEY = 'vue-table-chad:test'
 
 /** An in-memory `Storage`, so a test never depends on the environment's one. */
 function memoryStorage(seed: Record<string, string> = {}): StorageLike & { map: Map<string, string> } {

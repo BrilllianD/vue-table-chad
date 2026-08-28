@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-  name: vue-table
+  name: vue-table-chad
   text: Headless table primitives for Vue 3
   tagline: Sorting, Excel-style filters, pagination, selection, grouping, column layout, header bands, inline editing and a keyboard cell cursor — over local arrays or server endpoints, interchangeably.
   actions:

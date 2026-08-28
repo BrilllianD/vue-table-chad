@@ -1,4 +1,4 @@
-# vue-table
+# vue-table-chad
 
 Headless table primitives for Vue 3, on the way to being an npm package. The point of the project
 is a universal table with a flexible config that **renders fast, without much overhead** — so

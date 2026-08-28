@@ -14,7 +14,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
-      fileName: 'vue-table',
+      fileName: 'vue-table-chad',
       // ESM only, deliberately — see package.json's exports map. `name` and
       // `output.globals` were the UMD/IIFE half of this config and did nothing
       // under `formats: ['es']`.
@@ -22,7 +22,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: ['vue'],
-      output: { assetFileNames: 'vue-table.[ext]' },
+      output: { assetFileNames: 'vue-table-chad.[ext]' },
     },
   },
 })

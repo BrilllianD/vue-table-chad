@@ -36,15 +36,15 @@
   "files": [
     "dist"
   ],
-  "module": "./dist/vue-table.js",
+  "module": "./dist/vue-table-chad.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/vue-table.js",
-      "default": "./dist/vue-table.js"
+      "import": "./dist/vue-table-chad.js",
+      "default": "./dist/vue-table-chad.js"
     },
-    "./style.css": "./dist/vue-table.css",
+    "./style.css": "./dist/vue-table-chad.css",
     "./package.json": "./package.json"
   },
   "sideEffects": [

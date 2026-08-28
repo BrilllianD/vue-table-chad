@@ -21,17 +21,6 @@ each; the commit subject names the task by ID.
 
 ## Active
 
-### `[~]` T1 — Land the `vue-table` → `vue-table-chad` rename
-
-The working tree carries an uncommitted sweep across 24 files: the `module`/`exports` paths and the
-`style.css` subpath in `package.json`, the build's output filename in `vite.config.ts`, the
-`devWarn` prefix, the storage-key prefix exercised by `tests/columnStorage.spec.ts`, and the name as
-it appears in the README, the docs, the demo and the playground.
-
-**Done when:** `pnpm test`, `pnpm typecheck` and `pnpm build` are green, `dist/` emits
-`vue-table-chad.js` and `vue-table-chad.css`, every path in `exports` resolves against the real
-build output, and no `vue-table` spelling survives outside the URLs that legitimately keep it.
-
 ### `[ ]` T2 — P3-8: release flow
 
 changesets → CHANGELOG → publish. The version is still `0.1.0`, and `prepublishOnly` already runs

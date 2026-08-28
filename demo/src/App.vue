@@ -129,7 +129,7 @@ const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
 <template>
   <main>
     <header class="masthead">
-      <h1>vue-table</h1>
+      <h1>vue-table-chad</h1>
       <p class="hint">
         Every feature the library has, one view at a time. Each view names the exports it uses, so
         you can read the demo and the API surface at the same time.

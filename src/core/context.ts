@@ -54,7 +54,7 @@ export interface TableContext<TRow = Record<string, unknown>> {
 }
 
 /** The injection key, exported so you can provide a context by hand. */
-export const TableContextKey: InjectionKey<TableContext<never>> = Symbol('vue-table')
+export const TableContextKey: InjectionKey<TableContext<never>> = Symbol('vue-table-chad')
 
 /** Publishes a TableContext so primitives beneath can find it. */
 export function provideTableContext<TRow>(context: TableContext<TRow>): void {
@@ -82,7 +82,7 @@ export function requireTableContext<TRow = Record<string, unknown>>(
   const context = useTableContext<TRow>()
   if (!context) {
     throw new Error(
-      `[vue-table] <${component}> needs a <TableRoot> ancestor, or explicit props to stand in for one.`,
+      `[vue-table-chad] <${component}> needs a <TableRoot> ancestor, or explicit props to stand in for one.`,
     )
   }
   return context

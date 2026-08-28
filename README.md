@@ -1,4 +1,4 @@
-# vue-table
+# vue-table-chad
 
 Composable table building blocks for Vue 3 — sorting, Excel-style filters, pagination, row
 selection, row grouping, column layout, multi-row header bands, inline editing and a keyboard cell

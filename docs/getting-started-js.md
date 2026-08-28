@@ -1,11 +1,11 @@
-# Using vue-table from plain JavaScript
+# Using vue-table-chad from plain JavaScript
 
 **Short answer: it is easier from JavaScript than from TypeScript.** The one real friction point in
 the [TypeScript guide](getting-started.md) — every component constraining
 `TRow extends Record<string, unknown>`, which a plain `interface` fails to satisfy — is a
 compile-time rule and does not exist for you. Nothing else about the library needs TypeScript.
 
-The package ships `dist/vue-table.js`: plain ESM JavaScript whose only import is `vue`. The
+The package ships `dist/vue-table-chad.js`: plain ESM JavaScript whose only import is `vue`. The
 TypeScript types live in separate `.d.ts` files that your bundler never reads. No build step of ours
 runs in your project, and there is no runtime type checking to trip over — a column definition is an
 ordinary object literal.
@@ -31,7 +31,7 @@ pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.1.0.tgz
 ```
 
 You need Vue **3.5+** and a bundler that compiles `.vue` files — the library's components arrive
-pre-compiled inside `dist/vue-table.js`, so `@vitejs/plugin-vue` is only for *your* own components.
+pre-compiled inside `dist/vue-table-chad.js`, so `@vitejs/plugin-vue` is only for *your* own components.
 No `tsconfig.json`, no `vue-tsc`, no `lang="ts"` anywhere.
 
 ## Your first table

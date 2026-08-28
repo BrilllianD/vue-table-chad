@@ -5,7 +5,7 @@ import { docPages } from '../nav'
 const sections = ['Start here', 'Data', 'Features', 'Presentation', 'Going further'] as const
 
 export default defineConfig({
-  title: 'vue-table',
+  title: 'vue-table-chad',
   description: 'Composable headless table primitives for Vue 3',
   srcExclude: ['.vitepress/examples/*.vue'],
   themeConfig: {
