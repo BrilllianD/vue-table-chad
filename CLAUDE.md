@@ -4,9 +4,10 @@ Headless table primitives for Vue 3, on the way to being an npm package. The poi
 is a universal table with a flexible config that **renders fast, without much overhead** — so
 performance is a correctness property here, not a nice-to-have.
 
-Known gaps, the phase plan and what to pick up next are in [`TODO.md`](TODO.md), which is the only
-place any of them live. This file is the standing contracts — what must stay true of the code
-however the plan moves.
+Open work lives in [`TASKS.md`](TASKS.md), which is the only place it lives — what to pick up next
+comes from there, and what has shipped is read from the git history rather than from a second copy
+of it. This file is the standing contracts: what must stay true of the code however the queue moves,
+including the decisions already settled and how the work is verified.
 
 ## Commands
 
@@ -137,4 +138,101 @@ because a background tab reports the browser's throttle rather than the table's 
   by one. **`tests/apiSurface.spec.ts` enforces that** for every *value* export, and names the
   offender when it fails: demonstrate it, or stop exporting it. Types are exempt, because a type
   cannot be used in a view in a way a reader would see.
-- One commit per task, tests and typecheck green before each.
+- **One task, one commit.** No batching, no work-in-progress commits spanning tasks. `pnpm test`
+  green and `pnpm typecheck` clean before each. A task whose done-when is not met does not get
+  committed; it gets finished, or split into a smaller task that is complete. The subject names the
+  task by ID, in the imperative mood the history already uses:
+
+  ```
+  P1-4: Depend on query fields, not on the query object
+
+  Paging rebuilt the whole pipeline because useTableState returns a fresh
+  query object per write. Each stage now depends only on the fields it reads.
+  ```
+- **`TASKS.md` is the work queue, and it is kept current as the work moves, not after it.** Flip a
+  task to `[~]` when starting it, and **delete it outright once it is committed** — the flags are
+  `[ ]` not started, `[~]` in progress, `[?]` blocked or waiting on a decision, `[-]` deliberately
+  deferred, and there is no "done" flag on purpose: the commit is the record, so a checked-off list
+  would be a second copy of the history that drifts from it. New work gets appended with an ID and
+  an explicit **Done when**, so whether it can be deleted is a question with an answer. A decision
+  reached while finishing a task belongs in **Settled decisions** below, not in the deleted entry.
+
+## Settled decisions
+
+Answered once. Reopen one only with a reason, and rewrite the entry rather than leaving both.
+
+- **The package name is `@brillliand/vue-table-chad`.** Scoped, so `publishConfig: { access:
+  "public" }` is required rather than optional. The scope is the account name `BrilllianD`
+  lowercased, because **npm forbids uppercase in a package name, scope included** — that lowercase
+  is correct and is not a typo to fix. Casing survives in the URLs, where `repository` and
+  `homepage` keep `BrilllianD`.
+- **The remote is Bitbucket:** `git@bitbucket.org:BrilllianD/vue-table-chad.git`. So CI is
+  `bitbucket-pipelines.yml`, not `.github/workflows/ci.yml`, and the docs site cannot be GitHub
+  Pages pointed at `demo/dist`.
+- **ESM only, and no CJS build.** `main` is gone rather than answered with a second output format:
+  Vue 3.5 plus Node 24 makes the CJS consumer largely theoretical, and a second format is a cost
+  paid on every release. `attw --profile esm-only` is the invocation that reflects this — the
+  profile is what stops the deliberate gap being reported as a failure.
+- **Declarations are rolled up.** The per-file emit re-exported through
+  `'./components/primitives/TableRoot.vue'` and other extensionless relative specifiers, which
+  TypeScript cannot follow under `node16`/`nodenext` — a consumer set to `nodenext` saw every
+  accessor parameter degrade to `any` while its build stayed green. `rollupTypes: true` leaves no
+  relative specifier in the shipped types.
+- **The bundle budget is measured, not inherited.** `pnpm size` fails past 42 kB gzip JS / 5 kB gzip
+  CSS, set from a build measuring 35.7 / 3.9. The figure it measured is printed next to the budget
+  so the next reader can tell drift from slack. The number this project used to carry was about 35%
+  low after four feature series — re-measure rather than copy.
+
+## What not to relearn
+
+Three lessons about how to work rather than what the code must do.
+
+- **`it.fails` is the right ratchet.** Vitest fails an `it.fails` that starts passing, so an
+  invariant written before its fix demands to be updated rather than quietly ratifying whatever the
+  code does later. A skip would just rot.
+- **The bench also argues *against* work.** Three trims the Phase 1 plan listed were measured and
+  turned out to be noise. `bench/BASELINE.md` records them as decisions, because "we measured and it
+  was noise" is a result worth keeping.
+- **`v-memo` is settled, not deferred.** It has no effect inside a `v-for`; through a slot outlet it
+  shares one `_cache` across every invocation; and in the one shape where it *would* work — a
+  per-row component — it reuses the whole vnode, slots included, freezing whatever the caller's own
+  `cell:<id>` slots close over. Windowing then leaves ~30 rendered rows for it to save anything on.
+
+## Verification
+
+**Per push, by CI** — `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm size`. Then `pnpm lint` and
+`pnpm bench` non-gating: lint is known-red (a task in `TASKS.md` decides it), and bench numbers are
+machine-specific, so a shared runner's absolute milliseconds are a trend to read rather than a
+threshold to fail.
+
+**Per task, locally**
+- `pnpm test` and `pnpm typecheck` — the same two CI gates, before the commit rather than after.
+- `pnpm bench` — before/after against [`bench/BASELINE.md`](bench/BASELINE.md). This is the part CI
+  cannot do for you.
+- `tests/invalidation.spec.ts` — the perf invariants hold. A failure there is a broken feature, not
+  a slow one.
+
+**End to end**
+- `pnpm demo` → **Performance** view: page through, type in search, toggle groups, push the page
+  size to 5000. Foreground the tab; it refuses to measure a hidden one. When the *number* is the
+  point rather than the behaviour, run it against `pnpm build:demo` served from `demo/dist` instead:
+  the dev build costs about 8ms a frame in component creation alone, which is most of what a
+  scrolling measurement reports (see [`bench/BASELINE.md`](bench/BASELINE.md)).
+- Walk all 18 demo views. **Composed** and **Core only** exercise the primitives and pure functions
+  directly and are the best canaries for a render-layer change.
+- `pnpm build` and `pnpm build:docs` clean.
+
+**The package**, before a release:
+
+```bash
+pnpm build && pnpm size
+npm pack --dry-run          # right name, LICENSE and README in the tarball
+pnpm dlx publint
+pnpm dlx @arethetypeswrong/cli --pack . --profile esm-only --exclude-entrypoints style.css
+```
+
+`--exclude-entrypoints style.css` because a stylesheet has no type declarations to resolve and attw
+reports the subpath as a failure on those grounds alone; the import itself is exercised by installing
+the tarball into a scratch Vite app, which is the other half of this check and the one worth
+repeating: build it, import `DataTable` and `@brillliand/vue-table-chad/style.css`, and typecheck it
+under both `bundler` and `nodenext` resolution.

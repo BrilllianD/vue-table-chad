@@ -36,7 +36,7 @@ pnpm build:docs  # the demo, folded into one self-contained page
 view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
 
 Not on npm yet: `@brillliand/vue-table-chad` is the name the examples import from — an alias onto
-`src/index.ts` until the first release. [`TODO.md`](TODO.md) tracks what publishing still needs.
+`src/index.ts` until the first release. [`TASKS.md`](TASKS.md) tracks what publishing still needs.
 
 ## Quick start
 
@@ -130,7 +130,7 @@ It is generated from the doc comments in `src/`, so it cannot fall behind the co
 
 Also in the repo: [`demo/README.md`](demo/README.md) for how the demo is laid out,
 [`bench/BASELINE.md`](bench/BASELINE.md) for the benchmark numbers and the optimizations that
-turned out not to be worth it, [`TODO.md`](TODO.md) for where this stands and what is planned, and
+turned out not to be worth it, [`TASKS.md`](TASKS.md) for what is planned and what is deferred, and
 [`CLAUDE.md`](CLAUDE.md) for the layer contracts and performance invariants.
 
 ## Not included
@@ -145,5 +145,5 @@ uniform row heights only. It did slot in at the rendering layer without touching
 not through the hook this file used to predict: `filteredRows` on the local source would have meant
 a second row path, one the grouping, the selection and the cursor all read differently. What it
 took instead was a page size of everything, so there is still exactly one list.
-[`TODO.md`](TODO.md) carries the rest, and why each of these is a decision rather than an
+[`TASKS.md`](TASKS.md) carries the rest, and why each of these is a decision rather than an
 oversight.
