@@ -25,6 +25,7 @@ demo/
                        use only primitives, which ship no CSS of their own
     App.vue            tab shell, ordered preset -> primitives -> core
     styles.css         demo chrome only; nothing here styles the table
+    examples.ts        tab -> the docs example whose source it shows
     columns.ts         ONE column set using every ColumnDef field
     data/
       dataset.ts       10k rows from a fixed seed, shaped to exercise the API
@@ -34,6 +35,7 @@ demo/
       StateInspector.vue   any value as JSON
       TableStatus.vue      a primitive the library does NOT ship, written here
       MiniRoot.vue         TableRoot rebuilt from scratch in ~40 lines
+      CodeExample.vue      the collapsed source panel under each view
     views/             one per feature area
 ```
 
@@ -49,11 +51,24 @@ demo/
 | Theming | preset | The `--vt-*` palette and the `data-*` state hooks |
 | Performance | preset | The whole 10k rows, timed in the browser to the frame after the paint |
 | API reference | preset | All 143 exports, rendered by the table they belong to |
-| Recipes | preset | What to type — the copy-paste snippets, so the built demo stands alone |
+| Recipes | preset | What to type — the six worked examples `docs/recipes.md` runs |
 | Selection | primitives | Modes, ranges, tri-state header, "select all matching" as a predicate |
 | Column layout | primitives | `useColumns` standalone, persisted to `localStorage` |
 | Composed | primitives | Cards, not a table — same primitives, different surface |
 | Core only | core | Zero components. Pure functions and `usePagination` over plain markup |
+
+## The source panel
+
+Under each view is a collapsed panel holding the source of the example that covers it — the real
+file from `docs/.vitepress/examples/`, which the docs site mounts and `pnpm typecheck` covers, not
+a copy of it. `scripts/vite-plugin-highlight.ts` runs Shiki over it at build time behind a
+`?highlight` import, so no highlighter reaches the browser and `demo/inline.mjs` still finds one
+script and one stylesheet.
+
+`demo/src/examples.ts` is the tab-to-file table, and `tests/demoExamples.spec.ts` fails, naming the
+offender, when a tab has no entry, an entry names a file that is not there, or a file in that
+directory is shown nowhere. The **Performance** and **API reference** tabs opt out with a sentence
+saying why rather than by being left out.
 
 ## Things the demo is deliberately honest about
 
