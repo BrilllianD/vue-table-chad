@@ -13,7 +13,7 @@
  * So the controls own every colour variable at once, seeded from whichever
  * scheme the browser is actually in.
  */
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import {
   DataTable,
   defineTheme,
@@ -21,9 +21,11 @@ import {
   useTableState,
   type TableTheme,
   type Theme,
+  type ThemeToken,
 } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
+import { TOKEN_CONTROLS, TOKEN_GROUPS } from '../data/themeControls'
 import DemoSection from '../components/DemoSection.vue'
 
 const rows = ref(employees.slice(0, 120))
@@ -246,13 +248,98 @@ const themeVars = computed<Theme>(() => ({
   cellHoverBorderColor: hoverBorder.cellColor,
 }))
 
+/* ------------------------------------------- every other variable, generically */
+
+/**
+ * The panels above cover the dozen variables a palette usually turns on. This
+ * is the rest of the theme — every `--vtc-*` the package declares, one control
+ * each, so nothing in the token list is reachable only by writing CSS by hand.
+ *
+ * Overrides are sparse on purpose: a token is absent until its control is
+ * touched, so the snippet stays a list of the things this palette actually
+ * changes rather than ninety lines restating the defaults.
+ */
+const overrides = reactive<Partial<Record<ThemeToken, string>>>({})
+
+const ALL_TOKENS = Object.keys(TOKEN_CONTROLS) as ThemeToken[]
+
+/**
+ * `rowHoverBg` → `--vtc-row-hover-bg`, asked of the package rather than
+ * reimplemented here. `defineTheme` is the only thing that knows the naming
+ * rule, and a second copy of it in the demo would be a second thing to get
+ * wrong the next time a token is added.
+ */
+const PROPERTY = Object.fromEntries(
+  ALL_TOKENS.map((token) => [token, Object.keys(defineTheme({ [token]: '0' }))[0]!]),
+) as Record<ThemeToken, string>
+
+/**
+ * What each token currently resolves to, read off the live table.
+ *
+ * Seeding the controls from the DOM rather than from a copied table of
+ * defaults is what keeps this view honest: the numbers a reader sees are the
+ * stylesheet's own, in whichever palette is showing, and they follow a theme
+ * switch without anything here having to know that the dark block exists.
+ */
+const resolved = reactive<Partial<Record<ThemeToken, string>>>({})
+const host = ref<HTMLElement>()
+
+function readResolved(): void {
+  const table = host.value?.querySelector('.vt-datatable')
+  if (!table) return
+  const style = getComputedStyle(table)
+  for (const token of ALL_TOKENS) resolved[token] = style.getPropertyValue(PROPERTY[token]).trim()
+}
+
+const valueOf = (token: ThemeToken): string => overrides[token] ?? resolved[token] ?? ''
+
+/** A colour input holds `#rrggbb` and nothing else, so anything else is coerced. */
+function hexOf(token: ThemeToken): string {
+  const value = valueOf(token)
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value
+  if (/^#[0-9a-f]{3}$/i.test(value)) return `#${[...value.slice(1)].map((c) => c + c).join('')}`
+  const rgb = value.match(/^rgba?\(([^)]+)\)$/)
+  if (!rgb) return '#000000'
+  const parts = rgb[1]!.split(/[\s,/]+/).slice(0, 3).map((n) => Number(n))
+  return `#${parts.map((n) => Math.round(n).toString(16).padStart(2, '0')).join('')}`
+}
+
+const numberOf = (token: ThemeToken): number => {
+  const parsed = Number.parseFloat(valueOf(token))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function setRaw(token: ThemeToken, value: string): void {
+  overrides[token] = value
+}
+
+function setNumber(token: ThemeToken, value: number): void {
+  const control = TOKEN_CONTROLS[token]
+  overrides[token] =
+    control.kind === 'percent' ? `${value}%` : `${value}${control.unit ?? ''}`
+}
+
+/** Deleting the key, not blanking it — an empty declaration is invalid, not absent. */
+function resetToken(token: ThemeToken): void {
+  delete overrides[token]
+}
+
+function resetAll(): void {
+  for (const token of ALL_TOKENS) delete overrides[token]
+}
+
+const overriddenCount = computed(() => Object.keys(overrides).length)
+
 /*
   Bound on the table rather than on a wrapper: the tokens are declared on
   `.vt-datatable` itself, so a value set on an ancestor never reaches them.
   An inline custom property lands on that element and beats the stylesheet
   without needing `!important` or a `:deep` selector.
+
+  The generic overrides come last, so a control below wins over the curated
+  panel above when both name the same token.
 */
-const themeStyle = computed(() => defineTheme(themeVars.value))
+const themeStyle = computed(() => defineTheme({ ...themeVars.value, ...overrides }))
 
 /** The same object again, printed. Generated, so it cannot disagree. */
 const snippet = computed(() =>
@@ -266,6 +353,7 @@ const snippet = computed(() =>
 function apply(next: Palette): void {
   Object.assign(palette, next)
 }
+
 
 const radius = computed(() => `${palette.radius}px`)
 const rowHeight = computed(() => `${palette.rowHeight}px`)
@@ -386,6 +474,17 @@ const colorControls = [
   { key: 'border', label: '--vtc-border' },
 ] as const
 
+/**
+ * Metrics, on the same row shape as every other slider on the page. They were
+ * three hand-written labels once, which is why they were the only controls
+ * whose name wrapped: nothing held the name and the readout apart.
+ */
+const metricControls = [
+  { key: 'radius', label: '--vtc-radius', hint: 'corner rounding', min: 0, max: 20 },
+  { key: 'rowHeight', label: '--vtc-row-height', hint: 'row height', min: 22, max: 64 },
+  { key: 'fontSize', label: '--vtc-font', hint: 'body text size', min: 10, max: 20 },
+] as const
+
 const widthControls = [
   { key: 'bodyBorder', label: '--vtc-body-border-width', hint: 'row rules' },
   { key: 'bodyBorderVertical', label: '--vtc-body-border-vertical-width', hint: 'column rules' },
@@ -456,6 +555,25 @@ const hooks = [
   { selector: '.vt-sort[data-direction]', when: 'styling the sort affordance itself' },
   { selector: '.vt-resize[data-dragging]', when: 'a resize drag is in progress' },
 ]
+/*
+  Last in the file, not beside `apply`: `watch` reads its sources once to hold
+  an old value, and `themeStyle` reaches the hover refs declared further down —
+  which is a `ReferenceError` rather than an `undefined`, since a `const` in a
+  module is in its temporal dead zone until the line that declares it runs.
+
+  After the patch, not with it: `getComputedStyle` reports what the browser
+  has, and the browser has the new custom properties only once Vue has flushed
+  them onto the element.
+*/
+onMounted(async () => {
+  await nextTick()
+  readResolved()
+})
+
+watch([theme, themeStyle], async () => {
+  await nextTick()
+  readResolved()
+})
 </script>
 
 <template>
@@ -497,109 +615,201 @@ const hooks = [
       </div>
     </template>
 
-    <div class="theme-controls">
-      <label v-for="control in colorControls" :key="control.key">
-        {{ control.label }}
-        <input v-model="palette[control.key]" type="color" />
-      </label>
-      <label>
-        --vtc-radius {{ palette.radius }}px
-        <input v-model.number="palette.radius" type="range" min="0" max="20" />
-      </label>
-      <label>
-        --vtc-row-height {{ palette.rowHeight }}px
-        <input v-model.number="palette.rowHeight" type="range" min="22" max="64" />
-      </label>
-      <label>
-        --vtc-font {{ palette.fontSize }}px
-        <input v-model.number="palette.fontSize" type="range" min="10" max="20" />
-      </label>
+    <div class="theme-groups">
+      <section class="group">
+        <h4>Colours</h4>
+        <div class="grid swatches">
+          <label v-for="control in colorControls" :key="control.key">
+            <span class="var">{{ control.label }}</span>
+            <input v-model="palette[control.key]" type="color" />
+          </label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h4>Metrics</h4>
+        <div class="grid rows">
+          <label v-for="control in metricControls" :key="control.key">
+            <span class="var">{{ control.label }}</span>
+            <input
+              v-model.number="palette[control.key]"
+              type="range"
+              :min="control.min"
+              :max="control.max"
+            />
+            <span class="value">{{ palette[control.key] }}px</span>
+            <span class="hint">{{ control.hint }}</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="group wide">
+        <h4>Rules</h4>
+        <div class="grid rows">
+          <label v-for="control in widthControls" :key="control.key">
+            <span class="var">{{ control.label }}</span>
+            <input v-model.number="palette[control.key]" type="range" min="0" max="4" />
+            <span class="value">{{ palette[control.key] }}px</span>
+            <span class="hint">{{ control.hint }}</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- One topic, so one group: the delta derives the hover colour, naming a
+           colour replaces that derivation, and the outline is drawn on top of
+           whichever won. Split across three panels they read as three features. -->
+      <section class="group">
+        <h4>Hover and selection</h4>
+        <div class="grid rows">
+          <label
+            v-for="control in alphaControls"
+            :key="control.key"
+            :data-overridden="control.overridden() || undefined"
+          >
+            <span class="var">{{ control.label }}</span>
+            <input
+              v-model.number="palette[control.key]"
+              type="range"
+              min="0"
+              :max="control.max"
+              :disabled="control.overridden()"
+            />
+            <span class="value">{{ palette[control.key] }}%</span>
+            <span class="hint">{{ control.hint }}</span>
+          </label>
+        </div>
+
+        <div class="grid rows">
+          <label v-for="control in hoverOverrides" :key="control.label">
+            <input v-model="control.on.value" type="checkbox" />
+            <span class="var">{{ control.label }}</span>
+            <input v-model="control.color.value" type="color" :disabled="!control.on.value" />
+            <input
+              v-model.number="control.alpha.value"
+              type="range"
+              min="0"
+              max="100"
+              :disabled="!control.on.value"
+            />
+            <span class="value">{{ control.alpha.value }}%</span>
+            <span class="hint">{{ control.hint }} hover, as a colour</span>
+          </label>
+        </div>
+
+        <div class="grid rows">
+          <label v-for="control in borderControls" :key="control.label">
+            <span class="var">{{ control.label }}</span>
+            <input v-model.number="hoverBorder[control.widthKey]" type="range" min="0" max="4" />
+            <span class="value">{{ hoverBorder[control.widthKey] }}px</span>
+            <input v-model="hoverBorder[control.colorKey]" type="color" />
+            <span class="hint">{{ control.hint }}</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h4>Column tint</h4>
+        <div class="grid rows column-tint">
+          <label>
+            <input v-model="tintColumn" type="checkbox" />
+            <span class="var">ColumnDef.background</span>
+            <select v-model="tintedColumn" :disabled="!tintColumn">
+              <option v-for="column in employeeColumns" :key="column.id" :value="column.id">
+                {{ column.header }}
+              </option>
+            </select>
+            <input v-model="columnBg" type="color" :disabled="!tintColumn" />
+            <input
+              v-model.number="columnAlpha"
+              type="range"
+              min="0"
+              max="100"
+              :disabled="!tintColumn"
+            />
+            <span class="value">{{ columnAlpha }}%</span>
+          </label>
+        </div>
+        <p class="hint">
+          A field on the column def, not a variable — and a layer, not a swap: below 100% the
+          stripes, hover and selection all read through it.
+        </p>
+      </section>
     </div>
 
-    <div class="theme-controls width-controls">
-      <label v-for="control in widthControls" :key="control.key">
-        <span class="var">{{ control.label }}</span>
-        <input v-model.number="palette[control.key]" type="range" min="0" max="4" />
-        <span class="width-value">{{ palette[control.key] }}px</span>
-        <span class="hint">{{ control.hint }}</span>
-      </label>
-    </div>
+    <details class="all-vars">
+      <summary>
+        Every <code>--vtc-*</code> variable
+        <span v-if="overriddenCount" class="count">{{ overriddenCount }} overridden</span>
+      </summary>
 
-    <div class="theme-controls width-controls">
-      <label
-        v-for="control in alphaControls"
-        :key="control.key"
-        :data-overridden="control.overridden() || undefined"
-      >
-        <span class="var">{{ control.label }}</span>
-        <input
-          v-model.number="palette[control.key]"
-          type="range"
-          min="0"
-          :max="control.max"
-          :disabled="control.overridden()"
-        />
-        <span class="width-value">{{ palette[control.key] }}%</span>
-        <span class="hint">{{ control.hint }}</span>
-      </label>
-    </div>
+      <p class="hint">
+        Each control starts on whatever the token resolves to right now, read off the table
+        itself — so they follow a preset or a theme switch without this page holding a second
+        copy of the palette. Move one and it becomes an override and joins the snippet below;
+        <strong>reset</strong> hands it back to the stylesheet, which is not the same as setting
+        it to the value it happens to have.
+        <button v-if="overriddenCount" type="button" class="reset-all" @click="resetAll">
+          reset all {{ overriddenCount }}
+        </button>
+      </p>
 
-    <div class="theme-controls width-controls">
-      <label v-for="control in borderControls" :key="control.label">
-        <span class="var">{{ control.label }}</span>
-        <input v-model.number="hoverBorder[control.widthKey]" type="range" min="0" max="4" />
-        <span class="width-value">{{ hoverBorder[control.widthKey] }}px</span>
-        <input v-model="hoverBorder[control.colorKey]" type="color" />
-        <span class="hint">{{ control.hint }}</span>
-      </label>
-    </div>
+      <div class="theme-groups">
+        <section v-for="group in TOKEN_GROUPS" :key="group.label" class="group">
+          <h4>{{ group.label }}</h4>
+          <div class="grid rows">
+            <label
+              v-for="token in group.tokens"
+              :key="token"
+              :data-set="token in overrides || undefined"
+            >
+              <span class="var">{{ PROPERTY[token] }}</span>
 
-    <div class="theme-controls width-controls">
-      <label v-for="control in hoverOverrides" :key="control.label">
-        <input v-model="control.on.value" type="checkbox" />
-        <span class="var">{{ control.label }}</span>
-        <input v-model="control.color.value" type="color" :disabled="!control.on.value" />
-        <input
-          v-model.number="control.alpha.value"
-          type="range"
-          min="0"
-          max="100"
-          :disabled="!control.on.value"
-        />
-        <span class="width-value">{{ control.alpha.value }}%</span>
-        <span class="hint">{{ control.hint }} hover, as a colour</span>
-      </label>
-    </div>
+              <input
+                v-if="TOKEN_CONTROLS[token].kind === 'color'"
+                type="color"
+                :value="hexOf(token)"
+                @input="setRaw(token, ($event.target as HTMLInputElement).value)"
+              />
 
-    <div class="theme-controls column-tint">
-      <label>
-        <input v-model="tintColumn" type="checkbox" />
-        ColumnDef.background on
-      </label>
-      <label>
-        column
-        <select v-model="tintedColumn">
-          <option v-for="column in employeeColumns" :key="column.id" :value="column.id">
-            {{ column.header }}
-          </option>
-        </select>
-      </label>
-      <label>
-        colour
-        <input v-model="columnBg" type="color" />
-      </label>
-      <label class="alpha">
-        alpha
-        <input v-model.number="columnAlpha" type="range" min="0" max="100" />
-        <span class="width-value">{{ columnAlpha }}%</span>
-      </label>
-      <span class="hint">
-        A field on the column def, not a variable — and a layer, not a swap: below 100% the
-        stripes, hover and selection all read through it.
-      </span>
-    </div>
+              <input
+                v-else-if="TOKEN_CONTROLS[token].kind === 'text'"
+                class="text"
+                type="text"
+                :value="valueOf(token)"
+                @change="setRaw(token, ($event.target as HTMLInputElement).value)"
+              />
 
-    <div class="theme-host">
+              <template v-else>
+                <input
+                  type="range"
+                  :min="TOKEN_CONTROLS[token].min"
+                  :max="TOKEN_CONTROLS[token].max"
+                  :step="TOKEN_CONTROLS[token].step ?? 1"
+                  :value="numberOf(token)"
+                  @input="setNumber(token, Number(($event.target as HTMLInputElement).value))"
+                />
+                <span class="value">
+                  {{ numberOf(token)
+                  }}{{ TOKEN_CONTROLS[token].kind === 'percent' ? '%' : TOKEN_CONTROLS[token].unit ?? '' }}
+                </span>
+              </template>
+
+              <button
+                v-if="token in overrides"
+                type="button"
+                class="reset"
+                @click="resetToken(token)"
+              >
+                reset
+              </button>
+              <span class="hint">{{ TOKEN_CONTROLS[token].hint }}</span>
+            </label>
+          </div>
+        </section>
+      </div>
+    </details>
+
+    <div ref="host" class="theme-host">
       <DataTable
         :columns="themedColumns"
         :source="source"
@@ -644,34 +854,106 @@ const hooks = [
 </template>
 
 <style scoped>
-.theme-controls {
+/* Five groups, each a named topic rather than another run of sliders. The
+   panels wrap against each other, so a narrow window stacks them instead of
+   squeezing every track down to nothing. */
+.theme-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+.group {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+/* `--vtc-body-border-vertical-width` is the longest name on the page, and the
+   only one that pushes its hint onto a second line at an even share. */
+.group.wide { flex-grow: 1.4; }
+.group h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 8px 16px;
   font-size: 12.5px;
 }
-.theme-controls label { display: flex; align-items: center; gap: 6px; }
+.grid label { display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+/* The swatches carry no track, so they pack several to a row. Every other
+   group is one control per row: the name, the track and the readout only line
+   up down the group if each row owns the full width. */
+.swatches { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+/* `nowrap` on the name and the readout, not on the whole row: those two are
+   what used to break across three lines, and the hint is the one part that can
+   afford to drop to a second line rather than push the readout off the end. */
+.rows label { flex-wrap: wrap; }
+.rows label[data-overridden] { opacity: 0.45; }
+.rows .var { flex: none; white-space: nowrap; }
+.rows .hint { flex: 1 1 auto; min-width: 0; }
+.rows input[type='color'],
+.rows input[type='checkbox'],
+.rows select { flex: none; }
+.rows input[type='range'] { flex: 1; min-width: 60px; }
+.value {
+  flex: none;
+  width: 32px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
 
 .theme-picker { display: inline-flex; align-items: center; gap: 6px; }
 
-
-
-/* The rule widths carry the longest variable names on the page, so they get a
-   wider track than the colour swatches and are kept off the wrapping grid. */
-.width-controls {
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-  margin-top: -4px;
+/* Closed by default: ninety controls open on arrival would bury the table. */
+.all-vars > summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
 }
-.width-controls label { white-space: nowrap; }
-.width-controls label[data-overridden] { opacity: 0.45; }
-.width-controls input[type='color'] { flex: none; }
-.width-controls .var { flex: none; }
-.width-controls input[type='range'] { flex: 1; min-width: 70px; }
-.width-value { flex: none; width: 30px; font-variant-numeric: tabular-nums; }
+.all-vars > .hint { margin: 6px 0 10px; }
+.all-vars .theme-groups { margin-bottom: 4px; }
+/* Wider than the curated panels: these rows carry the longest names in the
+   package *and* a hint, and two columns wrap far fewer of them onto a second
+   line than three do. */
+.all-vars .group { flex: 1 1 440px; }
 
-.column-tint { margin-top: -4px; }
-.column-tint .alpha { min-width: 210px; }
-.column-tint .alpha input[type='range'] { flex: 1; min-width: 70px; }
+/* A row that is no longer the stylesheet's says so, since its value alone
+   cannot: an override often starts out equal to what it replaced. */
+.rows label[data-set] .var { color: var(--accent, #2563eb); font-weight: 600; }
+.rows input.text { flex: 1; min-width: 120px; font: inherit; font-size: 11.5px; }
+.reset,
+.reset-all {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.reset-all { margin-left: 6px; }
+
+/* The one group whose hint is a paragraph rather than a per-row suffix. */
+.group > .hint { margin: 0; }
 
 /* The table paints its own background, so give it somewhere to sit. */
 .theme-host { padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
