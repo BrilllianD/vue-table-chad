@@ -9,7 +9,7 @@ import { people, personColumns, personColumnGroups, groupedPersonColumns, type P
 /**
  * `columnRules` and `bandRules` — the two vertical separators, as props.
  *
- * Both are the declarative form of a `--vt-*` width that was previously only
+ * Both are the declarative form of a `--vtc-*` width that was previously only
  * reachable from CSS. The rules they stand for live in `grid.css` and are not
  * applied by happy-dom, so these assert the custom property that drives them
  * rather than a computed border: the stylesheet is the preset's business and
@@ -48,31 +48,31 @@ describe('columnRules and bandRules', () => {
     const wrapper = mountTable()
 
     const style = styleOf(wrapper)
-    expect(style).not.toContain('--vt-body-border-vertical-width')
-    expect(style).not.toContain('--vt-band-border-width')
+    expect(style).not.toContain('--vtc-body-border-vertical-width')
+    expect(style).not.toContain('--vtc-band-border-width')
 
     wrapper.unmount()
   })
 
   it('turns column separators on and off', () => {
     const on = mountTable({ columnRules: true })
-    expect(styleOf(on)).toContain('--vt-body-border-vertical-width: 1px')
+    expect(styleOf(on)).toContain('--vtc-body-border-vertical-width: 1px')
     on.unmount()
 
     // `false` is a value, not an absence: the token defaults to `0px`, so this
     // only matters for a table whose own CSS had switched the rules on.
     const off = mountTable({ columnRules: false })
-    expect(styleOf(off)).toContain('--vt-body-border-vertical-width: 0px')
+    expect(styleOf(off)).toContain('--vtc-body-border-vertical-width: 0px')
     off.unmount()
   })
 
   it('turns band rules on and off', () => {
     const off = mountTable({ bandRules: false }, true)
-    expect(styleOf(off)).toContain('--vt-band-border-width: 0px')
+    expect(styleOf(off)).toContain('--vtc-band-border-width: 0px')
     off.unmount()
 
     const on = mountTable({ bandRules: true }, true)
-    expect(styleOf(on)).toContain('--vt-band-border-width: 1px')
+    expect(styleOf(on)).toContain('--vtc-band-border-width: 1px')
     on.unmount()
   })
 
@@ -85,8 +85,8 @@ describe('columnRules and bandRules', () => {
     const wrapper = mountTable({ columnRules: true, bandRules: false }, true)
 
     const style = styleOf(wrapper)
-    expect(style).toContain('--vt-body-border-vertical-width: 1px')
-    expect(style).toContain('--vt-band-border-width: 0px')
+    expect(style).toContain('--vtc-body-border-vertical-width: 1px')
+    expect(style).toContain('--vtc-band-border-width: 0px')
 
     wrapper.unmount()
   })
@@ -100,7 +100,7 @@ describe('columnRules and bandRules', () => {
   it('has no band edges to reach without columnGroups', () => {
     const wrapper = mountTable({ bandRules: true })
 
-    expect(styleOf(wrapper)).toContain('--vt-band-border-width: 1px')
+    expect(styleOf(wrapper)).toContain('--vtc-band-border-width: 1px')
     expect(wrapper.findAll('[data-band-edge]')).toHaveLength(0)
 
     wrapper.unmount()

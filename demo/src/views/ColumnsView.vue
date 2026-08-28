@@ -157,7 +157,7 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
           Persist to localStorage
         </label>
         <!--
-          The prop form of `--vt-body-border-vertical-width`, which is `0px` by
+          The prop form of `--vtc-body-border-vertical-width`, which is `0px` by
           default. Off is what the table always looked like; on is the
           separators without reaching for the variable.
         -->

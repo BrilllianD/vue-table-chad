@@ -12,7 +12,7 @@ including the decisions already settled and how the work is verified.
 ## Commands
 
 ```bash
-pnpm test          # vitest, 767 tests across 42 files
+pnpm test          # vitest, 772 tests across 43 files
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**

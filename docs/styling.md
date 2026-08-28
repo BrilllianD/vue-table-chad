@@ -86,8 +86,8 @@ The two vertical rules also have prop forms on `DataTable`, so the common case n
 <DataTable :band-rules="false" />       <!-- no rule where a band's columns end -->
 ```
 
-`column-rules` writes `--vt-body-border-vertical-width`, `band-rules` writes
-`--vt-band-border-width`. Left unset **neither emits anything**, so the variables above keep
+`column-rules` writes `--vtc-body-border-vertical-width`, `band-rules` writes
+`--vtc-band-border-width`. Left unset **neither emits anything**, so the variables above keep
 governing — which is the whole reason the props default to `undefined` rather than to `false`.
 Pass one and it wins, because it arrives as an inline custom property on `.vt-datatable`, the
 element the tokens are declared on.

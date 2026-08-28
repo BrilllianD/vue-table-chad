@@ -139,7 +139,7 @@ const props = withDefaults(
     /**
      * Vertical rules between every pair of columns, header and body alike.
      *
-     * The declarative form of `--vt-body-border-vertical-width`, which is `0px`
+     * The declarative form of `--vtc-body-border-vertical-width`, which is `0px`
      * by default because column separators are a deliberate look rather than
      * one every table should start with.
      *
@@ -153,7 +153,7 @@ const props = withDefaults(
      * The rule beside a band, where its run of columns ends — drawn the full
      * height of the table rather than only in the header.
      *
-     * The declarative form of `--vt-band-border-width`, which unlike the column
+     * The declarative form of `--vtc-band-border-width`, which unlike the column
      * separators is `1px` by default: it is emitted only where a boundary
      * actually falls, so a table declaring no `columnGroups` never sees it.
      * Which is also why this prop does nothing on a table without bands —
@@ -209,7 +209,7 @@ const props = withDefaults(
     // Vue casts an absent boolean prop to `false`, which would make "not
     // passed" indistinguishable from "passed as false" — and these two have to
     // stay apart, because unset means "emit nothing and let the stylesheet's
-    // own `--vt-*` value stand".
+    // own `--vtc-*` value stand".
     columnRules: undefined,
     bandRules: undefined,
     selectable: false,
@@ -273,10 +273,10 @@ const selectable = computed(() => props.selectable !== false)
 const ruleStyle = computed(() => {
   const style: Record<string, string> = {}
   if (props.columnRules !== undefined) {
-    style['--vt-body-border-vertical-width'] = props.columnRules ? '1px' : '0px'
+    style['--vtc-body-border-vertical-width'] = props.columnRules ? '1px' : '0px'
   }
   if (props.bandRules !== undefined) {
-    style['--vt-band-border-width'] = props.bandRules ? '1px' : '0px'
+    style['--vtc-band-border-width'] = props.bandRules ? '1px' : '0px'
   }
   return Object.keys(style).length > 0 ? style : undefined
 })

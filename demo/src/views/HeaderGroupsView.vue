@@ -49,7 +49,7 @@ const bandRule = ref('1px')
  * The same rule again, as a prop rather than a variable.
  *
  * Three states, not two, because `undefined` is a real one: the prop then
- * emits nothing and the `--vt-band-border-width` select above governs. Pass it
+ * emits nothing and the `--vtc-band-border-width` select above governs. Pass it
  * and it wins — it arrives as an inline custom property on `.vt-datatable`,
  * which is the element the token is declared on.
  */
