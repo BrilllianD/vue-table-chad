@@ -27,12 +27,12 @@ that:
 nvm use            # Node 24
 pnpm install
 pnpm build         # -> dist/
-npm pack           # -> brillliand-vue-table-chad-0.2.0.tgz
+npm pack           # -> brillliand-vue-table-chad-0.2.1.tgz
 ```
 
 ```bash
 # in your project
-pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.2.0.tgz
+pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.2.1.tgz
 ```
 
 `files: ["dist"]` means the tarball is `dist/` plus `README.md` and `LICENSE` — 55 files, no source.
