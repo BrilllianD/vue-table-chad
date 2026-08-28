@@ -79,6 +79,19 @@ recall setting it and seeing nothing happen.
 The header underline is its own variable on purpose: a borderless body usually still wants the
 header separated from the rows.
 
+The two vertical rules also have prop forms on `DataTable`, so the common case needs no CSS at all:
+
+```vue
+<DataTable column-rules />              <!-- separators between every pair of columns -->
+<DataTable :band-rules="false" />       <!-- no rule where a band's columns end -->
+```
+
+`column-rules` writes `--vt-body-border-vertical-width`, `band-rules` writes
+`--vt-band-border-width`. Left unset **neither emits anything**, so the variables above keep
+governing — which is the whole reason the props default to `undefined` rather than to `false`.
+Pass one and it wins, because it arrives as an inline custom property on `.vt-datatable`, the
+element the tokens are declared on.
+
 ## Band rules
 
 Where a [header band](column-groups.md)'s run of columns ends, a vertical rule is drawn the full
