@@ -1,5 +1,13 @@
 # Excel-style filters
 
+<script setup>
+import Example from './.vitepress/examples/filtering.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/filtering.vue
+
 Two modes per column, matching Excel's two halves:
 
 ```ts
@@ -33,4 +41,4 @@ its filter panel but drop it from search hits.
 
 ---
 
-Live: the **Filters** tab of `pnpm demo` (`#filters`). Back to the [docs index](../README.md#docs).
+Live: the **Filters** tab of `pnpm demo` (`#filters`). Back to the [docs index](/).

@@ -1,5 +1,13 @@
 # Editing cells
 
+<script setup>
+import Example from './.vitepress/examples/editing.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/editing.vue
+
 ```ts
 const rows = shallowRef(employees)
 const state = useTableState({ pageSize: 20 })
@@ -305,4 +313,4 @@ selection layers `.vt-td` already composes.
 
 ---
 
-Live: the **Editing** tab of `pnpm demo` (`#editing`). Back to the [docs index](../README.md#docs).
+Live: the **Editing** tab of `pnpm demo` (`#editing`). Back to the [docs index](/).

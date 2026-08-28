@@ -1,5 +1,13 @@
 # Local, server and infinite data
 
+<script setup>
+import Example from './.vitepress/examples/data-sources.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/data-sources.vue
+
 ## Local data
 
 ```ts
@@ -78,5 +86,4 @@ the latency of a slow server.
 
 ---
 
-Live: the **Server data** tab of `pnpm demo` (`#server`), and **Infinite scroll** (`#infinite`).
-Back to the [docs index](../README.md#docs).
+Live: the **Server data** tab of `pnpm demo` (`#server`), and **Infinite scroll** (`#infinite`). Back to the [docs index](/).

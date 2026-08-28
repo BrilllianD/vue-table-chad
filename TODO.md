@@ -2,7 +2,7 @@
 
 Where this stands, what to do next, and the phase plan behind it — one file.
 
-**State as of 2026-08-28:** everything below is on **`main`**, which tracks `origin/main`. 752 tests
+**State as of 2026-08-28:** everything below is on **`main`**, which tracks `origin/main`. 754 tests
 across 39 files green, `pnpm typecheck` clean, and CI runs all of it per push
 (`bitbucket-pipelines.yml`). **Phase 2 is done** — the browser session it was waiting on has been
 run, and its numbers are in [`bench/BASELINE.md`](bench/BASELINE.md). Phase 3 is what remains.

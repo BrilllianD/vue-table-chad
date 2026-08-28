@@ -1,5 +1,13 @@
 # Column layout
 
+<script setup>
+import Example from './.vitepress/examples/column-layout.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/column-layout.vue
+
 Visibility, ordering, resizing and pinning all live in `useColumns` and are driven from
 `ColumnVisibilityMenu`, or programmatically:
 
@@ -91,4 +99,4 @@ Styling hooks: `[data-reorderable]`, `[data-dragging]` and `[data-drop='before'|
 
 ---
 
-Live: the **Column layout** tab of `pnpm demo` (`#columns`). Back to the [docs index](../README.md#docs).
+Live: the **Column layout** tab of `pnpm demo` (`#columns`). Back to the [docs index](/).

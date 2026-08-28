@@ -19,12 +19,14 @@
     "esModuleInterop": true,
     "useDefineForClassFields": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["vitest/globals"],
     "baseUrl": ".",
     "paths": {
       "@brillliand/vue-table-chad": ["./src/index.ts"],
       "@/*": ["./src/*"],
-      "@fixtures": ["./bench/fixtures.ts"]
+      "@fixtures": ["./bench/fixtures.ts"],
+      "@docs": ["./docs/nav.ts"]
     }
   },
   "include": [
@@ -37,6 +39,8 @@
     "demo/**/*.vue",
     "bench/**/*.ts",
     "scripts/**/*.ts",
-    "*.config.ts"
+    "*.config.ts",
+    "docs/**/*.ts",
+    "docs/**/*.vue"
   ]
 }

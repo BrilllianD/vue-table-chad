@@ -1,10 +1,11 @@
 /**
  * Folds the built demo into one self-contained HTML file.
  *
- * The demo is a docs site with nowhere to live yet — there is no repository and
- * no host until Phase 3 wires one up. A single file can be published as an
- * Artifact in the meantime, which needs everything inlined: the Artifact CSP
- * blocks requests to any external host, script and stylesheet alike.
+ * The demo is a docs site with no real host yet: the remote is Bitbucket, and
+ * P3-9 is what wires up a proper host for it alongside the VitePress docs
+ * site. Until then, a single file can be published as an Artifact, which
+ * needs everything inlined: the Artifact CSP blocks requests to any external
+ * host, script and stylesheet alike.
  *
  *   pnpm build:demo && node demo/inline.mjs   ->  demo/dist/standalone.html
  *

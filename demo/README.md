@@ -8,9 +8,9 @@ pnpm build:demo    # -> demo/dist
 pnpm build:docs    # -> demo/dist/standalone.html, the whole site in one file
 ```
 
-`build:docs` inlines the bundle into a single self-contained page. It exists because the demo *is*
-the docs site and has nowhere to live yet: there is no repository and no host until Phase 3, and one
-file can be published anywhere in the meantime.
+`build:docs` inlines the bundle into a single self-contained page. It predates the Bitbucket remote
+having a real host for it: one file could be published anywhere in the meantime. P3-9 gives the demo
+a proper host alongside the VitePress docs site, and removes this step once it does.
 
 The playground (`pnpm dev`, port 5173) is four small examples. This is the exhaustive one, and
 the two run side by side.

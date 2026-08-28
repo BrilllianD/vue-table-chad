@@ -1,5 +1,13 @@
 # Header bands
 
+<script setup>
+import Example from './.vitepress/examples/column-groups.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/column-groups.vue
+
 Columns can sit under a shared header, nested as deep as you like, with a control on each band
 that folds it down to a single column.
 
@@ -177,4 +185,4 @@ order is what keeps a band split by a pin or a drag from drawing a rule inside i
 `<TableRoot>` exposes both as `headerRows` and `bandEdges` slot props, and `<TableHeaderGroupCell>`
 renders one band cell given nothing but the cell itself.
 
-See it running in the demo's **Header bands** view.
+Live: the **Header bands** tab of `pnpm demo` (`#header-groups`). Back to the [docs index](/).

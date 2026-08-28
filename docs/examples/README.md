@@ -1,6 +1,6 @@
 # Examples
 
-## [`AddressesTable.vue`](AddressesTable.vue) — porting an existing Options API table
+## [`AddressesTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/AddressesTable.vue) — porting an existing Options API table
 
 A real server-paginated table with the app's own markup, moved onto `vue-table`. It keeps the
 `<table>` and every CSS class the app's stylesheet expects, and takes everything behind them from
@@ -47,7 +47,7 @@ makes that impossible and removes the `@change="refresh"` handler entirely.
 ### Four things that will bite anyone doing this port
 
 1. **Return everything from `setup()` flat.** Only top-level refs are unwrapped in a template.
-   Return `source` whole and `{{ source.total }}` still *prints* the right number — Vue's
+   Return `source` whole and <code v-pre>{{ source.total }}</code> still *prints* the right number — Vue's
    `toDisplayString` unwraps refs for display — while `source.total > 0` is silently `false` and
    `v-for="o in source.rows"` throws `Cannot read properties of undefined (reading 'id')`. A
    display that lies is the worst version of this bug; return flat refs and it cannot happen.
@@ -142,4 +142,33 @@ pin a fluid column to a fixed width if you were not expecting it.
 
 ---
 
-Back to the [docs index](../../README.md#docs).
+## [`ServerPaginatedTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/ServerPaginatedTable.vue) — loading and error states
+
+`useServerDataSource` against a real fetcher, read out to the two states a local source never holds
+for more than a tick: `source.loading` while a request is in flight, and `source.error` when one
+fails. The DataTable `#toolbar` slot is where the loading indicator lives; the error and its retry
+button render below the table, driven by `source.refresh()`. See
+[Local, server and infinite data](../data-sources.md) for the rest of the contract.
+
+## [`VirtualLargeTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/VirtualLargeTable.vue) — pinned, grouped, and 100k rows at once
+
+The combination [P2-6's acceptance run](../performance.md#what-the-browser-measures) measured:
+`virtual` over 100k rows, two pinned columns, and a collapsed group, all at the same time. Frame
+time scrolling continuously came out at 16.5ms median — against a 16.4ms flat baseline with nothing
+pinned or grouped — because pinning is a per-cell offset the scroll window never reads, and a
+collapsed band is simply a shorter list for the window to slice. Neither is a special case the
+window has to know about.
+
+## [`ComposedFromPrimitives.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/ComposedFromPrimitives.vue) — the standalone-primitive contract, end to end
+
+No `<DataTable>`, no `<TableRoot>`, no stylesheet import. `useColumns` resolves the column list on
+its own — it is a composable, not a component, so it needs no root either — and `TableGrid`,
+`TableHeaderCell`, `TableRow` and `TablePagination` each take their state as an explicit prop rather
+than reading an injected context. This is the same guarantee
+`tests/tableGrid.spec.ts`'s "renders standalone, with no table context above it" cases pin for
+individual primitives, demonstrated for a whole table at once. See
+[Composing your own](../composing.md).
+
+---
+
+Back to the [docs index](/).

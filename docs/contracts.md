@@ -1,5 +1,13 @@
 # The two contracts
 
+<script setup>
+import Example from './.vitepress/examples/contracts.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/contracts.vue
+
 Everything hangs off these. Learn them and the rest follows.
 
 ## `QueryState` — what to show
@@ -39,4 +47,4 @@ difference is the two lines that build the source.
 
 ---
 
-Live: the **Core only** tab of `pnpm demo` (`#core`). Back to the [docs index](../README.md#docs).
+Live: the **Core only** tab of `pnpm demo` (`#core`). Back to the [docs index](/).

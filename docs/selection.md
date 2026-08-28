@@ -1,5 +1,13 @@
 # Selection
 
+<script setup>
+import Example from './.vitepress/examples/selection.vue'
+</script>
+
+<Demo :is="Example" />
+
+<<< @/.vitepress/examples/selection.vue
+
 ```ts
 const source = /* … */
 <DataTable :columns="columns" :source="source" selectable @update:selection="ids = $event" />
@@ -20,4 +28,4 @@ predicate instead:
 
 ---
 
-Live: the **Selection** tab of `pnpm demo` (`#selection`). Back to the [docs index](../README.md#docs).
+Live: the **Selection** tab of `pnpm demo` (`#selection`). Back to the [docs index](/).
