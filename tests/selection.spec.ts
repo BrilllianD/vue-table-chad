@@ -159,3 +159,85 @@ describe('select-all-matching', () => {
     dispose()
   })
 })
+
+describe('selectFromClick', () => {
+  it('toggles one row on ctrl-click, and on cmd-click', () => {
+    const { selection, dispose } = setup()
+    expect(selection.selectFromClick(people[0]!, { ctrlKey: true })).toBe(true)
+    // Cmd on a Mac, where Ctrl+click is a right-click and cannot be the gesture.
+    selection.selectFromClick(people[2]!, { metaKey: true })
+    expect(selection.selectedIds.value.sort()).toEqual([1, 3])
+
+    selection.selectFromClick(people[0]!, { ctrlKey: true })
+    expect(selection.selectedIds.value).toEqual([3])
+    dispose()
+  })
+
+  it('extends a range on shift-click, from the row ctrl-click anchored', () => {
+    const { selection, dispose } = setup()
+    selection.selectFromClick(people[1]!, { ctrlKey: true })
+    expect(selection.selectFromClick(people[4]!, { shiftKey: true })).toBe(true)
+    expect(selection.selectedIds.value.sort()).toEqual([2, 3, 4, 5])
+    dispose()
+  })
+
+  it('does nothing at all on an unmodified click', () => {
+    const { selection, dispose } = setup()
+    selection.toggle(people[0]!)
+    const before = selection.state.value
+
+    expect(selection.selectFromClick(people[3]!, {})).toBe(false)
+    // The same object, not merely an equal one: no state was written.
+    expect(selection.state.value).toBe(before)
+    dispose()
+  })
+
+  it('keeps one row in single mode, whichever modifier is held', () => {
+    const { selection, dispose } = setup(people, { mode: 'single' })
+    selection.selectFromClick(people[0]!, { ctrlKey: true })
+    selection.selectFromClick(people[4]!, { shiftKey: true })
+    expect(selection.selectedIds.value).toEqual([5])
+    dispose()
+  })
+
+  it('refuses an unselectable row', () => {
+    const { selection, dispose } = setup(people, {
+      isSelectable: (row: Person) => row.active,
+    })
+    selection.selectFromClick(people[2]!, { ctrlKey: true }) // Alan Turing, inactive
+    expect(selection.isEmpty.value).toBe(true)
+    dispose()
+  })
+})
+
+describe('selectedRows', () => {
+  it('resolves rows beyond the page when the source holds them', () => {
+    // The "page" is three rows; the whole set is seven.
+    const { selection, dispose } = setup(people.slice(0, 3), { allRows: people })
+    selection.toggle(people[0]!)
+    selection.toggle(people[6]!)
+
+    expect(selection.selectedRows.value.map((row) => row.id)).toEqual([1, 7])
+    // `selectedOnPage` still answers only for the page, which is its job.
+    expect(selection.selectedOnPage.value.map((row) => row.id)).toEqual([1])
+    dispose()
+  })
+
+  it('falls back to the loaded rows without allRows', () => {
+    const { selection, dispose } = setup(people.slice(0, 3))
+    selection.toggle(people[0]!)
+    selection.toggle(people[6]!)
+    // Selected, and still unnameable: a server source holds no more than a page.
+    expect(selection.selectedIds.value.sort()).toEqual([1, 7])
+    expect(selection.selectedRows.value.map((row) => row.id)).toEqual([1])
+    dispose()
+  })
+
+  it('is the whole set minus the exclusions in all-matching mode', () => {
+    const { selection, dispose } = setup(people.slice(0, 3), { allRows: people })
+    selection.selectAllMatching()
+    selection.toggle(people[1]!)
+    expect(selection.selectedRows.value.map((row) => row.id)).toEqual([1, 3, 4, 5, 6, 7])
+    dispose()
+  })
+})

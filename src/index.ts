@@ -58,7 +58,11 @@ export type {
 } from './core/useInfiniteDataSource'
 
 export { useRowSelection } from './core/useRowSelection'
-export type { UseRowSelection, UseRowSelectionOptions } from './core/useRowSelection'
+export type {
+  RowClickGesture,
+  UseRowSelection,
+  UseRowSelectionOptions,
+} from './core/useRowSelection'
 
 export { useCellCursor } from './core/useCellCursor'
 export type { UseCellCursor, UseCellCursorOptions } from './core/useCellCursor'

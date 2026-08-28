@@ -25,6 +25,7 @@ import { useCellCursor, type UseCellCursor } from './useCellCursor'
 import type { CellPosition } from './cellCursor'
 import type { UseRowEditing } from './useRowEditing'
 import { usePagination } from './usePagination'
+import type { LocalDataSource } from './useLocalDataSource'
 import { readValue } from './sorting'
 import { isEmptyFilter } from './filters/model'
 
@@ -419,6 +420,15 @@ export function useTable<TRow>(
     mode: () => (selectableOf() === 'single' ? 'single' : 'multiple'),
     getRowId,
     isSelectable: (row) => options.isRowSelectable?.(row) ?? true,
+    /*
+     * `filteredRows` is a `LocalDataSource` field rather than a `DataSource`
+     * one, which is exactly the split `selectedRows` wants: only a source
+     * holding every row can name the selected ones beyond the current page, and
+     * a server source falling back to what is loaded is the honest answer
+     * rather than a degraded one. Optional-chained off the source for that
+     * reason — the same shape `groupCounts` and `groupAggregates` already have.
+     */
+    allRows: () => (options.source() as Partial<LocalDataSource<TRow>>).filteredRows?.value,
   })
 
   const selection = computed(() => (selectableOf() === false ? undefined : rowSelection))

@@ -46,6 +46,8 @@ const source: LocalDataSource<Employee> = useLocalDataSource<Employee>(
 /* ------------------------------------------------------------- live props */
 
 const selectable = ref<false | SelectionMode>('multiple')
+/** Shift- and Ctrl/Cmd-click on the row itself, not only on its checkbox. */
+const rowClickSelect = ref(false)
 const showToolbar = ref(true)
 const showSearch = ref(true)
 const showColumnsMenu = ref(true)
@@ -103,6 +105,7 @@ function forgetLayout(): void {
       'ColumnDef.aggregate',
       'DataTable showFooter',
       'DataTable storageKey',
+      'DataTable rowClickSelect',
       'TableRow',
     ]"
   >
@@ -115,6 +118,11 @@ function forgetLayout(): void {
             <option value="single">single</option>
             <option value="multiple">multiple</option>
           </select>
+        </label>
+
+        <label>
+          <input v-model="rowClickSelect" type="checkbox" /> rowClickSelect
+          <span class="hint">shift-click a row for a range, ctrl/cmd-click for one</span>
         </label>
 
         <label><input v-model="showToolbar" type="checkbox" /> showToolbar</label>
@@ -143,6 +151,7 @@ function forgetLayout(): void {
       :source="source"
       :state="state"
       :selectable="selectable"
+      :row-click-select="rowClickSelect"
       :get-row-id="getRowId"
       :is-row-selectable="isRowSelectable"
       :initial-layout="{ hidden: ['email'], widths: { name: 200 } }"

@@ -17,6 +17,28 @@ export interface UseRowSelectionOptions<TRow> {
   /** Rows the user may not toggle. */
   isSelectable?: (row: TRow) => boolean
   initial?: SelectionState
+  /**
+   * Every row matching the current filters, not just the page — what
+   * `selectedRows` resolves against.
+   *
+   * Only a source holding the whole set can answer it, the way `groupCounts`
+   * and `groupAggregates` are optional on `DataSource` for the same reason.
+   * Left out, `selectedRows` degrades to the rows that are loaded.
+   */
+  allRows?: MaybeRefOrGetter<TRow[] | undefined>
+}
+
+/**
+ * The modifiers a click carries, and nothing else about it.
+ *
+ * A structural type rather than `MouseEvent`, the way `CursorKeyGesture` is:
+ * which gesture means what is a table of decisions, and a table of decisions
+ * should not need a DOM to be tested. A real `MouseEvent` satisfies it.
+ */
+export interface RowClickGesture {
+  ctrlKey?: boolean
+  metaKey?: boolean
+  shiftKey?: boolean
 }
 
 /** Selection state, predicates and mutators. */
@@ -26,6 +48,15 @@ export interface UseRowSelection<TRow> {
   selectedIds: ComputedRef<RowId[]>
   /** Selected rows on the current page only — server pages hold no more. */
   selectedOnPage: ComputedRef<TRow[]>
+  /**
+   * The selected **rows**, across pages when `allRows` was supplied and among
+   * the loaded ones otherwise.
+   *
+   * Lazy, and deliberately so: a computed nothing reads never runs, so a table
+   * that only ever asks for ids pays nothing per click, and the walk over the
+   * dataset is charged to whoever wants rows out of it.
+   */
+  selectedRows: ComputedRef<TRow[]>
   count: ComputedRef<number>
   isEmpty: ComputedRef<boolean>
   /** True when the user asked for every row matching the current filters. */
@@ -38,6 +69,14 @@ export interface UseRowSelection<TRow> {
   toggle: (row: TRow) => void
   /** Shift-click: selects every row between the last click and this one. */
   toggleRange: (row: TRow) => void
+  /**
+   * One click on a row, resolved into the gesture it was: Shift extends a
+   * range, Ctrl/Cmd toggles the one row, an unmodified click does nothing.
+   *
+   * Returns whether the selection moved, which is what lets a caller tell a
+   * selection gesture from an ordinary click it should handle its own way.
+   */
+  selectFromClick: (row: TRow, gesture: RowClickGesture) => boolean
   toggleAllOnPage: (selected?: boolean) => void
   /** "Select all N matching" — stores a predicate, not 12k ids. */
   selectAllMatching: () => void
@@ -98,6 +137,19 @@ export function useRowSelection<TRow>(
   )
 
   const selectedOnPage = computed(() => rows.value.filter(isSelected))
+
+  /**
+   * The same question asked of the whole filtered set when there is one.
+   *
+   * `all-matching` is the arm that needs it: the state is a predicate, so the
+   * only way to name the rows it stands for is to walk the set and drop the
+   * exclusions. Without `allRows` both arms fall back to the loaded rows, which
+   * is the honest answer for a server source — it holds no more than a page.
+   */
+  const selectedRows = computed(() => {
+    const all = toValue(options.allRows)
+    return all ? all.filter(isSelected) : selectedOnPage.value
+  })
 
   const count = computed(() => {
     const current = state.value
@@ -235,6 +287,27 @@ export function useRowSelection<TRow>(
     anchorId = getRowId(row)
   }
 
+  /**
+   * Both modifiers, because they are one intent with two spellings: Ctrl on
+   * Windows and Linux, Cmd on a Mac — where Ctrl+click is a right-click and so
+   * cannot be the gesture at all.
+   *
+   * An unmodified click writes no state and returns `false`. That is what keeps
+   * this safe to call on every row click: a table that only wanted `rowClick`
+   * gets it, and a plain click never destroys a selection the user built.
+   */
+  function selectFromClick(row: TRow, gesture: RowClickGesture): boolean {
+    if (gesture.shiftKey) {
+      toggleRange(row)
+      return true
+    }
+    if (gesture.ctrlKey || gesture.metaKey) {
+      toggle(row)
+      return true
+    }
+    return false
+  }
+
   function toggleAllOnPage(selected?: boolean): void {
     if (mode.value === 'single') return
     const shouldSelect = selected ?? headerState.value !== 'all'
@@ -255,6 +328,7 @@ export function useRowSelection<TRow>(
     state,
     selectedIds,
     selectedOnPage,
+    selectedRows,
     count,
     isEmpty,
     isAllMatching,
@@ -264,6 +338,7 @@ export function useRowSelection<TRow>(
     select,
     toggle,
     toggleRange,
+    selectFromClick,
     toggleAllOnPage,
     selectAllMatching,
     clear,
