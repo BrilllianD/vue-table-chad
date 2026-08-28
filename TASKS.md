@@ -54,15 +54,6 @@ the rule for this file with a one-line why.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
-### `[ ]` T5 — Fill out the thin docs pages
-
-The VitePress site is uneven: `selection.md` (882 B), `contracts.md` (1.5 K) and `filtering.md`
-(1.8 K) are stubs next to `keyboard.md` and `editing.md` at 14–15 K. Each of the three covers a
-feature that is fully shipped, so the gap is the page, not the code.
-
-**Done when:** each of the three has a worked example that runs against the real API, matching the
-shape the D4–D7 pages already established, and `pnpm build:docs` is clean.
-
 ---
 
 ## Deferred
