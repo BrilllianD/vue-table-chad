@@ -8,11 +8,29 @@
  * contiguous slices of what was here, in the order it was in, and no selector
  * changed. `pnpm build` emits the same bytes it did before the split.
  *
- * **The order below is behaviour, not taste.** Several rules depend on source
- * order rather than on specificity — the pinned-cell z-index ladder, the cell
- * background stack documented in `docs/styling.md`, and the `[data-cursor]`
- * overrides that have to land after the striping they tint. Adding a partition
- * means deciding where in this list it goes.
+ * **Partitions are contiguous slices, and stay that way.** Three pairs of rules
+ * are separated by source order alone, because both sides have identical
+ * specificity and the later one is meant to win:
+ *
+ *   - `grid.css` — the column separator `.vt-th:not(:last-child)` against the
+ *     band edge `.vt-th[data-band-edge]`, both (0,2,0).
+ *   - `grid.css` — `:nth-child` striping against `[data-parity]` striping, both
+ *     (0,4,0), which is what makes a grouped table stripe by band.
+ *   - `editing.css` — `[data-row-state]` against `[data-row-state='error']`,
+ *     both (0,4,0), which is what makes the error stripe red.
+ *
+ * All three are *within* one partition, so the risk is splitting a file, not
+ * reordering this list. What this list must not do is let a partition write
+ * `background-image` or `box-shadow` wholesale: the cell layer stack and the
+ * shadow stack are fixed by the declaration lists in `grid.css` and composed
+ * from `--_vtc-` slots, and a rule that writes either property directly
+ * outranks the composition and erases every slot at once. `editing.css` did
+ * exactly that until it was made a slot of its own.
+ *
+ * The pinned-cell z-index ladder is *not* order-dependent, despite having been
+ * described that way here for a while: `.vt-scroll[data-sticky] .vt-thead
+ * .vt-th` is (0,4,0), `.vt-th[data-pinned]` is (0,2,0), and the pinned sticky
+ * header is (0,5,0), so specificity separates all three wherever they sit.
  *
  * The first two are the theme itself and the rest read from them: `scales.css`
  * is the values the design uses, `tokens.css` the roles built out of those.

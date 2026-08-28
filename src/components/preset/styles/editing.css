@@ -45,15 +45,15 @@
 }
 
 .vt-cell-trigger:focus-visible {
-  outline: 2px solid var(--vtc-accent);
+  outline: var(--vtc-focus-width) solid var(--vtc-focus-color);
   outline-offset: -2px;
-  border-radius: 2px;
+  border-radius: var(--vtc-radius-xs);
 }
 
 .vt-cell-editor {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--vtc-space-3);
 }
 
 /*
@@ -65,16 +65,16 @@
 .vt-cell-input {
   width: 100%;
   min-width: 0;
-  padding: 2px 6px;
-  border: 1px solid var(--vtc-border-strong);
-  border-radius: 4px;
+  padding: var(--vtc-space-1) var(--vtc-space-3);
+  border: var(--vtc-stroke-1) solid var(--vtc-border-strong);
+  border-radius: var(--vtc-radius-sm);
   background: var(--vtc-bg);
   color: inherit;
   font: inherit;
 }
 
 .vt-cell-input:focus-visible {
-  outline: 2px solid var(--vtc-accent);
+  outline: var(--vtc-focus-width) solid var(--vtc-focus-color);
   outline-offset: -1px;
 }
 
@@ -84,36 +84,46 @@
 .vt-cell-editor[data-invalid] .vt-cell-input,
 .vt-cell-editor[data-invalid] .vt-cell-checkbox {
   border-color: var(--vtc-danger);
-  outline: 1px solid var(--vtc-danger);
+  outline: var(--vtc-stroke-1) solid var(--vtc-danger);
   outline-offset: -1px;
 }
 
 /*
   Row state, as a stripe down the leading edge rather than a background.
-  
+
   A background here would join the queue of layers `.vt-td` already composes —
   stripe, column tint, hover, selection — and would have to win against all of
   them to be seen at all. A border does not compete with any of them.
+
+  It fills the `--_vtc-shadow-row-state` slot rather than writing `box-shadow`,
+  which is what it used to do: at (0,4,0) that beat the composed list on
+  `.vt-th, .vt-td` (0,1,0), so a row with a state lost its cursor ring, both
+  hover rings and its pin shadow on the one cell this rule touches.
+
+  The two rules below have the same specificity — `[data-row-state]` and
+  `[data-row-state='error']` both count as one attribute — so **source order is
+  the only thing making the error stripe red**. Keep them in this order and
+  keep them adjacent.
 */
 .vt-tr[data-row-state] > .vt-td:first-child {
-  box-shadow: inset 2px 0 0 0 var(--vtc-accent);
+  --_vtc-shadow-row-state: inset var(--vtc-stroke-2) 0 0 0 var(--vtc-accent);
 }
 
 .vt-tr[data-row-state='error'] > .vt-td:first-child {
-  box-shadow: inset 2px 0 0 0 var(--vtc-danger);
+  --_vtc-shadow-row-state: inset var(--vtc-stroke-2) 0 0 0 var(--vtc-danger);
 }
 
-.vt-tr[data-row-state='saving'] { opacity: 0.6; }
+.vt-tr[data-row-state='saving'] { opacity: var(--vtc-opacity-busy); }
 
 .vt-td-actions { white-space: nowrap; }
 
 .vt-row-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--vtc-space-2);
 }
 
-.vt-row-actions .vt-btn { padding: 2px 8px; }
+.vt-row-actions .vt-btn { padding: var(--vtc-space-1) var(--vtc-space-4); }
 
 /*
   Truncated rather than wrapped, and titled: the actions cell is one row tall

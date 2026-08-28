@@ -11,7 +11,7 @@
   position: relative;
   overflow: auto;
   max-height: 70vh;
-  border: var(--vtc-outer-border-width) solid var(--vtc-border);
+  border: var(--vtc-outer-border-width) solid var(--vtc-outer-border-color);
   border-radius: var(--vtc-radius);
   background: var(--vtc-bg);
 
@@ -98,13 +98,20 @@
     the same shape at the same inset, so the order here is the only thing
     deciding which one you see on a cell that is both hovered and focused, and
     the cursor is the state a keyboard user cannot re-create with the pointer.
+
+    `row-state` is the edit stripe down a row's leading edge (`editing.css`). It
+    is a slot for the same reason the rest are: it used to write `box-shadow`
+    directly, at a specificity that beat this list, and so erased the cursor
+    ring, both hover rings and the pin shadow on the first cell of every row
+    that carried a state.
   */
   --_vtc-shadow-cursor: 0 0 #0000;
   --_vtc-shadow-cell-hover: 0 0 #0000;
   --_vtc-shadow-row-hover: 0 0 #0000;
+  --_vtc-shadow-row-state: 0 0 #0000;
   --_vtc-shadow-pin: 0 0 #0000;
 
-  padding: 0 10px;
+  padding: 0 var(--vtc-cell-padding-x);
   height: var(--vtc-row-height);
   text-align: left;
   border-bottom: var(--vtc-body-border-width) solid var(--vtc-body-border-color);
@@ -120,6 +127,7 @@
     var(--_vtc-shadow-cursor),
     var(--_vtc-shadow-cell-hover),
     var(--_vtc-shadow-row-hover),
+    var(--_vtc-shadow-row-state),
     var(--_vtc-shadow-pin);
   white-space: nowrap;
 }
@@ -147,7 +155,7 @@
 .vt-th {
   position: relative;
   background-color: var(--vtc-header-bg);
-  font-weight: 600;
+  font-weight: var(--vtc-weight-bold);
   border-bottom: var(--vtc-header-border-width) solid var(--vtc-header-border-color);
   user-select: none;
 }
@@ -158,7 +166,7 @@
 .vt-th-inner {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--vtc-space-1);
   min-width: 0;
 }
 
@@ -214,10 +222,10 @@
 */
 .vt-th-group-sticky {
   position: sticky;
-  left: 10px;
+  left: var(--vtc-cell-padding-x);
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--vtc-space-1);
   min-width: 0;
 }
 
@@ -225,7 +233,7 @@
   Right-pinned bands stick to the other edge, or the label slides away from the
   columns it names instead of towards them.
 */
-.vt-th-group[data-pinned='right'] .vt-th-group-sticky { left: auto; right: 10px; }
+.vt-th-group[data-pinned='right'] .vt-th-group-sticky { left: auto; right: var(--vtc-cell-padding-x); }
 
 /* A band nobody can fold needs no room reserved for a control. */
 .vt-th-group:not([data-collapsible]) .vt-th-group-sticky { justify-content: center; }
@@ -251,7 +259,10 @@
   cursor: pointer;
 }
 
-.vt-th-group-toggle:focus-visible { outline: 2px solid var(--vtc-accent); outline-offset: 1px; }
+.vt-th-group-toggle:focus-visible {
+  outline: var(--vtc-focus-width) solid var(--vtc-focus-color);
+  outline-offset: 1px;
+}
 
 .vt-th-group[data-collapsed] .vt-group-caret { transform: rotate(0deg); }
 
@@ -273,17 +284,17 @@
 .vt-scroll[data-sticky] .vt-thead .vt-th {
   position: sticky;
   top: calc(var(--vtc-row-height) * var(--vtc-header-row, 0));
-  z-index: 2;
+  z-index: var(--vtc-z-sticky);
 }
 
 /* Pinned columns sit above normal cells; a pinned header must beat both. */
 .vt-th[data-pinned],
 .vt-td[data-pinned] {
   position: sticky;
-  z-index: 1;
+  z-index: var(--vtc-z-pinned);
 }
 
-.vt-scroll[data-sticky] .vt-thead .vt-th[data-pinned] { z-index: 3; }
+.vt-scroll[data-sticky] .vt-thead .vt-th[data-pinned] { z-index: var(--vtc-z-sticky-pinned); }
 
 .vt-th[data-pinned='left'], .vt-td[data-pinned='left'] {
   --_vtc-shadow-pin: 1px 0 0 var(--vtc-border);
@@ -366,9 +377,20 @@
   );
 }
 
-/* All four edges from one spread-only inset shadow, exactly like the hover ring. */
+/*
+  All four edges from one spread-only inset shadow, exactly like the hover ring.
+
+  The ring reads `--_vtc-cursor-ring-color`, which is the active colour by
+  default and is swapped for the idle one below. That indirection exists so the
+  idle rule does not have to reassign `--vtc-cursor-border-color` itself: doing
+  that put a cell-level declaration on a token the consumer sets on
+  `.vt-datatable`, so anyone who named their own ring colour silently lost the
+  idle state to this stylesheet.
+*/
 .vt-tbody .vt-td[data-cursor='cell'] {
-  --_vtc-shadow-cursor: inset 0 0 0 var(--vtc-cursor-border-width) var(--vtc-cursor-border-color);
+  --_vtc-cursor-ring-color: var(--vtc-cursor-border-color);
+  --_vtc-shadow-cursor: inset 0 0 0 var(--vtc-cursor-border-width)
+    var(--_vtc-cursor-ring-color);
 }
 
 /*
@@ -383,7 +405,7 @@
 .vt-tbody .vt-td[data-cursor='cell']:focus { outline: none; }
 
 .vt-tbody .vt-td[data-cursor='cell']:not(:focus-within) {
-  --vtc-cursor-border-color: var(--vtc-cursor-idle-border-color);
+  --_vtc-cursor-ring-color: var(--vtc-cursor-idle-border-color);
 }
 
 /*
@@ -398,7 +420,7 @@
 }
 
 .vt-row-message td {
-  padding: 24px 12px;
+  padding: var(--vtc-space-8) var(--vtc-space-6);
   text-align: center;
   color: var(--vtc-text-muted);
 }

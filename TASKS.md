@@ -54,38 +54,6 @@ the rule for this file with a one-line why.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
-### `[ ]` T7 — Move every partition onto the scales, and fix four theming defects
-
-Replace the literals in `toolbar.css`, `grid.css`, `header.css`, `filters.css`, `groups.css`,
-`menus.css`, `pagination.css`, `editing.css` and `controls.css` with the scale tokens: 11 sites of
-`border-radius: 4px`, 21 literal `1px` border widths, 7 identical focus outlines, 12 font-size
-literals, ~30 gap and padding literals, 11 z-index numbers across five files, and 4 verbatim copies
-of the popover shadow.
-
-Four defects found while inventorying, all of them theming-contract breaks rather than cosmetics:
-
-1. `editing.css` writes `box-shadow:` directly at specificity (0,4,0), which outranks the composed
-   slot list on `.vt-th, .vt-td` (0,1,0) and erases the cursor ring, both hover rings and the pin
-   shadow on the first cell of every row carrying `data-row-state`. It becomes a
-   `--_vtc-shadow-row-state` slot in the composed list, with a spec that a cursor on such a row still
-   draws its ring.
-2. The idle-cursor rule reassigns the public `--vtc-cursor-border-color` at cell level, so a consumer
-   who sets it on `.vt-datatable` silently loses the idle state. Resolve idle against active in a
-   private slot instead, and leave both public tokens settable.
-3. `--vtc-danger-bg` has no consumer at all; `--vtc-accent-contrast` has no dark-block value; and
-   `--vtc-outer-border-width` has no `-color` partner although `docs/styling.md` lists it beside the
-   ones that do. Wire the first or delete it, and pair the other two.
-4. `CLAUDE.md` and `table.css` both say the pinned-cell z-index ladder depends on `@import` order.
-   It does not — all three tiers are separated by specificity. The three genuine same-specificity
-   pairs are the column separator against the band edge, `:nth-child` parity against `[data-parity]`
-   parity, and `[data-row-state]` against `[data-row-state='error']`, the last of which carries no
-   comment saying so. Correct the claim and name these instead, along with the fact that the layer
-   order is fixed by the declaration lists in `grid.css` rather than by partition order.
-
-**Done when:** no colour, radius, font-size, font-weight, z-index, duration or elevation literal
-remains in the nine partitions where a scale token covers it, the four defects are fixed with the new
-spec green, `tests/invalidation.spec.ts` still passes, and `pnpm build && pnpm size` is green.
-
 ### `[ ]` T8 — `data-theme`, so an app can pick a theme instead of asking the OS
 
 Dark mode is `prefers-color-scheme` only. Split the palettes in `tokens.css` into three blocks: light

@@ -94,7 +94,6 @@
     the same hex literal in a file that is otherwise entirely variable-driven.
   */
   --vtc-danger: #b42318;
-  --vtc-danger-bg: color-mix(in srgb, var(--vtc-danger) 10%, transparent);
   /*
     Outlines on hover — the row gets a rule top and bottom, the cell a full
     ring. Both are off at width 0, and both are drawn as inset shadows rather
@@ -157,6 +156,7 @@
   --vtc-band-border-color: var(--vtc-border);
   /* The frame around the scroll box. Zero on all three = no rules at all. */
   --vtc-outer-border-width: var(--vtc-stroke-1);
+  --vtc-outer-border-color: var(--vtc-border);
   --vtc-text: #1f2933;
   --vtc-text-muted: #66727f;
   --vtc-accent: #2563eb;
@@ -165,6 +165,14 @@
   --vtc-focus-color: var(--vtc-accent);
   --vtc-radius: var(--vtc-radius-md);
   --vtc-row-height: 38px;
+  /*
+    A token rather than a literal because two rules have to agree on it: the
+    cell's own padding, and the `left`/`right` offset a sticky band label sits
+    at so it lines up with the text under it. Those were the same number
+    written twice, one file apart, and would have drifted the first time
+    either moved.
+  */
+  --vtc-cell-padding-x: var(--vtc-space-5);
   --vtc-font: var(--vtc-font-size-md) / 1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -200,6 +208,13 @@
     --vtc-text: #e6e8eb;
     --vtc-text-muted: #9aa4b0;
     --vtc-accent: #5b93f7;
+    /*
+      Inked rather than left white. The dark accent is a light blue, and white
+      on it comes out around 2.9:1 — under the 4.5:1 a current-page pager button
+      or a primary button needs, since the accent is a *background* wherever
+      this token is used. Near-black against the same blue is about 7:1.
+    */
+    --vtc-accent-contrast: #0d1117;
     /* Lightened: the light theme's red does not carry against a dark row. */
     --vtc-danger: #f97066;
   }

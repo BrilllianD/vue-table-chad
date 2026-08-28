@@ -12,7 +12,7 @@ including the decisions already settled and how the work is verified.
 ## Commands
 
 ```bash
-pnpm test          # vitest, 764 tests across 41 files
+pnpm test          # vitest, 767 tests across 42 files
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
@@ -39,12 +39,23 @@ These are contracts, not conventions:
 - **Primitives ship no stylesheet.** They emit class names and `data-*` attributes and nothing else.
   Using only primitives must pull in zero CSS; that is what "headless" buys.
 - **The preset owns the theme.** `DataTable.vue` imports `table.css` itself — the entry file, which
-  is now just an ordered list of `@import`s over `preset/styles/*`. **That order is behaviour**: the
-  pinned-cell z-index ladder, the cell background stack and the `[data-cursor]` overrides all depend
-  on source order rather than specificity, so the partitions are contiguous slices of the original
-  in its original order. `src/index.ts`
-  deliberately does *not*, because `sideEffects: ["**/*.css"]` would let a bare CSS import there be
-  tree-shaken away, silently shipping an unstyled table.
+  is now just an ordered list of `@import`s over `preset/styles/*`, `scales.css` and `tokens.css`
+  first. **Partitions are contiguous slices and stay that way**: three pairs of rules are separated
+  by source order alone, because both sides have identical specificity and the later one is meant to
+  win — the column separator against the band edge, `:nth-child` striping against `[data-parity]`
+  striping, and `[data-row-state]` against `[data-row-state='error']`. All three sit inside one
+  partition, so the hazard is splitting a file rather than reordering the list. The other hazard is
+  a partition writing `background-image` or `box-shadow` wholesale: both stacks are composed from
+  `--_vtc-` slots in `grid.css`, and a direct write outranks the composition and erases every slot
+  at once. The pinned-cell z-index ladder is **not** order-dependent — specificity separates all
+  three tiers — despite this file having said otherwise for a while.
+  **`tests/presetStyles.spec.ts` enforces the two hazards against the stylesheet source**, since
+  jsdom does not apply CSS and nothing else in the suite would notice: no rule matching cells may
+  write `background-image` or `box-shadow` directly, every `--_vtc-` slot that is filled must be
+  reset on `.vt-th, .vt-td`, and only `scales.css` and `tokens.css` may declare a public `--vtc-`
+  token. `src/index.ts`
+  deliberately does *not* import the stylesheet, because `sideEffects: ["**/*.css"]` would let a
+  bare CSS import there be tree-shaken away, silently shipping an unstyled table.
 - **Every primitive works standalone.** Given explicit props, it must render with no `<TableRoot>`
   above it — the specs assert this with a "renders standalone, with no table context above it" case,
   `TableRow`, `TableHeaderGroupCell` and `TableGrid` among them — the last of these in

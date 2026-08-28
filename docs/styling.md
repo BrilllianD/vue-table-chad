@@ -68,8 +68,13 @@ Three widths, each independently zeroable — all three at `0` is a table with n
   --vtc-outer-border-width: 1px;           /* the frame around the scroll box */
   --vtc-header-border-width: 1px;          /* the header underline, kept separate  */
   --vtc-body-border-color: var(--vtc-border);
+  --vtc-outer-border-color: var(--vtc-border);
 }
 ```
+
+Every width has a colour beside it. The frame's went missing for a while — it was hardwired to
+`--vtc-border` in the stylesheet while this list implied otherwise — which is worth knowing if you
+recall setting it and seeing nothing happen.
 
 The header underline is its own variable on purpose: a borderless body usually still wants the
 header separated from the rows.
