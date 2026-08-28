@@ -67,13 +67,35 @@ With no anchor yet, or when the anchor has paged away and is no longer among the
 shift-click degrades to a plain toggle instead of guessing a range across a boundary the user cannot
 see.
 
-Clicking the row itself does **not** select. `DataTable` emits `@rowClick` for it and leaves the
-decision alone — a table that both navigates and selects on the same gesture has to pick which one
-wins, and that is the caller's call:
+### On the row, not only on the checkbox
+
+`row-click-select` puts the same two gestures on the row itself:
 
 ```vue
-<DataTable ... selectable @row-click="(row) => router.push(`/people/${row.id}`)" />
+<DataTable ... selectable row-click-select />
 ```
+
+| Gesture | What it does |
+| --- | --- |
+| Click | **Nothing to the selection.** `@rowClick` fires, as it always does. |
+| Ctrl-click (Cmd on a Mac) | Toggles that one row, leaving the rest alone. |
+| Shift-click | Takes the range from the anchor to this row. |
+
+The unmodified click is deliberately inert. A row click is how most tables open a detail panel, and
+a plain click that replaced the selection would destroy in one misclick a selection the user spent a
+minute building. So `@rowClick` still fires for every click, modified or not, and the two decisions
+never fight:
+
+```vue
+<DataTable ... selectable row-click-select @row-click="(row) => open(row)" />
+```
+
+Clicks that land on a control inside the row — the selection checkbox, an open editor, a button or a
+link in a cell — are left to that control. Off (the default), clicking a row does nothing to the
+selection at all, which is what it always did.
+
+Both modifiers are read for the one gesture because they are one intent with two spellings: Ctrl on
+Windows and Linux, Cmd on a Mac, where Ctrl-click *is* a right-click and could not be it.
 
 ### Rows that cannot be picked
 
@@ -89,7 +111,7 @@ reads `all` even when some rows could never be ticked at all.
 
 ## Reading it back
 
-Two routes, and they do not carry the same information.
+Four routes, and they do not carry the same information.
 
 ```vue
 <DataTable ... selectable @update:selection="ids = $event" />
@@ -116,13 +138,60 @@ The `toolbar` slot hands you the whole composable:
 | `state` | The whole truth: an id list or a predicate. See below. |
 | `selectedIds` | Ids explicitly selected. Empty in `all-matching`. |
 | `selectedOnPage` | Selected **rows**, among the loaded ones — a server page holds no more. |
+| `selectedRows` | Selected **rows**, across pages where the source holds them all. |
 | `count`, `isEmpty` | How many are selected, counting a predicate correctly. |
 | `isAllMatching` | Whether the selection is a predicate rather than a list. |
 | `headerState` | `'none' \| 'some' \| 'all'` for the header checkbox. |
 | `isSelected`, `isSelectable` | Per row. |
 | `select`, `toggle`, `toggleRange`, `toggleAllOnPage` | The mutators behind the gestures. |
+| `selectFromClick` | One click, resolved into the gesture it was. See below. |
 | `selectAllMatching`, `clear` | The escalation, and the way back. |
 | `getRowId` | The identity function actually in use. |
+
+### The rows, not the ids
+
+`@update:selected-rows` carries the row objects, and unlike `selectedOnPage` it answers across pages
+— including in `all-matching` mode, where there are no ids to send at all:
+
+```vue
+<DataTable ... selectable @update:selected-rows="rows = $event" />
+```
+
+It resolves against the whole filtered set when the source holds one (`useLocalDataSource` does; a
+server source holds a page, and there it falls back to the loaded rows). That is a walk over the
+dataset, so **it is only computed when something is listening** — a table that never binds the event
+pays nothing for it.
+
+### A template ref
+
+`DataTable` exposes the selection for code that would rather not wire a slot or an event:
+
+```vue
+<script setup>
+const table = useTemplateRef('table')
+
+function submit() {
+  console.log(table.value.selection.count.value, table.value.getSelectedRows())
+}
+</script>
+
+<template><DataTable ref="table" ... selectable /></template>
+```
+
+`selection` is the same `UseRowSelection` above, or `undefined` when `selectable` is `false`.
+`getSelectedRows()` is a function rather than a computed on purpose: resolving rows costs a walk, and
+a function makes that a cost you ask for at the moment you want the answer.
+
+### Owning the selection yourself
+
+`v-model:selection-state` binds the whole `SelectionState` — seed it, store it, restore it:
+
+```vue
+<DataTable ... selectable v-model:selection-state="selectionState" />
+```
+
+Not `v-model:selection`: `update:selection` already carries `RowId[]`, and only the state can also
+say "everything matching the filters".
 
 ## Selecting more rows than are loaded
 
@@ -206,6 +275,25 @@ revert runs *after* Vue has patched.
 
 Note the shift-click plumbing above — the range gesture is not built into the checkbox. `@change`
 hands you the `MouseEvent` precisely so the caller decides what a modifier means.
+
+The row gestures are one line here too, because the decision of what a modifier means lives in
+`core/` rather than in the preset. `selectFromClick` takes anything carrying the three modifier
+flags — a `MouseEvent` does — and returns whether the selection moved:
+
+```vue
+<tr
+  v-for="row in rows"
+  :data-selected="selection.isSelected(row) || undefined"
+  @mousedown="(e) => { if (e.shiftKey) e.preventDefault() }"
+  @click="(e) => selection.selectFromClick(row, e)"
+>
+```
+
+The `mousedown` is not optional: without it the browser extends a *text* range from wherever the
+caret last was, dragging a blue smear across the table on every shift-click. Guard both handlers
+against clicks landing on a control inside the row — the checkbox's own click bubbles to the `<tr>`,
+and toggling twice is the same as not toggling at all. `DataTable` does exactly this behind
+`row-click-select`.
 
 ## What it costs
 

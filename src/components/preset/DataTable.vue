@@ -9,7 +9,7 @@
  * `<TableRoot>` and assemble the same pieces differently (see
  * `playground/src/examples/ComposedCustom.vue`).
  */
-import { computed, ref, useSlots } from 'vue'
+import { computed, getCurrentInstance, ref, shallowRef, useSlots } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -20,6 +20,7 @@ import type {
   ResolvedColumn,
   RowId,
   SelectionMode,
+  SelectionState,
 } from '../../core/types'
 import type { ColumnLayoutState } from '../../core/useColumns'
 import {
@@ -34,6 +35,7 @@ import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import { provideTableTheme, type TableTheme } from '../../core/context'
+import type { UseRowSelection } from '../../core/useRowSelection'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
 import ColumnDragGhost from '../primitives/ColumnDragGhost.vue'
@@ -55,6 +57,26 @@ const props = withDefaults(
     source: DataSource<TRow>
     state?: TableState
     selectable?: boolean | SelectionMode
+    /**
+     * Shift- and Ctrl/Cmd-click on the row itself, not only on its checkbox:
+     * Shift extends a range from the last row touched, Ctrl (Cmd on a Mac)
+     * toggles the one row.
+     *
+     * Off by default, and an unmodified click never changes the selection even
+     * when it is on — a table using `@row-click` to open a detail panel keeps
+     * working exactly as it did, and no plain click can wipe a selection the
+     * user spent a minute building.
+     */
+    rowClickSelect?: boolean
+    /**
+     * The selection itself, for a caller that wants to own it —
+     * `v-model:selection-state`. Left out, the table owns it.
+     *
+     * Not `v-model:selection`: `update:selection` already exists and carries
+     * `RowId[]`, and this carries the whole `SelectionState`, which is the only
+     * shape that can also say "everything matching the filters".
+     */
+    selectionState?: SelectionState
     getRowId?: (row: TRow) => RowId
     isRowSelectable?: (row: TRow) => boolean
     /**
@@ -223,6 +245,7 @@ const props = withDefaults(
     columnRules: undefined,
     bandRules: undefined,
     selectable: false,
+    rowClickSelect: false,
     cellCursor: false,
     autofocusCursor: false,
     reorderable: true,
@@ -262,6 +285,14 @@ defineOptions({ inheritAttrs: false })
 const emit = defineEmits<{
   'update:query': [query: QueryState]
   'update:selection': [ids: RowId[]]
+  /** The whole selection, for `v-model:selection-state`. */
+  'update:selectionState': [state: SelectionState]
+  /**
+   * The selected rows themselves, resolved across pages where the source holds
+   * them. Costs a walk over the filtered set, so it is only computed when this
+   * event is actually listened for.
+   */
+  'update:selectedRows': [rows: TRow[]]
   'update:columnOrder': [order: string[]]
   rowClick: [row: TRow, event: MouseEvent]
   /** A row reached the server. Carries the row as it now stands. */
@@ -555,6 +586,67 @@ function forwardedSlotNames(): string[] {
   return Object.keys(slots)
 }
 
+/**
+ * What `TableRoot` exposes, of what this component needs.
+ *
+ * `InstanceType<typeof TableRoot>` does not work on a generic SFC — the
+ * component is a function with a type parameter rather than a constructor —
+ * and `selection` is a plain value here rather than a `ComputedRef` because
+ * `defineExpose` hands out a ref-unwrapping proxy. Reading it still tracks.
+ */
+interface TableRootView<T extends Record<string, unknown>> {
+  selection: UseRowSelection<T> | undefined
+}
+
+/*
+ * `shallowRef`, not `ref`: `ref` deep-unwraps refs *in its type*, which would
+ * describe `selection.selectedRows` as a plain array while the expose proxy
+ * only unwraps the top level and hands back the `ComputedRef` it really is.
+ */
+const root = shallowRef<TableRootView<TRow> | null>(null)
+
+/**
+ * `update:selectedRows`, forwarded only when someone up here is listening.
+ *
+ * `TableRoot` resolves the rows only for a listener, because resolving them is
+ * a walk over the filtered set — and a forwarder bound unconditionally *is* a
+ * listener, which would quietly spend that walk on every selection change for
+ * every table. So the gate has to be at this end too.
+ *
+ * A function rather than a computed, for the reason `forwardedSlotNames` is
+ * one: the vnode is replaced on re-render rather than mutated reactively, so a
+ * cached answer would describe the previous render's listeners.
+ */
+const instance = getCurrentInstance()
+function selectedRowsListener(): Record<string, (rows: TRow[]) => void> {
+  const vnodeProps = instance?.vnode.props
+  const listening = vnodeProps?.['onUpdate:selectedRows'] ?? vnodeProps?.['onUpdate:selected-rows']
+  if (!listening) return {}
+  return { 'update:selectedRows': (rows: TRow[]) => emit('update:selectedRows', rows) }
+}
+
+/**
+ * The selection, for code that would rather hold a template ref than wire up a
+ * slot or an event: `tableRef.value.selection?.count.value`.
+ *
+ * `undefined` whenever `selectable` is `false`, exactly as the `toolbar` slot's
+ * `selection` is — one table, one answer, whichever way you reach it.
+ */
+const selectionApi = computed(() => root.value?.selection)
+
+/**
+ * The selected rows, resolved across pages where the source holds them all.
+ *
+ * A function rather than a computed on purpose: resolving rows is a walk over
+ * the filtered set, and a function makes that a cost the caller asks for at the
+ * moment they want an answer. Empty when `selectable` is `false`.
+ */
+function getSelectedRows(): TRow[] {
+  return root.value?.selection?.selectedRows.value ?? []
+}
+
+defineExpose({ selection: selectionApi, getSelectedRows })
+
 function onActivate(
   position: CellPosition,
   event: Event,
@@ -578,6 +670,7 @@ function onActivate(
 
 <template>
   <TableRoot
+    ref="root"
     v-slot="{
       rows,
       columns: cols,
@@ -599,6 +692,7 @@ function onActivate(
     :source="source"
     :state="state"
     :selectable="props.selectable"
+    :selection-state="selectionState"
     :get-row-id="getRowId"
     :is-row-selectable="isRowSelectable"
     :column-groups="columnGroups"
@@ -619,6 +713,8 @@ function onActivate(
     :autofocus-cursor="autofocusCursor"
     @update:query="$emit('update:query', $event)"
     @update:selection="$emit('update:selection', $event)"
+    @update:selection-state="$emit('update:selectionState', $event)"
+    v-on="selectedRowsListener()"
     @update:column-order="$emit('update:columnOrder', $event)"
   >
     <div
@@ -773,6 +869,7 @@ function onActivate(
               :editing="props.editing"
               :row-key="rowKey"
               :selectable="selectable"
+              :row-click-select="rowClickSelect"
               :row-mode="rowMode"
               :actions-column="actionsColumn"
               :extra-columns="extraColumns"

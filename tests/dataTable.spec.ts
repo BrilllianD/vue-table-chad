@@ -8,7 +8,7 @@ import TableRow from '../src/components/primitives/TableRow.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { valuesFilter } from '../src/core/filters/model'
-import type { ResolvedColumn } from '../src/core/types'
+import type { ResolvedColumn, SelectionState } from '../src/core/types'
 import {
   aggregatedPersonColumns,
   groupedPersonColumns,
@@ -1101,6 +1101,242 @@ describe('DataTable loading state', () => {
     loading.value = false
     await nextTick()
     expect(wrapper.find('.vt-row-message').text()).toContain('No rows match')
+    wrapper.unmount()
+  })
+})
+
+describe('row-click selection', () => {
+  /*
+   * The gestures live on the row rather than on the checkbox, so every test
+   * here clicks a `<tr>`. `row-click-select` is opt-in, which is what the last
+   * test in this block pins.
+   */
+  function selectedRowIndexes(wrapper: ReturnType<typeof mountTable>): number[] {
+    return wrapper
+      .findAll('tbody tr')
+      .flatMap((row, index) => (row.attributes('data-selected') ? [index] : []))
+  }
+
+  it('extends a range on shift-click', async () => {
+    const wrapper = mountTable({ selectable: true, rowClickSelect: true })
+    const rows = wrapper.findAll('tbody tr')
+
+    await rows[0]!.trigger('click', { ctrlKey: true })
+    await rows[2]!.trigger('click', { shiftKey: true })
+    await nextTick()
+
+    expect(selectedRowIndexes(wrapper)).toEqual([0, 1, 2])
+    wrapper.unmount()
+  })
+
+  it('toggles one row on ctrl-click without clearing the others', async () => {
+    const wrapper = mountTable({ selectable: true, rowClickSelect: true })
+    const rows = wrapper.findAll('tbody tr')
+
+    await rows[0]!.trigger('click', { ctrlKey: true })
+    await rows[2]!.trigger('click', { metaKey: true })
+    await nextTick()
+    expect(selectedRowIndexes(wrapper)).toEqual([0, 2])
+
+    await rows[0]!.trigger('click', { ctrlKey: true })
+    await nextTick()
+    expect(selectedRowIndexes(wrapper)).toEqual([2])
+    wrapper.unmount()
+  })
+
+  it('leaves the selection alone on an unmodified click', async () => {
+    const wrapper = mountTable({ selectable: true, rowClickSelect: true })
+    const rows = wrapper.findAll('tbody tr')
+
+    await rows[0]!.trigger('click', { ctrlKey: true })
+    await rows[2]!.trigger('click')
+    await nextTick()
+
+    expect(selectedRowIndexes(wrapper)).toEqual([0])
+    wrapper.unmount()
+  })
+
+  it('does nothing without the prop', async () => {
+    const wrapper = mountTable({ selectable: true })
+    await wrapper.findAll('tbody tr')[0]!.trigger('click', { ctrlKey: true })
+    await nextTick()
+
+    expect(selectedRowIndexes(wrapper)).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('still reports every click through rowClick', async () => {
+    const clicked: string[] = []
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(DataTable as never, {
+            columns,
+            source,
+            state,
+            selectable: true,
+            rowClickSelect: true,
+            onRowClick: (row: Person) => clicked.push(row.name),
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    await wrapper.findAll('tbody tr')[0]!.trigger('click')
+    await wrapper.findAll('tbody tr')[1]!.trigger('click', { ctrlKey: true })
+    expect(clicked).toEqual(['Ada Lovelace', 'Grace Hopper'])
+    wrapper.unmount()
+  })
+
+  /*
+   * The checkbox's own click bubbles to the `<tr>`. Unguarded, the row handler
+   * would toggle a second time and land back where it started — a checkbox that
+   * visibly does nothing.
+   */
+  it('lets the checkbox toggle once, not twice', async () => {
+    const wrapper = mountTable({ selectable: true, rowClickSelect: true })
+    await wrapper.findAll('tbody tr')[0]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+
+    expect(selectedRowIndexes(wrapper)).toEqual([0])
+    wrapper.unmount()
+  })
+
+  it('leaves a control inside a cell to itself', async () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state, selectable: true, rowClickSelect: true },
+            { 'cell:name': () => h('button', { type: 'button' }, 'Open') },
+          )
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    await wrapper.findAll('tbody tr')[0]!.find('button').trigger('click', { ctrlKey: true })
+    await nextTick()
+
+    expect(wrapper.findAll('tbody tr')[0]!.attributes('data-selected')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  /*
+   * Without this the browser extends a *text* range from the last caret
+   * position, smearing a selection across the table on every range gesture.
+   * A real event, because `defaultPrevented` is the only observable effect.
+   */
+  it('cancels the text selection a shift-click would start', () => {
+    const wrapper = mountTable({ selectable: true, rowClickSelect: true })
+    const row = wrapper.findAll('tbody tr')[0]!.element
+
+    const shift = new MouseEvent('mousedown', { shiftKey: true, bubbles: true, cancelable: true })
+    row.dispatchEvent(shift)
+    expect(shift.defaultPrevented).toBe(true)
+
+    // And only that case: a plain mousedown still focuses the cell it landed in.
+    const plain = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    row.dispatchEvent(plain)
+    expect(plain.defaultPrevented).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+describe('reading the selection from code', () => {
+  it('emits the selected rows, resolved beyond the page', async () => {
+    const emitted: Person[][] = []
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(DataTable as never, {
+            columns,
+            source,
+            state,
+            selectable: true,
+            'onUpdate:selectedRows': (rows: Person[]) => emitted.push(rows),
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    await wrapper.find('thead input[type="checkbox"]').trigger('click')
+    await nextTick()
+    expect(emitted.at(-1)!.map((row) => row.name)).toEqual([
+      'Ada Lovelace',
+      'Grace Hopper',
+      'Alan Turing',
+    ])
+
+    // "All matching" names rows the page never held — that is what allRows buys.
+    await wrapper.find('.vt-selectall-banner button').trigger('click')
+    await nextTick()
+    expect(emitted.at(-1)!).toHaveLength(7)
+    wrapper.unmount()
+  })
+
+  it('round-trips a selection through v-model:selection-state', async () => {
+    const selectionState = ref<SelectionState>({ mode: 'ids', ids: [2] })
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(DataTable as never, {
+            columns,
+            source,
+            state,
+            selectable: true,
+            selectionState: selectionState.value,
+            'onUpdate:selectionState': (next: SelectionState) => (selectionState.value = next),
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    // Seeded before the first render, so the row arrives already ticked.
+    expect(wrapper.findAll('tbody tr')[1]!.attributes('data-selected')).toBe('true')
+
+    await wrapper.findAll('tbody tr')[0]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+    expect(selectionState.value).toEqual({ mode: 'ids', ids: [2, 1] })
+
+    // And inbound: a write from outside reaches the table.
+    selectionState.value = { mode: 'ids', ids: [3] }
+    await nextTick()
+    expect(wrapper.findAll('tbody tr')[2]!.attributes('data-selected')).toBe('true')
+    expect(wrapper.findAll('tbody tr')[1]!.attributes('data-selected')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('exposes the selection on a template ref', async () => {
+    const table = ref<{
+      selection?: { count: { value: number } }
+      getSelectedRows: () => Person[]
+    } | null>(null)
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(DataTable as never, { columns, source, state, selectable: true, ref: table })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    expect(table.value!.getSelectedRows()).toEqual([])
+
+    await wrapper.findAll('tbody tr')[1]!.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+
+    expect(table.value!.selection!.count.value).toBe(1)
+    expect(table.value!.getSelectedRows().map((row) => row.name)).toEqual(['Grace Hopper'])
     wrapper.unmount()
   })
 })

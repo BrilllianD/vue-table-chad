@@ -44,6 +44,8 @@ const props = defineProps<{
   editing: UseRowEditing<TRow> | undefined
   rowKey: (row: TRow, index: number) => RowId
   selectable: boolean
+  /** Shift- and Ctrl/Cmd-click on the row itself, not just on its checkbox. */
+  rowClickSelect: boolean
   /**
    * Row mode against cell mode. Passed rather than derived: `DataTable` needs
    * it too, for the header and the footer, and one computed in two files is one
@@ -247,6 +249,51 @@ function rowState(row: TRow): 'dirty' | 'saving' | 'error' | undefined {
 }
 
 /**
+ * Controls a click has to be left alone by, and the selection cell above all.
+ *
+ * The checkbox's own click bubbles to the `<tr>`, so without this a click on it
+ * would toggle the row twice and land back where it started. The rest are the
+ * things rows genuinely contain: an open cell editor, row-mode Save and Cancel,
+ * a link in a formatted cell. A click on one of those is a click on *it*.
+ *
+ * `closest` rather than a check on the target itself, because the click lands
+ * on whatever is innermost — the `<span>` inside a button, the text node's
+ * parent inside the label wrapping the checkbox.
+ */
+const INTERACTIVE = 'button, input, select, textarea, a, label, [contenteditable]'
+
+function isInteractiveTarget(event: MouseEvent): boolean {
+  const target = event.target
+  if (!(target instanceof Element)) return false
+  return Boolean(target.closest(`${INTERACTIVE}, .vt-td-selection`))
+}
+
+/**
+ * Shift-click, before the browser gets to it.
+ *
+ * A shift-click extends the *text* selection from wherever the caret last was,
+ * which drags a blue smear across half the table on every range gesture. Only
+ * that case is cancelled: an unmodified click still focuses the cell it landed
+ * in, so the cell cursor behaves exactly as it did before this prop existed.
+ */
+function onRowMouseDown(event: MouseEvent): void {
+  if (!props.rowClickSelect || !event.shiftKey) return
+  if (isInteractiveTarget(event)) return
+  event.preventDefault()
+}
+
+/**
+ * `rowClick` fires first and unconditionally — it is a report of what the user
+ * did, and a table that also selects on it has not stopped reporting.
+ */
+function onRowClick(row: TRow, event: MouseEvent): void {
+  emit('rowClick', row, event)
+  if (!props.rowClickSelect || !props.selection) return
+  if (isInteractiveTarget(event)) return
+  props.selection.selectFromClick(row, event)
+}
+
+/**
  * Commits one row, and says whether it was persisted — so a caller can decide
  * whether to move on.
  *
@@ -419,7 +466,8 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           :selected="selection ? selection.isSelected(item.row) : false"
           :state="rowState(item.row)"
           :cursor="cursor"
-          @click="$emit('rowClick', item.row, $event)"
+          @click="onRowClick(item.row, $event)"
+          @mousedown="onRowMouseDown"
         >
           <template v-if="selectable" #leading>
             <SelectionCheckbox

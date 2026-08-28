@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, effectScope, h, nextTick, shallowRef } from 'vue'
+import { defineComponent, effectScope, h, nextTick, shallowRef, watch } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useColumns } from '../src/core/useColumns'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
@@ -171,7 +171,9 @@ function harness(groupBy: string[] = []) {
     const selection = useRowSelection<Employee>(
       () => source.rows.value,
       () => source.total.value,
-      { getRowId: (row) => row.id },
+      // `allRows` the way `useTable` wires it, so `selectedRows` is under the
+      // counters here rather than only in the component.
+      { getRowId: (row) => row.id, allRows: () => source.filteredRows.value },
     )
     // Over the *rendered* rows and the *visible* columns, which is what the
     // cursor walks — and what makes the counters below meaningful, since both
@@ -476,6 +478,51 @@ describe('what an interaction is allowed to recompute', () => {
     h.selection.toggle(h.source.rows.value[0]!)
     h.selection.selectedIds.value
     h.source.rows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    h.stop()
+  })
+
+  /**
+   * A range is the gesture that could most easily be n writes: the naive
+   * implementation calls `select()` per row, rebuilding the state object and
+   * its `Set` each time. One write is the contract, and this is the probe for
+   * it — the state object is replaced wholesale, so counting replacements
+   * counts writes.
+   */
+  it('a shift-click range is one state write, and no pipeline pass', () => {
+    const h = harness()
+    const rowsOnPage = h.source.rows.value
+    h.selection.selectFromClick(rowsOnPage[0]!, { ctrlKey: true })
+    reset()
+
+    let writes = 0
+    const stopCounting = watch(() => h.selection.state.value, () => (writes += 1), {
+      flush: 'sync',
+    })
+    h.selection.selectFromClick(rowsOnPage[9]!, { shiftKey: true })
+    stopCounting()
+
+    expect(writes).toBe(1)
+    expect(h.selection.count.value).toBe(10)
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    h.stop()
+  })
+
+  /**
+   * `selectedRows` walks the filtered set, which is a pass over the rows — but
+   * over rows the pipeline has *already* produced. Resolving them must not make
+   * it produce them again.
+   */
+  it('resolving the selected rows re-runs no stage', () => {
+    const h = harness()
+    h.selection.toggle(h.source.rows.value[0]!)
+    reset()
+
+    expect(h.selection.selectedRows.value).toHaveLength(1)
+    h.selection.selectedRows.value
 
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)

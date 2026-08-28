@@ -91,7 +91,15 @@ const props = withDefaults(
  * in `attrs`, and Vue clones a component's root vnode to apply fallthrough
  * attrs — a fresh vnode every render, for a listener that never changes.
  */
-const emit = defineEmits<{ click: [event: MouseEvent] }>()
+const emit = defineEmits<{
+  click: [event: MouseEvent]
+  /**
+   * Declared for the same reason `click` is, and needed because a shift-click
+   * has to be cancelled *before* the browser extends a text range from it —
+   * which is a `mousedown` decision, not a `click` one.
+   */
+  mousedown: [event: MouseEvent]
+}>()
 
 const context = useTableContext<TRow>()
 
@@ -203,6 +211,7 @@ function cursorFor(columnId: string): CellCursorMark | undefined {
     :data-parity="index % 2 === 0 ? 'odd' : 'even'"
     :aria-rowindex="rowIndex"
     @click="emit('click', $event)"
+    @mousedown="emit('mousedown', $event)"
   >
     <!--
       The selection checkbox's cell, when the caller has one to put there. The

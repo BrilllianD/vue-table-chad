@@ -5,13 +5,13 @@
  *
  * Thin on purpose. All of the wiring lives in `useTable()`, in `core/`, where
  * it can be reached and tested with no component involved; this component is
- * the props-to-options adapter, the `provide`, and the three `update:*` emits.
+ * the props-to-options adapter, the `provide`, and the `update:*` emits.
  * The rules that used to live here — how `initialGroupBy` seeds a state built
  * elsewhere, why selection and the cursor are built unconditionally and gated
  * on the way out, why `autofocusCursor` waits for `onMounted` — are all in
  * `useTable`, with the comments that explain them.
  */
-import { computed, toRef, watch } from 'vue'
+import { computed, getCurrentInstance, toRef, watch } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -20,6 +20,7 @@ import type {
   QueryState,
   RowId,
   SelectionMode,
+  SelectionState,
 } from '../../core/types'
 import { provideTableContext } from '../../core/context'
 import { useTable } from '../../core/useTable'
@@ -46,6 +47,17 @@ const props = withDefaults(
      */
     state?: TableState
     selectable?: boolean | SelectionMode
+    /**
+     * The selection itself, for a caller that wants to own it —
+     * `v-model:selection-state`. Left out, the table owns it.
+     *
+     * `selectionState` rather than `selection`, because `update:selection`
+     * already exists and carries `RowId[]`; binding `v-model:selection` would
+     * silently repurpose that event's payload. This one carries the whole
+     * `SelectionState` union, which is what a caller has to hold to represent
+     * "everything matching" as well as a list of ids.
+     */
+    selectionState?: SelectionState
     getRowId?: (row: TRow) => RowId
     isRowSelectable?: (row: TRow) => boolean
     /** Header bands, giving a multi-row header and per-band collapse. */
@@ -100,6 +112,10 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:query': [query: QueryState]
   'update:selection': [ids: RowId[]]
+  /** The whole selection, for `v-model:selection-state`. */
+  'update:selectionState': [state: SelectionState]
+  /** The selected rows themselves — see the watcher for what it costs. */
+  'update:selectedRows': [rows: TRow[]]
   /** Fires on every order change — dragged, keyboard-moved or menu-moved. */
   'update:columnOrder': [order: string[]]
 }>()
@@ -186,12 +202,12 @@ const slotBindings = computed(() => ({
 }))
 
 /*
- * The three emits, and why they stay here rather than becoming callbacks on
+ * The emits, and why they stay here rather than becoming callbacks on
  * `UseTableOptions`: an emit is a component's way of speaking, and `core/` has
  * no components in it. `useTable` returns the sources; turning a change in one
  * into an event is this component's job.
  *
- * All three watchers are shallow on purpose. `state.query` is a computed that
+ * Every watcher here is shallow on purpose. `state.query` is a computed that
  * mints a fresh object on every write, so its identity already changes whenever
  * anything inside it does — a deep traversal of the filters and sort rules on
  * top of that is pure cost. The selection state is replaced wholesale by every
@@ -205,13 +221,54 @@ watch(
   () => columns.all.value.map((column) => column.id).join(' '),
   () => emit('update:columnOrder', columns.all.value.map((column) => column.id)),
 )
+/*
+ * A selection owned from outside, seeded before any watcher can fire so that a
+ * table bound with `v-model:selection-state` renders its first frame already
+ * selected rather than reporting an empty selection back over the binding.
+ */
+if (props.selectionState) table.rowSelection.state.value = props.selectionState
+
+/*
+ * The binding, inbound. The reference test is the loop guard: a write below
+ * emits the very object it stored, the parent hands that same object back, and
+ * this stops there rather than writing it a second time. It is also the only
+ * comparison that is correct — `useRowSelection` replaces the state object on
+ * every write, so identity is exactly "has someone else changed it".
+ */
+watch(
+  () => props.selectionState,
+  (next) => {
+    if (next && next !== table.rowSelection.state.value) {
+      table.rowSelection.state.value = next
+    }
+  },
+)
+
+/**
+ * Whether anyone is listening for the rows.
+ *
+ * Resolving them is a walk over the whole filtered set, and `selectedRows` is
+ * lazy precisely so that a table nobody asked stays free — emitting into the
+ * void on every click would spend that walk at 100k rows to hand the result to
+ * no one. Read from the vnode rather than from `attrs`, which a declared emit
+ * never reaches; both spellings, because a render function may write either.
+ */
+const instance = getCurrentInstance()
+function wantsSelectedRows(): boolean {
+  const vnodeProps = instance?.vnode.props
+  if (!vnodeProps) return false
+  return Boolean(vnodeProps['onUpdate:selectedRows'] ?? vnodeProps['onUpdate:selected-rows'])
+}
+
 // `rowSelection`, not `selection`: the ungated one, so that switching
 // `selectable` off is not itself reported as a selection change.
 watch(
   () => table.rowSelection.state.value,
-  () => {
+  (current) => {
     if (props.selectable === false) return
     emit('update:selection', table.rowSelection.selectedIds.value)
+    emit('update:selectionState', current)
+    if (wantsSelectedRows()) emit('update:selectedRows', table.rowSelection.selectedRows.value)
   },
 )
 

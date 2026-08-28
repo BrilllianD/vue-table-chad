@@ -94,6 +94,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'InfiniteDataSourceOptions', layer: 'core', kind: 'type', summary: 'pageSize, debounceMs, immediate, fetchFacets and onError.' },
 
   { name: 'useRowSelection', layer: 'core', kind: 'composable', summary: 'Selection that survives paging, and that can represent "everything matching the filters" without materialising an id per row.' },
+  { name: 'RowClickGesture', layer: 'core', kind: 'type', summary: 'The modifiers a click carries, and nothing else about it.' },
   { name: 'UseRowSelection', layer: 'core', kind: 'type', summary: 'Selection state, predicates and mutators.' },
   { name: 'UseRowSelectionOptions', layer: 'core', kind: 'type', summary: 'Row identity, selectability, mode, and an initial selection.' },
 
