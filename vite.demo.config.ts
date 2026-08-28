@@ -1,10 +1,13 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { highlight } from './scripts/vite-plugin-highlight.ts'
 
 export default defineConfig({
   root: fileURLToPath(new URL('./demo', import.meta.url)),
-  plugins: [vue()],
+  // `highlight` declares `enforce: 'pre'` so it claims `.vue?highlight` ids
+  // before the Vue plugin tries to compile them as components.
+  plugins: [highlight(), vue()],
   resolve: {
     alias: {
       '@brillliand/vue-table-chad': fileURLToPath(new URL('./src/index.ts', import.meta.url)),
