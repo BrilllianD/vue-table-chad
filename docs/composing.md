@@ -2,6 +2,7 @@
 
 <script setup>
 import Example from './.vitepress/examples/composing.vue'
+import HoistedStateExample from './.vitepress/examples/hoisted-state.vue'
 </script>
 
 <Demo :is="Example" />
@@ -79,7 +80,14 @@ watch(external, (q) => history.replaceState(null, '', `#q=${encodeURIComponent(J
 ```
 
 Mirroring is synchronous both ways, so reading `external.value` right after `state.setPage(3)`
-gives you page 3. Live example: `playground/src/examples/UrlSyncedState.vue`.
+gives you page 3.
+
+Sort, filter or page the table below and the address bar follows; press back and the table follows.
+Nothing in the table knows the URL exists:
+
+<Demo :is="HoistedStateExample" />
+
+<<< @/.vitepress/examples/hoisted-state.vue
 
 ---
 

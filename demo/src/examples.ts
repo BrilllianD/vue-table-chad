@@ -21,6 +21,8 @@ import editing from '../../docs/.vitepress/examples/editing.vue?highlight'
 import filtering from '../../docs/.vitepress/examples/filtering.vue?highlight'
 import gettingStarted from '../../docs/.vitepress/examples/getting-started.vue?highlight'
 import grouping from '../../docs/.vitepress/examples/grouping.vue?highlight'
+import hoistedState from '../../docs/.vitepress/examples/hoisted-state.vue?highlight'
+import infinite from '../../docs/.vitepress/examples/infinite.vue?highlight'
 import keyboard from '../../docs/.vitepress/examples/keyboard.vue?highlight'
 import recipe1 from '../../docs/.vitepress/examples/recipe-1.vue?highlight'
 import recipe2 from '../../docs/.vitepress/examples/recipe-2.vue?highlight'
@@ -54,6 +56,8 @@ export const exampleFiles: Record<string, HighlightedFile> = {
   'filtering.vue': filtering,
   'getting-started.vue': gettingStarted,
   'grouping.vue': grouping,
+  'hoisted-state.vue': hoistedState,
+  'infinite.vue': infinite,
   'keyboard.vue': keyboard,
   'recipe-1.vue': recipe1,
   'recipe-2.vue': recipe2,
@@ -90,11 +94,13 @@ export const examplesByTab: Record<string, TabExamples> = {
   },
   overview: { files: ['getting-started.vue', 'sorting-and-pagination.vue'] },
   server: { files: ['data-sources.vue'] },
+  infinite: { files: ['infinite.vue'] },
   filters: { files: ['filtering.vue'] },
   grouping: { files: ['grouping.vue'] },
   editing: { files: ['editing.vue'] },
   cursor: { files: ['keyboard.vue'] },
   'header-groups': { files: ['column-groups.vue'] },
+  state: { files: ['hoisted-state.vue'] },
   theming: { files: ['styling.vue'] },
   virtual: { files: ['virtualization.vue'] },
   perf: {
