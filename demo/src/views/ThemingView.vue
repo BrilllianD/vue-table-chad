@@ -14,7 +14,14 @@
  * scheme the browser is actually in.
  */
 import { computed, reactive, ref, watch } from 'vue'
-import { DataTable, useLocalDataSource, useTableState, type TableTheme } from '@brillliand/vue-table-chad'
+import {
+  DataTable,
+  defineTheme,
+  useLocalDataSource,
+  useTableState,
+  type TableTheme,
+  type Theme,
+} from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
@@ -194,6 +201,67 @@ const theme = ref<TableTheme>('system')
 watch(theme, (next) => {
   apply(next === 'system' ? (prefersDark ? DARK : LIGHT) : next === 'dark' ? DARK : LIGHT)
 })
+
+/**
+ * The palette as a `Theme`, which is the one place these names are written.
+ *
+ * It feeds the live table, the copy-pasteable snippet below it, and nothing
+ * else — where this view used to carry the list three times over: a `v-bind`
+ * block in `<style scoped>`, a hand-typed `<pre>`, and two more rules for the
+ * hover overrides. Any of them could drift from the others, and the snippet
+ * being the one a reader copies made it the worst one to be wrong.
+ *
+ * The hover pairs are spread conditionally because "off" has to mean the
+ * declaration is absent. Emitting `--vtc-row-hover-bg: <colour>` when the
+ * checkbox is clear would replace the preset's delta-derived hover with a
+ * fixed copy of it, which looks identical until the palette changes under it.
+ */
+const themeVars = computed<Theme>(() => ({
+  accent: palette.accent,
+  accentContrast: palette.accentContrast,
+  bg: palette.bg,
+  headerBg: palette.bgHeader,
+  ...(hoverOverride.value
+    ? { rowHoverBg: hoverColorValue.value }
+    : { rowHoverDelta: hoverDelta.value }),
+  ...(cellHoverOverride.value
+    ? { cellHoverBg: cellHoverColorValue.value }
+    : { cellHoverDelta: cellHoverDelta.value }),
+  rowSelectedBg: selectedColor.value,
+  rowOddBg: palette.bgRowOdd,
+  rowEvenBg: palette.bgRowEven,
+  border: palette.border,
+  borderStrong: palette.borderStrong,
+  text: palette.text,
+  textMuted: palette.textMuted,
+  radius: radius.value,
+  rowHeight: rowHeight.value,
+  font: font.value,
+  bodyBorderWidth: bodyBorder.value,
+  bodyBorderVerticalWidth: bodyBorderVertical.value,
+  outerBorderWidth: outerBorder.value,
+  rowHoverBorderWidth: hoverBorderWidth.value,
+  rowHoverBorderColor: hoverBorder.rowColor,
+  cellHoverBorderWidth: cellHoverBorderWidth.value,
+  cellHoverBorderColor: hoverBorder.cellColor,
+}))
+
+/*
+  Bound on the table rather than on a wrapper: the tokens are declared on
+  `.vt-datatable` itself, so a value set on an ancestor never reaches them.
+  An inline custom property lands on that element and beats the stylesheet
+  without needing `!important` or a `:deep` selector.
+*/
+const themeStyle = computed(() => defineTheme(themeVars.value))
+
+/** The same object again, printed. Generated, so it cannot disagree. */
+const snippet = computed(() =>
+  [
+    '.vt-datatable {',
+    ...Object.entries(themeStyle.value).map(([name, value]) => `  ${name}: ${value};`),
+    '}',
+  ].join('\n'),
+)
 
 function apply(next: Palette): void {
   Object.assign(palette, next)
@@ -398,6 +466,7 @@ const hooks = [
            element, which is also all a consumer ever has to do."
     :api="[
       '--vtc-* custom properties',
+      'defineTheme',
       'DataTable.theme',
       'data-* state attributes',
       'ColumnDef.background',
@@ -530,17 +599,15 @@ const hooks = [
       </span>
     </div>
 
-    <!--
-      The overrides are attributes rather than always-on `v-bind`s: with the
-      flag off, the rule does not match and nothing is written, so the preset's
-      own delta-derived hover applies instead of a copy of it.
-    -->
-    <div
-      class="theme-host"
-      :data-hover-override="hoverOverride || undefined"
-      :data-cell-hover-override="cellHoverOverride || undefined"
-    >
-      <DataTable :columns="themedColumns" :source="source" :state="state" :theme="theme" selectable />
+    <div class="theme-host">
+      <DataTable
+        :columns="themedColumns"
+        :source="source"
+        :state="state"
+        :theme="theme"
+        :style="themeStyle"
+        selectable
+      />
     </div>
 
     <p class="hint">
@@ -549,33 +616,7 @@ const hooks = [
       near-white text — which is why every colour here is set together.
     </p>
 
-    <pre class="snippet">.vt-datatable {
-  --vtc-accent: {{ palette.accent }};
-  --vtc-accent-contrast: {{ palette.accentContrast }};
-  --vtc-bg: {{ palette.bg }};
-  --vtc-header-bg: {{ palette.bgHeader }};
-  {{ hoverOverride ? `--vtc-row-hover-bg: ${hoverColorValue};` : `--vtc-row-hover-delta: ${hoverDelta};` }}
-  {{ cellHoverOverride
-     ? `--vtc-cell-hover-bg: ${cellHoverColorValue};`
-     : `--vtc-cell-hover-delta: ${cellHoverDelta};` }}
-  --vtc-row-selected-bg: {{ selectedColor }};
-  --vtc-row-odd-bg: {{ palette.bgRowOdd }};
-  --vtc-row-even-bg: {{ palette.bgRowEven }};
-  --vtc-border: {{ palette.border }};
-  --vtc-border-strong: {{ palette.borderStrong }};
-  --vtc-text: {{ palette.text }};
-  --vtc-text-muted: {{ palette.textMuted }};
-  --vtc-radius: {{ radius }};
-  --vtc-row-height: {{ rowHeight }};
-  --vtc-font: {{ font }};
-  --vtc-body-border-width: {{ bodyBorder }};
-  --vtc-body-border-vertical-width: {{ bodyBorderVertical }};
-  --vtc-outer-border-width: {{ outerBorder }};
-  --vtc-row-hover-border-width: {{ hoverBorderWidth }};
-  --vtc-row-hover-border-color: {{ hoverBorder.rowColor }};
-  --vtc-cell-hover-border-width: {{ cellHoverBorderWidth }};
-  --vtc-cell-hover-border-color: {{ hoverBorder.cellColor }};
-}</pre>
+    <pre class="snippet">{{ snippet }}</pre>
 
     <div class="panel">
       <h3>State hooks</h3>
@@ -613,50 +654,7 @@ const hooks = [
 
 .theme-picker { display: inline-flex; align-items: center; gap: 6px; }
 
-/*
- * The variables are declared on `.vt-datatable` itself, so an ancestor cannot
- * win on specificity — the override has to land on that element. `:deep`
- * reaches it, and `v-bind` wires each value to the reactive palette above.
- */
-.theme-host :deep(.vt-datatable) {
-  --vtc-accent: v-bind('palette.accent');
-  --vtc-accent-contrast: v-bind('palette.accentContrast');
-  --vtc-bg: v-bind('palette.bg');
-  --vtc-header-bg: v-bind('palette.bgHeader');
-  /* Hover is left to the preset's own `color-mix` — only the delta is set. */
-  --vtc-row-hover-delta: v-bind(hoverDelta);
-  --vtc-cell-hover-delta: v-bind(cellHoverDelta);
-  --vtc-row-selected-bg: v-bind(selectedColor);
-  --vtc-row-odd-bg: v-bind('palette.bgRowOdd');
-  --vtc-row-even-bg: v-bind('palette.bgRowEven');
-  --vtc-border: v-bind('palette.border');
-  --vtc-border-strong: v-bind('palette.borderStrong');
-  --vtc-text: v-bind('palette.text');
-  --vtc-text-muted: v-bind('palette.textMuted');
-  --vtc-radius: v-bind(radius);
-  --vtc-row-height: v-bind(rowHeight);
-  --vtc-font: v-bind(font);
-  --vtc-body-border-width: v-bind(bodyBorder);
-  --vtc-body-border-vertical-width: v-bind(bodyBorderVertical);
-  --vtc-outer-border-width: v-bind(outerBorder);
-  --vtc-row-hover-border-width: v-bind(hoverBorderWidth);
-  --vtc-row-hover-border-color: v-bind('hoverBorder.rowColor');
-  --vtc-cell-hover-border-width: v-bind(cellHoverBorderWidth);
-  --vtc-cell-hover-border-color: v-bind('hoverBorder.cellColor');
-}
 
-/*
- * Naming a colour outright, instead of deriving one from the delta. Gated on
- * the attribute so that "off" means the declaration is absent, not that it is
- * present with a default value in it.
- */
-.theme-host[data-hover-override] :deep(.vt-datatable) {
-  --vtc-row-hover-bg: v-bind(hoverColorValue);
-}
-
-.theme-host[data-cell-hover-override] :deep(.vt-datatable) {
-  --vtc-cell-hover-bg: v-bind(cellHoverColorValue);
-}
 
 /* The rule widths carry the longest variable names on the page, so they get a
    wider track than the colour swatches and are kept off the wrapping grid. */

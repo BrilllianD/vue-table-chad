@@ -58,6 +58,50 @@ A **leading underscore** — `--_vtc-shadow-cursor`, `--_vtc-row-hover-clamped` 
 stylesheet computes for itself. Those are machinery, not API: setting one from outside is not
 supported, and the set of them will change without notice.
 
+## Themes in TypeScript
+
+A theme written as CSS is a string the compiler cannot see into: a typo in a variable name is a
+declaration the browser drops silently. `defineTheme` takes the same tokens as an object, camelCased,
+and returns the custom properties to bind:
+
+```vue
+<script setup lang="ts">
+import { defineTheme, type Theme } from '@brillliand/vue-table-chad'
+
+const brand: Theme = {
+  accent: '#7c3aed',
+  accentContrast: '#ffffff',
+  radius: '10px',
+  rowHeight: '44px',
+  rowHoverDelta: '8%',
+}
+</script>
+
+<template>
+  <DataTable :style="defineTheme(brand)" … />
+</template>
+```
+
+A style binding rather than a stylesheet, because of where the tokens are declared: they live on
+`.vt-datatable` itself, so a value set on an ancestor never reaches them and a rule elsewhere has to
+out-specify them. An inline property lands on the right element and wins without `!important`.
+
+Every field is optional and an absent one is not emitted at all, so a theme sets what it means to
+change and leaves the rest — including the light/dark switch — to the stylesheet. The return value
+is a plain object, so themes compose:
+
+```ts
+const compact = { ...defineTheme(brand), ...defineTheme({ rowHeight: '28px', space4: '6px' }) }
+```
+
+Numbers pass through verbatim, which is what the unitless tokens want (`zPopover`, `weightBold`,
+`opacityBusy`). **Everything else needs its unit** — `0` alone is not a length once it reaches the
+`calc()` behind the hover outlines, and an invalid value there takes the whole `box-shadow` with it.
+
+The field list is the token list: `tests/theme.spec.ts` compares the two against the stylesheet and
+fails if either grows a name the other has not heard of, so a token you can see in the CSS is one
+you can set from here.
+
 ## Picking a palette
 
 By default the table follows `prefers-color-scheme`, which is right until the app has a theme

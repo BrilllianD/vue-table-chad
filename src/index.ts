@@ -87,6 +87,9 @@ export {
 } from './core/context'
 export type { TableContext, TableTheme } from './core/context'
 
+export { defineTheme } from './core/theme'
+export type { Theme, ThemeToken } from './core/theme'
+
 /* --------------------------------------------------------------- filters */
 
 export {

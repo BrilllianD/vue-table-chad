@@ -127,6 +127,10 @@ export const apiReference: ApiEntry[] = [
   { name: 'TableContext', layer: 'core', kind: 'type', summary: 'Everything a primitive can reach: state, columns, source, selection, grouping, cell readers.' },
   { name: 'TableTheme', layer: 'core', kind: 'type', summary: 'A palette a table asks for outright, rather than following the OS.' },
 
+  { name: 'defineTheme', layer: 'core', kind: 'function', summary: 'Turns a `Theme` into the custom properties that carry it, ready to bind.' },
+  { name: 'Theme', layer: 'core', kind: 'type', summary: "A theme: any subset of the preset's tokens, camelCased." },
+  { name: 'ThemeToken', layer: 'core', kind: 'type', summary: "One token's name, in the camelCase form a `Theme` uses." },
+
   { name: 'editorFor', layer: 'core', kind: 'function', summary: 'Which control edits this column: its own `editor`, or one derived from `type`.' },
   { name: 'isColumnEditable', layer: 'core', kind: 'function', summary: 'Whether this column accepts an edit to this row.' },
   { name: 'parseCellInput', layer: 'core', kind: 'function', summary: "Coerces what an editor produced into the column's own value: `column.parse`, or the coercion its `type` implies." },

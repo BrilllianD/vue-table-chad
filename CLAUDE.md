@@ -12,7 +12,7 @@ including the decisions already settled and how the work is verified.
 ## Commands
 
 ```bash
-pnpm test          # vitest, 780 tests across 44 files
+pnpm test          # vitest, 786 tests across 44 files
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
@@ -192,6 +192,21 @@ Answered once. Reopen one only with a reason, and rewrite the entry rather than 
     the public tokens. Adding a `--_vtc-` name is free; promoting one to `--vtc-` is an API change.
   - The font size lives in `--vtc-font-size-md`, not `--vtc-text-md`, because `--vtc-text` is the
     foreground colour and the two families would read as one.
+  - **`src/core/theme.ts` is the same list in TypeScript**, and `THEME_TOKENS` is a runtime array
+    rather than an interface's keys precisely so it can be checked: `tests/theme.spec.ts` compares
+    it against both partitions and fails if either side grows a name the other has not heard of.
+    Adding a token means adding one line there. `Theme` is derived from the array, so the type and
+    the check cannot disagree.
+  - **`DataTable` forwards `$attrs` onto `.vt-datatable` by hand** (`inheritAttrs: false`).
+    `TableRoot` renders a slot and nothing else, so the component's root is a fragment and Vue
+    drops fallthrough attributes silently — a `:style` on `<DataTable>` had no effect at all, which
+    is the binding `defineTheme` exists to produce. `.vt-datatable` is also the only element they
+    could usefully reach, since that is where every token is declared.
+  - **Dark is reached two ways and the blocks cannot be shared.** The media query excludes
+    `[data-theme='light']`; the attribute form sits outside it, and after it. The attribute is read
+    on the element itself, never on an ancestor — CSS cannot say "and nothing above said light", so
+    an ancestor form costs a second copy of both palettes, and the teleported case it would have
+    covered is covered by the `theme` prop reaching `.vt-portal` instead.
 - **The package name is `@brillliand/vue-table-chad`.** Scoped, so `publishConfig: { access:
   "public" }` is required rather than optional. The scope is the account name `BrilllianD`
   lowercased, because **npm forbids uppercase in a package name, scope included** — that lowercase

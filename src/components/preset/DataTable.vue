@@ -244,6 +244,21 @@ const props = withDefaults(
   },
 )
 
+/*
+  Attributes are forwarded by hand, onto `.vt-datatable` and no other element.
+
+  Vue cannot do it automatically here: `<TableRoot>` renders a slot and nothing
+  else, so this component's root is a fragment and fallthrough attributes are
+  dropped rather than landing somewhere. Silently — a `:style` or an `id` on
+  `<DataTable>` simply had no effect.
+
+  `.vt-datatable` is also the only element they could usefully land on. Every
+  theme token is declared there, so an inline custom property has to reach that
+  element to beat the stylesheet — which is exactly what `defineTheme` produces
+  and what `docs/styling.md` tells consumers to bind.
+*/
+defineOptions({ inheritAttrs: false })
+
 const emit = defineEmits<{
   'update:query': [query: QueryState]
   'update:selection': [ids: RowId[]]
@@ -607,6 +622,7 @@ function onActivate(
     @update:column-order="$emit('update:columnOrder', $event)"
   >
     <div
+      v-bind="$attrs"
       class="vt-datatable"
       :style="ruleStyle"
       :data-theme="themeAttribute"

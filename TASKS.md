@@ -54,22 +54,6 @@ the rule for this file with a one-line why.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
-### `[ ]` T9 — A typed theme API
-
-Themes are authored as raw CSS strings today, which is why `demo/src/views/ThemingView.vue` carries
-the variable list in four places that have to be kept in sync by hand. Add `src/core/theme.ts` —
-`core/`, because it imports nothing from `components/` — exporting a `Theme` interface over the
-semantic tier and a `defineTheme(theme)` that maps it to `--vtc-*` for a `:style` binding.
-
-`defineTheme` is a value export, so `tests/apiSurface.spec.ts` requires a demo view to use it: the
-Theming view's palette model and its seven presets become `Theme` objects, which collapses three of
-that file's four copies of the list into one and lets the copy-pasteable snippet be generated from
-the same object rather than typed out.
-
-**Done when:** both are exported with declaration doc comments, `pnpm docs:api` output is committed,
-the Theming view drives its live preview through `defineTheme`, `docs/styling.md` has a section on
-it, and `tests/apiReference.spec.ts` and `tests/apiSurface.spec.ts` are green.
-
 ---
 
 ## Deferred

@@ -6,6 +6,7 @@ import { defineComponent, h } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
+import { defineTheme, themeProperties } from '../src/core/theme'
 import { people, personColumns, type Person } from './fixtures'
 
 /**
@@ -126,5 +127,100 @@ describe('theme', () => {
     expect(TOKENS.indexOf(".vt-datatable[data-theme='dark']")).toBeGreaterThan(
       TOKENS.indexOf('@media (prefers-color-scheme: dark)'),
     )
+  })
+})
+
+const SCALES = readFileSync(
+  resolve(import.meta.dirname, '../src/components/preset/styles/scales.css'),
+  'utf8',
+)
+
+/** Every public token the two theme partitions declare. */
+function declaredTokens(): Set<string> {
+  const names = new Set<string>()
+  for (const css of [SCALES, TOKENS]) {
+    for (const m of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--vtc-[\w-]+)\s*:/g)) {
+      names.add(m[1]!)
+    }
+  }
+  return names
+}
+
+describe('defineTheme', () => {
+  it('emits the custom property for each field it is given', () => {
+    expect(defineTheme({ accent: '#7c3aed', rowHeight: '44px' })).toEqual({
+      '--vtc-accent': '#7c3aed',
+      '--vtc-row-height': '44px',
+    })
+  })
+
+  it('skips absent fields rather than emitting an empty declaration', () => {
+    // A property declared with no value is invalid, not "unset" — and for the
+    // tokens that feed `color-mix` and the composed layer lists, invalid takes
+    // the whole declaration down with it.
+    expect(defineTheme({ accent: undefined, bg: '#fff' })).toEqual({ '--vtc-bg': '#fff' })
+  })
+
+  it('passes numbers through for the unitless tokens', () => {
+    expect(defineTheme({ zPopover: 30, weightBold: 700, opacityBusy: 0.5 })).toEqual({
+      '--vtc-z-popover': '30',
+      '--vtc-weight-bold': '700',
+      '--vtc-opacity-busy': '0.5',
+    })
+  })
+
+  /**
+   * The binding `docs/styling.md` tells consumers to write, end to end.
+   *
+   * It needs `DataTable` to forward attributes by hand: `<TableRoot>` renders
+   * a slot and nothing else, so the component's root is a fragment and Vue
+   * drops fallthrough attributes instead of applying them. Nothing warned —
+   * a `:style` on `<DataTable>` simply had no effect, which is the whole
+   * feature this file documents.
+   */
+  it('reaches .vt-datatable when bound as a style on the component', () => {
+    const Styled = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, personColumns, state.query)
+        return () =>
+          h(DataTable as never, {
+            columns: personColumns,
+            source,
+            state,
+            style: defineTheme({ accent: '#7c3aed', rowHeight: '44px' }),
+          })
+      },
+    })
+
+    const style = mount(Styled, { attachTo: document.body }).find('.vt-datatable').attributes('style')
+    expect(style).toContain('--vtc-accent: #7c3aed')
+    expect(style).toContain('--vtc-row-height: 44px')
+  })
+
+  it('starts a segment at a digit, so the numbered scales come out right', () => {
+    expect(themeProperties.space1).toBe('--vtc-space-1')
+    expect(themeProperties.fontSize3xs).toBe('--vtc-font-size-3xs')
+    expect(themeProperties.stroke2).toBe('--vtc-stroke-2')
+  })
+
+  /**
+   * The reason `THEME_TOKENS` is a runtime list rather than an interface's
+   * keys. A token added to the stylesheet and not to the list is unreachable
+   * from TypeScript; one added to the list and not to the stylesheet is a
+   * field that autocompletes and then does nothing. Both are silent.
+   */
+  it('names exactly the tokens the stylesheet declares', () => {
+    const declared = declaredTokens()
+    const mapped = new Set(Object.values(themeProperties))
+
+    expect(
+      [...mapped].filter((name) => !declared.has(name)).sort(),
+      'Theme fields with no token behind them',
+    ).toEqual([])
+    expect(
+      [...declared].filter((name) => !mapped.has(name)).sort(),
+      'tokens the stylesheet declares that no Theme field can set',
+    ).toEqual([])
   })
 })
