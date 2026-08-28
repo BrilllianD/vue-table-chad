@@ -17,7 +17,7 @@
   cursor: pointer;
 }
 
-.vt-btn:hover:not(:disabled) { background: var(--vtc-bg-hover); }
+.vt-btn:hover:not(:disabled) { background: var(--vtc-row-hover-bg); }
 .vt-btn:disabled { opacity: 0.4; cursor: default; }
 
 .vt-btn-primary {
@@ -42,7 +42,7 @@
 
 .vt-selectall-banner {
   padding: 6px 10px;
-  background: var(--vtc-bg-selected);
+  background: var(--vtc-row-selected-bg);
   border: 1px solid var(--vtc-accent);
   border-radius: var(--vtc-radius);
   text-align: center;

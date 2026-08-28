@@ -19,7 +19,7 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
   <div
     style="
       --vtc-accent: #7c3aed;
-      --vtc-bg-row-even: #f4f0fb;
+      --vtc-row-even-bg: #f4f0fb;
       --vtc-radius: 10px;
     "
   >

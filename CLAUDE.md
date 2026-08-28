@@ -161,6 +161,26 @@ because a background tab reports the browser's throttle rather than the table's 
 
 Answered once. Reopen one only with a reason, and rewrite the entry rather than leaving both.
 
+- **Theme custom properties are `--vtc-`, classes stay `.vt-`.** One character apart on purpose: the
+  properties needed a prefix far enough from a consumer's own `--vt-*` to stop colliding, and the
+  classes are a separate public surface — around 200 assertions across 11 spec files, and
+  `docs/styling.md` teaches `.vt-th[data-sorted]` as a styling hook — so renaming them is its own
+  decision and has not been taken.
+- **The theme is two tiers, plus machinery marked as machinery.** `styles/scales.css` holds the
+  values the design uses at all (`--vtc-space-*`, `--vtc-radius-*`, `--vtc-font-size-*`,
+  `--vtc-weight-*`, `--vtc-stroke-*`, `--vtc-z-*`, `--vtc-elevation-*`, `--vtc-duration-*`,
+  `--vtc-opacity-*`); `styles/tokens.css` holds the roles built out of them. Both land on
+  `.vt-datatable, .vt-portal`, so either tier is overridable from one place. Nothing goes in a scale
+  to round out a ramp — every entry was a literal repeated in the partitions, because a scale nobody
+  reaches for is a scale that drifts.
+  - Token names are **subject first, property last**: `--vtc-row-hover-bg` and
+    `--vtc-row-hover-border-color` sort together. Every fill ends `-bg`; every outline is a
+    `-border-width` / `-border-color` pair.
+  - **A leading underscore means machinery.** `--_vtc-layer-*`, `--_vtc-shadow-*` and the
+    `--_vtc-*-clamped` values are what the stylesheet composes for itself; the knobs feeding them are
+    the public tokens. Adding a `--_vtc-` name is free; promoting one to `--vtc-` is an API change.
+  - The font size lives in `--vtc-font-size-md`, not `--vtc-text-md`, because `--vtc-text` is the
+    foreground colour and the two families would read as one.
 - **The package name is `@brillliand/vue-table-chad`.** Scoped, so `publishConfig: { access:
   "public" }` is required rather than optional. The scope is the account name `BrilllianD`
   lowercased, because **npm forbids uppercase in a package name, scope included** — that lowercase

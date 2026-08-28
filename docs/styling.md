@@ -23,11 +23,39 @@ import '@brillliand/vue-table-chad/style.css'
 ```
 
 Retheme by overriding the CSS variables on `.vt-datatable` (`--vtc-accent`, `--vtc-border`,
-`--vtc-bg-header`, `--vtc-row-height`, …). Dark mode follows `prefers-color-scheme`.
+`--vtc-header-bg`, `--vtc-row-height`, …). Dark mode follows `prefers-color-scheme`.
 
 > The stylesheet is intentionally not imported from the package barrel: `sideEffects` marks JS
 > modules side-effect-free, so a bare CSS import there gets tree-shaken away and consumers silently
 > get an unstyled table.
+
+## The two tiers, and how names are built
+
+Variables come in two tiers, and which one you reach for depends on how wide a change you want.
+
+**Scales** are the values the design uses at all — spacing, corner radii, type sizes, line weights,
+the z-index ladder, elevation, motion, opacity. Set one and everything built on it moves together:
+
+```css
+.vt-datatable {
+  --vtc-space-4: 10px;      /* every 8px gap and padding in the preset widens */
+  --vtc-radius-sm: 0px;     /* square off the nested controls, keep the outer radius */
+  --vtc-font-size-sm: 13px; /* counts, hints and sort indices */
+}
+```
+
+**Tokens** are the roles built out of those — `--vtc-header-bg`, `--vtc-cursor-border-color`,
+`--vtc-band-border-width`. Set one and you have changed exactly one thing. Both tiers live on
+`.vt-datatable, .vt-portal`, so an override on `.vt-datatable` reaches either.
+
+Token names read **subject first, property last**: `--vtc-row-hover-bg` is the background of a
+hovered row and `--vtc-row-hover-border-color` is that row's outline, so the fill and the outline of
+one state sort next to each other. Every fill ends in `-bg`; every outline is a `-border-width` /
+`-border-color` pair.
+
+A **leading underscore** — `--_vtc-shadow-cursor`, `--_vtc-row-hover-clamped` — marks a property the
+stylesheet computes for itself. Those are machinery, not API: setting one from outside is not
+supported, and the set of them will change without notice.
 
 ## Rules and row striping
 
@@ -79,7 +107,7 @@ Row striping is off by default — both stripes inherit `--vtc-bg`, so setting o
 
 ```css
 .vt-datatable {
-  --vtc-bg-row-even: #f4f6f9;   /* zebra: odd rows keep --vtc-bg */
+  --vtc-row-even-bg: #f4f6f9;   /* zebra: odd rows keep --vtc-bg */
 }
 ```
 
@@ -111,7 +139,7 @@ lightens a dark one from the same number:
 
 ```css
 .vt-datatable {
-  --vtc-hover-delta: 6%;        /* the row under the pointer */
+  --vtc-row-hover-delta: 6%;        /* the row under the pointer */
   --vtc-cell-hover-delta: 0%;   /* just the cell under it, stacked on top; off at 0 */
 }
 ```
@@ -129,21 +157,21 @@ const tint = (color: string, pct: number) =>
 Name a colour instead if you'd rather — the delta only feeds the default:
 
 ```css
---vtc-bg-hover: rgb(37 99 235 / 0.1);
---vtc-bg-cell-hover: rgb(37 99 235 / 0.16);
---vtc-bg-selected: color-mix(in srgb, var(--vtc-accent) 16%, transparent);   /* the shipped default */
+--vtc-row-hover-bg: rgb(37 99 235 / 0.1);
+--vtc-cell-hover-bg: rgb(37 99 235 / 0.16);
+--vtc-row-selected-bg: color-mix(in srgb, var(--vtc-accent) 16%, transparent);   /* the shipped default */
 ```
 
 An opaque value works too; it simply hides the layers below it. Either way the two mechanisms are
 exclusive per variable — set the colour and the delta stops being consulted, since the delta exists
-only to derive that colour. `--vtc-hover-delta: 0%` turns row hover off altogether.
+only to derive that colour. `--vtc-row-hover-delta: 0%` turns row hover off altogether.
 
 **Hover outlines** are separate from the fills, and off by default:
 
 ```css
 .vt-datatable {
-  --vtc-hover-border-width: 0px;                    /* row: a rule top and bottom */
-  --vtc-hover-border-color: var(--vtc-accent);
+  --vtc-row-hover-border-width: 0px;                    /* row: a rule top and bottom */
+  --vtc-row-hover-border-color: var(--vtc-accent);
   --vtc-cell-hover-border-width: 0px;               /* cell: all four edges */
   --vtc-cell-hover-border-color: var(--vtc-accent);
 }
@@ -154,9 +182,11 @@ spanning the row; a full ring per cell would draw the internal verticals and tur
 into a row of boxes. The cell gets the full ring.
 
 Both are inset `box-shadow`s, not borders: a border that appears on hover changes the cell's size
-and shoves the table around under the pointer. They compose through `--vtc-shadow-*` variables for
+and shoves the table around under the pointer. They compose through `--_vtc-shadow-*` slots for
 the same reason the fills do — `box-shadow` is a single property, and writing one directly would
-wipe out the edge shadow that separates a pinned column from what scrolls beneath it.
+wipe out the edge shadow that separates a pinned column from what scrolls beneath it. Those slots
+carry the underscore because they are the composition itself rather than a knob on it: the widths
+and colours above are what you set, and the slots are what the stylesheet builds from them.
 
 Give the widths a unit. `0` alone is not a length once it goes through the `calc()` that mirrors
 the top edge to the bottom, and an invalid value takes the whole `box-shadow` with it.

@@ -82,12 +82,12 @@
 */
 .vt-th,
 .vt-td {
-  --vtc-layer-cell-hover: none;
-  --vtc-layer-selected: none;
-  --vtc-layer-hover: none;
-  --vtc-layer-cursor-row: none;
-  --vtc-layer-cursor-column: none;
-  --vtc-layer-column: none;
+  --_vtc-layer-cell-hover: none;
+  --_vtc-layer-selected: none;
+  --_vtc-layer-hover: none;
+  --_vtc-layer-cursor-row: none;
+  --_vtc-layer-cursor-column: none;
+  --_vtc-layer-column: none;
 
   /*
     Shadows compose the same way, for the same reason: `box-shadow` is one
@@ -99,10 +99,10 @@
     deciding which one you see on a cell that is both hovered and focused, and
     the cursor is the state a keyboard user cannot re-create with the pointer.
   */
-  --vtc-shadow-cursor: 0 0 #0000;
-  --vtc-shadow-cell-hover: 0 0 #0000;
-  --vtc-shadow-row-hover: 0 0 #0000;
-  --vtc-shadow-pin: 0 0 #0000;
+  --_vtc-shadow-cursor: 0 0 #0000;
+  --_vtc-shadow-cell-hover: 0 0 #0000;
+  --_vtc-shadow-row-hover: 0 0 #0000;
+  --_vtc-shadow-pin: 0 0 #0000;
 
   padding: 0 10px;
   height: var(--vtc-row-height);
@@ -110,17 +110,17 @@
   border-bottom: var(--vtc-body-border-width) solid var(--vtc-body-border-color);
   background-color: var(--vtc-bg);
   background-image:
-    var(--vtc-layer-cell-hover),
-    var(--vtc-layer-selected),
-    var(--vtc-layer-hover),
-    var(--vtc-layer-cursor-row),
-    var(--vtc-layer-cursor-column),
-    var(--vtc-layer-column);
+    var(--_vtc-layer-cell-hover),
+    var(--_vtc-layer-selected),
+    var(--_vtc-layer-hover),
+    var(--_vtc-layer-cursor-row),
+    var(--_vtc-layer-cursor-column),
+    var(--_vtc-layer-column);
   box-shadow:
-    var(--vtc-shadow-cursor),
-    var(--vtc-shadow-cell-hover),
-    var(--vtc-shadow-row-hover),
-    var(--vtc-shadow-pin);
+    var(--_vtc-shadow-cursor),
+    var(--_vtc-shadow-cell-hover),
+    var(--_vtc-shadow-row-hover),
+    var(--_vtc-shadow-pin);
   white-space: nowrap;
 }
 
@@ -146,7 +146,7 @@
 
 .vt-th {
   position: relative;
-  background-color: var(--vtc-bg-header);
+  background-color: var(--vtc-header-bg);
   font-weight: 600;
   border-bottom: var(--vtc-header-border-width) solid var(--vtc-header-border-color);
   user-select: none;
@@ -190,7 +190,7 @@
       .vt-datatable .vt-td[data-band-edge='0'] { --vtc-band-border-width: 2px; }
 
   A plain `border-right`, not a `box-shadow`: pinned cells set the whole
-  `--vtc-shadow-pin` slot for their own vertical edge and would wipe this out.
+  `--_vtc-shadow-pin` slot for their own vertical edge and would wipe this out.
   Same specificity as the generic column separator further up, so **source
   order is what makes this win** where both apply — it has to stay below it.
 */
@@ -286,16 +286,16 @@
 .vt-scroll[data-sticky] .vt-thead .vt-th[data-pinned] { z-index: 3; }
 
 .vt-th[data-pinned='left'], .vt-td[data-pinned='left'] {
-  --vtc-shadow-pin: 1px 0 0 var(--vtc-border);
+  --_vtc-shadow-pin: 1px 0 0 var(--vtc-border);
 }
 
 .vt-th[data-pinned='right'], .vt-td[data-pinned='right'] {
-  --vtc-shadow-pin: -1px 0 0 var(--vtc-border);
+  --_vtc-shadow-pin: -1px 0 0 var(--vtc-border);
 }
 
 /* The opaque base each layer sits on. */
-.vt-tbody .vt-tr:nth-child(odd) .vt-td { background-color: var(--vtc-bg-row-odd); }
-.vt-tbody .vt-tr:nth-child(even) .vt-td { background-color: var(--vtc-bg-row-even); }
+.vt-tbody .vt-tr:nth-child(odd) .vt-td { background-color: var(--vtc-row-odd-bg); }
+.vt-tbody .vt-tr:nth-child(even) .vt-td { background-color: var(--vtc-row-even-bg); }
 
 /*
   Grouping interleaves header rows into the same `<tbody>`, so `nth-child`
@@ -304,8 +304,8 @@
   headers were folded in. Same specificity as the rules above, declared after,
   so it wins wherever it is present.
 */
-.vt-tbody .vt-tr[data-parity='odd'] .vt-td { background-color: var(--vtc-bg-row-odd); }
-.vt-tbody .vt-tr[data-parity='even'] .vt-td { background-color: var(--vtc-bg-row-even); }
+.vt-tbody .vt-tr[data-parity='odd'] .vt-td { background-color: var(--vtc-row-odd-bg); }
+.vt-tbody .vt-tr[data-parity='even'] .vt-td { background-color: var(--vtc-row-even-bg); }
 
 /*
   Each state fills one layer. `linear-gradient(c, c)` is how a flat colour
@@ -313,7 +313,7 @@
 */
 .vt-td[data-column-bg],
 .vt-th[data-column-bg] {
-  --vtc-layer-column: linear-gradient(var(--vtc-column-bg), var(--vtc-column-bg));
+  --_vtc-layer-column: linear-gradient(var(--vtc-column-bg), var(--vtc-column-bg));
 }
 
 /*
@@ -322,20 +322,20 @@
   internal verticals too and turn a hovered row into a row of boxes.
 */
 .vt-tbody .vt-tr:hover .vt-td {
-  --vtc-layer-hover: linear-gradient(var(--vtc-bg-hover), var(--vtc-bg-hover));
-  --vtc-shadow-row-hover:
-    inset 0 var(--vtc-hover-border-width) 0 0 var(--vtc-hover-border-color),
-    inset 0 calc(-1 * var(--vtc-hover-border-width)) 0 0 var(--vtc-hover-border-color);
+  --_vtc-layer-hover: linear-gradient(var(--vtc-row-hover-bg), var(--vtc-row-hover-bg));
+  --_vtc-shadow-row-hover:
+    inset 0 var(--vtc-row-hover-border-width) 0 0 var(--vtc-row-hover-border-color),
+    inset 0 calc(-1 * var(--vtc-row-hover-border-width)) 0 0 var(--vtc-row-hover-border-color);
 }
 
 .vt-tbody .vt-tr[data-selected] .vt-td {
-  --vtc-layer-selected: linear-gradient(var(--vtc-bg-selected), var(--vtc-bg-selected));
+  --_vtc-layer-selected: linear-gradient(var(--vtc-row-selected-bg), var(--vtc-row-selected-bg));
 }
 
 /* The cell gets all four edges, from a single spread-only inset shadow. */
 .vt-tbody .vt-td:hover {
-  --vtc-layer-cell-hover: linear-gradient(var(--vtc-bg-cell-hover), var(--vtc-bg-cell-hover));
-  --vtc-shadow-cell-hover:
+  --_vtc-layer-cell-hover: linear-gradient(var(--vtc-cell-hover-bg), var(--vtc-cell-hover-bg));
+  --_vtc-shadow-cell-hover:
     inset 0 0 0 var(--vtc-cell-hover-border-width) var(--vtc-cell-hover-border-color);
 }
 
@@ -349,7 +349,7 @@
   table entirely — remembering where you were is the whole point of it.
 */
 .vt-tbody .vt-tr[data-cursor] .vt-td {
-  --vtc-layer-cursor-row: linear-gradient(var(--vtc-bg-cursor-row), var(--vtc-bg-cursor-row));
+  --_vtc-layer-cursor-row: linear-gradient(var(--vtc-cursor-row-bg), var(--vtc-cursor-row-bg));
 }
 
 /*
@@ -360,15 +360,15 @@
 */
 .vt-th[data-cursor],
 .vt-td[data-cursor] {
-  --vtc-layer-cursor-column: linear-gradient(
-    var(--vtc-bg-cursor-column),
-    var(--vtc-bg-cursor-column)
+  --_vtc-layer-cursor-column: linear-gradient(
+    var(--vtc-cursor-column-bg),
+    var(--vtc-cursor-column-bg)
   );
 }
 
 /* All four edges from one spread-only inset shadow, exactly like the hover ring. */
 .vt-tbody .vt-td[data-cursor='cell'] {
-  --vtc-shadow-cursor: inset 0 0 0 var(--vtc-cursor-border-width) var(--vtc-cursor-border-color);
+  --_vtc-shadow-cursor: inset 0 0 0 var(--vtc-cursor-border-width) var(--vtc-cursor-border-color);
 }
 
 /*

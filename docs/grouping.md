@@ -172,7 +172,7 @@ Below that sit the pure functions, usable with no component at all: `groupedSort
 `groupSortRules`, `flattenGroups`, `countGroups`, `groupValueOf`, `groupPathKey`.
 
 Styling hooks: `.vt-group-row[data-depth][data-collapsed]`, `.vt-group-cell`, `.vt-group-toggle`,
-`.vt-group-label`, `.vt-group-count`, plus `--vtc-bg-group` and `--vtc-group-indent-step`.
+`.vt-group-label`, `.vt-group-count`, plus `--vtc-group-bg` and `--vtc-group-indent-step`.
 
 ---
 

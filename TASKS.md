@@ -54,34 +54,10 @@ the rule for this file with a one-line why.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
-### `[ ]` T6 — A tier-0 scale layer, and machinery marked as machinery
-
-The theme is one flat tier: `styles/tokens.css` holds 48 leaf tokens, and the nine feature partitions
-hold the rest of the design as literals. Add `src/components/preset/styles/scales.css`, imported
-first from `table.css`, carrying the families the literals actually spell out — `--vtc-space-*`,
-`--vtc-radius-*`, `--vtc-text-*`, `--vtc-weight-*`, `--vtc-z-*`, `--vtc-elevation-*`,
-`--vtc-duration-*`, `--vtc-opacity-*`, `--vtc-size-*`, `--vtc-focus-*` — and rewrite `tokens.css` as
-a semantic tier reading from them.
-
-Two things move at the same time because they are the same decision. `tokens.css` loses the `font:`
-and `color:` declarations it paints alongside its tokens, so the token block is only tokens. And the
-per-cell machinery in `grid.css` — `--vtc-layer-*`, `--vtc-shadow-*` — takes a `--_vtc-` prefix, so a
-consumer reading a computed style can tell internals from API. Those are the only two families
-defined outside `tokens.css`, and today nothing marks them as private.
-
-Settle the naming inconsistencies while the file is open, in `tokens.css` and `docs/styling.md`
-together: `--vtc-shadow-row-hover` against `--vtc-hover-border-width` (one state, two names),
-`--vtc-bg-hover` against `--vtc-hover-border-color` (role first in one, second in the other), and
-`--vtc-cursor-idle-border-color` (the only token with a state segment mid-name).
-
-**Done when:** `scales.css` exists and is imported first, `tokens.css` holds no dimension literal
-that has a scale entry, the machinery carries `--_vtc-`, and `pnpm test`, `pnpm typecheck` and
-`pnpm build && pnpm size` are green with the measured CSS figure re-read.
-
 ### `[ ]` T7 — Move every partition onto the scales, and fix four theming defects
 
 Replace the literals in `toolbar.css`, `grid.css`, `header.css`, `filters.css`, `groups.css`,
-`menus.css`, `pagination.css`, `editing.css` and `controls.css` with the T6 tokens: 11 sites of
+`menus.css`, `pagination.css`, `editing.css` and `controls.css` with the scale tokens: 11 sites of
 `border-radius: 4px`, 21 literal `1px` border widths, 7 identical focus outlines, 12 font-size
 literals, ~30 gap and padding literals, 11 z-index numbers across five files, and 4 verbatim copies
 of the popover shadow.
@@ -96,7 +72,7 @@ Four defects found while inventorying, all of them theming-contract breaks rathe
 2. The idle-cursor rule reassigns the public `--vtc-cursor-border-color` at cell level, so a consumer
    who sets it on `.vt-datatable` silently loses the idle state. Resolve idle against active in a
    private slot instead, and leave both public tokens settable.
-3. `--vtc-bg-danger` has no consumer at all; `--vtc-accent-contrast` has no dark-block value; and
+3. `--vtc-danger-bg` has no consumer at all; `--vtc-accent-contrast` has no dark-block value; and
    `--vtc-outer-border-width` has no `-color` partner although `docs/styling.md` lists it beside the
    ones that do. Wire the first or delete it, and pair the other two.
 4. `CLAUDE.md` and `table.css` both say the pinned-cell z-index ladder depends on `@import` order.

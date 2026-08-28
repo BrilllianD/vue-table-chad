@@ -68,7 +68,7 @@
   cursor: pointer;
 }
 
-.vt-filter-tab[data-active] { background: var(--vtc-bg-header); color: var(--vtc-text); }
+.vt-filter-tab[data-active] { background: var(--vtc-header-bg); color: var(--vtc-text); }
 .vt-filter-clear { margin-left: auto; }
 
 /* -------------------------------------------------------------- value list */
@@ -99,7 +99,7 @@
   cursor: pointer;
 }
 
-.vt-valuelist-row:hover { background: var(--vtc-bg-hover); }
+.vt-valuelist-row:hover { background: var(--vtc-row-hover-bg); }
 .vt-valuelist-all { border-bottom: 1px solid var(--vtc-border); font-weight: 600; }
 .vt-valuelist-blank { border-top: 1px solid var(--vtc-border); font-style: italic; }
 
@@ -154,7 +154,7 @@
   align-items: center;
   gap: 5px;
   padding: 3px 4px 3px 8px;
-  background: var(--vtc-bg-header);
+  background: var(--vtc-header-bg);
   border: 1px solid var(--vtc-border);
   border-radius: 999px;
   font-size: 12px;

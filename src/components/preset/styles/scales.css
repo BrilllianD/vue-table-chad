@@ -1,0 +1,124 @@
+/*
+ * Tier 0 — the scales. Values with no opinion about where they are used.
+ *
+ * A slice of the preset theme. Imported by `../table.css` first, before the
+ * semantic tier in `tokens.css` reads from it — though only for readability:
+ * `var()` resolves at computed-value time, so a token may reference a scale
+ * declared after it as long as both land on the same element.
+ *
+ * The split is what makes retheming tractable. `tokens.css` answers "what is
+ * the header background"; this file answers "what sizes does this design use
+ * at all". Change a scale entry and every role built on it moves together —
+ * which is the whole reason to have a scale rather than forty leaf values.
+ *
+ * Every entry here was a literal repeated somewhere in the partitions. Nothing
+ * was invented to round out a ramp: a scale nobody reaches for is a scale that
+ * drifts, so the ramps are deliberately gappy where the design is.
+ */
+
+.vt-datatable,
+.vt-portal {
+  /*
+    Spacing. The preset's paddings and gaps land on eight values; the ramp is
+    those eight and no more, numbered rather than named because there is no
+    honest name for the difference between 6px and 8px here.
+  */
+  --vtc-space-1: 2px;
+  --vtc-space-2: 4px;
+  --vtc-space-3: 6px;
+  --vtc-space-4: 8px;
+  --vtc-space-5: 10px;
+  --vtc-space-6: 12px;
+  --vtc-space-7: 16px;
+  --vtc-space-8: 24px;
+
+  /*
+    Corners. `md` is the table's own radius — the scroll frame, the popovers,
+    the toolbar controls; `sm` is everything nested inside one of those, which
+    is most of the preset. `pill` and `circle` are shapes rather than sizes and
+    are here so a chip and a badge cannot disagree about what round means.
+  */
+  --vtc-radius-xs: 2px;
+  --vtc-radius-sm: 4px;
+  --vtc-radius-md: 6px;
+  --vtc-radius-lg: 8px;
+  --vtc-radius-pill: 999px;
+  --vtc-radius-circle: 50%;
+
+  /*
+    Type. `md` is the body size and matches the size baked into `--vtc-font`;
+    the four below it are the preset's secondary text — counts, hints, sort
+    indices, the header's uppercased band labels. Named `font-size` rather than
+    `text` on purpose: `--vtc-text` is the foreground colour, and a scale that
+    read `--vtc-text-sm` next to it would be a trap.
+  */
+  --vtc-font-size-3xs: 9px;
+  --vtc-font-size-2xs: 10px;
+  --vtc-font-size-xs: 11px;
+  --vtc-font-size-sm: 12px;
+  --vtc-font-size-md: 14px;
+
+  --vtc-weight-normal: 400;
+  --vtc-weight-bold: 600;
+
+  /*
+    Line weights. Two, because the preset draws exactly two: a hairline for
+    rules and borders, and a doubled one for anything that has to be seen
+    against them — a focus ring, the row-state stripe, the spinner's track.
+  */
+  --vtc-stroke-1: 1px;
+  --vtc-stroke-2: 2px;
+
+  /*
+    The z-index ladder, in one place for the first time. It used to be eleven
+    hand-tuned integers spread across five partitions, each tuned against the
+    others by reading them — so the ladder was real but nothing named it, and
+    a new layer had to be inserted by inspection.
+
+    The first five are the in-table stack and their order is load-bearing: a
+    pinned cell rides over normal ones, a sticky header rides over pinned body
+    cells, a header that is both rides over either, the reorder drop caret has
+    to clear all of them, and the loading scrim covers the lot. The last two
+    leave the table's stacking context behind — a popover teleported to
+    `<body>`, and the drag ghost that must stay above even that.
+  */
+  --vtc-z-pinned: 1;
+  --vtc-z-sticky: 2;
+  --vtc-z-sticky-pinned: 3;
+  --vtc-z-drop: 4;
+  --vtc-z-overlay: 5;
+  --vtc-z-popover: 20;
+  --vtc-z-ghost: 60;
+
+  /*
+    Elevation. Both are drop shadows on something that has left the flow, and
+    both are neutral black rather than a mix of `--vtc-text`: a shadow tinted
+    with the foreground colour inverts along with it in dark mode and stops
+    reading as a shadow at all.
+  */
+  --vtc-elevation-popover: 0 8px 24px rgb(0 0 0 / 0.14);
+  --vtc-elevation-ghost: 0 4px 14px rgb(0 0 0 / 0.18);
+
+  /*
+    Motion. `fast` is the only transition the preset runs on a state change;
+    the two spin durations belong to the loading spinner, and the reduced one
+    is what `prefers-reduced-motion` slows it to rather than stopping it — a
+    stopped spinner reads as a hung request.
+  */
+  --vtc-duration-fast: 120ms;
+  --vtc-duration-spin: 0.7s;
+  --vtc-duration-spin-reduced: 2.4s;
+
+  /* Dimming, by what is being dimmed. */
+  --vtc-opacity-muted: 0.35;
+  --vtc-opacity-disabled: 0.4;
+  --vtc-opacity-dragging: 0.45;
+  --vtc-opacity-busy: 0.6;
+
+  /*
+    The focus ring's width. Its colour is a role and lives in `tokens.css`,
+    because which colour reads as "focused" is a palette decision and this
+    file holds no palette.
+  */
+  --vtc-focus-width: var(--vtc-stroke-2);
+}

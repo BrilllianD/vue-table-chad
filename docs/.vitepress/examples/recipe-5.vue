@@ -14,15 +14,15 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
     style="
       --vtc-accent: #7c3aed;
       --vtc-bg: #ffffff;
-      --vtc-bg-header: #faf5ff;
+      --vtc-header-bg: #faf5ff;
       --vtc-text: #1f2937;
       --vtc-text-muted: #6b7280;
       --vtc-border: #e5e7eb;
       --vtc-row-height: 40px;
       --vtc-radius: 8px;
       /* Row striping is two variables; equal values mean no stripes. */
-      --vtc-bg-row-odd: #ffffff;
-      --vtc-bg-row-even: #fafafa;
+      --vtc-row-odd-bg: #ffffff;
+      --vtc-row-even-bg: #fafafa;
     "
   >
     <DataTable :columns="employeeColumns" :source="source" :state="state" />

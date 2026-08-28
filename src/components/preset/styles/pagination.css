@@ -29,7 +29,7 @@
   cursor: pointer;
 }
 
-.vt-page-btn:hover:not(:disabled) { background: var(--vtc-bg-hover); }
+.vt-page-btn:hover:not(:disabled) { background: var(--vtc-row-hover-bg); }
 .vt-page-btn:disabled { opacity: 0.4; cursor: default; }
 
 .vt-page-btn[data-current] {

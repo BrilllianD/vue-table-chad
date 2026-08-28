@@ -77,7 +77,7 @@ saying why rather than by being left out.
   behind a `:key` instead of pretending they are reactive. Same for selection `mode` in the
   Selection view.
 - **A palette is a set.** The Theming view owns every colour variable at once and seeds them from
-  `prefers-color-scheme`. Overriding only `--vtc-bg-header` while `--vtc-text` stays on its
+  `prefers-color-scheme`. Overriding only `--vtc-header-bg` while `--vtc-text` stays on its
   dark-mode value gives you white-on-white — the exact bug this view would otherwise ship.
 - **The Performance view refuses to measure a hidden tab.** A background tab never fires
   `requestAnimationFrame` and clamps `setTimeout` to a second, so a number taken there would be the

@@ -13,8 +13,16 @@
  * background stack documented in `docs/styling.md`, and the `[data-cursor]`
  * overrides that have to land after the striping they tint. Adding a partition
  * means deciding where in this list it goes.
+ *
+ * The first two are the theme itself and the rest read from them: `scales.css`
+ * is the values the design uses, `tokens.css` the roles built out of those.
+ * Their position is readability rather than cascade — `var()` resolves at
+ * computed-value time, so a partition may reference a token declared after it —
+ * but a reader who opens this list should meet the palette before the rules
+ * that spend it.
  */
 
+@import './styles/scales.css';
 @import './styles/tokens.css';
 @import './styles/toolbar.css';
 @import './styles/grid.css';
