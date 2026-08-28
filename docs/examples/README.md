@@ -2,7 +2,7 @@
 
 ## [`AddressesTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/AddressesTable.vue) — porting an existing Options API table
 
-A real server-paginated table with the app's own markup, moved onto `vue-table`. It keeps the
+A real server-paginated table with the app's own markup, moved onto `vue-table-chad`. It keeps the
 `<table>` and every CSS class the app's stylesheet expects, and takes everything behind them from
 the library — state, data, selection, sort headers, column visibility and paging.
 
@@ -54,7 +54,7 @@ makes that impossible and removes the `@change="refresh"` handler entirely.
 
 2. **`isSelected` takes the row, not its id.** The library derives the id itself, which is what
    lets a selection survive a re-sort or a page change. Passing an id throws
-   `[vue-table] Row has no 'id'. Pass getRowId to useRowSelection.` rather than quietly returning
+   `[vue-table-chad] Row has no 'id'. Pass getRowId to useRowSelection.` rather than quietly returning
    `false`, so every call site you miss announces itself. If your rows are not keyed by `id`, pass
    `getRowId` to `useRowSelection` — and if a mixin of yours already calls `isSelected(id)`, give
    it a shim rather than changing the library's contract.

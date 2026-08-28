@@ -12,9 +12,10 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
   <DataTable :columns="employeeColumns" :source="source" :state="state" selectable="multiple">
     <template #toolbar="{ selection }">
       <strong>{{ selection?.count.value ?? 0 }} selected</strong>
-      — click a row, then shift-click another to select the range in between.
-      The header checkbox goes indeterminate as soon as some, but not all, of
-      the page is selected.
+      — tick a row's checkbox, then shift-click another to take the range in
+      between. Clicking the row itself does not select; that gesture is left to
+      the caller. The header checkbox goes indeterminate as soon as some, but
+      not all, of the page is selected.
     </template>
   </DataTable>
 </template>

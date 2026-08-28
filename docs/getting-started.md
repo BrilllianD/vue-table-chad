@@ -1,4 +1,4 @@
-# Using vue-table in another project
+# Using vue-table-chad in another project
 
 <script setup>
 import Example from './.vitepress/examples/getting-started.vue'
@@ -12,13 +12,13 @@ Installing it, the row type it insists on, and the three ways to build a table w
 snippet on this page was type-checked against the built package rather than against `src/` — the
 difference matters, because a consumer gets the generated `.d.ts`, not the source.
 
-> **Not using TypeScript?** [Using vue-table from plain JavaScript](getting-started-js.md) is the
+> **Not using TypeScript?** [Using vue-table-chad from plain JavaScript](getting-started-js.md) is the
 > same ground without it — and the constraint in §"The row type constraint" below, the one real
 > friction point here, does not exist there at all.
 
 ## Install
 
-The package is not on npm yet (see [`TODO.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TODO.md)), and `dist/` is gitignored, so a git
+The package is not on npm yet (see [`TASKS.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TASKS.md)), and `dist/` is gitignored, so a git
 dependency would install an empty package. Until the first release, build a tarball and install
 that:
 
@@ -407,7 +407,7 @@ you page 3.
 Tree rows, expandable detail rows, pinned rows, pivoting, and CSV or clipboard
 export. Aggregation covers `sum`/`avg`/`min`/`max` with no custom reducer. There is no i18n: around
 35 English strings are hardcoded across the components, `aria-label`s included, and only
-`emptyMessage`, `loadingMessage` and `footerLabel` are props. [`TODO.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TODO.md) has the
+`emptyMessage`, `loadingMessage` and `footerLabel` are props. [`TASKS.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TASKS.md) has the
 reasoning for each.
 
 Row virtualization *is* included — see [Virtual rows](virtualization.md). Note what it means for a

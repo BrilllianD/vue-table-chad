@@ -26,6 +26,9 @@ importers:
       happy-dom:
         specifier: ^20.0.0
         version: 20.11.2
+      shiki:
+        specifier: 2.5.0
+        version: 2.5.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3

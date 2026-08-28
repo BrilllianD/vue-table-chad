@@ -49,7 +49,7 @@ export interface UseRowSelection<TRow> {
 export function defaultRowId<TRow>(row: TRow): RowId {
   const id = (row as { id?: RowId }).id
   if (id === undefined) {
-    throw new Error('[vue-table] Row has no `id`. Pass `getRowId` to useRowSelection.')
+    throw new Error('[vue-table-chad] Row has no `id`. Pass `getRowId` to useRowSelection.')
   }
   return id
 }

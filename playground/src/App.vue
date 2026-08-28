@@ -18,7 +18,7 @@ const active = ref<(typeof tabs)[number]['id']>('local')
 <template>
   <main>
     <header>
-      <h1>vue-table</h1>
+      <h1>vue-table-chad</h1>
       <p class="hint">Composable table primitives — sorting, Excel filters, paging, selection.</p>
     </header>
 

@@ -79,5 +79,5 @@ export function devWarn(message: string): void {
   if (!devChecksEnabled()) return
   if (seen.has(message)) return
   seen.add(message)
-  console.warn(`[vue-table] ${message}`)
+  console.warn(`[vue-table-chad] ${message}`)
 }

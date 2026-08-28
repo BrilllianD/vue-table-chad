@@ -35,8 +35,8 @@ import StateInspector from '../components/StateInspector.vue'
  * saving, and the table's, saved by the `storage-key` prop alone. Both keep
  * the default field set — visibility, order, widths and pins.
  */
-const PANEL_STORAGE = { key: 'vue-table-demo:panel-layout' }
-const TABLE_STORAGE = { key: 'vue-table-demo:table-layout' }
+const PANEL_STORAGE = { key: 'vue-table-chad-demo:panel-layout' }
+const TABLE_STORAGE = { key: 'vue-table-chad-demo:table-layout' }
 
 const rows = shallowRef(employees.slice(0, 300))
 // 10 so the preset pager's size dropdown has a matching option to show.

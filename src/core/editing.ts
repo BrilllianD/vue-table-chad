@@ -152,7 +152,7 @@ export function applyCellValue<TRow>(row: TRow, column: ColumnDef<TRow>, value: 
   if (column.setValue) return column.setValue(row, value)
   if (column.accessor) {
     throw new Error(
-      `[vue-table] Column "${column.id}" reads through an accessor, so the table cannot work out ` +
+      `[vue-table-chad] Column "${column.id}" reads through an accessor, so the table cannot work out ` +
         'where to write an edit back. Give the column a `setValue`.',
     )
   }
@@ -163,7 +163,7 @@ export function applyCellValue<TRow>(row: TRow, column: ColumnDef<TRow>, value: 
 function columnFor<TRow>(columns: ColumnDef<TRow>[], columnId: string): ColumnDef<TRow> {
   const column = columns.find((entry) => entry.id === columnId)
   if (!column) {
-    throw new Error(`[vue-table] No column "${columnId}" to write an edited value into.`)
+    throw new Error(`[vue-table-chad] No column "${columnId}" to write an edited value into.`)
   }
   return column
 }

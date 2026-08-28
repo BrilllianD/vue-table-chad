@@ -75,7 +75,7 @@ const filteredCount = computed(() => source.total.value)
  * One prop, and the columns this table shows — and the order they are in —
  * survive a reload. Hide a column, drag a header, then refresh the page.
  */
-const LAYOUT_KEY = 'vue-table-demo:overview'
+const LAYOUT_KEY = 'vue-table-chad-demo:overview'
 
 /** Remounts the table so it starts from the (now empty) saved layout. */
 const tableKey = ref(0)

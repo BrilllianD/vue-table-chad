@@ -80,7 +80,7 @@ const themeShim = `
  * mojibake. A declaration this early is caught by the parser's pre-scan.
  */
 const html = `<meta charset="utf-8">
-<title>vue-table</title>
+<title>vue-table-chad</title>
 <style>${themeShim}${styles}</style>
 <div id="app"></div>
 <script type="module">${script}<\/script>

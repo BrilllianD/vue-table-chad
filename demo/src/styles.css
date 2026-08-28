@@ -124,3 +124,52 @@ code { font-size: 0.92em; }
   background: rgb(127 127 127 / 0.16);
   font-size: 11.5px;
 }
+
+/*
+ * Shiki output, from the `?highlight` imports in `examples.ts`.
+ *
+ * Global rather than scoped inside `CodeExample.vue`: the markup arrives
+ * through `v-html`, and scoped styles never reach it — Vue stamps the
+ * data attribute at compile time and there is nothing to stamp.
+ */
+.shiki {
+  margin: 0;
+  padding: 12px 0;
+  /* Long lines scroll inside the block rather than widening the page. */
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  /* Both themes ship a background; the panel keeps the demo's page instead. */
+  background: transparent;
+}
+
+/*
+ * One panel, both colour schemes. Dual themes make Shiki emit a pair of custom
+ * properties per token instead of two copies of the markup, so the swap is
+ * this rule and nothing else.
+ */
+.shiki,
+.shiki span { color: var(--shiki-light); }
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span { color: var(--shiki-dark); }
+}
+
+/*
+ * Line numbers as a CSS counter: the IDE cue that costs no JavaScript and no
+ * extra markup. `.line` is Shiki's own per-line wrapper.
+ */
+.shiki code { counter-reset: line; display: block; }
+.shiki .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 2.5em;
+  margin-right: 12px;
+  padding-right: 8px;
+  text-align: right;
+  opacity: 0.35;
+  /* The gutter must not be dragged into a copy of the code. */
+  user-select: none;
+}

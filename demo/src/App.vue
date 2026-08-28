@@ -19,6 +19,8 @@ import PerfView from './views/PerfView.vue'
 import ApiView from './views/ApiView.vue'
 import RecipesView from './views/RecipesView.vue'
 import { docPages } from '@docs'
+import CodeExample from './components/CodeExample.vue'
+import { examplesByTab, examplesFor } from './examples'
 
 interface Tab {
   id: string
@@ -107,6 +109,16 @@ onUnmounted(() => window.removeEventListener('hashchange', onHashChange))
 
 const current = computed(() => tabs.find((tab) => tab.id === active.value) ?? tabs[0]!)
 
+/**
+ * The source panel under the open view.
+ *
+ * `recipes` renders its own six, interleaved with the prose that explains them,
+ * so it is skipped here rather than shown twice. A tab with no example at all
+ * shows the sentence saying why instead of nothing — see `examples.ts`.
+ */
+const examples = computed(() => (active.value === 'recipes' ? [] : examplesFor(active.value)))
+const noExampleReason = computed(() => examplesByTab[active.value]?.why)
+
 const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
   { id: 'preset', label: 'preset', note: 'DataTable + stylesheet' },
   { id: 'primitives', label: 'primitives', note: 'headless components' },
@@ -117,7 +129,7 @@ const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
 <template>
   <main>
     <header class="masthead">
-      <h1>vue-table</h1>
+      <h1>vue-table-chad</h1>
       <p class="hint">
         Every feature the library has, one view at a time. Each view names the exports it uses, so
         you can read the demo and the API surface at the same time.
@@ -146,6 +158,14 @@ const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
     <!-- Keyed so each view gets a clean state when you switch to it — several
          of them own module-level data and deliberately mutable layout. -->
     <component :is="current.component" :key="current.id" />
+
+    <CodeExample
+      v-for="example in examples"
+      :key="example.file"
+      :file="example.file"
+      :example="example.source"
+    />
+    <p v-if="noExampleReason" class="hint">{{ noExampleReason }}</p>
 
     <footer class="hint">
       Data is generated from a fixed seed, so every reload shows the same 10,000 rows.

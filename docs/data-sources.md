@@ -2,6 +2,7 @@
 
 <script setup>
 import Example from './.vitepress/examples/data-sources.vue'
+import InfiniteExample from './.vitepress/examples/infinite.vue'
 </script>
 
 <Demo :is="Example" />
@@ -83,6 +84,13 @@ else follows from it: a page **adds to** the list rather than replacing it.
 `end-threshold` is how early the window asks, in rows. `0` waits until the last row is rendered;
 raise it and the request goes out while there are still rows to scroll through, which is what hides
 the latency of a slow server.
+
+Scroll it. There is no pager, the counter climbs as pages arrive, and the scrollbar lengthens with
+the list you actually have:
+
+<Demo :is="InfiniteExample" />
+
+<<< @/.vitepress/examples/infinite.vue
 
 ---
 
