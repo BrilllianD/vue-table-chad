@@ -13,8 +13,8 @@
  * So the controls own every colour variable at once, seeded from whichever
  * scheme the browser is actually in.
  */
-import { computed, reactive, ref } from 'vue'
-import { DataTable, useLocalDataSource, useTableState } from '@brillliand/vue-table-chad'
+import { computed, reactive, ref, watch } from 'vue'
+import { DataTable, useLocalDataSource, useTableState, type TableTheme } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
@@ -68,7 +68,7 @@ const LIGHT: Palette = {
 }
 
 const DARK: Palette = {
-  accent: '#5b93f7', accentContrast: '#ffffff',
+  accent: '#5b93f7', accentContrast: '#0d1117',
   bg: '#16191d', bgHeader: '#1e2228',
   bgSelected: '#1d2c47', selectedAlpha: 18,
   hoverDelta: 8, cellHoverDelta: 0,
@@ -175,6 +175,25 @@ const prefersDark =
 
 /** Start on whichever palette the page is already showing, so nothing jumps. */
 const palette = reactive<Palette>({ ...(prefersDark ? DARK : LIGHT) })
+
+/**
+ * The `theme` prop, which is the other half of this view: everything below
+ * overrides variables, and this one picks which palette those variables start
+ * from. `'system'` emits no attribute at all and leaves the media query in
+ * charge, which is what the table did before the prop existed.
+ *
+ * The controls follow it, because in this view they have to. Every colour
+ * below is written back as an inline custom property on `.vt-datatable`, and
+ * an inline value beats the stylesheet — so a theme switch on its own would
+ * change the attribute, change nothing visible on the table, and change the
+ * teleported filter panel, which is not overridden. Moving the controls with
+ * it keeps the two halves telling the same story.
+ */
+const theme = ref<TableTheme>('system')
+
+watch(theme, (next) => {
+  apply(next === 'system' ? (prefersDark ? DARK : LIGHT) : next === 'dark' ? DARK : LIGHT)
+})
 
 function apply(next: Palette): void {
   Object.assign(palette, next)
@@ -379,6 +398,7 @@ const hooks = [
            element, which is also all a consumer ever has to do."
     :api="[
       '--vtc-* custom properties',
+      'DataTable.theme',
       'data-* state attributes',
       'ColumnDef.background',
       'ColumnDef.headerBackground',
@@ -390,9 +410,20 @@ const hooks = [
         <button v-for="preset in presets" :key="preset.label" type="button" @click="apply(preset.palette)">
           {{ preset.label }}
         </button>
+        <label class="theme-picker">
+          theme
+          <select v-model="theme">
+            <option value="system">system</option>
+            <option value="light">light</option>
+            <option value="dark">dark</option>
+          </select>
+        </label>
         <span class="hint">
           This browser prefers <strong>{{ prefersDark ? 'dark' : 'light' }}</strong>, so the
           controls started on the preset's {{ prefersDark ? 'dark' : 'light' }} palette.
+          <code>theme</code> overrules it: the table gets <code>data-theme</code>, the controls
+          move to the matching palette, and the teleported filter panel follows the table rather
+          than the browser.
         </span>
       </div>
     </template>
@@ -509,7 +540,7 @@ const hooks = [
       :data-hover-override="hoverOverride || undefined"
       :data-cell-hover-override="cellHoverOverride || undefined"
     >
-      <DataTable :columns="themedColumns" :source="source" :state="state" selectable />
+      <DataTable :columns="themedColumns" :source="source" :state="state" :theme="theme" selectable />
     </div>
 
     <p class="hint">
@@ -579,6 +610,8 @@ const hooks = [
   font-size: 12.5px;
 }
 .theme-controls label { display: flex; align-items: center; gap: 6px; }
+
+.theme-picker { display: inline-flex; align-items: center; gap: 6px; }
 
 /*
  * The variables are declared on `.vt-datatable` itself, so an ancestor cannot

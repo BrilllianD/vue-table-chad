@@ -206,6 +206,7 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `columnRules` | `boolean` | unset | Vertical rules between every pair of columns. Unset emits nothing, so a stylesheet setting `--vtc-body-border-vertical-width` still governs. |
 | `bandRules` | `boolean` | unset | The rule where a band's columns end. Needs `columnGroups`; unset emits nothing and `--vtc-band-border-width` governs. |
 | `stickyHeader` | `boolean` | `true` | |
+| `theme` | `'light' \| 'dark' \| 'system'` | `'system'` | Which palette to paint. `'system'` emits nothing and follows `prefers-color-scheme`; the other two write `data-theme`, on the teleported popover and drag ghost as well. See [Styling](styling.md#picking-a-palette). |
 | `emptyMessage` / `loadingMessage` | `string` | see below | `'No rows match the current filters.'` / `'Loading…'` |
 | `editing` | `UseRowEditing<TRow>` | — | A session from `useRowEditing`. Absent means read-only. |
 | `cellCursor` | `boolean` | `false` | Off means off: no `role="grid"`, no `tabindex`, no cursor attributes. |

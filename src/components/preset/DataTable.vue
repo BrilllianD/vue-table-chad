@@ -33,6 +33,7 @@ import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
+import { provideTableTheme, type TableTheme } from '../../core/context'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
 import ColumnDragGhost from '../primitives/ColumnDragGhost.vue'
@@ -168,6 +169,15 @@ const props = withDefaults(
     showGroupMenu?: boolean
     showPagination?: boolean
     stickyHeader?: boolean
+    /**
+     * Which palette to paint, instead of following `prefers-color-scheme`.
+     *
+     * `'system'`, the default, emits no attribute and leaves the media query in
+     * charge. `'light'` and `'dark'` write `data-theme` on the table — and on
+     * the filter popover and the drag ghost, which teleport to `<body>` and
+     * would otherwise be left behind under the OS setting.
+     */
+    theme?: TableTheme
     emptyMessage?: string
     /** Text shown beside the spinner while the source is fetching. */
     loadingMessage?: string
@@ -228,6 +238,7 @@ const props = withDefaults(
     showGroupMenu: true,
     showPagination: true,
     stickyHeader: true,
+    theme: 'system',
     emptyMessage: 'No rows match the current filters.',
     loadingMessage: 'Loading…',
   },
@@ -258,6 +269,22 @@ const emit = defineEmits<{
  * `selectable="single"` into multi-select.
  */
 const selectable = computed(() => props.selectable !== false)
+
+/**
+ * `'system'` becomes no attribute at all rather than `data-theme="system"`.
+ * The dark block is written as `:not([data-theme='light'])`, so a third value
+ * in the attribute would be one more thing every future selector has to
+ * remember to exclude.
+ */
+const themeAttribute = computed(() => (props.theme === 'system' ? undefined : props.theme))
+
+/*
+  Published for the two components that teleport a `.vt-portal` wrapper to
+  `<body>`. Custom properties inherit through the DOM and a teleported panel is
+  no longer under the table, so without this a forced theme would stop at the
+  table's edge and the filter popover would open in the OS's colours.
+*/
+provideTableTheme(computed(() => props.theme))
 
 /**
  * The two rule widths, as inline custom properties on `.vt-datatable`.
@@ -582,6 +609,7 @@ function onActivate(
     <div
       class="vt-datatable"
       :style="ruleStyle"
+      :data-theme="themeAttribute"
       :data-loading="loading || undefined"
       :aria-busy="loading || undefined"
     >

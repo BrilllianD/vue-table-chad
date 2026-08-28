@@ -193,9 +193,28 @@
   gap: var(--vtc-space-4);
 }
 
+/*
+  Dark, reached two ways, which cannot share one block.
+
+  The OS asking is the media query, and `[data-theme='light']` opts back out of
+  it. That is a `:not()` rather than a third block re-stating the light values,
+  because the palette above already *is* light — excluding these elements from
+  the dark block is all it takes to leave them there.
+
+  The table asking outright has to work with the OS set to light, so it cannot
+  live inside the media query at all. It comes after, so a table carrying
+  `data-theme="dark"` under a dark OS resolves to the same palette either way.
+
+  The attribute is read on the element itself, not on an ancestor. An ancestor
+  would be the more familiar app-level switch, but CSS cannot express "and no
+  ancestor said light", so supporting it means re-stating both palettes under a
+  descendant selector. `<DataTable theme="dark">` writes the attribute on the
+  table *and* on the two wrappers that teleport to `<body>`, which is the case
+  the ancestor form would have been for.
+*/
 @media (prefers-color-scheme: dark) {
-  .vt-datatable,
-  .vt-portal {
+  .vt-datatable:not([data-theme='light']),
+  .vt-portal:not([data-theme='light']) {
     --vtc-border: #333a44;
     --vtc-border-strong: #454d59;
     --vtc-bg: #16191d;
@@ -218,4 +237,18 @@
     /* Lightened: the light theme's red does not carry against a dark row. */
     --vtc-danger: #f97066;
   }
+}
+
+/* The same values, for a table that asked rather than the OS. See above. */
+.vt-datatable[data-theme='dark'],
+.vt-portal[data-theme='dark'] {
+  --vtc-border: #333a44;
+  --vtc-border-strong: #454d59;
+  --vtc-bg: #16191d;
+  --vtc-header-bg: #1e2228;
+  --vtc-text: #e6e8eb;
+  --vtc-text-muted: #9aa4b0;
+  --vtc-accent: #5b93f7;
+  --vtc-accent-contrast: #0d1117;
+  --vtc-danger: #f97066;
 }

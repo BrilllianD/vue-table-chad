@@ -54,24 +54,6 @@ the rule for this file with a one-line why.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
-### `[ ]` T8 — `data-theme`, so an app can pick a theme instead of asking the OS
-
-Dark mode is `prefers-color-scheme` only. Split the palettes in `tokens.css` into three blocks: light
-on `.vt-datatable, .vt-portal`; dark under the media query, guarded with `:not([data-theme='light'])`;
-dark again under `[data-theme='dark']`, so an explicit choice wins in both directions. The assignment
-list is duplicated on purpose — CSS has no way to share it, and ten lines gzip to nothing.
-
-An ancestor `[data-theme]` has to work as well as the attribute on the table itself: an app that
-stamps `<html data-theme="dark">` covers the teleported `.vt-portal` for free, since the portal is a
-body descendant rather than a table one. A `theme` prop on `DataTable` writes the attribute on the
-root, and reaches `ColumnFilterPopover` and `ColumnDragGhost` through the **optional**
-`useTableContext()` — `requireTableContext()` would make a fourth primitive depend on a root, which
-`CLAUDE.md` treats as a decision of its own.
-
-**Done when:** a spec covers attribute against media query in both directions plus the ancestor case,
-the demo can force a theme against the OS setting, and `docs/styling.md` no longer says dark mode is
-only the media query.
-
 ### `[ ]` T9 — A typed theme API
 
 Themes are authored as raw CSS strings today, which is why `demo/src/views/ThemingView.vue` carries

@@ -23,7 +23,8 @@ import '@brillliand/vue-table-chad/style.css'
 ```
 
 Retheme by overriding the CSS variables on `.vt-datatable` (`--vtc-accent`, `--vtc-border`,
-`--vtc-header-bg`, `--vtc-row-height`, …). Dark mode follows `prefers-color-scheme`.
+`--vtc-header-bg`, `--vtc-row-height`, …). Dark mode follows `prefers-color-scheme` unless you
+[ask for a palette](#picking-a-palette).
 
 > The stylesheet is intentionally not imported from the package barrel: `sideEffects` marks JS
 > modules side-effect-free, so a bare CSS import there gets tree-shaken away and consumers silently
@@ -56,6 +57,33 @@ one state sort next to each other. Every fill ends in `-bg`; every outline is a 
 A **leading underscore** — `--_vtc-shadow-cursor`, `--_vtc-row-hover-clamped` — marks a property the
 stylesheet computes for itself. Those are machinery, not API: setting one from outside is not
 supported, and the set of them will change without notice.
+
+## Picking a palette
+
+By default the table follows `prefers-color-scheme`, which is right until the app has a theme
+switch of its own and the table is the one thing on the page still asking the OS. The `theme` prop
+overrules it:
+
+```vue
+<DataTable theme="dark" />     <!-- dark, whatever the OS says -->
+<DataTable theme="light" />
+<DataTable theme="system" />   <!-- the default: no attribute, media query decides -->
+```
+
+It writes `data-theme` on `.vt-datatable`, so a stylesheet can key off the same attribute:
+
+```css
+.vt-datatable[data-theme='dark'] { --vtc-accent: #7aa2ff; }
+```
+
+**It also reaches the filter popover and the column drag ghost**, which are teleported to `<body>`
+and are no longer descendants of the table once they are open. Custom properties inherit through
+the DOM, so without that they would render in the OS's colours next to a table that is not — which
+is the same reason `.vt-portal` re-declares the whole palette in the first place.
+
+Set the attribute on the table itself; an ancestor is not read. Expressing "dark unless something
+above said light" needs a descendant selector carrying both palettes, which is more CSS than the
+prop costs — and the prop is what covers the teleported case anyway.
 
 ## Rules and row striping
 

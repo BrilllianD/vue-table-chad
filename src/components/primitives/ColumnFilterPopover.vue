@@ -7,7 +7,7 @@
  * wasted work, and pointless for a server source.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { useTableContext } from '../../core/context'
+import { useTableContext, useTableTheme } from '../../core/context'
 import type {
   ColumnDataType,
   ColumnFilter,
@@ -42,6 +42,17 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [filter: ColumnFilter | undefined] }>()
 
 const context = useTableContext()
+
+/*
+  Teleported, the panel is no longer under the table, so a forced theme has to
+  be stamped on the wrapper for the same reason `.vt-portal` re-declares the
+  palette at all. Inline (`teleport: false`) it inherits normally and the
+  attribute would be noise.
+*/
+const theme = useTableTheme()
+const themeAttribute = computed(() =>
+  !theme || theme.value === 'system' ? undefined : theme.value,
+)
 
 const open = ref(false)
 const tab = ref<'values' | 'conditions'>('values')
@@ -231,6 +242,7 @@ function onFocusOut(event: FocusEvent): void {
         ref="panel"
         class="vt-filter-panel"
         :class="{ 'vt-portal': teleported }"
+        :data-theme="teleported ? themeAttribute : undefined"
         :data-inline="!teleported || undefined"
         :style="panelStyle"
         role="dialog"

@@ -125,6 +125,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'requireTableContext', layer: 'core', kind: 'function', summary: 'The context, or a thrown error, for the primitives that genuinely need one.' },
   { name: 'TableContextKey', layer: 'core', kind: 'constant', summary: 'The injection key, exported so you can provide a context by hand.' },
   { name: 'TableContext', layer: 'core', kind: 'type', summary: 'Everything a primitive can reach: state, columns, source, selection, grouping, cell readers.' },
+  { name: 'TableTheme', layer: 'core', kind: 'type', summary: 'A palette a table asks for outright, rather than following the OS.' },
 
   { name: 'editorFor', layer: 'core', kind: 'function', summary: 'Which control edits this column: its own `editor`, or one derived from `type`.' },
   { name: 'isColumnEditable', layer: 'core', kind: 'function', summary: 'Whether this column accepts an edit to this row.' },

@@ -74,6 +74,42 @@ export function useTableContext<TRow = Record<string, unknown>>(): TableContext<
 }
 
 /**
+ * A palette a table asks for outright, rather than following the OS.
+ *
+ * `'system'` is the absence of a choice: it emits no `data-theme` at all, so
+ * `prefers-color-scheme` decides, which is what every table did before this
+ * existed.
+ */
+export type TableTheme = 'light' | 'dark' | 'system'
+
+/**
+ * The theme, published on its own key rather than as a field on `TableContext`.
+ *
+ * A hand-built context has to satisfy that interface in full, and which palette
+ * to paint is not something a caller assembling a table out of primitives
+ * should have to answer. The consumers are the two components that teleport a
+ * `.vt-portal` wrapper to `<body>`: once there they are no longer descendants
+ * of the table, custom properties stop inheriting, and a forced theme would
+ * stop at the table's edge.
+ */
+export const TableThemeKey: InjectionKey<Readonly<Ref<TableTheme>>> = Symbol(
+  'vue-table-chad:theme',
+)
+
+/** Publishes the theme, so teleported wrappers beneath can stamp it on themselves. */
+export function provideTableTheme(theme: Readonly<Ref<TableTheme>>): void {
+  provide(TableThemeKey, theme)
+}
+
+/**
+ * The theme a `<DataTable>` above asked for, or `undefined` with no table above
+ * — in which case a wrapper emits nothing and the media query decides.
+ */
+export function useTableTheme(): Readonly<Ref<TableTheme>> | undefined {
+  return inject(TableThemeKey, undefined)
+}
+
+/**
  * The context, or a thrown error, for the primitives that genuinely need one.
  */
 export function requireTableContext<TRow = Record<string, unknown>>(

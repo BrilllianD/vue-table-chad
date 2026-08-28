@@ -85,7 +85,7 @@ export {
   requireTableContext,
   TableContextKey,
 } from './core/context'
-export type { TableContext } from './core/context'
+export type { TableContext, TableTheme } from './core/context'
 
 /* --------------------------------------------------------------- filters */
 
