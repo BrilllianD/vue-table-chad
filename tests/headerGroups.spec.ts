@@ -164,11 +164,11 @@ describe('TableHeaderGroupCell as a primitive', () => {
 
     // Custom properties rather than `border-color` and `border-width` directly:
     // the stylesheet keeps ownership of whether the rule is drawn at all, so a
-    // zeroed `--vt-band-border-width` on the table still wins over a band that
+    // zeroed `--vtc-band-border-width` on the table still wins over a band that
     // named a colour.
     const th = wrapper.find('th')
-    expect(th.attributes('style')).toContain('--vt-band-border-color: rebeccapurple')
-    expect(th.attributes('style')).toContain('--vt-band-border-width: 3px')
+    expect(th.attributes('style')).toContain('--vtc-band-border-color: rebeccapurple')
+    expect(th.attributes('style')).toContain('--vtc-band-border-width: 3px')
     expect(th.classes()).toContain('accented')
     wrapper.unmount()
   })
@@ -186,7 +186,7 @@ describe('TableHeaderGroupCell as a primitive', () => {
     expect(style).toContain('left: 40px')
     // Without this the second header row would stick at `top: 0`, on top of
     // the first.
-    expect(style).toContain('--vt-header-row: 1')
+    expect(style).toContain('--vtc-header-row: 1')
     expect(wrapper.find('th').attributes('data-pinned')).toBe('left')
     wrapper.unmount()
   })
@@ -215,7 +215,7 @@ describe('TableHeaderCell spanning header rows', () => {
       props: { column: resolved('salary'), rowspan: 1, depth: 2 },
     })
 
-    expect(wrapper.find('th').attributes('style')).toContain('--vt-header-row: 2')
+    expect(wrapper.find('th').attributes('style')).toContain('--vtc-header-row: 2')
     wrapper.unmount()
   })
 })
@@ -465,13 +465,13 @@ describe('DataTable with header bands', () => {
     // at the header would not read as one line.
     for (const section of ['thead', 'tbody tr:first-child', 'tfoot']) {
       const style = wrapper.find(`${section} [data-column="department"]`).attributes('style')!
-      expect(style).toContain('--vt-band-border-color: rebeccapurple')
-      expect(style).toContain('--vt-band-border-width: 3px')
+      expect(style).toContain('--vtc-band-border-color: rebeccapurple')
+      expect(style).toContain('--vtc-band-border-width: 3px')
     }
 
     // Not the boundaries other bands own.
     expect(wrapper.find('tbody [data-column="salary"]').attributes('style') ?? '').not.toContain(
-      '--vt-band-border-color',
+      '--vtc-band-border-color',
     )
     wrapper.unmount()
   })

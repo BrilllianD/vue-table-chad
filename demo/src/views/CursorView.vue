@@ -93,9 +93,9 @@ const rowDelta = ref(4)
 const columnDelta = ref(4)
 
 const cursorStyle = computed(() => ({
-  '--vt-cursor-border-width': `${ringWidth.value}px`,
-  '--vt-cursor-row-delta': `${rowDelta.value}%`,
-  '--vt-cursor-column-delta': `${columnDelta.value}%`,
+  '--vtc-cursor-border-width': `${ringWidth.value}px`,
+  '--vtc-cursor-row-delta': `${rowDelta.value}%`,
+  '--vtc-cursor-column-delta': `${columnDelta.value}%`,
 }))
 
 const editing = useRowEditing<Employee>(source, employeeColumns, {

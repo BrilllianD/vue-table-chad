@@ -9,32 +9,32 @@
 
 .vt-btn {
   padding: 5px 10px;
-  border: 1px solid var(--vt-border);
+  border: 1px solid var(--vtc-border);
   border-radius: 4px;
-  background: var(--vt-bg);
+  background: var(--vtc-bg);
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
 
-.vt-btn:hover:not(:disabled) { background: var(--vt-bg-hover); }
+.vt-btn:hover:not(:disabled) { background: var(--vtc-bg-hover); }
 .vt-btn:disabled { opacity: 0.4; cursor: default; }
 
 .vt-btn-primary {
-  background: var(--vt-accent);
-  border-color: var(--vt-accent);
-  color: var(--vt-accent-contrast);
+  background: var(--vtc-accent);
+  border-color: var(--vtc-accent);
+  color: var(--vtc-accent-contrast);
 }
 
 .vt-btn-link {
   border: 0;
   background: none;
-  color: var(--vt-accent);
+  color: var(--vtc-accent);
   padding: 4px 6px;
 }
 
 .vt-btn-icon { padding: 2px 6px; line-height: 1; }
-.vt-btn-icon[data-active] { color: var(--vt-accent); border-color: var(--vt-accent); }
+.vt-btn-icon[data-active] { color: var(--vtc-accent); border-color: var(--vtc-accent); }
 
 .vt-checkbox { cursor: pointer; margin: 0; flex: none; }
 
@@ -42,9 +42,9 @@
 
 .vt-selectall-banner {
   padding: 6px 10px;
-  background: var(--vt-bg-selected);
-  border: 1px solid var(--vt-accent);
-  border-radius: var(--vt-radius);
+  background: var(--vtc-bg-selected);
+  border: 1px solid var(--vtc-accent);
+  border-radius: var(--vtc-radius);
   text-align: center;
 }
 
@@ -60,7 +60,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: var(--vt-loading-scrim);
+  background: var(--vtc-loading-scrim);
   /*
     The rows underneath stay clickable: with `keepPreviousData` the previous
     page is still real data, and a refetch is not a reason to freeze it.
@@ -86,18 +86,18 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: var(--vt-bg);
-  border: 1px solid var(--vt-border-strong);
-  border-radius: var(--vt-radius);
+  background: var(--vtc-bg);
+  border: 1px solid var(--vtc-border-strong);
+  border-radius: var(--vtc-radius);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
-  color: var(--vt-text);
+  color: var(--vtc-text);
 }
 
 .vt-spinner {
   width: 22px;
   height: 22px;
-  border: 2px solid var(--vt-border-strong);
-  border-top-color: var(--vt-accent);
+  border: 2px solid var(--vtc-border-strong);
+  border-top-color: var(--vtc-accent);
   border-radius: 50%;
   animation: vt-spin 0.7s linear infinite;
 }
@@ -108,7 +108,7 @@
   .vt-spinner { animation-duration: 2.4s; }
 }
 
-.vt-error { color: var(--vt-danger); }
+.vt-error { color: var(--vtc-danger); }
 
 .vt-visually-hidden {
   position: absolute;

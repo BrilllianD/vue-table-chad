@@ -321,7 +321,7 @@ function divergenceDepth(
  *
  * Custom properties rather than `border-color` and `border-width` directly:
  * the stylesheet keeps ownership of *whether* the rule is drawn at all, so a
- * band naming a colour still disappears when `--vt-band-border-width` is
+ * band naming a colour still disappears when `--vtc-band-border-width` is
  * zeroed, and a caller who has restyled the edge entirely is not overridden by
  * a band def written for the default theme.
  *
@@ -331,6 +331,6 @@ function divergenceDepth(
  */
 export function paintBandEdge(style: Record<string, string>, edge: BandEdge | undefined): void {
   if (!edge) return
-  if (edge.color) style['--vt-band-border-color'] = edge.color
-  if (edge.width) style['--vt-band-border-width'] = edge.width
+  if (edge.color) style['--vtc-band-border-color'] = edge.color
+  if (edge.width) style['--vtc-band-border-width'] = edge.width
 }

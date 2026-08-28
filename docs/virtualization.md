@@ -42,9 +42,9 @@ The pager is not rendered, whatever `show-pagination` says. There is exactly one
 | `overscan` | Rows kept rendered beyond each edge. Defaults to `OVERSCAN_ROWS`, which is 4. |
 | `measure-rows` | Measure each rendered row rather than trusting `row-height`. Off by default. |
 
-`row-height` is written to `--vt-row-height` on the scroll box, so the number the windowing counts
+`row-height` is written to `--vtc-row-height` on the scroll box, so the number the windowing counts
 with and the number the browser lays out with cannot drift apart. **Change the prop, not the token**
-— setting `--vt-row-height` in your own CSS while `virtual` is on gives the two different answers,
+— setting `--vtc-row-height` in your own CSS while `virtual` is on gives the two different answers,
 and the window starts landing a little further off with every row.
 
 Heights are assumed uniform by default. A group header row lays out about a pixel taller than a

@@ -18,9 +18,9 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
   -->
   <div
     style="
-      --vt-accent: #7c3aed;
-      --vt-bg-row-even: #f4f0fb;
-      --vt-radius: 10px;
+      --vtc-accent: #7c3aed;
+      --vtc-bg-row-even: #f4f0fb;
+      --vtc-radius: 10px;
     "
   >
     <DataTable :columns="employeeColumns" :source="source" :state="state" />

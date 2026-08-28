@@ -59,7 +59,7 @@ bands stay whole across pages and counts describe the entire group rather than o
 ## Retheming without touching a component
 
 The preset's stylesheet hangs entirely off CSS variables. One thing to get right: a palette is a
-*set*. Overriding a light header colour while `--vt-text` stays on its dark-mode value gives you
+*set*. Overriding a light header colour while `--vtc-text` stays on its dark-mode value gives you
 white-on-white — see [Styling](styling.md) for the whole list and how cell backgrounds stack.
 
 <Demo :is="Recipe5" />

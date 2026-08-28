@@ -227,7 +227,7 @@ function cursorFor(columnId: string): CellCursorMark | undefined {
       <span
         v-if="cellIndex === 0 && depth > 0"
         class="vt-group-indent"
-        :style="{ '--vt-group-depth': depth }"
+        :style="{ '--vtc-group-depth': depth }"
         aria-hidden="true"
       />
       <slot

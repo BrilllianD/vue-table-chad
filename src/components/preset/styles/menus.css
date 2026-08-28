@@ -16,9 +16,9 @@
   z-index: 20;
   min-width: 240px;
   padding: 6px;
-  background: var(--vt-bg);
-  border: 1px solid var(--vt-border-strong);
-  border-radius: var(--vt-radius);
+  background: var(--vtc-bg);
+  border: 1px solid var(--vtc-border-strong);
+  border-radius: var(--vtc-radius);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
 }
 
@@ -27,8 +27,8 @@
   min-width: 16px;
   font-size: 10px;
   text-align: center;
-  background: var(--vt-accent);
-  color: var(--vt-accent-contrast);
+  background: var(--vtc-accent);
+  color: var(--vtc-accent-contrast);
   border-radius: 8px;
   padding: 0 4px;
 }
@@ -36,7 +36,7 @@
 .vt-group-hint {
   margin: 0;
   padding: 4px 6px 8px;
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
   font-size: 12px;
 }
 
@@ -44,7 +44,7 @@
   list-style: none;
   margin: 0 0 4px;
   padding: 0 0 4px;
-  border-bottom: 1px solid var(--vt-border);
+  border-bottom: 1px solid var(--vtc-border);
 }
 
 .vt-group-level { display: flex; align-items: center; gap: 6px; padding: 3px 4px; }
@@ -54,8 +54,8 @@
   width: 18px;
   text-align: center;
   font-size: 11px;
-  color: var(--vt-text-muted);
-  border: 1px solid var(--vt-border);
+  color: var(--vtc-text-muted);
+  border: 1px solid var(--vtc-border);
   border-radius: 4px;
 }
 
@@ -73,7 +73,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  border-top: 1px solid var(--vt-border);
+  border-top: 1px solid var(--vtc-border);
   margin-top: 4px;
   padding-top: 4px;
 }
@@ -89,9 +89,9 @@
   z-index: 20;
   min-width: 260px;
   padding: 6px;
-  background: var(--vt-bg);
-  border: 1px solid var(--vt-border-strong);
-  border-radius: var(--vt-radius);
+  background: var(--vtc-bg);
+  border: 1px solid var(--vtc-border-strong);
+  border-radius: var(--vtc-radius);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
 }
 
@@ -101,7 +101,7 @@
 .vt-columns-actions {
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid var(--vt-border);
+  border-top: 1px solid var(--vtc-border);
   margin-top: 4px;
   padding-top: 4px;
 }

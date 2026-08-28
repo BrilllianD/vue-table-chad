@@ -55,11 +55,11 @@ const cellStyle = computed(() => {
   if (props.column.pinned) {
     style[props.column.pinned === 'left' ? 'left' : 'right'] = `${props.column.pinOffset}px`
   }
-  if (props.column.headerBackground) style['--vt-column-bg'] = props.column.headerBackground
+  if (props.column.headerBackground) style['--vtc-column-bg'] = props.column.headerBackground
   // Only written when this cell is part of a multi-row header. A single-row
   // header emits no custom property at all, and the stylesheet's `0` fallback
   // keeps it sticking exactly where it always did.
-  if (props.depth) style['--vt-header-row'] = String(props.depth)
+  if (props.depth) style['--vtc-header-row'] = String(props.depth)
   paintBandEdge(style, bandEdge.value)
   return Object.keys(style).length > 0 ? style : undefined
 })

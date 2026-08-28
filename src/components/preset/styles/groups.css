@@ -10,8 +10,8 @@
 .vt-group-row .vt-group-cell {
   /* Not `.vt-td`, so none of the hover, stripe or pin layering applies here. */
   padding: 0;
-  background-color: var(--vt-bg-group);
-  border-bottom: var(--vt-body-border-width) solid var(--vt-body-border-color);
+  background-color: var(--vtc-bg-group);
+  border-bottom: var(--vtc-body-border-width) solid var(--vtc-body-border-color);
 }
 
 /* Full width, so the whole band is one click target. */
@@ -34,13 +34,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: var(--vt-row-height);
+  min-height: var(--vtc-row-height);
   /* Indent lives here rather than on the cell, so nesting reads as depth. */
-  padding: 0 12px 0 calc(12px + var(--vt-group-depth, 0) * var(--vt-group-indent-step));
+  padding: 0 12px 0 calc(12px + var(--vtc-group-depth, 0) * var(--vtc-group-indent-step));
 }
 
-.vt-group-toggle:hover { background: var(--vt-bg-hover); }
-.vt-group-toggle:focus-visible { outline: 2px solid var(--vt-accent); outline-offset: -2px; }
+.vt-group-toggle:hover { background: var(--vtc-bg-hover); }
+.vt-group-toggle:focus-visible { outline: 2px solid var(--vtc-accent); outline-offset: -2px; }
 
 .vt-group-caret {
   flex: none;
@@ -49,7 +49,7 @@
   font-size: 14px;
   line-height: 1;
   text-align: center;
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
   transform: rotate(90deg);
   transition: transform 120ms ease;
 }
@@ -57,7 +57,7 @@
 .vt-group-row[data-collapsed] .vt-group-caret { transform: rotate(0deg); }
 
 .vt-group-column {
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -73,9 +73,9 @@
 .vt-group-count {
   flex: none;
   font-size: 11px;
-  color: var(--vt-text-muted);
-  background: var(--vt-bg);
-  border: 1px solid var(--vt-border);
+  color: var(--vtc-text-muted);
+  background: var(--vtc-bg);
+  border: 1px solid var(--vtc-border);
   border-radius: 8px;
   padding: 0 6px;
 }
@@ -87,7 +87,7 @@
 */
 .vt-group-indent {
   display: inline-block;
-  width: calc(var(--vt-group-depth, 0) * var(--vt-group-indent-step));
+  width: calc(var(--vtc-group-depth, 0) * var(--vtc-group-indent-step));
 }
 
 /*
@@ -99,16 +99,16 @@
   carries `.vt-group-row`.
 */
 .vt-group-row .vt-td {
-  background-color: var(--vt-bg-group);
+  background-color: var(--vtc-bg-group);
   font-weight: 600;
 }
 
 /* ---------------------------------------------------------------- footer */
 
 .vt-tfoot .vt-td {
-  background-color: var(--vt-bg-footer);
+  background-color: var(--vtc-bg-footer);
   font-weight: 600;
-  border-top: var(--vt-header-border-width) solid var(--vt-header-border-color);
+  border-top: var(--vtc-header-border-width) solid var(--vtc-header-border-color);
   /*
     Holds at the bottom of the scroll box, mirroring the sticky header. Inert
     until `.vt-scroll` is height-constrained, which is the caller's call.

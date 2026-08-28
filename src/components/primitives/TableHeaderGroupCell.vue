@@ -77,10 +77,10 @@ const cellStyle = computed(() => {
   if (props.cell.pinned) {
     style[props.cell.pinned === 'left' ? 'left' : 'right'] = `${props.cell.pinOffset}px`
   }
-  if (props.cell.group.background) style['--vt-column-bg'] = props.cell.group.background
+  if (props.cell.group.background) style['--vtc-column-bg'] = props.cell.group.background
   // Which row of the header this is, for the sticky offset. A second header row
   // stuck at `top: 0` would sit on top of the first.
-  style['--vt-header-row'] = String(props.cell.depth)
+  style['--vtc-header-row'] = String(props.cell.depth)
   paintBandEdge(style, bandEdge.value)
   return style
 })

@@ -94,7 +94,7 @@ describe('DataTable in virtual mode', () => {
   it('gives the scroll box the row height it windows with', () => {
     const wrapper = mountTable({ virtual: true, rowHeight: 50 })
 
-    expect(wrapper.find('.vt-scroll').attributes('style')).toContain('--vt-row-height: 50px')
+    expect(wrapper.find('.vt-scroll').attributes('style')).toContain('--vtc-row-height: 50px')
 
     wrapper.unmount()
   })

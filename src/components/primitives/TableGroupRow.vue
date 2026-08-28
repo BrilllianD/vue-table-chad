@@ -139,7 +139,7 @@ function toggle(): void {
     :data-column="group.columnId"
     :aria-rowindex="rowIndex"
   >
-    <td class="vt-group-cell" :colspan="colspan" :style="{ '--vt-group-depth': group.depth }">
+    <td class="vt-group-cell" :colspan="colspan" :style="{ '--vtc-group-depth': group.depth }">
       <button
         type="button"
         class="vt-group-toggle"

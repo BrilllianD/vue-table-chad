@@ -239,8 +239,8 @@ theme:
 .vt-tbody .vt-tr[data-selected] .vt-td { /* … */ }
 ```
 
-The preset paints it through `--vt-bg-selected`, which is deliberately translucent
-(`color-mix(in srgb, var(--vt-accent) 16%, transparent)`) so row stripes and per-column tints stay
+The preset paints it through `--vtc-bg-selected`, which is deliberately translucent
+(`color-mix(in srgb, var(--vtc-accent) 16%, transparent)`) so row stripes and per-column tints stay
 visible through a selection rather than being covered by it. See
 [Styling](./styling.md#hover-selection-and-how-cell-backgrounds-stack) for where it sits in the
 background stack.

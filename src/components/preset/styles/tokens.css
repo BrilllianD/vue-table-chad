@@ -13,65 +13,65 @@
 */
 .vt-datatable,
 .vt-portal {
-  --vt-border: #dfe3e8;
-  --vt-border-strong: #c4cad2;
-  --vt-bg: #ffffff;
-  --vt-bg-header: #f6f7f9;
+  --vtc-border: #dfe3e8;
+  --vtc-border-strong: #c4cad2;
+  --vtc-bg: #ffffff;
+  --vtc-bg-header: #f6f7f9;
   /*
     Hover as a brightness delta rather than a colour: a wash of the text colour
     over whatever is underneath, so it darkens a light theme and lightens a dark
     one from one number, and it survives restyling the row beneath it. Set
-    `--vt-bg-hover` directly to opt out and name a colour instead.
+    `--vtc-bg-hover` directly to opt out and name a colour instead.
   */
-  --vt-hover-delta: 6%;
-  --vt-bg-hover: color-mix(in srgb, var(--vt-text) var(--vt-hover-clamped), transparent);
+  --vtc-hover-delta: 6%;
+  --vtc-bg-hover: color-mix(in srgb, var(--vtc-text) var(--vtc-hover-clamped), transparent);
   /* The single cell under the pointer, on top of the row's own hover. Off at 0. */
-  --vt-cell-hover-delta: 0%;
-  --vt-bg-cell-hover: color-mix(in srgb, var(--vt-text) var(--vt-cell-hover-clamped), transparent);
+  --vtc-cell-hover-delta: 0%;
+  --vtc-bg-cell-hover: color-mix(in srgb, var(--vtc-text) var(--vtc-cell-hover-clamped), transparent);
   /*
     `color-mix` rejects a percentage outside 0–100, and an invalid value here
     does not degrade gracefully: it invalidates the layer, which invalidates the
     whole `background-image` declaration and takes every *other* layer down with
-    it. Clamping keeps a stray `--vt-hover-delta: 120%` to a saturated hover
+    it. Clamping keeps a stray `--vtc-hover-delta: 120%` to a saturated hover
     instead of a table that loses its stripes and column tints.
   */
-  --vt-hover-clamped: clamp(0%, var(--vt-hover-delta), 100%);
-  --vt-cell-hover-clamped: clamp(0%, var(--vt-cell-hover-delta), 100%);
+  --vtc-hover-clamped: clamp(0%, var(--vtc-hover-delta), 100%);
+  --vtc-cell-hover-clamped: clamp(0%, var(--vtc-cell-hover-delta), 100%);
   /*
     The cell cursor: a ring on the focused cell, and a faint crosshair through
     its row and its column. The two tints are deltas for the same reason hover
-    is — one number that reads in both themes — but the ring is `--vt-accent`,
+    is — one number that reads in both themes — but the ring is `--vtc-accent`,
     because it is a focus indicator and has to hold contrast against whatever
     the row underneath it happens to be doing. Set either delta to 0 to keep
     the ring and drop that arm of the crosshair.
   */
-  --vt-cursor-row-delta: 4%;
-  --vt-cursor-column-delta: 4%;
-  --vt-bg-cursor-row: color-mix(in srgb, var(--vt-text) var(--vt-cursor-row-clamped), transparent);
-  --vt-bg-cursor-column: color-mix(
+  --vtc-cursor-row-delta: 4%;
+  --vtc-cursor-column-delta: 4%;
+  --vtc-bg-cursor-row: color-mix(in srgb, var(--vtc-text) var(--vtc-cursor-row-clamped), transparent);
+  --vtc-bg-cursor-column: color-mix(
     in srgb,
-    var(--vt-text) var(--vt-cursor-column-clamped),
+    var(--vtc-text) var(--vtc-cursor-column-clamped),
     transparent
   );
-  --vt-cursor-row-clamped: clamp(0%, var(--vt-cursor-row-delta), 100%);
-  --vt-cursor-column-clamped: clamp(0%, var(--vt-cursor-column-delta), 100%);
+  --vtc-cursor-row-clamped: clamp(0%, var(--vtc-cursor-row-delta), 100%);
+  --vtc-cursor-column-clamped: clamp(0%, var(--vtc-cursor-column-delta), 100%);
   /* Translucent, so stripes and column tints stay visible through a selection. */
-  --vt-bg-selected: color-mix(in srgb, var(--vt-accent) 16%, transparent);
+  --vtc-bg-selected: color-mix(in srgb, var(--vtc-accent) 16%, transparent);
   /*
     The wash over the table while a fetch is in flight. Opaque enough that the
     pill on top of it reads against any row content; set it to `transparent` to
-    keep the pill and drop the dimming. Mixed off `--vt-bg` rather than named as
+    keep the pill and drop the dimming. Mixed off `--vtc-bg` rather than named as
     a grey, so the dark block below needs no counterpart for it.
   */
-  --vt-loading-scrim: color-mix(in srgb, var(--vt-bg) 78%, transparent);
+  --vtc-loading-scrim: color-mix(in srgb, var(--vtc-bg) 78%, transparent);
   /*
     Failure. Named here because three places now need it — a filter that could
     not load its facets, a table that could not load at all, and a cell holding
     a value the server or a validator refused — and two of them were carrying
     the same hex literal in a file that is otherwise entirely variable-driven.
   */
-  --vt-danger: #b42318;
-  --vt-bg-danger: color-mix(in srgb, var(--vt-danger) 10%, transparent);
+  --vtc-danger: #b42318;
+  --vtc-bg-danger: color-mix(in srgb, var(--vtc-danger) 10%, transparent);
   /*
     Outlines on hover — the row gets a rule top and bottom, the cell a full
     ring. Both are off at width 0, and both are drawn as inset shadows rather
@@ -79,71 +79,71 @@
     and shove the whole table around under the pointer. Give the widths a unit;
     `0` on its own is not a length once it goes through `calc()`.
   */
-  --vt-hover-border-width: 0px;
-  --vt-hover-border-color: var(--vt-accent);
-  --vt-cell-hover-border-width: 0px;
-  --vt-cell-hover-border-color: var(--vt-accent);
+  --vtc-hover-border-width: 0px;
+  --vtc-hover-border-color: var(--vtc-accent);
+  --vtc-cell-hover-border-width: 0px;
+  --vtc-cell-hover-border-color: var(--vtc-accent);
   /*
     The cursor's ring. On by default, unlike the two above: a focus indicator
     you have to switch on is not a focus indicator. It goes grey while the grid
     does not hold focus, so a remembered position never impersonates a live one.
   */
-  --vt-cursor-border-width: 2px;
-  --vt-cursor-border-color: var(--vt-accent);
-  --vt-cursor-idle-border-color: var(--vt-border-strong);
+  --vtc-cursor-border-width: 2px;
+  --vtc-cursor-border-color: var(--vtc-accent);
+  --vtc-cursor-idle-border-color: var(--vtc-border-strong);
   /*
     Row striping, off by default: both stripes inherit the table background, so
     setting just one of them is all a zebra table needs.
   */
-  --vt-bg-row-odd: var(--vt-bg);
-  --vt-bg-row-even: var(--vt-bg);
+  --vtc-bg-row-odd: var(--vtc-bg);
+  --vtc-bg-row-even: var(--vtc-bg);
 
   /* Group header bands, and how far each nesting level indents. */
-  --vt-bg-group: var(--vt-bg-header);
-  --vt-group-indent-step: 16px;
+  --vtc-bg-group: var(--vtc-bg-header);
+  --vtc-group-indent-step: 16px;
   /* The aggregate row under the table. */
-  --vt-bg-footer: var(--vt-bg-header);
+  --vtc-bg-footer: var(--vtc-bg-header);
   /*
-    Body rules. Width 0 removes them — `--vt-body-border-width: 0` is the
+    Body rules. Width 0 removes them — `--vtc-body-border-width: 0` is the
     borderless table. The vertical ones start off, since column separators are
     a deliberate look rather than a default.
   */
-  --vt-body-border-width: 1px;
-  --vt-body-border-vertical-width: 0px;
-  --vt-body-border-color: var(--vt-border);
+  --vtc-body-border-width: 1px;
+  --vtc-body-border-vertical-width: 0px;
+  --vtc-body-border-color: var(--vtc-border);
   /* The header underline is separate, so a borderless body can keep it. */
-  --vt-header-border-width: 1px;
-  --vt-header-border-color: var(--vt-border-strong);
+  --vtc-header-border-width: 1px;
+  --vtc-header-border-color: var(--vtc-border-strong);
   /*
     The rule *between* header rows, when bands give the header more than one.
     Lighter than the underline on purpose: that one divides the header from the
     body, and repeating it at full weight would read as three separate tables.
   */
-  --vt-header-group-border-width: 1px;
-  --vt-header-group-border-color: var(--vt-border);
+  --vtc-header-group-border-width: 1px;
+  --vtc-header-group-border-color: var(--vtc-border);
   /*
     The rule *beside* a band, where its run of columns ends — drawn the full
     height of the table rather than only in the header.
 
-    On by default, unlike `--vt-body-border-vertical-width`. It can afford to
+    On by default, unlike `--vtc-body-border-vertical-width`. It can afford to
     be: it is emitted only where a band boundary actually falls, so a table
     declaring no bands gets no `data-band-edge` anywhere and looks exactly as
     it did.
   */
-  --vt-band-border-width: 1px;
-  --vt-band-border-color: var(--vt-border);
+  --vtc-band-border-width: 1px;
+  --vtc-band-border-color: var(--vtc-border);
   /* The frame around the scroll box. Zero on all three = no rules at all. */
-  --vt-outer-border-width: 1px;
-  --vt-text: #1f2933;
-  --vt-text-muted: #66727f;
-  --vt-accent: #2563eb;
-  --vt-accent-contrast: #ffffff;
-  --vt-radius: 6px;
-  --vt-row-height: 38px;
-  --vt-font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  --vtc-outer-border-width: 1px;
+  --vtc-text: #1f2933;
+  --vtc-text-muted: #66727f;
+  --vtc-accent: #2563eb;
+  --vtc-accent-contrast: #ffffff;
+  --vtc-radius: 6px;
+  --vtc-row-height: 38px;
+  --vtc-font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  font: var(--vt-font);
-  color: var(--vt-text);
+  font: var(--vtc-font);
+  color: var(--vtc-text);
 }
 
 .vt-datatable {
@@ -155,19 +155,19 @@
 @media (prefers-color-scheme: dark) {
   .vt-datatable,
   .vt-portal {
-    --vt-border: #333a44;
-    --vt-border-strong: #454d59;
-    --vt-bg: #16191d;
-    --vt-bg-header: #1e2228;
+    --vtc-border: #333a44;
+    --vtc-border-strong: #454d59;
+    --vtc-bg: #16191d;
+    --vtc-bg-header: #1e2228;
     /*
-      No hover or selected colour here: both are derived from `--vt-text` and
-      `--vt-accent`, which this block already swaps, so the deltas come out
+      No hover or selected colour here: both are derived from `--vtc-text` and
+      `--vtc-accent`, which this block already swaps, so the deltas come out
       light-on-dark without a second set of literals to keep in sync.
     */
-    --vt-text: #e6e8eb;
-    --vt-text-muted: #9aa4b0;
-    --vt-accent: #5b93f7;
+    --vtc-text: #e6e8eb;
+    --vtc-text-muted: #9aa4b0;
+    --vtc-accent: #5b93f7;
     /* Lightened: the light theme's red does not carry against a dark row. */
-    --vt-danger: #f97066;
+    --vtc-danger: #f97066;
   }
 }

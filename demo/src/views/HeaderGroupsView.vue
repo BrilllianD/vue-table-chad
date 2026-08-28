@@ -38,7 +38,7 @@ const stickyHeader = ref(true)
 /**
  * The rule between bands, as a width.
  *
- * `--vt-band-border-width` is on by default — unlike the body's column
+ * `--vtc-band-border-width` is on by default — unlike the body's column
  * separators — because it is emitted only where a boundary falls: a table
  * declaring no bands never sees it. `0px` is how you turn it off; a bare `0`
  * would not be a length and would take the whole `border-right` with it.
@@ -131,7 +131,7 @@ function toggle(band: ColumnGroupDef): void {
         <label><input v-model="selectable" type="checkbox" /> selectable</label>
         <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
         <label>
-          --vt-band-border-width
+          --vtc-band-border-width
           <select v-model="bandRule">
             <option value="0px">0px</option>
             <option value="1px">1px</option>
@@ -236,7 +236,7 @@ function toggle(band: ColumnGroupDef): void {
  * `:deep` reaches. A band's own `borderWidth` beats this in turn, because that
  * one arrives as an inline custom property on the cells at the boundary.
  */
-:deep(.vt-datatable) { --vt-band-border-width: v-bind(bandRule); }
+:deep(.vt-datatable) { --vtc-band-border-width: v-bind(bandRule); }
 
 /* What `ColumnGroupDef.class` buys: a hook on the band's header cells only. */
 :deep(.band-record) { font-style: italic; letter-spacing: 0.02em; }

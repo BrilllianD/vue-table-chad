@@ -48,7 +48,7 @@ demo/
 | Filters | preset | The filter model taken apart, plus the three filter primitives standalone |
 | Grouping | preset | Client vs server grouping, nesting, and per-column aggregates |
 | Hoisted state | preset | `QueryState` owned by a ref, mirrored into the URL, driven imperatively |
-| Theming | preset | The `--vt-*` palette and the `data-*` state hooks |
+| Theming | preset | The `--vtc-*` palette and the `data-*` state hooks |
 | Performance | preset | The whole 10k rows, timed in the browser to the frame after the paint |
 | API reference | preset | All 143 exports, rendered by the table they belong to |
 | Recipes | preset | What to type — the six worked examples `docs/recipes.md` runs |
@@ -77,7 +77,7 @@ saying why rather than by being left out.
   behind a `:key` instead of pretending they are reactive. Same for selection `mode` in the
   Selection view.
 - **A palette is a set.** The Theming view owns every colour variable at once and seeds them from
-  `prefers-color-scheme`. Overriding only `--vt-bg-header` while `--vt-text` stays on its
+  `prefers-color-scheme`. Overriding only `--vtc-bg-header` while `--vtc-text` stays on its
   dark-mode value gives you white-on-white — the exact bug this view would otherwise ship.
 - **The Performance view refuses to measure a hidden tab.** A background tab never fires
   `requestAnimationFrame` and clamps `setTimeout` to a second, so a number taken there would be the

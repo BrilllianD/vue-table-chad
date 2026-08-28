@@ -12,17 +12,17 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
   <div
     class="my-table"
     style="
-      --vt-accent: #7c3aed;
-      --vt-bg: #ffffff;
-      --vt-bg-header: #faf5ff;
-      --vt-text: #1f2937;
-      --vt-text-muted: #6b7280;
-      --vt-border: #e5e7eb;
-      --vt-row-height: 40px;
-      --vt-radius: 8px;
+      --vtc-accent: #7c3aed;
+      --vtc-bg: #ffffff;
+      --vtc-bg-header: #faf5ff;
+      --vtc-text: #1f2937;
+      --vtc-text-muted: #6b7280;
+      --vtc-border: #e5e7eb;
+      --vtc-row-height: 40px;
+      --vtc-radius: 8px;
       /* Row striping is two variables; equal values mean no stripes. */
-      --vt-bg-row-odd: #ffffff;
-      --vt-bg-row-even: #fafafa;
+      --vtc-bg-row-odd: #ffffff;
+      --vtc-bg-row-even: #fafafa;
     "
   >
     <DataTable :columns="employeeColumns" :source="source" :state="state" />

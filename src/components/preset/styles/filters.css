@@ -16,13 +16,13 @@
   background: none;
   padding: 4px;
   border-radius: 4px;
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
   cursor: pointer;
 }
 
-.vt-filter-trigger:hover { background: var(--vt-border); color: var(--vt-text); }
-.vt-filter-trigger[data-active] { color: var(--vt-accent); }
-.vt-filter-trigger:focus-visible { outline: 2px solid var(--vt-accent); }
+.vt-filter-trigger:hover { background: var(--vtc-border); color: var(--vtc-text); }
+.vt-filter-trigger[data-active] { color: var(--vtc-accent); }
+.vt-filter-trigger:focus-visible { outline: 2px solid var(--vtc-accent); }
 
 /*
   Fixed, not absolute: the panel is teleported out of the scroll container so
@@ -42,9 +42,9 @@
   /* Never taller than the viewport, so positioning always has a solution. */
   max-height: calc(100vh - 16px);
   overflow-y: auto;
-  background: var(--vt-bg);
-  border: 1px solid var(--vt-border-strong);
-  border-radius: var(--vt-radius);
+  background: var(--vtc-bg);
+  border: 1px solid var(--vtc-border-strong);
+  border-radius: var(--vtc-radius);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
   font-weight: 400;
   white-space: normal;
@@ -55,7 +55,7 @@
   align-items: center;
   gap: 2px;
   padding: 6px;
-  border-bottom: 1px solid var(--vt-border);
+  border-bottom: 1px solid var(--vtc-border);
 }
 
 .vt-filter-tab {
@@ -64,11 +64,11 @@
   padding: 4px 8px;
   border-radius: 4px;
   font: inherit;
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
   cursor: pointer;
 }
 
-.vt-filter-tab[data-active] { background: var(--vt-bg-header); color: var(--vt-text); }
+.vt-filter-tab[data-active] { background: var(--vtc-bg-header); color: var(--vtc-text); }
 .vt-filter-clear { margin-left: auto; }
 
 /* -------------------------------------------------------------- value list */
@@ -77,9 +77,9 @@
 
 .vt-valuelist-search {
   padding: 5px 8px;
-  border: 1px solid var(--vt-border);
+  border: 1px solid var(--vtc-border);
   border-radius: 4px;
-  background: var(--vt-bg);
+  background: var(--vtc-bg);
   color: inherit;
   font: inherit;
 }
@@ -87,7 +87,7 @@
 .vt-valuelist-items {
   max-height: 210px;
   overflow-y: auto;
-  border: 1px solid var(--vt-border);
+  border: 1px solid var(--vtc-border);
   border-radius: 4px;
 }
 
@@ -99,9 +99,9 @@
   cursor: pointer;
 }
 
-.vt-valuelist-row:hover { background: var(--vt-bg-hover); }
-.vt-valuelist-all { border-bottom: 1px solid var(--vt-border); font-weight: 600; }
-.vt-valuelist-blank { border-top: 1px solid var(--vt-border); font-style: italic; }
+.vt-valuelist-row:hover { background: var(--vtc-bg-hover); }
+.vt-valuelist-all { border-bottom: 1px solid var(--vtc-border); font-weight: 600; }
+.vt-valuelist-blank { border-top: 1px solid var(--vtc-border); font-style: italic; }
 
 .vt-valuelist-label {
   flex: 1;
@@ -110,10 +110,10 @@
   white-space: nowrap;
 }
 
-.vt-valuelist-count { color: var(--vt-text-muted); font-size: 12px; flex: none; }
-.vt-valuelist-status { padding: 10px; color: var(--vt-text-muted); text-align: center; }
+.vt-valuelist-count { color: var(--vtc-text-muted); font-size: 12px; flex: none; }
+.vt-valuelist-status { padding: 10px; color: var(--vtc-text-muted); text-align: center; }
 
-.vt-filter-error { margin: 0; padding: 8px 10px; color: var(--vt-danger); }
+.vt-filter-error { margin: 0; padding: 8px 10px; color: var(--vtc-danger); }
 
 .vt-valuelist-actions {
   display: flex;
@@ -132,16 +132,16 @@
 .vt-condition-operator,
 .vt-condition-value {
   padding: 4px 6px;
-  border: 1px solid var(--vt-border);
+  border: 1px solid var(--vtc-border);
   border-radius: 4px;
-  background: var(--vt-bg);
+  background: var(--vtc-bg);
   color: inherit;
   font: inherit;
   min-width: 0;
 }
 
 .vt-condition-op { flex: none; width: 62px; }
-.vt-condition-op-first { border: 0; background: none; color: var(--vt-text-muted); }
+.vt-condition-op-first { border: 0; background: none; color: var(--vtc-text-muted); }
 .vt-condition-operator { flex: 1 1 100%; }
 .vt-condition-value { flex: 1 1 84px; }
 
@@ -154,15 +154,15 @@
   align-items: center;
   gap: 5px;
   padding: 3px 4px 3px 8px;
-  background: var(--vt-bg-header);
-  border: 1px solid var(--vt-border);
+  background: var(--vtc-bg-header);
+  border: 1px solid var(--vtc-border);
   border-radius: 999px;
   font-size: 12px;
   max-width: 260px;
 }
 
 .vt-chip-summary {
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -172,11 +172,11 @@
   border: 0;
   background: none;
   cursor: pointer;
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
   font-size: 14px;
   line-height: 1;
   padding: 0 3px;
   border-radius: 50%;
 }
 
-.vt-chip-remove:hover { background: var(--vt-border); color: var(--vt-text); }
+.vt-chip-remove:hover { background: var(--vtc-border); color: var(--vtc-text); }

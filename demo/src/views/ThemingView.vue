@@ -9,7 +9,7 @@
  * One thing this view has to get right to be honest: the palette is a *set*.
  * The preset ships a light palette and a dark one behind
  * `prefers-color-scheme`, and overriding half of it — a light header colour
- * while `--vt-text` stays on its dark-mode value — produces white-on-white.
+ * while `--vtc-text` stays on its dark-mode value — produces white-on-white.
  * So the controls own every colour variable at once, seeded from whichever
  * scheme the browser is actually in.
  */
@@ -206,7 +206,7 @@ const selectedColor = computed(() => withAlpha(palette.bgSelected, palette.selec
 /* ------------------------------------------------ hover: delta or colour */
 
 /**
- * The delta is only how `--vt-bg-hover` is *derived*. Setting the variable
+ * The delta is only how `--vtc-bg-hover` is *derived*. Setting the variable
  * itself replaces that derivation, which is the escape hatch for a hover that
  * has to be a specific brand colour rather than a wash of the text.
  *
@@ -248,13 +248,13 @@ const borderControls = [
   {
     widthKey: 'rowWidth',
     colorKey: 'rowColor',
-    label: '--vt-hover-border-*',
+    label: '--vtc-hover-border-*',
     hint: 'row outline, top and bottom',
   },
   {
     widthKey: 'cellWidth',
     colorKey: 'cellColor',
-    label: '--vt-cell-hover-border-*',
+    label: '--vtc-cell-hover-border-*',
     hint: 'cell outline, all four edges',
   },
 ] as const
@@ -289,20 +289,20 @@ const themedColumns = computed(() =>
 )
 
 const colorControls = [
-  { key: 'accent', label: '--vt-accent' },
-  { key: 'bg', label: '--vt-bg' },
-  { key: 'bgHeader', label: '--vt-bg-header' },
-  { key: 'bgSelected', label: '--vt-bg-selected' },
-  { key: 'bgRowOdd', label: '--vt-bg-row-odd' },
-  { key: 'bgRowEven', label: '--vt-bg-row-even' },
-  { key: 'text', label: '--vt-text' },
-  { key: 'border', label: '--vt-border' },
+  { key: 'accent', label: '--vtc-accent' },
+  { key: 'bg', label: '--vtc-bg' },
+  { key: 'bgHeader', label: '--vtc-bg-header' },
+  { key: 'bgSelected', label: '--vtc-bg-selected' },
+  { key: 'bgRowOdd', label: '--vtc-bg-row-odd' },
+  { key: 'bgRowEven', label: '--vtc-bg-row-even' },
+  { key: 'text', label: '--vtc-text' },
+  { key: 'border', label: '--vtc-border' },
 ] as const
 
 const widthControls = [
-  { key: 'bodyBorder', label: '--vt-body-border-width', hint: 'row rules' },
-  { key: 'bodyBorderVertical', label: '--vt-body-border-vertical-width', hint: 'column rules' },
-  { key: 'outerBorder', label: '--vt-outer-border-width', hint: 'the frame' },
+  { key: 'bodyBorder', label: '--vtc-body-border-width', hint: 'row rules' },
+  { key: 'bodyBorderVertical', label: '--vtc-body-border-vertical-width', hint: 'column rules' },
+  { key: 'outerBorder', label: '--vtc-outer-border-width', hint: 'the frame' },
 ] as const
 
 /**
@@ -312,21 +312,21 @@ const widthControls = [
 const alphaControls = [
   {
     key: 'hoverDelta',
-    label: '--vt-hover-delta',
+    label: '--vtc-hover-delta',
     hint: 'row under the pointer',
     max: 30,
     overridden: () => hoverOverride.value,
   },
   {
     key: 'cellHoverDelta',
-    label: '--vt-cell-hover-delta',
+    label: '--vtc-cell-hover-delta',
     hint: 'cell under the pointer',
     max: 30,
     overridden: () => cellHoverOverride.value,
   },
   {
     key: 'selectedAlpha',
-    label: '--vt-bg-selected alpha',
+    label: '--vtc-bg-selected alpha',
     hint: 'selected rows',
     max: 100,
     overridden: () => false,
@@ -336,14 +336,14 @@ const alphaControls = [
 /** The two "or name a colour instead" escape hatches. */
 const hoverOverrides = [
   {
-    label: '--vt-bg-hover',
+    label: '--vtc-bg-hover',
     hint: 'row',
     on: hoverOverride,
     color: hoverColor,
     alpha: hoverColorAlpha,
   },
   {
-    label: '--vt-bg-cell-hover',
+    label: '--vtc-bg-cell-hover',
     hint: 'cell',
     on: cellHoverOverride,
     color: cellHoverColor,
@@ -378,7 +378,7 @@ const hooks = [
            touches a component or overrides a rule — it only sets custom properties on the table
            element, which is also all a consumer ever has to do."
     :api="[
-      '--vt-* custom properties',
+      '--vtc-* custom properties',
       'data-* state attributes',
       'ColumnDef.background',
       'ColumnDef.headerBackground',
@@ -403,15 +403,15 @@ const hooks = [
         <input v-model="palette[control.key]" type="color" />
       </label>
       <label>
-        --vt-radius {{ palette.radius }}px
+        --vtc-radius {{ palette.radius }}px
         <input v-model.number="palette.radius" type="range" min="0" max="20" />
       </label>
       <label>
-        --vt-row-height {{ palette.rowHeight }}px
+        --vtc-row-height {{ palette.rowHeight }}px
         <input v-model.number="palette.rowHeight" type="range" min="22" max="64" />
       </label>
       <label>
-        --vt-font {{ palette.fontSize }}px
+        --vtc-font {{ palette.fontSize }}px
         <input v-model.number="palette.fontSize" type="range" min="10" max="20" />
       </label>
     </div>
@@ -513,37 +513,37 @@ const hooks = [
     </div>
 
     <p class="hint">
-      A palette is a set, not a list of independent knobs. Override <code>--vt-bg-header</code>
+      A palette is a set, not a list of independent knobs. Override <code>--vtc-bg-header</code>
       alone while the browser is in dark mode and you get a light header under the dark palette's
       near-white text — which is why every colour here is set together.
     </p>
 
     <pre class="snippet">.vt-datatable {
-  --vt-accent: {{ palette.accent }};
-  --vt-accent-contrast: {{ palette.accentContrast }};
-  --vt-bg: {{ palette.bg }};
-  --vt-bg-header: {{ palette.bgHeader }};
-  {{ hoverOverride ? `--vt-bg-hover: ${hoverColorValue};` : `--vt-hover-delta: ${hoverDelta};` }}
+  --vtc-accent: {{ palette.accent }};
+  --vtc-accent-contrast: {{ palette.accentContrast }};
+  --vtc-bg: {{ palette.bg }};
+  --vtc-bg-header: {{ palette.bgHeader }};
+  {{ hoverOverride ? `--vtc-bg-hover: ${hoverColorValue};` : `--vtc-hover-delta: ${hoverDelta};` }}
   {{ cellHoverOverride
-     ? `--vt-bg-cell-hover: ${cellHoverColorValue};`
-     : `--vt-cell-hover-delta: ${cellHoverDelta};` }}
-  --vt-bg-selected: {{ selectedColor }};
-  --vt-bg-row-odd: {{ palette.bgRowOdd }};
-  --vt-bg-row-even: {{ palette.bgRowEven }};
-  --vt-border: {{ palette.border }};
-  --vt-border-strong: {{ palette.borderStrong }};
-  --vt-text: {{ palette.text }};
-  --vt-text-muted: {{ palette.textMuted }};
-  --vt-radius: {{ radius }};
-  --vt-row-height: {{ rowHeight }};
-  --vt-font: {{ font }};
-  --vt-body-border-width: {{ bodyBorder }};
-  --vt-body-border-vertical-width: {{ bodyBorderVertical }};
-  --vt-outer-border-width: {{ outerBorder }};
-  --vt-hover-border-width: {{ hoverBorderWidth }};
-  --vt-hover-border-color: {{ hoverBorder.rowColor }};
-  --vt-cell-hover-border-width: {{ cellHoverBorderWidth }};
-  --vt-cell-hover-border-color: {{ hoverBorder.cellColor }};
+     ? `--vtc-bg-cell-hover: ${cellHoverColorValue};`
+     : `--vtc-cell-hover-delta: ${cellHoverDelta};` }}
+  --vtc-bg-selected: {{ selectedColor }};
+  --vtc-bg-row-odd: {{ palette.bgRowOdd }};
+  --vtc-bg-row-even: {{ palette.bgRowEven }};
+  --vtc-border: {{ palette.border }};
+  --vtc-border-strong: {{ palette.borderStrong }};
+  --vtc-text: {{ palette.text }};
+  --vtc-text-muted: {{ palette.textMuted }};
+  --vtc-radius: {{ radius }};
+  --vtc-row-height: {{ rowHeight }};
+  --vtc-font: {{ font }};
+  --vtc-body-border-width: {{ bodyBorder }};
+  --vtc-body-border-vertical-width: {{ bodyBorderVertical }};
+  --vtc-outer-border-width: {{ outerBorder }};
+  --vtc-hover-border-width: {{ hoverBorderWidth }};
+  --vtc-hover-border-color: {{ hoverBorder.rowColor }};
+  --vtc-cell-hover-border-width: {{ cellHoverBorderWidth }};
+  --vtc-cell-hover-border-color: {{ hoverBorder.cellColor }};
 }</pre>
 
     <div class="panel">
@@ -586,30 +586,30 @@ const hooks = [
  * reaches it, and `v-bind` wires each value to the reactive palette above.
  */
 .theme-host :deep(.vt-datatable) {
-  --vt-accent: v-bind('palette.accent');
-  --vt-accent-contrast: v-bind('palette.accentContrast');
-  --vt-bg: v-bind('palette.bg');
-  --vt-bg-header: v-bind('palette.bgHeader');
+  --vtc-accent: v-bind('palette.accent');
+  --vtc-accent-contrast: v-bind('palette.accentContrast');
+  --vtc-bg: v-bind('palette.bg');
+  --vtc-bg-header: v-bind('palette.bgHeader');
   /* Hover is left to the preset's own `color-mix` — only the delta is set. */
-  --vt-hover-delta: v-bind(hoverDelta);
-  --vt-cell-hover-delta: v-bind(cellHoverDelta);
-  --vt-bg-selected: v-bind(selectedColor);
-  --vt-bg-row-odd: v-bind('palette.bgRowOdd');
-  --vt-bg-row-even: v-bind('palette.bgRowEven');
-  --vt-border: v-bind('palette.border');
-  --vt-border-strong: v-bind('palette.borderStrong');
-  --vt-text: v-bind('palette.text');
-  --vt-text-muted: v-bind('palette.textMuted');
-  --vt-radius: v-bind(radius);
-  --vt-row-height: v-bind(rowHeight);
-  --vt-font: v-bind(font);
-  --vt-body-border-width: v-bind(bodyBorder);
-  --vt-body-border-vertical-width: v-bind(bodyBorderVertical);
-  --vt-outer-border-width: v-bind(outerBorder);
-  --vt-hover-border-width: v-bind(hoverBorderWidth);
-  --vt-hover-border-color: v-bind('hoverBorder.rowColor');
-  --vt-cell-hover-border-width: v-bind(cellHoverBorderWidth);
-  --vt-cell-hover-border-color: v-bind('hoverBorder.cellColor');
+  --vtc-hover-delta: v-bind(hoverDelta);
+  --vtc-cell-hover-delta: v-bind(cellHoverDelta);
+  --vtc-bg-selected: v-bind(selectedColor);
+  --vtc-bg-row-odd: v-bind('palette.bgRowOdd');
+  --vtc-bg-row-even: v-bind('palette.bgRowEven');
+  --vtc-border: v-bind('palette.border');
+  --vtc-border-strong: v-bind('palette.borderStrong');
+  --vtc-text: v-bind('palette.text');
+  --vtc-text-muted: v-bind('palette.textMuted');
+  --vtc-radius: v-bind(radius);
+  --vtc-row-height: v-bind(rowHeight);
+  --vtc-font: v-bind(font);
+  --vtc-body-border-width: v-bind(bodyBorder);
+  --vtc-body-border-vertical-width: v-bind(bodyBorderVertical);
+  --vtc-outer-border-width: v-bind(outerBorder);
+  --vtc-hover-border-width: v-bind(hoverBorderWidth);
+  --vtc-hover-border-color: v-bind('hoverBorder.rowColor');
+  --vtc-cell-hover-border-width: v-bind(cellHoverBorderWidth);
+  --vtc-cell-hover-border-color: v-bind('hoverBorder.cellColor');
 }
 
 /*
@@ -618,11 +618,11 @@ const hooks = [
  * present with a default value in it.
  */
 .theme-host[data-hover-override] :deep(.vt-datatable) {
-  --vt-bg-hover: v-bind(hoverColorValue);
+  --vtc-bg-hover: v-bind(hoverColorValue);
 }
 
 .theme-host[data-cell-hover-override] :deep(.vt-datatable) {
-  --vt-bg-cell-hover: v-bind(cellHoverColorValue);
+  --vtc-bg-cell-hover: v-bind(cellHoverColorValue);
 }
 
 /* The rule widths carry the longest variable names on the page, so they get a

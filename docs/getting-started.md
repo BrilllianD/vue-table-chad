@@ -193,7 +193,7 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `storageFields` | `ColumnLayoutField[]` | all four | Which of visibility/order/width/pin to remember. |
 | `pageSize` | `number` | `10` | Ignored when `state` is supplied — that state is the authority. |
 | `virtual` | `boolean` | `false` | Every row as one continuous scroll, only the visible ones in the DOM. Mutually exclusive with paging: the page size becomes the whole result set and no pager is rendered. |
-| `rowHeight` | `number` | `38` | Row height in CSS px. Read only in `virtual` mode, where it also becomes `--vt-row-height` — change the prop, never the token. |
+| `rowHeight` | `number` | `38` | Row height in CSS px. Read only in `virtual` mode, where it also becomes `--vtc-row-height` — change the prop, never the token. |
 | `overscan` | `number` | `4` | Rows kept rendered beyond each edge of the viewport. |
 | `reorderable` | `boolean` | `true` | Drag headers to reorder. |
 | `initialGroupBy` | `string[]` | `[]` | Outermost level first. |
@@ -430,7 +430,7 @@ Every page below has a matching view in `pnpm demo`, where the same thing runs a
 | [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it. |
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |
 | [Header bands](column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. |
-| [Styling](styling.md) | The `--vt-*` variables, striping, and how cell backgrounds stack. |
+| [Styling](styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. |
 | [Virtual rows](virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. |
 | [Composing your own](composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. |
 | [Performance](performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. |

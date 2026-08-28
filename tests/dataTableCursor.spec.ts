@@ -407,7 +407,7 @@ describe('the scroll box and the pinned bands', () => {
   /** The two custom properties, as the scroll box carries them. */
   function pins(wrapper: ReturnType<typeof mountPinned>): [string, string] {
     const box = wrapper.get('.vt-scroll').element as HTMLElement
-    return [box.style.getPropertyValue('--vt-pin-left'), box.style.getPropertyValue('--vt-pin-right')]
+    return [box.style.getPropertyValue('--vtc-pin-left'), box.style.getPropertyValue('--vtc-pin-right')]
   }
 
   it('insets by nothing when nothing is pinned', () => {

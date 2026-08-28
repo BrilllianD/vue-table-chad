@@ -93,7 +93,7 @@ const recipes: Recipe[] = [
     id: 'theming',
     title: 'Retheming without touching a component',
     why: `The preset's stylesheet hangs entirely off CSS variables. One thing to get right: a
-          palette is a *set*. Overriding a light header colour while \`--vt-text\` stays on its
+          palette is a *set*. Overriding a light header colour while \`--vtc-text\` stays on its
           dark-mode value gives you white-on-white.`,
     file: 'recipe-5.vue',
   },

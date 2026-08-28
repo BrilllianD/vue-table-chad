@@ -220,7 +220,7 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   align?: 'left' | 'center' | 'right'
   /**
    * Paints this column's body cells. Any CSS colour value, alpha included —
-   * it reaches the DOM as the `--vt-column-bg` custom property and the preset
+   * it reaches the DOM as the `--vtc-column-bg` custom property and the preset
    * paints it as a layer over the row's stripe, so `rgb(37 99 235 / 0.08)`
    * tints the column while hover and selection still read through it.
    */
@@ -293,13 +293,13 @@ export interface ColumnGroupDef {
    */
   collapseTo?: string | string[]
   /**
-   * Paints this band's header cell, reaching the DOM as `--vt-column-bg` just
+   * Paints this band's header cell, reaching the DOM as `--vtc-column-bg` just
    * as `ColumnDef.headerBackground` does.
    */
   background?: string
   /**
    * Colours the rule drawn where this band's run of columns ends, overriding
-   * `--vt-band-border-color` on the cells either side of it.
+   * `--vtc-band-border-color` on the cells either side of it.
    *
    * Travels as a custom property rather than as a `border-color` of its own,
    * for the reason `background` travels as one: an inline border would outrank
@@ -308,7 +308,7 @@ export interface ColumnGroupDef {
   borderColor?: string
   /**
    * Widens — or with `0px` removes — this band's rule, as
-   * `--vt-band-border-width`. Give it a unit: a bare `0` is not a length, and
+   * `--vtc-band-border-width`. Give it a unit: a bare `0` is not a length, and
    * an invalid value takes the whole `border-right` with it.
    */
   borderWidth?: string

@@ -88,7 +88,7 @@ const props = withDefaults(
     /**
      * How tall one row is, in CSS pixels. Only read in `virtual` mode, where it
      * both drives the windowing arithmetic *and* is written to
-     * `--vt-row-height`, so the number the JS counts with and the number the
+     * `--vtc-row-height`, so the number the JS counts with and the number the
      * browser lays out with cannot drift apart.
      */
     rowHeight?: number
@@ -409,7 +409,7 @@ function scrollViewport(direction: number): void {
  * leftwards looked like a table that had stopped scrolling. `scroll-padding`
  * on `.vt-scroll` is the fix, and this is the number it needs; the sticky
  * header already had the same problem solved the same way one axis over, with
- * `--vt-header-rows` and `scroll-margin-top`.
+ * `--vtc-header-rows` and `scroll-margin-top`.
  *
  * Declared widths rather than a measurement, because these are the very numbers
  * `useColumns` accumulates into `pinOffset` to *place* the sticky cells. Derived
@@ -600,8 +600,8 @@ function onActivate(
           Three numbers the stylesheet cannot work out for itself, all saying
           the same thing: the browser's scroll-into-view knows nothing about
           `position: sticky`, so anything stuck has to declare how much of an
-          edge it has already spoken for. `--vt-header-rows` covers the sticky
-          header (via `scroll-margin-top`), `--vt-pin-*` the two pinned bands
+          edge it has already spoken for. `--vtc-header-rows` covers the sticky
+          header (via `scroll-margin-top`), `--vtc-pin-*` the two pinned bands
           (via `scroll-padding`).
         -->
         <div
@@ -609,14 +609,14 @@ function onActivate(
           class="vt-scroll"
           :data-sticky="stickyHeader || undefined"
           :style="{
-            '--vt-header-rows': headerRows.length,
-            '--vt-pin-left': pinnedWidth(cols, 'left'),
-            '--vt-pin-right': pinnedWidth(cols, 'right'),
+            '--vtc-header-rows': headerRows.length,
+            '--vtc-pin-left': pinnedWidth(cols, 'left'),
+            '--vtc-pin-right': pinnedWidth(cols, 'right'),
             // Only in virtual mode, so an ordinary table keeps whatever height
             // the theme gave it. Here the two have to agree: a row laid out
             // taller than the window counted on drifts a pixel per row, and by
             // row 5000 the spacers are describing a different table.
-            ...(virtual ? { '--vt-row-height': `${rowHeight}px` } : {}),
+            ...(virtual ? { '--vtc-row-height': `${rowHeight}px` } : {}),
           }"
         >
           <TableGrid

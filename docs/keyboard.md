@@ -261,7 +261,7 @@ vertical move leaves them identical for every row but two and the rest stop at a
 
 ## Styling
 
-The ring and the crosshair are `--vt-*` variables like everything else — see
+The ring and the crosshair are `--vtc-*` variables like everything else — see
 [Styling](styling.md#the-cell-cursor).
 
 Live: the **Cell cursor** tab of `pnpm demo` (`#cursor`). Back to the [docs index](/).

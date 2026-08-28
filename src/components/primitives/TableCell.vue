@@ -35,7 +35,7 @@ const cellStyle = computed(() => {
   if (props.column.pinned) {
     style[props.column.pinned === 'left' ? 'left' : 'right'] = `${props.column.pinOffset}px`
   }
-  if (props.column.background) style['--vt-column-bg'] = props.column.background
+  if (props.column.background) style['--vtc-column-bg'] = props.column.background
   paintBandEdge(style, props.bandEdge)
   return Object.keys(style).length > 0 ? style : undefined
 })

@@ -37,11 +37,11 @@ describe('ColumnDef.background', () => {
 
     const salary = cellFor(wrapper, 'salary')
     expect(salary.attributes('data-column-bg')).toBe('')
-    expect(salary.attributes('style')).toContain('--vt-column-bg: #fff7ed')
+    expect(salary.attributes('style')).toContain('--vtc-column-bg: #fff7ed')
 
     const name = cellFor(wrapper, 'name')
     expect(name.attributes('data-column-bg')).toBeUndefined()
-    expect(name.attributes('style') ?? '').not.toContain('--vt-column-bg')
+    expect(name.attributes('style') ?? '').not.toContain('--vtc-column-bg')
 
     // Every row of the column, not just the first.
     const salaryCells = wrapper
@@ -55,7 +55,7 @@ describe('ColumnDef.background', () => {
   it('paints the header only when headerBackground is set', () => {
     const wrapper = mountTable()
 
-    expect(headerFor(wrapper, 'salary').attributes('style')).toContain('--vt-column-bg: #ffedd5')
+    expect(headerFor(wrapper, 'salary').attributes('style')).toContain('--vtc-column-bg: #ffedd5')
     expect(headerFor(wrapper, 'name').attributes('data-column-bg')).toBeUndefined()
     wrapper.unmount()
   })
@@ -95,7 +95,7 @@ describe('ColumnDef.background', () => {
     )
 
     expect(cellFor(wrapper, 'salary').attributes('style')).toContain(
-      '--vt-column-bg: rgb(249 115 22 / 0.14)',
+      '--vtc-column-bg: rgb(249 115 22 / 0.14)',
     )
     wrapper.unmount()
   })
@@ -111,7 +111,7 @@ describe('ColumnDef.background', () => {
 
     const style = cellFor(wrapper, 'name').attributes('style')!
     expect(style).toContain('left: 0px')
-    expect(style).toContain('--vt-column-bg: #fff7ed')
+    expect(style).toContain('--vtc-column-bg: #fff7ed')
     wrapper.unmount()
   })
 })

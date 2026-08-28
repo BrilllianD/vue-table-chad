@@ -303,7 +303,7 @@ function reset(): void {
 .perf-controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; }
 .perf-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .perf-legend { font-size: 12px; opacity: 0.65; margin-right: 2px; }
-.perf-group button[data-current] { outline: 2px solid var(--vt-accent, #2563eb); }
+.perf-group button[data-current] { outline: 2px solid var(--vtc-accent, #2563eb); }
 
 .perf-blocked { font-size: 13px; margin: 0; opacity: 0.8; }
 

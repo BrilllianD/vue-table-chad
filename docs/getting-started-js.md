@@ -362,7 +362,7 @@ thing runs against real data.
 | [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it. |
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |
 | [Header bands](column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. |
-| [Styling](styling.md) | The `--vt-*` variables, striping, and how cell backgrounds stack. |
+| [Styling](styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. |
 | [Virtual rows](virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. |
 | [Composing your own](composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. |
 | [Performance](performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. |

@@ -132,11 +132,11 @@ const columnGroups: ColumnGroupDef[] = [
 ]
 ```
 
-The first three reach the cells as custom properties — `--vt-column-bg`, `--vt-band-border-color`,
-`--vt-band-border-width` — never as an inline `background` or `border`, which would outrank every
+The first three reach the cells as custom properties — `--vtc-column-bg`, `--vtc-band-border-color`,
+`--vtc-band-border-width` — never as an inline `background` or `border`, which would outrank every
 state rule and leave that cell or that edge dead to hover, selection and the cursor. It also means
 the stylesheet keeps ownership of *whether* the rule is drawn at all: a band naming a colour still
-disappears under `--vt-band-border-width: 0px` on the table.
+disappears under `--vtc-band-border-width: 0px` on the table.
 
 `class` is the one that stops at the header. A `<td>` belongs to a column and knows nothing about
 the bands above it, so a class has nowhere to land in the body; `borderColor` does, because by the

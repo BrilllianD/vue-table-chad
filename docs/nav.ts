@@ -112,7 +112,7 @@ export const docPages: DocPage[] = [
   {
     file: 'styling.md',
     title: 'Styling',
-    blurb: 'The `--vt-*` variables, striping, and how cell backgrounds stack.',
+    blurb: 'The `--vtc-*` variables, striping, and how cell backgrounds stack.',
     demoTabs: ['theming'],
     section: 'Presentation',
   },

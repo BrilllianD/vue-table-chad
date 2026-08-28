@@ -18,9 +18,9 @@
 
 .vt-search {
   padding: 6px 10px;
-  border: 1px solid var(--vt-border);
-  border-radius: var(--vt-radius);
-  background: var(--vt-bg);
+  border: 1px solid var(--vtc-border);
+  border-radius: var(--vtc-radius);
+  background: var(--vtc-bg);
   color: inherit;
   font: inherit;
   min-width: 220px;
@@ -28,7 +28,7 @@
 
 .vt-search:focus-visible,
 .vt-valuelist-search:focus-visible {
-  outline: 2px solid var(--vt-accent);
+  outline: 2px solid var(--vtc-accent);
   outline-offset: -1px;
 }
 
@@ -36,5 +36,5 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--vt-text-muted);
+  color: var(--vtc-text-muted);
 }

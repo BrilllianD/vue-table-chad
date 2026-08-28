@@ -189,5 +189,5 @@ const windowSize = computed(() => `${OVERSCAN_ROWS} beyond each edge`)
 .virtual-controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .virtual-controls input[type='number'] { width: 62px; }
 .virtual-group { display: inline-flex; gap: 6px; }
-.virtual-group button[data-current] { outline: 2px solid var(--vt-accent, #2563eb); }
+.virtual-group button[data-current] { outline: 2px solid var(--vtc-accent, #2563eb); }
 </style>
