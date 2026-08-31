@@ -112,7 +112,17 @@ export interface UseColumnsResult<TRow> {
   clearStored: () => void
 }
 
+/**
+ * Two jobs, one number, and they agree on purpose: the width a column gets when
+ * nothing about it can be measured — SSR, jsdom, the frame before the first
+ * layout — and the ceiling a measurement is allowed to reach. So no column ends
+ * up wider than the flat 160 every undeclared column used to be; they only get
+ * narrower.
+ */
 const DEFAULT_WIDTH = 160
+
+/** The floor a measured or resized width is held above. */
+const MIN_WIDTH = 60
 
 /**
  * Says out loud what a bad column set does quietly.
@@ -141,14 +151,30 @@ function warnAboutColumns<TRow>(defs: ColumnDef<TRow>[]): void {
           'filter state for these two is one entry that both will answer to.',
       )
     }
+    if (column.flex && column.pinned) {
+      devWarn(
+        `Column "${column.id}" declares both \`flex\` and \`pinned\`. A pinned column's sticky ` +
+          'offset is the sum of the widths before it, so it has to have one — the pin wins and ' +
+          'the column is sized like any other.',
+      )
+    }
     seen.add(column.id)
   }
 }
 
-function clampWidth<TRow>(column: ColumnDef<TRow>, width: number): number {
-  const min = column.minWidth ?? 60
-  const max = column.maxWidth ?? Number.POSITIVE_INFINITY
-  return Math.min(Math.max(width, min), max)
+/**
+ * `max` is a parameter rather than `column.maxWidth ?? DEFAULT_WIDTH`, because
+ * the two callers want different ceilings: a measurement may not exceed the
+ * default width, while a drag past `maxWidth` is the user's business — a column
+ * declaring no `maxWidth` can be dragged as wide as the pointer goes.
+ */
+function clampWidth<TRow>(
+  column: ColumnDef<TRow>,
+  width: number,
+  max = Number.POSITIVE_INFINITY,
+): number {
+  const min = column.minWidth ?? MIN_WIDTH
+  return Math.min(Math.max(width, min), column.maxWidth ?? max)
 }
 
 /**
@@ -285,8 +311,22 @@ export function useColumns<TRow>(
     return result
   })
 
-  function resolvedWidthOf(column: ColumnDef<TRow>): number {
-    return layout.value.widths[column.id] ?? column.width ?? defaultWidth
+  /**
+   * Four answers in precedence order, and `undefined` for a fifth case.
+   *
+   * A user's resize outranks everything, then a declared width, then the
+   * fallback. A `flex` column resolves to `undefined` instead: `TableGrid`
+   * renders it as a `<col>` with no width, and fixed table layout hands the
+   * leftover space to exactly those. Pinned is checked here rather than at the
+   * def, because a pin can arrive at runtime through `setPinned` — and a pinned
+   * column may not be flex, since `pinOffset` below is a sum of real widths.
+   */
+  function resolvedWidthOf(column: ColumnDef<TRow>, pinned: PinSide | false): number | undefined {
+    const stored = layout.value.widths[column.id]
+    if (stored !== undefined) return stored
+    if (column.width !== undefined) return column.width
+    if (column.flex && !pinned) return undefined
+    return defaultWidth
   }
 
   function pinnedOf(column: ColumnDef<TRow>): PinSide | false {
@@ -297,18 +337,23 @@ export function useColumns<TRow>(
   }
 
   const all = computed<ResolvedColumn<TRow>[]>(() =>
-    ordered.value.map((column, index) => ({
+    ordered.value.map((column, index) => {
+      // Resolved first and passed in, because whether a column may be flex
+      // depends on it and reading it twice could disagree with itself.
+      const pinned = pinnedOf(column)
+      return {
       ...column,
       visible: isVisible(column.id),
       order: index,
-      resolvedWidth: resolvedWidthOf(column),
-      pinned: pinnedOf(column),
+      resolvedWidth: resolvedWidthOf(column, pinned),
+      pinned,
       pinOffset: 0,
       sortDirection: options.sortFor?.(column.id) ?? false,
       sortIndex: options.sortIndexFor?.(column.id) ?? 0,
       hasFilter: options.hasFilter?.(column.id) ?? false,
       collapsed: collapsedColumnIds.value.has(column.id),
-    })),
+      }
+    }),
   )
 
   /**

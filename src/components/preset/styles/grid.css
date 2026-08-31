@@ -37,10 +37,30 @@
 .vt-table {
   border-collapse: separate;
   border-spacing: 0;
-  width: 100%;
 }
 
-.vt-table[data-layout='fixed'] { table-layout: fixed; }
+/*
+  `max-content` rather than `100%`, and the difference is the whole point.
+
+  Under fixed layout the used width is the greater of the specified width and
+  the sum of the column widths, so `max-content` here means "exactly the
+  columns" — a declared 120px column renders at 120px and the space left over
+  stays empty. `width: 100%` handed that space back to the browser, which shares
+  it out proportionally, so every declared width was a ratio rather than a size
+  on any table narrower than its box.
+*/
+.vt-table[data-layout='fixed'] {
+  table-layout: fixed;
+  width: max-content;
+}
+
+/*
+  ...unless some column asked for the leftover. `data-fill` says a `<col>` with
+  no width is present, and fixed layout gives that column everything the widthed
+  ones did not take. With no such column this rule does not match, which is what
+  keeps the slack empty instead of stretching columns nobody asked to stretch.
+*/
+.vt-table[data-layout='fixed'][data-fill] { width: 100%; }
 
 .vt-col-selection { width: 40px; }
 .vt-col-actions { width: 150px; }

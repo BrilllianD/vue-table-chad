@@ -52,6 +52,16 @@ describe('development diagnostics', () => {
     expect(messages()[0]).toContain('no `id`')
   })
 
+  it('warns about a column that is both flexible and pinned', () => {
+    const columns: ColumnDef<Row>[] = [{ id: 'name', flex: true, pinned: 'left' }, { id: 'dept' }]
+    const result = useColumns(ref(columns))
+    expect(result.all.value).toHaveLength(2)
+
+    expect(messages()[0]).toContain('declares both `flex` and `pinned`')
+    // And the pin is what actually happens, so the sticky offsets still add up.
+    expect(result.all.value[0]!.resolvedWidth).toBe(160)
+  })
+
   it('says nothing about a clean column set', () => {
     const result = useColumns(ref<ColumnDef<Row>[]>([{ id: 'name' }, { id: 'dept' }]))
     expect(result.all.value).toHaveLength(2)

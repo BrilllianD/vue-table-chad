@@ -55,6 +55,19 @@ describe('TableGrid', () => {
     wrapper.unmount()
   })
 
+  it('reports whether a column takes the leftover space', () => {
+    // The signal the preset's stylesheet reads to decide whether the table may
+    // fill its box. Every column widthed, there is nothing to absorb the slack
+    // and filling it would inflate all of them instead.
+    const widthed = mount(TableGrid, { props: { columns } })
+    expect(widthed.find('table').attributes('data-fill')).toBeUndefined()
+    widthed.unmount()
+
+    const flexible = mount(TableGrid, { props: { columns: [...columns, resolved('notes')] } })
+    expect(flexible.find('table').attributes('data-fill')).toBe('')
+    flexible.unmount()
+  })
+
   it('adds the edge columns only when asked', () => {
     const bare = mount(TableGrid, { props: { columns } })
     expect(bare.findAll('colgroup col')).toHaveLength(2)

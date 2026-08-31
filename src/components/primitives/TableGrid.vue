@@ -106,6 +106,18 @@ const columns = computed(() => props.columns ?? context?.visibleColumns.value ??
 const table = ref<HTMLTableElement | null>(null)
 
 /**
+ * Whether any column renders a `<col>` with no width — a `flex` column, or one
+ * a standalone caller left blank.
+ *
+ * Emitted as an attribute and nothing else, which is all a primitive may do:
+ * under fixed table layout a bare `<col>` absorbs whatever space is left over,
+ * so a stylesheet that lets the table fill its box wants to know whether there
+ * is anything to absorb it. Without one, filling the box would inflate every
+ * column instead.
+ */
+const fill = computed(() => columns.value.some((column) => !column.resolvedWidth))
+
+/**
  * Escapes a value for use inside a **quoted** attribute selector.
  *
  * `CSS.escape` where there is one; the fallback covers the two characters a
@@ -304,6 +316,7 @@ defineExpose({ focusCursorCell })
     ref="table"
     class="vt-table"
     :data-layout="layout ?? 'fixed'"
+    :data-fill="fill ? '' : undefined"
     :role="cursor ? 'grid' : undefined"
     :aria-rowcount="rowCount"
     v-on="cursorHandlers"

@@ -32,6 +32,32 @@ steps are documented well enough that a second person could cut a version. Run t
 package checks from `CLAUDE.md`'s Verification section (`npm pack --dry-run`, `publint`, `attw`) before
 tagging anything.
 
+### `[~]` T6 — Size an undeclared column to what it holds
+
+`resolvedWidthOf` now answers a declared width, a resize or the 160 fallback, and nothing measures
+anything — so a column that declares no width is still 160 whatever it holds. The width has to come
+from the rendered table, which means the probe lives in `preset/` (`core/` may not touch the DOM)
+and reports into `useColumns` the way `useVirtualRows.measureItem` reports row heights.
+
+**Done when:** a column declaring no `width` renders at its content width, clamped into
+`[minWidth ?? 60, maxWidth ?? defaultWidth]`; measured widths live outside `layout.widths`, so
+`resetWidth`, `resetWidths` and the saved layout are unchanged by one; the measurement is a no-op
+where nothing has geometry, so the existing suite keeps seeing the 160 fallback; scrolling a virtual
+window never re-measures; and `tests/invalidation.spec.ts` shows the report reaching no pipeline
+stage.
+
+### `[ ]` T7 — Say what the widths do now, and show it
+
+`docs/getting-started-js.md:113` says `width`/`minWidth`/`maxWidth` default to "unset", which was
+wrong even before this work — the code substituted 160. Nothing documents `flex`, and no demo view
+exercises a column that declares no width: the shared fixture declares one on all eleven columns.
+
+**Done when:** `docs/column-layout.md` has a **Sizing** section covering the resolution order, the
+clamp and `flex`; the field table in `docs/getting-started-js.md` matches the code; `docs/styling.md`
+names `[data-fill]` as the hook for a table that should fill its box anyway; and the Columns demo
+shows an undeclared column beside a flexible one, from its own fixture rather than by editing the
+bench workload.
+
 ### `[ ]` T3 — P3-9: publish the docs site
 
 `pnpm build:docs` already produces one self-contained page. Bitbucket has no Pages equivalent, so

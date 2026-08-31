@@ -95,6 +95,33 @@ describe('preset stylesheet', () => {
   })
 
   /**
+   * The table fills its box only when some column asked for the leftover.
+   *
+   * `width: 100%` on the table itself is what used to inflate every column
+   * proportionally on any table narrower than its box — a declared 120px column
+   * rendered at whatever share of the width it happened to be. The fix is one
+   * rule sizing the table to its columns and one override behind `[data-fill]`,
+   * which `TableGrid` emits only when a `<col>` carries no width. jsdom applies
+   * no stylesheet, so nothing else in the suite would notice either half going
+   * missing.
+   */
+  it('lets the table fill its box only behind [data-fill]', () => {
+    const widths = rules().filter((r) => /(^|,)\s*\.vt-table\b/.test(r.selector) && /width\s*:/.test(r.body))
+
+    const filling = widths.filter((r) => /width:\s*100%/.test(r.body))
+    expect(
+      filling.map((r) => r.selector),
+      'a .vt-table rule sets width: 100% without [data-fill]; that shares the slack out over every column instead of the one that asked for it',
+    ).toEqual(['.vt-table[data-layout=\'fixed\'][data-fill]'])
+
+    const sized = widths.filter((r) => /\[data-layout='fixed'\]/.test(r.selector) && !/data-fill/.test(r.selector))
+    expect(
+      sized.map((r) => r.body.match(/width:\s*([^;]+)/)![1]!.trim()),
+      'the fixed-layout table sets no width of its own, so it inherits the browser\'s and the columns stop meaning px',
+    ).toEqual(['max-content'])
+  })
+
+  /**
    * The theme is settable from one place. A rule elsewhere that assigns a
    * public `--vtc-` token outranks whatever the consumer wrote on
    * `.vt-datatable`, so the token stops being a knob and starts being a lie —

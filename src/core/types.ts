@@ -182,9 +182,31 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   editor?: CellEditorKind
   /** Rejects a blank, using the same `isBlank` that buckets them for filters. */
   required?: boolean
+  /**
+   * A fixed width in px. Declared, it is exactly what renders.
+   *
+   * Left off, the column is measured from what it holds and clamped into
+   * `[minWidth ?? 60, maxWidth ?? defaultWidth]` — so an id column narrows to
+   * its digits while a free-text one stops at the cap rather than running on.
+   */
   width?: number
+  /** Floor for a measured or resized width. Defaults to 60. */
   minWidth?: number
+  /**
+   * Ceiling for a measured width. Defaults to `useColumns`' own `defaultWidth`,
+   * which is 160 — the width every undeclared column used to be.
+   */
   maxWidth?: number
+  /**
+   * Takes the space left over when the columns do not fill their box.
+   *
+   * Without one the table is exactly as wide as its columns and the slack stays
+   * empty; with several they share it equally. `width` outranks it, resizing
+   * one fixes it at a number until `resetWidth`, and it is **ignored on a
+   * pinned column** — sticky offsets are sums of real widths, and a column with
+   * no width of its own cannot be summed.
+   */
+  flex?: boolean
   resizable?: boolean
   hideable?: boolean
   /** Whether the column can be dragged to a new position. Defaults to true. */
@@ -241,6 +263,10 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
 export interface ResolvedColumn<TRow = Record<string, unknown>> extends ColumnDef<TRow> {
   visible: boolean
   order: number
+  /**
+   * The width to render, in px, or `undefined` for a column that takes the
+   * leftover space — a `flex` column, or one a standalone caller left blank.
+   */
   resolvedWidth: number | undefined
   pinned: PinSide | false
   /** Sticky offset in px, only meaningful when pinned. */

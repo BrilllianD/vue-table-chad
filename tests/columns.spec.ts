@@ -248,6 +248,84 @@ describe('useColumns header band collapse', () => {
   })
 })
 
+describe('useColumns flexible columns', () => {
+  function widthOf(result: ReturnType<typeof setup>['columns'], id: string) {
+    return result.all.value.find((column) => column.id === id)?.resolvedWidth
+  }
+
+  it('gives a flex column no width of its own', () => {
+    const { columns, dispose } = setup(
+      personColumns.map((column) => (column.id === 'name' ? { ...column, flex: true } : column)),
+    )
+
+    // Not the default, and not zero: the `<col>` has to carry no width at all
+    // for fixed layout to hand it the leftover space.
+    expect(widthOf(columns, 'name')).toBeUndefined()
+    expect(widthOf(columns, 'salary')).toBe(160)
+    dispose()
+  })
+
+  it('lets a declared width and a resize both outrank it', () => {
+    const { columns, dispose } = setup(
+      personColumns.map((column) =>
+        column.id === 'name' ? { ...column, flex: true, width: 240 } : column,
+      ),
+    )
+    expect(widthOf(columns, 'name')).toBe(240)
+
+    const resized = setup(
+      personColumns.map((column) => (column.id === 'name' ? { ...column, flex: true } : column)),
+    )
+    resized.columns.setWidth('name', 300)
+    expect(widthOf(resized.columns, 'name')).toBe(300)
+
+    // And letting go of the resize hands the column back to the leftover.
+    resized.columns.resetWidth('name')
+    expect(widthOf(resized.columns, 'name')).toBeUndefined()
+    resized.dispose()
+    dispose()
+  })
+
+  it('refuses to be flexible while pinned, however the pin arrived', () => {
+    const { columns, dispose } = setup(
+      personColumns.map((column) =>
+        column.id === 'name' ? { ...column, flex: true, pinned: 'left' as const } : column,
+      ),
+    )
+    // A sticky offset is the sum of the widths before it, so a pinned column
+    // has to have one.
+    expect(widthOf(columns, 'name')).toBe(160)
+    dispose()
+
+    const late = setup(
+      personColumns.map((column) => (column.id === 'name' ? { ...column, flex: true } : column)),
+    )
+    expect(widthOf(late.columns, 'name')).toBeUndefined()
+    late.columns.setPinned('name', 'left')
+    expect(widthOf(late.columns, 'name')).toBe(160)
+    late.dispose()
+  })
+
+  it('keeps the pin offsets behind it correct', () => {
+    const { columns, dispose } = setup(
+      personColumns.map((column) =>
+        column.id === 'name'
+          ? { ...column, pinned: 'left' as const, width: 120 }
+          : column.id === 'department'
+            ? { ...column, pinned: 'left' as const, flex: true }
+            : column,
+      ),
+    )
+
+    const pinned = columns.visible.value.filter((column) => column.pinned === 'left')
+    expect(pinned.map((column) => [column.id, column.pinOffset])).toEqual([
+      ['name', 0],
+      ['department', 120],
+    ])
+    dispose()
+  })
+})
+
 describe('useColumns width reset', () => {
   /** One column declaring a width and one leaving it to the default. */
   const widthDefs: ColumnDef<Person>[] = personColumns.map((column) =>
