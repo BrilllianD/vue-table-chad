@@ -32,18 +32,6 @@ steps are documented well enough that a second person could cut a version. Run t
 package checks from `CLAUDE.md`'s Verification section (`npm pack --dry-run`, `publint`, `attw`) before
 tagging anything.
 
-### `[~]` T7 — Say what the widths do now, and show it
-
-`docs/getting-started-js.md:113` says `width`/`minWidth`/`maxWidth` default to "unset", which was
-wrong even before this work — the code substituted 160. Nothing documents `flex`, and no demo view
-exercises a column that declares no width: the shared fixture declares one on all eleven columns.
-
-**Done when:** `docs/column-layout.md` has a **Sizing** section covering the resolution order, the
-clamp and `flex`; the field table in `docs/getting-started-js.md` matches the code; `docs/styling.md`
-names `[data-fill]` as the hook for a table that should fill its box anyway; and the Columns demo
-shows an undeclared column beside a flexible one, from its own fixture rather than by editing the
-bench workload.
-
 ### `[ ]` T3 — P3-9: publish the docs site
 
 `pnpm build:docs` already produces one self-contained page. Bitbucket has no Pages equivalent, so

@@ -44,6 +44,23 @@ const state = useTableState({ pageSize: 10 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 
 /**
+ * The sizing defaults, which the shared fixture hides: it declares a width on
+ * all eleven columns, so nothing here used to show what happens when a column
+ * declares none. `city` and `country` are measured from what they hold, and
+ * `role` takes whatever the rest of the table leaves over.
+ */
+const sizedColumns = employeeColumns.map((column) =>
+  column.id === 'role'
+    ? { ...column, width: undefined, flex: true }
+    : column.id === 'city' || column.id === 'country'
+      ? { ...column, width: undefined }
+      : column,
+)
+
+const sizedState = useTableState({ pageSize: 5 })
+const sizedSource = useLocalDataSource<Employee>(rows, sizedColumns, sizedState.query)
+
+/**
  * A second, standalone `useColumns` — not the one inside the table. It drives
  * the control panel, which proves the composable is usable on its own; the
  * table below gets the same layout handed to it as `initialLayout`.
@@ -138,6 +155,9 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       'ColumnResizeHandle',
       'ColumnDragGhost',
       'ResolvedColumn.pinOffset',
+      'ColumnDef.flex',
+      'ColumnDef.minWidth',
+      'ColumnDef.maxWidth',
       'sanitizeColumnLayout',
       'normalizeColumnStorage',
       'DEFAULT_COLUMN_LAYOUT_FIELDS',
@@ -282,6 +302,21 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       @update:column-order="columns.setOrder($event)"
     />
 
+    <h3 class="sizing-heading">Widths, when a column does not declare one</h3>
+
+    <DataTable :columns="sizedColumns" :source="sizedSource" :state="sizedState" />
+
+    <p class="hint">
+      <code>city</code> and <code>country</code> declare no <code>width</code>, so each is measured
+      once from what it holds and clamped into <code>[minWidth ?? 60, maxWidth ?? 160]</code> — a
+      country name needs less than the flat 160 every column used to get. <code>role</code> is
+      <code>flex: true</code> and takes whatever the others leave over: narrow the window and it
+      gives space up first. Every other column declares a width and renders at exactly that, which
+      is the part that used to be untrue — the table sized itself to its box and the browser shared
+      the surplus over all eleven. With no flexible column at all the table simply stops short of
+      the right edge.
+    </p>
+
     <p class="hint">
       Drag a header <em>body</em> to move the column, or its right edge to resize it — two different
       pointer gestures on the same cell, split by a 4px threshold so a plain click still sorts.
@@ -317,6 +352,7 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
   border-left: 1px solid var(--line);
 }
 .tiny { padding: 0 6px; font-size: 12px; }
+.sizing-heading { margin: 28px 0 8px; font-size: 15px; }
 .side h4 { margin: 12px 0 4px; font-size: 13px; }
 
 @media (max-width: 860px) {

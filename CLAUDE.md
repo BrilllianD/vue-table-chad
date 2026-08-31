@@ -207,6 +207,29 @@ Answered once. Reopen one only with a reason, and rewrite the entry rather than 
     on the element itself, never on an ancestor — CSS cannot say "and nothing above said light", so
     an ancestor form costs a second copy of both palettes, and the teleported case it would have
     covered is covered by the `theme` prop reaching `.vt-portal` instead.
+- **Column widths are measured once, and the slack is opt-in.** `.vt-table` sizes to `max-content`
+  under `table-layout: fixed`, which is exactly the sum of the columns; `width: 100%` used to hand
+  the surplus back to the browser, which shares it over every column and made a declared `width: 120`
+  a ratio rather than a size. A column takes that surplus by asking — `ColumnDef.flex` resolves to no
+  width at all and renders as a bare `<col>`, which is what fixed layout gives the leftover to, and
+  `TableGrid` emits `data-fill` to say one exists.
+  - **`flex` is a boolean, not an `fr`.** Weights would mean re-implementing column layout in
+    JavaScript; equal shares are what the browser does for free. It is refused on a pinned column,
+    checked at read time because a pin can arrive through `setPinned`.
+  - **A column that declares no `width` is measured**, clamped into
+    `[minWidth ?? 60, maxWidth ?? defaultWidth]`. The one number does two jobs on purpose: 160 is
+    both the fallback where nothing can be measured and the ceiling a measurement may reach, so no
+    column comes out wider than the flat 160 it used to be.
+  - **The probe lives in `preset/`** (`src/components/preset/useAutoColumnWidth.ts`) because it reads
+    the DOM, which `core/` may not, and because it depends on the preset's `[data-measuring]` rules,
+    which a primitive may not. `useColumns` holds the numbers and stays DOM-free — the shape
+    `useVirtualRows` already uses for row heights.
+  - **Each id is measured once**, and never on scroll or a page turn: a width that depended on which
+    window was on screen would move under the reader. `remeasureColumns()` is the way to ask again.
+  - **The `width > 0` discard is load-bearing.** jsdom applies no layout, so every rect is zero, so
+    nothing is written and the suite keeps seeing the declared fallback.
+    `tests/columnAutoWidth.spec.ts` asserts that directly — if it ever fails, the several hundred
+    assertions resting on 160 are the next thing to go.
 - **The package name is `@brillliand/vue-table-chad`.** Scoped, so `publishConfig: { access:
   "public" }` is required rather than optional. The scope is the account name `BrilllianD`
   lowercased, because **npm forbids uppercase in a package name, scope included** — that lowercase

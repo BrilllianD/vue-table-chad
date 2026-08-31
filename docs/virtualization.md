@@ -107,6 +107,12 @@ the header checkbox's tri-state asked "are all of these selected" over every row
 virtual mode hands it the dataset. It now counts from the selection instead, so a click costs the
 same at 100k as it does on a page of 25.
 
+Column widths are measured once, from the first window that has rows, and never
+again while you scroll — a width recomputed per window would twitch as taller or
+longer values came into view, and at 100k rows there is always a longer value.
+See [Column layout](column-layout.md#sizing) for `remeasureColumns()`, which is
+how you ask for a new answer after replacing the data.
+
 ## Where you land when the list changes
 
 Fold a band shut while scrolled deep and every row below it moves up by the height the band was

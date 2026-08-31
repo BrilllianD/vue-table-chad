@@ -29,6 +29,45 @@ columns.resetLayout()
 Sticky offsets for pinned columns are recomputed from live widths, so resizing a pinned column
 shifts the ones pinned after it.
 
+## Sizing
+
+Four answers, in this order:
+
+```ts
+{ id: 'city' }                    // measured from what it holds
+{ id: 'name', width: 200 }        // exactly 200px
+{ id: 'notes', flex: true }       // whatever the other columns leave over
+columns.setWidth('city', 300)     // a resize outranks all three
+```
+
+A column declaring no `width` is measured once from the rendered table and
+clamped into `[minWidth ?? 60, maxWidth ?? 160]` — so an id column narrows to its
+digits while a free-text one stops at the cap and ellipsises. The ceiling is
+`useColumns`' `defaultWidth`, which is also the width a column falls back to
+where nothing can be measured: a server render, a test, the frame before the
+first layout.
+
+- The measurement reads the first render that has rows, and **does not run
+  again** on scroll, paging, filtering or sorting — a width that depended on
+  which rows were on screen would change under the reader. `tableRef.remeasureColumns()`
+  asks for a new answer after swapping the dataset for one whose cells are a
+  different size.
+- Measured widths are **not persisted** and are not what `resetWidth` clears.
+  Resetting a resized column lands back on its measured width; `storageFields`
+  still governs the widths a *user* dragged.
+- `minWidth` and `maxWidth` are the knobs. `maxWidth: 400` lets one column run
+  wider than the rest; `minWidth: 120` keeps a short column from collapsing to
+  its header.
+
+Without a `flex` column the table is exactly as wide as its columns and the space
+to the right stays empty; with several they share it equally. `flex` is ignored
+on a pinned column and warns, because a sticky offset is the sum of the widths
+before it and a column with no width of its own cannot be summed. Resizing a flex
+column fixes it at a number until `resetWidth` hands it back to the leftover.
+
+`.vt-table[data-fill]` is the styling hook for the fill case, and
+`ColumnDef.resizable: false` opts a column out of being dragged at all.
+
 ## Remembering the layout
 
 One prop persists the layout — visibility, order, widths and pins — to `localStorage` and

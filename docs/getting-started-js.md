@@ -110,7 +110,9 @@ valid value, and passing one silently falls back to the default.
 | `editor` | `'text'`, `'number'`, `'date'`, `'checkbox'`, `'select'`, `'textarea'` | derived from `type` |
 | `sortable`, `filterable`, `resizable`, `hideable`, `reorderable`, `groupable`, `required` | `true` / `false` | `true` (`required` is `false`) |
 | `searchable` | `true` / `false` | whatever `filterable` is |
-| `width`, `minWidth`, `maxWidth` | numbers, in px | unset |
+| `width` | a number, in px; exactly what renders | measured from the cells, capped at 160 |
+| `minWidth`, `maxWidth` | numbers, in px; the clamp on a measured or resized width | `60` and `160` |
+| `flex` | `true` / `false`; takes the space the other columns leave over | `false` |
 | `options` | array of values, for an `enum` column's fixed checklist | derived from the data |
 | `background`, `headerBackground` | any CSS colour, alpha included | unset |
 | `group` | the id of a header band | none |

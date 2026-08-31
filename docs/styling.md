@@ -355,6 +355,25 @@ layer of the stack above — never as an inline `background`, which would outran
 and leave hover and selection dead in that column. Use an alpha below 1 and the column reads as a
 tint over whatever the row is doing; use an opaque colour and the column wins outright.
 
+## Column widths, and the table's own
+
+The table is exactly as wide as its columns, and the space to the right of them
+stays empty — `width: 100%` would hand that space back to the browser, which
+shares it out over every column and turns a declared `width: 120` into a ratio.
+A column that wants it asks for it with `flex: true`, and `TableGrid` then marks
+the table `data-fill`:
+
+```css
+/* fill the box regardless, and let the browser share out the surplus */
+.vt-datatable .vt-table { width: 100%; }
+```
+
+Widths themselves are a column concern rather than a stylesheet one — see
+[Column layout](column-layout.md#sizing). One thing here does affect them: a
+column that declares no width is measured from what it holds, so a rule that
+changes `--vtc-cell-padding-x` or the font changes what gets measured on the next
+mount.
+
 ---
 
 Live: the **Theming** tab of `pnpm demo` (`#theming`), and **Header bands** for the band rules. Back to the [docs index](/).
