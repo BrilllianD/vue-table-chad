@@ -20,12 +20,13 @@ import {
   useLocalDataSource,
   useTableState,
   writeColumnLayout,
+  type ColumnDef,
   type PinSide,
   type UseColumnsOptions,
   type UseColumnsResult,
 } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
-import { employeeColumns, sizedEmployeeColumns } from '../columns'
+import { columnFor, employeeColumns, sizedEmployeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 
@@ -51,6 +52,39 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
  */
 const sizedState = useTableState({ pageSize: 5 })
 const sizedSource = useLocalDataSource<Employee>(rows, sizedEmployeeColumns, sizedState.query)
+
+/**
+ * `flex`, with room to actually take.
+ *
+ * Six columns rather than eleven, because the surplus is the whole point and
+ * the full set has none: their declared widths add up to 910px inside a page
+ * that is 1240px wide. The table above shows the opposite case — a flexible
+ * column in a table that already overflows gives its space up first and sits at
+ * its minimum.
+ */
+const FLEX_TABLE_IDS = ['name', 'department', 'role', 'city', 'tags', 'salary']
+
+/** None, one flexible column, or two — which is how equal shares get shown. */
+const flexMode = ref<'none' | 'one' | 'two'>('one')
+
+const flexIds = computed<string[]>(() =>
+  flexMode.value === 'none' ? [] : flexMode.value === 'one' ? ['role'] : ['role', 'tags'],
+)
+
+const flexColumns = computed<ColumnDef<Employee>[]>(() =>
+  FLEX_TABLE_IDS.map((id) => {
+    const column = columnFor(id)
+    // `width: undefined` as well as `flex`, because a declared width outranks
+    // flex in `resolvedWidth` — the fixture declares one on every column.
+    return flexIds.value.includes(id) ? { ...column, width: undefined, flex: true } : column
+  }),
+)
+
+const flexState = useTableState({ pageSize: 5 })
+// The full column set, not the six on screen: the pipeline reads accessors and
+// formats, never widths, so the toggle is a layout change and must not hand the
+// source a new columns identity to re-filter and re-sort behind.
+const flexSource = useLocalDataSource<Employee>(rows, employeeColumns, flexState.query)
 
 /**
  * A second, standalone `useColumns` — not the one inside the table. It drives
@@ -307,6 +341,44 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
       is the part that used to be untrue — the table sized itself to its box and the browser shared
       the surplus over all eleven. With no flexible column at all the table simply stops short of
       the right edge.
+    </p>
+
+    <p class="hint">
+      <code>role</code> is a sliver up there because eleven declared widths already add up to more
+      than this page is wide, and the flexible column is the one that gives its space up first. The
+      table below has six columns and 330px going spare, which is what <code>flex</code> looks like
+      when there is room to take.
+    </p>
+
+    <h3 class="sizing-heading">A column that takes the leftover</h3>
+
+    <div class="controls">
+      <label>
+        Flexible columns
+        <select v-model="flexMode">
+          <option value="none">none</option>
+          <option value="one">role</option>
+          <option value="two">role + tags</option>
+        </select>
+      </label>
+      <span class="hint">
+        declared widths total 910px; the page gives the table 1240px
+      </span>
+    </div>
+
+    <DataTable :columns="flexColumns" :source="flexSource" :state="flexState" />
+
+    <p class="hint">
+      With <strong>none</strong>, every column renders at exactly its declared width: the table is
+      910px wide and stops short of the right edge, because it sizes to <code>max-content</code> and
+      nothing hands the surplus back. Make <code>role</code> flexible and it gives up its declared
+      130 for everything the other five leave — 458px of the 1238 on offer. Make <code>tags</code>
+      flexible too and the two take 314px each, split evenly, because <code>flex</code> is a boolean
+      rather than an <code>fr</code> weight: a flexible column resolves to no width at all,
+      renders as a bare <code>&lt;col&gt;</code>, and fixed table layout is what shares the leftover
+      between exactly those. Drag a flexible column's edge and it stops being flexible — a resize
+      writes a real width, which outranks everything. <code>flex</code> is refused on a pinned
+      column, checked at read time because a pin can arrive later through <code>setPinned</code>.
     </p>
 
     <p class="hint">
