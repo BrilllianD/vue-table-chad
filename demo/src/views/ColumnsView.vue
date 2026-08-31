@@ -25,7 +25,7 @@ import {
   type UseColumnsResult,
 } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
-import { employeeColumns } from '../columns'
+import { employeeColumns, sizedEmployeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 
@@ -46,19 +46,11 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 /**
  * The sizing defaults, which the shared fixture hides: it declares a width on
  * all eleven columns, so nothing here used to show what happens when a column
- * declares none. `city` and `country` are measured from what they hold, and
- * `role` takes whatever the rest of the table leaves over.
+ * declares none. The derived set lives in `../columns` because the Overview
+ * view shows the same three columns behind a toggle.
  */
-const sizedColumns = employeeColumns.map((column) =>
-  column.id === 'role'
-    ? { ...column, width: undefined, flex: true }
-    : column.id === 'city' || column.id === 'country'
-      ? { ...column, width: undefined }
-      : column,
-)
-
 const sizedState = useTableState({ pageSize: 5 })
-const sizedSource = useLocalDataSource<Employee>(rows, sizedColumns, sizedState.query)
+const sizedSource = useLocalDataSource<Employee>(rows, sizedEmployeeColumns, sizedState.query)
 
 /**
  * A second, standalone `useColumns` — not the one inside the table. It drives
@@ -304,7 +296,7 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
 
     <h3 class="sizing-heading">Widths, when a column does not declare one</h3>
 
-    <DataTable :columns="sizedColumns" :source="sizedSource" :state="sizedState" />
+    <DataTable :columns="sizedEmployeeColumns" :source="sizedSource" :state="sizedState" />
 
     <p class="hint">
       <code>city</code> and <code>country</code> declare no <code>width</code>, so each is measured

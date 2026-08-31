@@ -20,7 +20,7 @@ import {
   type TableStateOptions,
 } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
-import { employeeColumns } from '../columns'
+import { employeeColumns, sizedEmployeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 import TableStatus from '../components/TableStatus.vue'
@@ -37,6 +37,9 @@ const stateOptions: TableStateOptions = {
 
 const state: TableState = useTableState(stateOptions)
 
+// The declared set, always — even when the table below is rendering the other
+// one. Width is not a pipeline input, so handing the source a fresh columns
+// identity on a layout toggle would buy a filter and a sort pass for nothing.
 const source: LocalDataSource<Employee> = useLocalDataSource<Employee>(
   rows,
   employeeColumns,
@@ -56,6 +59,12 @@ const showFooter = ref(false)
 const stickyHeader = ref(true)
 const customToolbar = ref(false)
 const onlyActiveSelectable = ref(false)
+/** Swaps in the three columns that declare no `width` — see `sizedEmployeeColumns`. */
+const sizingDefaults = ref(false)
+
+const tableColumns = computed(() =>
+  sizingDefaults.value ? sizedEmployeeColumns : employeeColumns,
+)
 
 /* ----------------------------------------------------------------- events */
 
@@ -106,6 +115,9 @@ function forgetLayout(): void {
       'DataTable showFooter',
       'DataTable storageKey',
       'DataTable rowClickSelect',
+      'ColumnDef.flex',
+      'ColumnDef.minWidth',
+      'ColumnDef.maxWidth',
       'TableRow',
     ]"
   >
@@ -135,6 +147,10 @@ function forgetLayout(): void {
         <label>
           <input v-model="onlyActiveSelectable" type="checkbox" /> isRowSelectable = row.active
         </label>
+        <label>
+          <input v-model="sizingDefaults" type="checkbox" /> width defaults
+          <span class="hint">city and country measured from what they hold, role flexible</span>
+        </label>
 
         <button type="button" @click="state.reset()">state.reset()</button>
         <button type="button" @click="forgetLayout()">forget saved layout</button>
@@ -147,7 +163,7 @@ function forgetLayout(): void {
 
     <DataTable
       :key="tableKey"
-      :columns="employeeColumns"
+      :columns="tableColumns"
       :source="source"
       :state="state"
       :selectable="selectable"
@@ -221,6 +237,19 @@ function forgetLayout(): void {
       {{ filteredCount }} of {{ rows.length }} rows match ·
       {{ selectedIds.length }} selected ·
       last clicked: <strong>{{ lastClicked?.name ?? '—' }}</strong>
+    </p>
+
+    <p class="hint">
+      With <strong>width defaults</strong> on, <code>city</code> and <code>country</code> declare no
+      <code>width</code>: each is measured once from what it holds and clamped into
+      <code>[minWidth ?? 60, maxWidth ?? 160]</code> — city comes out around 102px rather than the
+      flat 160 every undeclared column used to get. <code>role</code> is <code>flex: true</code> and
+      takes whatever the other columns leave over, which on this page is nothing: the declared
+      widths already add up to more than the 1240px the demo gives them, so the flexible column is
+      the one that gives its space up first and sits at a sliver until something frees space. Hide
+      a couple of columns from the <strong>Columns</strong> menu and watch it take the room back. A
+      width you dragged yourself outranks both and is saved, so <strong>forget saved layout</strong>
+      is what puts the measurement back.
     </p>
 
     <StateInspector label="QueryState emitted by @update:query" :value="lastQuery" />
