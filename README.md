@@ -32,7 +32,7 @@ pnpm build       # library -> dist/
 pnpm build:docs  # the demo, folded into one self-contained page
 ```
 
-`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 18 views, every export, one
+`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 19 views, every export, one
 view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
 
 Not on npm yet: `@brillliand/vue-table-chad` is the name the examples import from — an alias onto

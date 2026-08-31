@@ -100,6 +100,10 @@ export const examplesByTab: Record<string, TabExamples> = {
   editing: { files: ['editing.vue'] },
   cursor: { files: ['keyboard.vue'] },
   'header-groups': { files: ['column-groups.vue'] },
+  wide: {
+    files: [],
+    why: 'No source panel here on purpose: what this view demonstrates is 34 column defs with nothing declared on them, which column-layout.vue already shows on three — the interesting part is the widths on screen, not the code that produced them.',
+  },
   state: { files: ['hoisted-state.vue'] },
   theming: { files: ['styling.vue'] },
   virtual: { files: ['virtualization.vue'] },

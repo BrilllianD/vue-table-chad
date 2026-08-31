@@ -12,12 +12,12 @@ including the decisions already settled and how the work is verified.
 ## Commands
 
 ```bash
-pnpm test          # vitest, 807 tests across 44 files
+pnpm test          # vitest, 828 tests across 45 files
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
 pnpm build         # typecheck + vite lib build -> dist/
-pnpm demo          # http://localhost:5174 — 18 views, every feature one view each
+pnpm demo          # http://localhost:5174 — 19 views, every feature one view each
 pnpm dev           # http://localhost:5173 — the smaller playground
 pnpm build:docs    # the demo, folded into one self-contained page
 ```
@@ -287,7 +287,7 @@ threshold to fail.
   point rather than the behaviour, run it against `pnpm build:demo` served from `demo/dist` instead:
   the dev build costs about 8ms a frame in component creation alone, which is most of what a
   scrolling measurement reports (see [`bench/BASELINE.md`](bench/BASELINE.md)).
-- Walk all 18 demo views. **Composed** and **Core only** exercise the primitives and pure functions
+- Walk all 19 demo views. **Composed** and **Core only** exercise the primitives and pure functions
   directly and are the best canaries for a render-layer change.
 - `pnpm build` and `pnpm build:docs` clean.
 

@@ -10,6 +10,7 @@ import FiltersView from './views/FiltersView.vue'
 import GroupingView from './views/GroupingView.vue'
 import ColumnsView from './views/ColumnsView.vue'
 import HeaderGroupsView from './views/HeaderGroupsView.vue'
+import WideColumnsView from './views/WideColumnsView.vue'
 import ComposedView from './views/ComposedView.vue'
 import HeadlessView from './views/HeadlessView.vue'
 import StateView from './views/StateView.vue'
@@ -60,6 +61,7 @@ const tabs: Tab[] = (
     { id: 'editing', label: 'Editing', layer: 'preset', component: EditingView },
     { id: 'cursor', label: 'Cell cursor', layer: 'preset', component: CursorView },
     { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },
+    { id: 'wide', label: 'Wide table', layer: 'preset', component: WideColumnsView },
     { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
     { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
     { id: 'virtual', label: 'Virtual rows', layer: 'preset', component: VirtualView },
