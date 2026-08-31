@@ -11,7 +11,12 @@ import { useTableContext } from '../../core/context'
 
 const props = defineProps<{
   columnId: string
-  width: number
+  /**
+   * The column's current width, when the caller knows it. Left off — which is
+   * what a column taking the leftover space has to do — the drag starts from
+   * the header cell's measured width instead.
+   */
+  width?: number
   minWidth?: number
 }>()
 
@@ -22,6 +27,20 @@ const dragging = ref(false)
 
 let startX = 0
 let startWidth = 0
+
+/**
+ * Where a gesture starts from: the declared width, or the width on screen.
+ *
+ * A flex column has no width of its own, so there is nothing to hand down and a
+ * constant would make the first drag jump. The handle lives inside the `<th>`
+ * it resizes, so the fallback is one rect read on one element, on a gesture
+ * that is about to read the pointer anyway.
+ */
+function widthAt(target: EventTarget | null): number {
+  if (typeof props.width === 'number') return props.width
+  const cell = (target as HTMLElement | null)?.closest('th')
+  return cell?.getBoundingClientRect().width ?? 0
+}
 
 function apply(width: number): void {
   const next = Math.max(width, props.minWidth ?? 60)
@@ -34,7 +53,7 @@ function onPointerDown(event: PointerEvent): void {
   event.stopPropagation()
   dragging.value = true
   startX = event.clientX
-  startWidth = props.width
+  startWidth = widthAt(event.currentTarget)
   const target = event.currentTarget as HTMLElement
   target.setPointerCapture(event.pointerId)
 }
@@ -72,10 +91,10 @@ function onKeydown(event: KeyboardEvent): void {
   const step = event.shiftKey ? 40 : 10
   if (event.key === 'ArrowLeft') {
     event.preventDefault()
-    apply(props.width - step)
+    apply(widthAt(event.currentTarget) - step)
   } else if (event.key === 'ArrowRight') {
     event.preventDefault()
-    apply(props.width + step)
+    apply(widthAt(event.currentTarget) + step)
   }
 }
 </script>

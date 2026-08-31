@@ -32,21 +32,7 @@ steps are documented well enough that a second person could cut a version. Run t
 package checks from `CLAUDE.md`'s Verification section (`npm pack --dry-run`, `publint`, `attw`) before
 tagging anything.
 
-### `[~]` T6 — Size an undeclared column to what it holds
-
-`resolvedWidthOf` now answers a declared width, a resize or the 160 fallback, and nothing measures
-anything — so a column that declares no width is still 160 whatever it holds. The width has to come
-from the rendered table, which means the probe lives in `preset/` (`core/` may not touch the DOM)
-and reports into `useColumns` the way `useVirtualRows.measureItem` reports row heights.
-
-**Done when:** a column declaring no `width` renders at its content width, clamped into
-`[minWidth ?? 60, maxWidth ?? defaultWidth]`; measured widths live outside `layout.widths`, so
-`resetWidth`, `resetWidths` and the saved layout are unchanged by one; the measurement is a no-op
-where nothing has geometry, so the existing suite keeps seeing the 160 fallback; scrolling a virtual
-window never re-measures; and `tests/invalidation.spec.ts` shows the report reaching no pipeline
-stage.
-
-### `[ ]` T7 — Say what the widths do now, and show it
+### `[~]` T7 — Say what the widths do now, and show it
 
 `docs/getting-started-js.md:113` says `width`/`minWidth`/`maxWidth` default to "unset", which was
 wrong even before this work — the code substituted 160. Nothing documents `flex`, and no demo view

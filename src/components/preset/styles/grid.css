@@ -62,6 +62,31 @@
 */
 .vt-table[data-layout='fixed'][data-fill] { width: 100%; }
 
+/*
+  The measuring probe, which exists for one synchronous instant.
+
+  `useAutoColumnWidth` sets the attribute, reads every header cell and takes it
+  off again with no render in between, so a column that declares no width can be
+  as wide as what it holds. Both declarations are load-bearing: `auto` is what
+  makes the browser look at the content at all, and `max-content` stops the
+  surplus being shared back out — under `width: 100%` every column would measure
+  as its stretched share and clamp to the ceiling, which is the very bug this
+  sizing is here to fix.
+
+  `!important` because a `<col>` carries its resolved width as an *inline*
+  style, and before the first measurement that width is the fallback: without
+  outranking it the probe would measure the fallback and confirm it forever.
+  Nothing outside this one attribute is affected, `.vt-col-selection` and
+  `.vt-col-actions` included — nothing reads them during the probe, and under
+  `max-content` no column's intrinsic width depends on another's.
+*/
+.vt-table[data-measuring] {
+  table-layout: auto;
+  width: max-content;
+}
+
+.vt-table[data-measuring] col { width: auto !important; }
+
 .vt-col-selection { width: 40px; }
 .vt-col-actions { width: 150px; }
 

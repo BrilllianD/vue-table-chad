@@ -105,6 +105,21 @@ export interface UseColumnsResult<TRow> {
   clearPinned: (columnId: string) => void
   resetLayout: () => void
   /**
+   * Reports widths measured from a rendered table, by id.
+   *
+   * Not the persisted channel `setWidth` writes to: a measurement is never
+   * saved, `resetWidth` does not clear it, and it is outranked by both a resize
+   * and a declared `width`. Ids are written once — a later pass sees different
+   * rows and must not move a column that is already on screen — and a width of
+   * zero, which is what an unrendered element reports, is discarded.
+   */
+  setAutoWidths: (widths: Record<string, number>) => void
+  /**
+   * Forgets every measured width, so the next pass measures again. For a
+   * caller that replaced the dataset with one whose cells are a different size.
+   */
+  clearAutoWidths: () => void
+  /**
    * Drops the saved layout from storage without touching the current one. A
    * no-op when no `storage` was configured; `resetLayout()` overwrites the
    * saved entry with an empty layout, which is usually what you want instead.
@@ -199,6 +214,18 @@ export function useColumns<TRow>(
     pinned: { ...(initial.pinned ?? {}) },
     collapsedGroups: initial.collapsedGroups ? [...initial.collapsedGroups] : [],
   })
+
+  /**
+   * Widths measured from the rendered table, by whoever can see one.
+   *
+   * A separate map from `layout.widths` on purpose: that one is what the *user*
+   * did — it is persisted, `resetWidth` clears it, and `columnStorage` is
+   * defined against it. A measurement is a property of the viewport and the
+   * font instead, so it is neither saved nor reset, and `resetWidth` on a
+   * measured column now lands back on the measurement rather than on a number
+   * the column never asked for.
+   */
+  const autoWidths = ref<Record<string, number>>({})
 
   if (storage) {
     // Batched (default flush), so a resize drag writes once per tick rather
@@ -326,6 +353,8 @@ export function useColumns<TRow>(
     if (stored !== undefined) return stored
     if (column.width !== undefined) return column.width
     if (column.flex && !pinned) return undefined
+    const measured = autoWidths.value[column.id]
+    if (measured !== undefined) return measured
     return defaultWidth
   }
 
@@ -477,6 +506,35 @@ export function useColumns<TRow>(
     layout.value = { ...layout.value, widths: {} }
   }
 
+  function setAutoWidths(widths: Record<string, number>): void {
+    let next: Record<string, number> | undefined
+    for (const [columnId, width] of Object.entries(widths)) {
+      // Zero is what an element with no layout reports — jsdom, a display:none
+      // ancestor, a table that has not been painted yet. Discarding it is what
+      // keeps an unmeasurable environment on the declared fallback instead of
+      // collapsing every column to nothing.
+      if (!(width > 0)) continue
+      // Write-once per id. A second pass sees a different set of rows on
+      // screen, and letting it overwrite would make a column's width a function
+      // of how far you had scrolled.
+      if (autoWidths.value[columnId] !== undefined) continue
+      const column = source.value.find((entry) => entry.id === columnId)
+      // A declared width and a flex column both outrank a measurement, so
+      // storing one would be storing something nothing will read.
+      if (!column || column.width !== undefined || column.flex) continue
+      next ??= { ...autoWidths.value }
+      next[columnId] = clampWidth(column, Math.round(width), defaultWidth)
+    }
+    // Only on a real change: a pass that measured nothing new must not
+    // invalidate everything computed off the columns.
+    if (next) autoWidths.value = next
+  }
+
+  function clearAutoWidths(): void {
+    if (Object.keys(autoWidths.value).length === 0) return
+    autoWidths.value = {}
+  }
+
   function isGroupCollapsed(groupId: string): boolean {
     return layout.value.collapsedGroups.includes(groupId)
   }
@@ -561,6 +619,8 @@ export function useColumns<TRow>(
     setPinned,
     clearPinned,
     resetLayout,
+    setAutoWidths,
+    clearAutoWidths,
     clearStored,
   }
 }

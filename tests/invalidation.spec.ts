@@ -402,6 +402,17 @@ describe('what an interaction is allowed to recompute', () => {
     h.stop()
   })
 
+  it('measuring the columns never reaches the pipeline', () => {
+    const h = harness()
+    h.columns.setAutoWidths({ name: 92 })
+    h.columns.visible.value
+    h.source.rows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    h.stop()
+  })
+
   it('a column pin never reaches the pipeline', () => {
     const h = harness()
     h.columns.setPinned('email', 'left')

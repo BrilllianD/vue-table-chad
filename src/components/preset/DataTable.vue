@@ -36,6 +36,7 @@ import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import { provideTableTheme, type TableTheme } from '../../core/context'
 import type { UseRowSelection } from '../../core/useRowSelection'
+import type { UseColumnsResult } from '../../core/useColumns'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
 import ColumnDragGhost from '../primitives/ColumnDragGhost.vue'
@@ -46,6 +47,7 @@ import TablePagination from '../primitives/TablePagination.vue'
 import DataTableHeader from './DataTableHeader.vue'
 import DataTableBody from './DataTableBody.vue'
 import DataTableFooter from './DataTableFooter.vue'
+import { useAutoColumnWidth } from './useAutoColumnWidth'
 
 // The preset owns the preset theme, so `DataTable` is styled out of the box
 // while the primitives stay CSS-free.
@@ -596,6 +598,7 @@ function forwardedSlotNames(): string[] {
  */
 interface TableRootView<T extends Record<string, unknown>> {
   selection: UseRowSelection<T> | undefined
+  columns: UseColumnsResult<T>
 }
 
 /*
@@ -645,7 +648,30 @@ function getSelectedRows(): TRow[] {
   return root.value?.selection?.selectedRows.value ?? []
 }
 
-defineExpose({ selection: selectionApi, getSelectedRows })
+/**
+ * Widths for the columns that declared none, measured from the rendered table.
+ *
+ * Here rather than in `TableRoot` because the probe needs the scroll box and
+ * the preset's stylesheet, and both belong to this component. `renderedRows`
+ * gates it: a table whose source has not answered yet has a header and nothing
+ * else, and measuring that would cache the header's width as the column's.
+ */
+const autoWidth = useAutoColumnWidth<TRow>({
+  box: scrollBox,
+  columns: () => root.value?.columns,
+  renderedRows: () => props.source.rows.value.length,
+})
+
+defineExpose({
+  selection: selectionApi,
+  getSelectedRows,
+  /**
+   * Measure the undeclared column widths again, for a caller that swapped the
+   * dataset for one whose cells are a different size. Widths a user dragged are
+   * untouched, as they are by everything else here.
+   */
+  remeasureColumns: autoWidth.remeasure,
+})
 
 function onActivate(
   position: CellPosition,

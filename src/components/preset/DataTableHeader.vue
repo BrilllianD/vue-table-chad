@@ -109,7 +109,7 @@ defineProps<{
             <ColumnResizeHandle
               v-if="cell.column.resizable !== false"
               :column-id="cell.column.id"
-              :width="cell.column.resolvedWidth ?? 160"
+              :width="cell.column.resolvedWidth"
               :min-width="cell.column.minWidth"
             />
           </template>

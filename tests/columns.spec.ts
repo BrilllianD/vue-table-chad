@@ -326,6 +326,121 @@ describe('useColumns flexible columns', () => {
   })
 })
 
+describe('useColumns measured widths', () => {
+  function widthOf(result: ReturnType<typeof setup>['columns'], id: string) {
+    return result.all.value.find((column) => column.id === id)?.resolvedWidth
+  }
+
+  it('sizes an undeclared column to what was measured, clamped', () => {
+    const { columns, dispose } = setup()
+
+    columns.setAutoWidths({ name: 92.4, department: 12, salary: 900 })
+
+    expect(widthOf(columns, 'name')).toBe(92)
+    // The floor and the ceiling: 60 by default, and the default width, which is
+    // the flat 160 every undeclared column used to get. Nothing gets wider than
+    // it was before this existed.
+    expect(widthOf(columns, 'department')).toBe(60)
+    expect(widthOf(columns, 'salary')).toBe(160)
+    dispose()
+  })
+
+  it('honours the column\'s own min and max, and the option\'s ceiling', () => {
+    const { columns, dispose } = setup(
+      personColumns.map((column) =>
+        column.id === 'name'
+          ? { ...column, minWidth: 100 }
+          : column.id === 'salary'
+            ? { ...column, maxWidth: 80 }
+            : column,
+      ),
+      { defaultWidth: 150 },
+    )
+
+    columns.setAutoWidths({ name: 70, salary: 200, department: 400 })
+    expect(widthOf(columns, 'name')).toBe(100)
+    expect(widthOf(columns, 'salary')).toBe(80)
+    expect(widthOf(columns, 'department')).toBe(150)
+    dispose()
+  })
+
+  it('writes each id once, so a later window cannot move a column', () => {
+    const { columns, dispose } = setup()
+
+    columns.setAutoWidths({ name: 90 })
+    columns.setAutoWidths({ name: 140 })
+    expect(widthOf(columns, 'name')).toBe(90)
+    dispose()
+  })
+
+  it('ignores what nothing would read, and measures nothing from a dead layout', () => {
+    const { columns, dispose } = setup(
+      personColumns.map((column) =>
+        column.id === 'name'
+          ? { ...column, width: 220 }
+          : column.id === 'department'
+            ? { ...column, flex: true }
+            : column,
+      ),
+    )
+
+    const before = columns.all.value
+    // A declared width and a flex column both outrank a measurement; zero is
+    // what an element with no layout reports, which is every element under
+    // jsdom, and is what keeps the rest of this suite on the fallback.
+    columns.setAutoWidths({ name: 90, department: 90, salary: 0, nonesuch: 90 })
+
+    expect(widthOf(columns, 'name')).toBe(220)
+    expect(widthOf(columns, 'department')).toBeUndefined()
+    expect(widthOf(columns, 'salary')).toBe(160)
+    // Same object: a pass that measured nothing new must not invalidate
+    // everything computed off the columns.
+    expect(columns.all.value).toBe(before)
+    dispose()
+  })
+
+  it('stays out of the layout the user owns and the storage saves', () => {
+    const { columns, dispose } = setup()
+
+    const before = columns.layout.value
+    columns.setAutoWidths({ name: 90 })
+    expect(columns.layout.value).toBe(before)
+    expect(columns.layout.value.widths).toEqual({})
+    dispose()
+  })
+
+  it('lets a resize outrank a measurement, and resetting land back on it', () => {
+    const { columns, dispose } = setup()
+
+    columns.setAutoWidths({ name: 90 })
+    columns.setWidth('name', 300)
+    expect(widthOf(columns, 'name')).toBe(300)
+
+    // Back to the measured width rather than to a number the column never
+    // asked for, which is what "reset" has always meant here.
+    columns.resetWidth('name')
+    expect(widthOf(columns, 'name')).toBe(90)
+
+    columns.resetLayout()
+    expect(widthOf(columns, 'name')).toBe(90)
+    dispose()
+  })
+
+  it('forgets every measurement on request', () => {
+    const { columns, dispose } = setup()
+
+    columns.setAutoWidths({ name: 90 })
+    columns.clearAutoWidths()
+    expect(widthOf(columns, 'name')).toBe(160)
+
+    // And a second clear changes nothing, so it cannot invalidate anything.
+    const before = columns.all.value
+    columns.clearAutoWidths()
+    expect(columns.all.value).toBe(before)
+    dispose()
+  })
+})
+
 describe('useColumns width reset', () => {
   /** One column declaring a width and one leaving it to the default. */
   const widthDefs: ColumnDef<Person>[] = personColumns.map((column) =>
