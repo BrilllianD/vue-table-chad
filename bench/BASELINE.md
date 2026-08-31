@@ -23,6 +23,13 @@ The load-bearing table. 10k rows, a filter and a sort applied, page size 25.
 
 Three of the top four were work nobody asked for. All three are gone.
 
+Measuring undeclared column widths (T6) moved none of these: `column resize` came back at
+0.067ms against the 0.058 above, which is the same number on a busier machine, and the
+pure-function table below is unchanged. It should be — the probe runs at the component tier
+and reports into `useColumns`, so nothing it does is on a path `bench/` measures at all.
+That is the result worth recording: the feature is a layout read and a map write, not a
+pipeline change.
+
 Folding a header band lands beside `column resize` rather than beside `group collapse
 toggle`, and that is the whole point of the number: a band fold looks like a row-band
 collapse on screen, but it is a column-layout change and never reaches the row pipeline at
