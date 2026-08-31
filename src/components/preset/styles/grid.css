@@ -40,18 +40,23 @@
 }
 
 /*
-  `max-content` rather than `100%`, and the difference is the whole point.
+  `0` rather than `100%`, and the difference is the whole point.
 
-  Under fixed layout the used width is the greater of the specified width and
-  the sum of the column widths, so `max-content` here means "exactly the
-  columns" — a declared 120px column renders at 120px and the space left over
+  Under fixed layout the used width is the *greater* of the specified width and
+  the sum of the column widths, so a specified `0` resolves to exactly the
+  columns: a declared 120px column renders at 120px and the space left over
   stays empty. `width: 100%` handed that space back to the browser, which shares
   it out proportionally, so every declared width was a ratio rather than a size
   on any table narrower than its box.
+
+  `max-content` reads better and is wrong: a fixed-layout table sized by its
+  max-content lets the *first row's* cells widen a column past the width its
+  `<col>` declared, which put the email column of the demo 21px over its 250 and
+  is the same bug in a smaller coat. `0` cannot consult content at all.
 */
 .vt-table[data-layout='fixed'] {
   table-layout: fixed;
-  width: max-content;
+  width: 0;
 }
 
 /*

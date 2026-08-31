@@ -118,7 +118,7 @@ describe('preset stylesheet', () => {
     expect(
       sized.map((r) => r.body.match(/width:\s*([^;]+)/)![1]!.trim()),
       'the fixed-layout table sets no width of its own, so it inherits the browser\'s and the columns stop meaning px',
-    ).toEqual(['max-content'])
+    ).toEqual(['0'])
   })
 
   /**

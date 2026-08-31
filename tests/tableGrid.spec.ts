@@ -68,6 +68,24 @@ describe('TableGrid', () => {
     flexible.unmount()
   })
 
+  it('floors a filling table at the widths it has to fit', () => {
+    // `width: 100%` in a box narrower than the widthed columns leaves nothing
+    // over, and the column meant to absorb the slack collapses to nothing. The
+    // floor is every declared width plus each leftover column's own minimum, so
+    // past it the box scrolls instead.
+    const flexible = mount(TableGrid, {
+      props: { columns: [...columns, { ...resolved('notes'), minWidth: 90 }] },
+    })
+    expect(flexible.find('table').attributes('style')).toContain('min-width: 290px')
+    flexible.unmount()
+
+    // Nothing takes the leftover: the table is already exactly its columns, and
+    // a floor would say the same thing twice.
+    const widthed = mount(TableGrid, { props: { columns } })
+    expect(widthed.find('table').attributes('style')).toBeUndefined()
+    widthed.unmount()
+  })
+
   it('adds the edge columns only when asked', () => {
     const bare = mount(TableGrid, { props: { columns } })
     expect(bare.findAll('colgroup col')).toHaveLength(2)

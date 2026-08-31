@@ -118,6 +118,28 @@ const table = ref<HTMLTableElement | null>(null)
 const fill = computed(() => columns.value.some((column) => !column.resolvedWidth))
 
 /**
+ * The narrowest the table may be while filling its box, in px.
+ *
+ * Filling means `width: 100%`, and a box narrower than the widthed columns
+ * leaves nothing over — the column that was meant to absorb the slack collapses
+ * to zero and its cells vanish. So the table carries a floor: every declared
+ * width, plus each leftover column's own `minWidth`. Past that the box scrolls,
+ * which is what a table too wide for its space is supposed to do.
+ *
+ * `undefined` when nothing takes the leftover, because then the table is
+ * already exactly its columns and a floor would say the same thing twice. The
+ * preset's own selection and actions `<col>`s are not counted: their widths are
+ * the stylesheet's, not this component's, and the only cost of leaving them out
+ * is that a flexible column gives up their width before the box scrolls.
+ */
+const minWidth = computed(() => {
+  if (!fill.value) return undefined
+  let total = 0
+  for (const column of columns.value) total += column.resolvedWidth ?? column.minWidth ?? 60
+  return `${total}px`
+})
+
+/**
  * Escapes a value for use inside a **quoted** attribute selector.
  *
  * `CSS.escape` where there is one; the fallback covers the two characters a
@@ -317,6 +339,7 @@ defineExpose({ focusCursorCell })
     class="vt-table"
     :data-layout="layout ?? 'fixed'"
     :data-fill="fill ? '' : undefined"
+    :style="minWidth ? { minWidth } : undefined"
     :role="cursor ? 'grid' : undefined"
     :aria-rowcount="rowCount"
     v-on="cursorHandlers"
