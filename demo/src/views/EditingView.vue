@@ -178,6 +178,8 @@ const editableColumns = computed(() =>
         <span class="hint">
           Editable: {{ editableColumns.join(', ') }}.
           Try a negative salary, a blank name, or an email another row already has.
+          Copy and paste are on the <strong>Cell cursor</strong> tab: they belong to a focused
+          cell, and this table renders none.
         </span>
       </div>
     </template>

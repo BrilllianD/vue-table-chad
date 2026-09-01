@@ -430,7 +430,7 @@ Every page below has a matching view in `pnpm demo`, where the same thing runs a
 | [Selection](selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. |
 | [Grouping rows](grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. |
 | [Editing cells](editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. |
-| [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it. |
+| [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it. |
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |
 | [Header bands](column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. |
 | [Styling](styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. |
