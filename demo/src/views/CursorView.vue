@@ -51,10 +51,10 @@
  * a band header, because it walks the rendered rows rather than the page the
  * source returned.
  *
- * Salary is worth one warning here, because this view edits against the same
- * fake server the Editing view does: its payroll rounds to the nearest hundred,
- * so that column will not keep the exact number you type. That is `fakeApi.ts`,
- * not the table — every other editable column round-trips what you typed.
+ * Name is worth one warning here, because this view edits against the same fake
+ * server the Editing view does: it stores names trimmed, so that column will not
+ * keep surrounding spaces. That is `fakeApi.ts`, not the table — every other
+ * editable column round-trips what you typed.
  *
  * The counters at the bottom are the claim the invalidation suite makes, made
  * where you can watch it: moving the cursor is layout, and reaches the row
@@ -198,8 +198,8 @@ function onRowSaved(row: Employee): void {
       <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> to scroll sideways to a far column
       <em>without</em> the ring moving at all — this table is wider than its box, so it has
       somewhere to go.
-      <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor — Salary is the one column that will not
-      keep your exact number, because this demo's payroll rounds to the nearest hundred. So does
+      <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor — Name is the one column that will not
+      keep your text verbatim, because this demo's server trims it. So does
       just typing: the character starts the edit and replaces what was there, and
       <kbd>Delete</kbd> or <kbd>Backspace</kbd> opens the cell empty. From inside an open editor
       the arrows commit and move, so a column of numbers is typed straight down without ever

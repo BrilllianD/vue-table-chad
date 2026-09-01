@@ -9,12 +9,12 @@
  * accessor, and an accessor cannot be run backwards, so the column has to say
  * where an edit lands. Edit a city, then sort by City: it moves.
  *
- * **The server's row wins.** Payroll rounds salaries to the nearest hundred —
- * `saveEmployee` in `fakeApi.ts` does it, not the table. Type 92 345 and the
- * cell settles on 92 300 in one paint, because the table waits for the response
- * and adopts what came back. Turn *optimistic* on and it takes two: your
- * number, then the server's. It is on the page's blurb too, because a value
- * that changes on save reads as a bug to anyone who has not read this file.
+ * **The server's row wins.** Names are stored trimmed — `saveEmployee` in
+ * `fakeApi.ts` does it, not the table. Type `  Ada  ` and the cell settles on
+ * `Ada` in one paint, because the table waits for the response and adopts what
+ * came back. Turn *optimistic* on and it takes two: your text, then the
+ * server's. It is on the page's blurb too, because a value that changes on save
+ * reads as a bug to anyone who has not read this file.
  *
  * **A rejection knows which cell it means.** Change an email to one another row
  * already has. The server throws `{ message, fields: { email } }`; the message
@@ -118,8 +118,8 @@ const editableColumns = computed(() =>
     blurb="Click any cell with a value to edit it. Every column is opt-in — Tags stays read-only
            because a list needs an editor of its own. Watch the request log: a save is one request,
            and in row mode it is one request for the whole row however many fields changed.
-           Salary is the one column that will not keep what you type: this demo's payroll rounds
-           to the nearest hundred, and the table shows the row the server sent back."
+           Name is the one column that will not keep what you type verbatim: this demo's server
+           trims it, and the table shows the row the server sent back."
     :api="[
       'useRowEditing',
       'CellEditor',

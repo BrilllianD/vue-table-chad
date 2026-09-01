@@ -136,8 +136,8 @@ export async function fetchEmployees(
  * validates what only the server can (an email is unique across rows nobody
  * has loaded), **normalises** what it stores, and returns the row it actually
  * saved rather than an acknowledgement. That last one is why the table waits
- * by default: adopting the returned row shows the rounding in the same paint
- * as the edit, instead of correcting itself a moment later.
+ * by default: adopting the returned row shows the normalisation in the same
+ * paint as the edit, instead of correcting itself a moment later.
  */
 export async function saveEmployee(
   id: number,
@@ -173,12 +173,12 @@ export async function saveEmployee(
     // `applyPatch` is the library's own, so the demo writes rows back exactly
     // the way the table computed them — including through `city`'s `setValue`.
     const saved = applyPatch(employees[index]!, patch, employeeColumns)
-    // Payroll rounds to the nearest hundred. Visible proof that the row the
-    // server returns is the row the table ends up showing.
+    // Names are stored trimmed. Visible proof that the row the server returns
+    // is the row the table ends up showing — type a name with spaces around it
+    // and the saved cell comes back without them.
     const normalised: Employee = {
       ...saved,
       name: saved.name.trim(),
-      salary: saved.salary === null ? null : Math.round(saved.salary / 100) * 100,
     }
 
     employees[index] = normalised
