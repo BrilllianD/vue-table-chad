@@ -328,6 +328,49 @@ describe('what editing is allowed to recompute', () => {
   })
 })
 
+/**
+ * Copy is a read, and a read must cost nothing.
+ *
+ * Through the preset because that is where the clipboard lives: `core/` may not
+ * touch the DOM, so a copy is `DataTable` reading one cell's text. The guard is
+ * that it stays one cell — resolving the copied row by walking the filtered set
+ * would put a dataset pass behind a keystroke people press constantly.
+ */
+describe('what the clipboard is allowed to recompute', () => {
+  it('copying a cell reaches the pipeline not at all', async () => {
+    const data = shallowRef<Employee[]>([...rows])
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Employee>(data, employeeColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, { columns: employeeColumns, source, state, cellCursor: true })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
+    reset()
+
+    const cell = wrapper.get('tbody tr:first-child td[data-column="name"]')
+    await cell.trigger('focusin')
+    const event = new Event('copy', { bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'clipboardData', {
+      value: { setData: () => {}, getData: () => '' },
+    })
+    cell.element.dispatchEvent(event)
+    await nextTick()
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    wrapper.unmount()
+  })
+})
+
 describe('what an interaction is allowed to recompute', () => {
   /*
    * `it.fails` rather than a skip, and rather than asserting today's numbers.

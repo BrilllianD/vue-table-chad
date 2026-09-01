@@ -164,6 +164,8 @@ describe('TableGrid', () => {
   /** A whole `<tbody>` of primitives, and nothing else — no root, no preset. */
   function mountGrid(cursor?: ReturnType<typeof cursorOver>) {
     const activated: Array<{ rowId: unknown; columnId: string }> = []
+    const copied: Array<{ rowId: unknown; columnId: string }> = []
+    const pasted: Array<{ position: { rowId: unknown; columnId: string }; text: string }> = []
     // The event as well as the cell: what a key press *means* is decided by the
     // preset from the event riding along, so a report that dropped it would be
     // a report the editing session cannot act on.
@@ -184,6 +186,9 @@ describe('TableGrid', () => {
               },
               onPageMove: (pages: number) => paged.push(pages),
               onScrollMove: (cols: number) => scrolled.push(cols),
+              onCopy: (position: { rowId: unknown; columnId: string }) => copied.push(position),
+              onPaste: (position: { rowId: unknown; columnId: string }, text: string) =>
+                pasted.push({ position, text }),
             },
             () => [
               h(
@@ -200,7 +205,29 @@ describe('TableGrid', () => {
       activatedKeys,
       paged,
       scrolled,
+      copied,
+      pasted,
     }
+  }
+
+  /**
+   * A `copy` or `paste` with a clipboard on it, dispatched by hand.
+   *
+   * Built rather than triggered because the payload is the point: jsdom's
+   * `ClipboardEvent` carries a `clipboardData` of `null`, and `trigger` cannot
+   * put one there. Returning the event as well as the store lets a test read
+   * back both what was written and whether the default was suppressed.
+   */
+  function clipboardEvent(type: 'copy' | 'paste', text = '') {
+    const store = new Map<string, string>([['text/plain', text]])
+    const event = new Event(type, { bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'clipboardData', {
+      value: {
+        getData: (format: string) => store.get(format) ?? '',
+        setData: (format: string, value: string) => store.set(format, value),
+      },
+    })
+    return { event, store }
   }
 
   function cellAt(wrapper: ReturnType<typeof mount>, rowId: number, columnId: string) {
@@ -385,6 +412,95 @@ describe('TableGrid', () => {
     await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'c', ctrlKey: true })
     await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'Tab' })
     expect(activated).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('reports a copy of the cursor cell, and suppresses nothing itself', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'city' })
+    const { wrapper, copied } = mountGrid(cursor)
+
+    const { event } = clipboardEvent('copy')
+    cellAt(wrapper, 2, 'city').element.dispatchEvent(event)
+    await nextTick()
+
+    expect(copied).toEqual([{ rowId: 2, columnId: 'city' }])
+    // The four cursor gestures call `preventDefault`; this one does not. The
+    // grid holds no row data, so it cannot write the clipboard — and claiming
+    // the copy before anyone had filled it would hand the user an empty one.
+    expect(event.defaultPrevented).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('reports a paste with the clipboard text already read off it', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'city' })
+    const { wrapper, pasted } = mountGrid(cursor)
+
+    const { event } = clipboardEvent('paste', 'Paris')
+    cellAt(wrapper, 2, 'city').element.dispatchEvent(event)
+    await nextTick()
+
+    // Read here rather than left to the consumer: `clipboardData` is only
+    // readable while the event is being dispatched.
+    expect(pasted).toEqual([{ position: { rowId: 2, columnId: 'city' }, text: 'Paris' }])
+    expect(event.defaultPrevented).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('leaves a copy and a paste inside an open editor to the control', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'city' })
+    const copied: unknown[] = []
+    const pasted: unknown[] = []
+    const host = defineComponent({
+      setup() {
+        return () =>
+          h(
+            TableGrid,
+            {
+              columns,
+              cursor,
+              onCopy: (position: unknown) => copied.push(position),
+              onPaste: (position: unknown) => pasted.push(position),
+            },
+            () => [
+              h(
+                'tbody',
+                rows.map((row) =>
+                  h(
+                    TableRow,
+                    { key: row.id as number, row, columns, cursor },
+                    { cell: () => h('input', { class: 'inner' }) },
+                  ),
+                ),
+              ),
+            ],
+          )
+      },
+    })
+    const wrapper = mount(host, { attachTo: document.body })
+
+    // The same `cursorCell` guard the keyboard uses, doing the same job: with
+    // an editor open the target is the input, and selecting part of the text
+    // and copying it must stay the browser's ordinary copy.
+    wrapper.get('input.inner').element.dispatchEvent(clipboardEvent('copy').event)
+    wrapper.get('input.inner').element.dispatchEvent(clipboardEvent('paste', 'Paris').event)
+    await nextTick()
+
+    expect(copied).toEqual([])
+    expect(pasted).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('reports neither clipboard gesture when the table has no cursor', async () => {
+    const { wrapper, copied, pasted } = mountGrid()
+    const cell = wrapper.get('td[data-column="city"]')
+    cell.element.dispatchEvent(clipboardEvent('copy').event)
+    cell.element.dispatchEvent(clipboardEvent('paste', 'Paris').event)
+    await nextTick()
+
+    // Off means off: no listeners are bound at all, so an ordinary table's
+    // copy is exactly what it was before the cursor existed.
+    expect(copied).toEqual([])
+    expect(pasted).toEqual([])
     wrapper.unmount()
   })
 

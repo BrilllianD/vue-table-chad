@@ -37,7 +37,23 @@ The editing session the cursor drives — drafts, validation, and what a save do
 | `Enter` / `F2` | open this cell's editor |
 | any character | open the editor **holding that character** |
 | `Delete` / `Backspace` | open the editor **empty** |
+| `Ctrl`/`Cmd`+`C` | copy this cell's text |
+| `Ctrl`/`Cmd`+`V` | paste into this cell, and save it |
 | `Esc` | cancel the edit, and hand the focus back to the cell |
+
+Copy and paste are the clipboard's own events rather than a key binding, so whatever gesture the
+platform uses is the gesture that works, and inside an **open editor** both keep their ordinary
+meaning: selecting part of the text and copying it is the browser's, not the table's.
+
+Copy puts the text the cell *shows* on the clipboard — `column.format` and all — because that is
+what the user is looking at. Paste is a typed edit that arrived all at once: the text goes through
+the column's `parse` exactly as typing does, and the cell saves. A read-only cell refuses the paste
+and does not claim the gesture; a value that fails validation leaves the editor open holding the
+message, the same as any other failed save.
+
+One cell, not a region: a pasted block would need a cell *range* to land in, and the cursor is a
+single cell. A multi-line paste is stored as it arrived, minus the one trailing newline a
+spreadsheet appends — a `textarea` column means its newlines.
 
 And in an open editor:
 

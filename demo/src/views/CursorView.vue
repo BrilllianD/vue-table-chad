@@ -205,7 +205,10 @@ function onRowSaved(row: Employee): void {
       the arrows commit and move, so a column of numbers is typed straight down without ever
       pressing <kbd>Enter</kbd>; a select and a textarea keep their own arrows.
       <kbd>Esc</kbd> puts the cell back and
-      hands the focus to the cell. Turn <em>cellCursor</em> off and the table goes back to what
+      hands the focus to the cell. <kbd>Ctrl</kbd>+<kbd>C</kbd> copies the cell's text as it is
+      shown, formatting and all — Salary copies with its currency — and <kbd>Ctrl</kbd>+<kbd>V</kbd>
+      pastes into a cell and saves it in one gesture, parsed the same way typing would be. Tags is
+      read-only, so it copies but refuses a paste. Turn <em>cellCursor</em> off and the table goes back to what
       it renders without one, edit buttons and all.
     </p>
 
