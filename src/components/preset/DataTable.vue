@@ -395,30 +395,20 @@ const extraColumns = computed(() => (selectable.value ? 1 : 0) + (actionsColumn.
  * and the eye is already at a height on the screen; putting the ring back at
  * the top would make every page turn cost a second gesture to get back to it.
  *
- * The offset is read *before* the page changes, because afterwards there is
- * nothing left to read it from. `anchorAt` then resolves it whenever the new
- * rows arrive, which is the same tick for a local source and some tick later
- * for a server one — the reason this is not simply a `moveTo` on the next line.
+ * Turning the page is all this does. Carrying the cursor across belongs to
+ * `useTable`, which wraps `setPage` and `setPageSize` so the pager control and
+ * a programmatic page change restore the cursor the same way this gesture does
+ * — one answer to "the page was replaced", rather than one per route in.
  *
- * A clamped page change moves nothing at all. `pagination.go` already refuses
- * to step past either end, and asking the cursor to re-anchor anyway would
- * yank it to the top of a page it never left.
+ * A clamped page change moves nothing at all: `pagination.go` refuses to step
+ * past either end, so `setPage` is never reached and there is nothing to
+ * re-anchor.
  *
  * Works whether or not `show-pagination` renders a pager: a keyboard route
  * that only exists when a control is on screen is not a keyboard route.
  */
-function pageMove(
-  pages: number,
-  cursor: UseCellCursor<TRow> | undefined,
-  pagination: UsePagination,
-): void {
-  if (!cursor) return
-  const offset = Math.max(0, cursor.rowOffset.value)
-  const columnId = cursor.columnId.value ?? cursor.tabStop.value?.columnId
-  const before = pagination.page.value
-  pagination.go(before + pages)
-  if (pagination.page.value === before) return
-  cursor.anchorAt(offset, columnId, { focus: true })
+function pageMove(pages: number, pagination: UsePagination): void {
+  pagination.go(pagination.page.value + pages)
 }
 
 /**
@@ -847,7 +837,7 @@ function onActivate(
             :actions-column="actionsColumn"
             :cursor="cursor"
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
-            @page-move="(pages) => pageMove(pages, cursor, pagination)"
+            @page-move="(pages) => pageMove(pages, pagination)"
             @scroll-move="scrollColumns"
             @viewport-move="scrollViewport"
           >

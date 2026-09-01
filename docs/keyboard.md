@@ -73,6 +73,13 @@ the ring back at the top would cost a second gesture to get back to it. A short 
 and a page turn that cannot happen moves nothing at all. It works whether or not the pager is
 rendered: a keyboard route that only exists when a control is on screen is not a keyboard route.
 
+**Every** page change does this, not only the keyboard one. A click on the pager, a new page size,
+and a `setPage` from your own code all restore the cursor the same way, and the focus follows it
+onto the new cell — the cell the caret was on has left the document, and leaving the focus behind
+strands a keyboard user on `<body>`. Only the *implicit* resets are left alone: a new filter, sort
+or search sends the table back to page 1 without moving the cursor, because pulling the caret out of
+the search box you are typing in is not a page turn.
+
 `Shift`+`←`/`→` is the third meaning of the same pair of keys, and the only one that moves neither
 the cursor nor the rows: it scrolls the **viewport** one column, and the ring stays exactly where it
 was. That is the point of it. On a table wider than its box the far columns were otherwise reachable

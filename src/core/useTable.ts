@@ -545,11 +545,68 @@ export function useTable<TRow>(
 
   const cursor = computed(() => (cursorEnabled() ? cellCursor : undefined))
 
+  /**
+   * Every explicit page change carries the cursor along: same offset down the
+   * page, same column.
+   *
+   * Paging is reading, and the eye is already at a height on the screen. Left
+   * alone the cursor keeps naming a row this page does not hold, so the ring
+   * vanishes, the tab stop falls back to the first cell and the focused cell is
+   * gone from the document — the caret lands on `<body>`. Re-anchoring is the
+   * same answer the keyboard route already gave; here it covers the pager
+   * control and a programmatic `setPage` as well, because both come through
+   * this pair of writers.
+   *
+   * Wrapping the two writers rather than watching `page` is what keeps the
+   * *implicit* resets out: a new filter, sort or search sends the table back to
+   * page 1 by assigning the field, not by calling `setPage`, and re-anchoring
+   * there would pull the caret out of the search box the user is typing in.
+   *
+   * A no-op write anchors nothing. `setPage` clamps and `setPageSize` returns
+   * early on an unchanged size, so the guard is what the state already decided
+   * rather than a second opinion about it.
+   *
+   * The offset is read *before* the write, because afterwards there is nothing
+   * left to read it from: the cursor's row is on no page and `rowOffset` says
+   * `-1`. `anchorAt` then resolves it whenever the new rows arrive — the same
+   * tick for a local source, some tick later for a server one, which is why
+   * this is not simply a `moveTo` on the line after the write.
+   */
+  function turnPage(write: () => void): void {
+    const page = state.page.value
+    const size = state.pageSize.value
+    /*
+     * A cursor nobody has placed stays unplaced. Turning the page must not give
+     * an untouched table a ring, nor pull the caret into it — and `rowOffset`
+     * is read only past this point, so a table with the cursor switched off
+     * never asks `getRowId` for an identity its rows may not carry.
+     */
+    const placed = cursorEnabled() && cellCursor.position.value !== null
+    const offset = placed ? Math.max(0, cellCursor.rowOffset.value) : 0
+    const columnId = placed ? cellCursor.columnId.value : undefined
+
+    write()
+    if (state.page.value === page && state.pageSize.value === size) return
+    if (!placed) return
+    cellCursor.anchorAt(offset, columnId, { focus: true })
+  }
+
+  /*
+   * The state everyone else sees. A spread rather than a mutation: `options.state`
+   * may be a caller's own object, and rewriting their `setPage` under them is
+   * not this composable's to do.
+   */
+  const pagedState: TableState = {
+    ...state,
+    setPage: (page) => turnPage(() => state.setPage(page)),
+    setPageSize: (size) => turnPage(() => state.setPageSize(size)),
+  }
+
   const pagination = usePagination(
     () => state.page.value,
     () => state.pageSize.value,
     () => options.source().total.value,
-    { siblingCount: () => options.siblingCount?.(), onChange: state.setPage },
+    { siblingCount: () => options.siblingCount?.(), onChange: pagedState.setPage },
   )
 
   /**
@@ -576,7 +633,7 @@ export function useTable<TRow>(
   }
 
   return {
-    state,
+    state: pagedState,
     columns,
     // A getter, so swapping the source (local ⇄ server) reaches everyone holding
     // the context rather than only the pieces that read it reactively.

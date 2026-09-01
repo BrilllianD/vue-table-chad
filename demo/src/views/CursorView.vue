@@ -30,6 +30,11 @@
  * reading, and the eye is already somewhere. `PageDown` is the other thing, and
  * still means ten rows *within* the page.
  *
+ * **Now click the pager instead, or change the rows-per-page.** The same
+ * restore, and the caret lands on the new cell: any explicit page change is a
+ * page turn, whichever control asked for it. Typing in the search box is not —
+ * that resets to page 1 and leaves your caret where it is.
+ *
  * **Hold Shift and press → a few times.** The table scrolls sideways a column a press and the
  * ring does not move. Three meanings for one pair of keys, told apart by the modifier alone: bare
  * moves the cursor, Ctrl turns the page, Shift moves the viewport. Reaching a far column used to

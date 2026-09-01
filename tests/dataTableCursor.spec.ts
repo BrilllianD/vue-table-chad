@@ -257,6 +257,15 @@ describe('Escape', () => {
 })
 
 describe('Ctrl and an arrow', () => {
+  /** The pager's next-page control, and its last-page one. */
+  function next(wrapper: Wrapper) {
+    return wrapper.get('.vt-pagination-controls button[aria-label="Next page"]')
+  }
+
+  function last(wrapper: Wrapper) {
+    return wrapper.get('.vt-pagination-controls button[aria-label="Last page"]')
+  }
+
   /** The row ids the body is showing, top to bottom. */
   function pageIds(wrapper: Wrapper): string[] {
     return wrapper
@@ -279,6 +288,9 @@ describe('Ctrl and an arrow', () => {
     // Second row of the new page, same column. Re-anchoring to the top would
     // make every page turn cost a second gesture to get back to reading height.
     expect(ringAt(wrapper)).toBe('5:salary')
+    // And the caret goes with it: the cell it was on has left the document, so
+    // leaving the focus alone strands the keyboard user on <body>.
+    expect(document.activeElement).toBe(cell(wrapper, 5, 'salary').element)
 
     await cell(wrapper, 5, 'salary').trigger('keydown', { key: 'ArrowLeft', ctrlKey: true })
     await nextTick()
@@ -315,6 +327,71 @@ describe('Ctrl and an arrow', () => {
     await nextTick()
     expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
     expect(ringAt(wrapper)).toBe('2:name')
+
+    wrapper.unmount()
+  })
+
+  it('carries the cursor across a page turn from the pager as well', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    await cell(wrapper, 2, 'salary').trigger('focusin')
+    expect(ringAt(wrapper)).toBe('2:salary')
+
+    // The mouse route. It reaches `setPage` rather than the grid's key handler,
+    // and used to leave the cursor naming a row no page holds: no ring at all,
+    // and the focused cell gone from the document.
+    await next(wrapper).trigger('click')
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['4', '5', '6'])
+    expect(ringAt(wrapper)).toBe('5:salary')
+    expect(document.activeElement).toBe(cell(wrapper, 5, 'salary').element)
+
+    wrapper.unmount()
+  })
+
+  it('clamps a pager page turn to a short last page', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    await cell(wrapper, 3, 'name').trigger('focusin')
+
+    await last(wrapper).trigger('click')
+    await nextTick()
+    // Page 3 holds one row, and the cursor was on the third.
+    expect(pageIds(wrapper)).toEqual(['7'])
+    expect(ringAt(wrapper)).toBe('7:name')
+
+    wrapper.unmount()
+  })
+
+  it('carries the cursor across a page size change', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    await cell(wrapper, 2, 'salary').trigger('focusin')
+    await next(wrapper).trigger('click')
+    await nextTick()
+    expect(ringAt(wrapper)).toBe('5:salary')
+
+    // A new size sends the table back to page 1, so the rows under the cursor
+    // are replaced exactly as a page turn replaces them.
+    const select = wrapper.get('.vt-pagination-size select')
+    await select.setValue('10')
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['1', '2', '3', '4', '5', '6', '7'])
+    expect(ringAt(wrapper)).toBe('2:salary')
+    expect(document.activeElement).toBe(cell(wrapper, 2, 'salary').element)
+
+    wrapper.unmount()
+  })
+
+  it('keeps the default anchor at the top of the new page', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    // Nobody has moved the cursor: it sits where the table put it, on the first
+    // cell. A page turn keeps that offset rather than losing the ring, and the
+    // caret follows it as it does from any other offset.
+    expect(ringAt(wrapper)).toBe('1:name')
+
+    await next(wrapper).trigger('click')
+    await nextTick()
+    expect(pageIds(wrapper)).toEqual(['4', '5', '6'])
+    expect(ringAt(wrapper)).toBe('4:name')
+    expect(document.activeElement).toBe(cell(wrapper, 4, 'name').element)
 
     wrapper.unmount()
   })
