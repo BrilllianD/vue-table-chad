@@ -14,6 +14,7 @@
  *   Ctrl/Cmd+Enter    commit, and move right   (Shift: left)
  *   Escape            cancel, putting the cell back the way it was
  *   Tab               move — one cell forward, or back with Shift
+ *   Arrows            commit, and move that way   (only with `arrowMove`)
  *   blur              blur, and nothing more
  *
  * In a `textarea` both Enter and Shift+Enter insert the newline the control
@@ -39,7 +40,7 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { editorFor } from '../../core/editing'
-import { commitMoveFor, type CursorMove } from '../../core/cellCursor'
+import { commitMoveFor, editorMoveFor, type CursorMove } from '../../core/cellCursor'
 import type { ColumnDef } from '../../core/types'
 
 const props = withDefaults(
@@ -62,8 +63,26 @@ const props = withDefaults(
      * the next one on its own and intercepting it would only get in the way.
      */
     trapTab?: boolean
+    /**
+     * Take the arrow keys over and report them as `commit`, so an editor the
+     * user opened by typing can be left the same way they arrived in it.
+     *
+     * Off by default: with no cell cursor over the table there is nowhere for
+     * an arrow to move to, and with a whole row open at once moving between
+     * its fields is navigation rather than a decision to save. A `select` and
+     * a `textarea` keep their arrows either way — see `editorMoveFor`.
+     */
+    arrowMove?: boolean
   }>(),
-  { row: undefined, error: null, disabled: false, autofocus: true, label: undefined, trapTab: true },
+  {
+    row: undefined,
+    error: null,
+    disabled: false,
+    autofocus: true,
+    label: undefined,
+    trapTab: true,
+    arrowMove: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -111,7 +130,25 @@ watch(
   () => props.autofocus,
   (on) => {
     if (!on) return
-    void nextTick(() => control.value?.focus())
+    void nextTick(() => {
+      const element = control.value
+      if (!element) return
+      element.focus()
+      /*
+       * The caret goes past whatever is already in the box, because the value
+       * may be a character the user has just typed to open this editor: a
+       * caret left at the start would put the next keystroke in front of it.
+       *
+       * `text` and `textarea` only. `setSelectionRange` throws an
+       * `InvalidStateError` on a `number` or `date` input — the selection API
+       * does not apply to them — and both open with their whole value ready
+       * to be replaced anyway.
+       */
+      if (kind.value !== 'text' && kind.value !== 'textarea') return
+      const field = element as HTMLInputElement | HTMLTextAreaElement
+      const end = field.value.length
+      field.setSelectionRange(end, end)
+    })
   },
   { immediate: true },
 )
@@ -132,6 +169,17 @@ function onKeydown(event: KeyboardEvent): void {
     emit('commit', next)
     return
   }
+  if (props.arrowMove) {
+    const move = editorMoveFor(event, kind.value)
+    if (move) {
+      // The commit and the move ride on one event for the reason Enter's do:
+      // a save that fails must leave the cursor where it is, and two events
+      // arrive with the save still in flight.
+      event.preventDefault()
+      emit('commit', move)
+      return
+    }
+  }
   if (event.key === 'Escape') {
     event.preventDefault()
     // Stops here rather than bubbling: a filter popover or a menu further up
@@ -148,7 +196,13 @@ function onKeydown(event: KeyboardEvent): void {
 </script>
 
 <template>
-  <span class="vt-cell-editor" :data-invalid="error ? '' : undefined">
+  <!--
+    `data-kind` is a styling hook, not state: the preset drops the cell's
+    padding so the control can fill it edge to edge, and a checkbox is the one
+    control that must keep the padding — flush to the cell edge it would sit
+    outside the column's own text.
+  -->
+  <span class="vt-cell-editor" :data-kind="kind" :data-invalid="error ? '' : undefined">
     <slot
       :value="value"
       :error="error"

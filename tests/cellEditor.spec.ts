@@ -132,6 +132,46 @@ describe('what it emits', () => {
     expect(wrapper.emitted('move')).toBeUndefined()
   })
 
+  it('commits and says where to go when an arrow leaves the cell', async () => {
+    const wrapper = editor(text, { value: 'Ada', arrowMove: true })
+    await wrapper.find('input').trigger('keydown', { key: 'ArrowDown' })
+    expect(wrapper.emitted('commit')![0]).toEqual([{ kind: 'by', rows: 1, columns: 0 }])
+
+    await wrapper.find('input').trigger('keydown', { key: 'ArrowRight' })
+    expect(wrapper.emitted('commit')![1]).toEqual([{ kind: 'by', rows: 0, columns: 1 }])
+  })
+
+  it('leaves the arrows to the caret unless asked', async () => {
+    // Off by default: with no cell cursor over the table there is nowhere for
+    // an arrow to move to, and taking the key would only cost the caret.
+    const wrapper = editor(text, { value: 'Ada' })
+    await wrapper.find('input').trigger('keydown', { key: 'ArrowDown' })
+    expect(wrapper.emitted('commit')).toBeUndefined()
+  })
+
+  it('leaves the arrows to a select and a textarea even when asked', async () => {
+    const list = editor(enumeration, { arrowMove: true })
+    await list.find('select').trigger('keydown', { key: 'ArrowDown' })
+    // The arrows are how a select is changed at all, and how a caret crosses a
+    // line in a textarea. Claiming them takes the control's own operation away.
+    expect(list.emitted('commit')).toBeUndefined()
+
+    const area = editor({ ...text, editor: 'textarea' }, { arrowMove: true })
+    await area.find('textarea').trigger('keydown', { key: 'ArrowDown' })
+    expect(area.emitted('commit')).toBeUndefined()
+  })
+
+  it('puts the caret past a value it was opened holding', async () => {
+    // The value may be the character the user just typed to open this editor,
+    // and a caret left in front of it would reverse everything typed next.
+    const wrapper = editor(text, { value: 'Ada' })
+    await nextTick()
+    const input = wrapper.find('input').element as HTMLInputElement
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe(3)
+    expect(input.selectionEnd).toBe(3)
+  })
+
   it('leaves Enter to a textarea, and takes Ctrl+Enter instead', async () => {
     const wrapper = editor({ ...text, editor: 'textarea' })
     await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })

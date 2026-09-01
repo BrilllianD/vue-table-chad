@@ -50,27 +50,57 @@
   border-radius: var(--vtc-radius-xs);
 }
 
+/*
+  The cell gives up its padding for as long as an editor is in it, and the
+  input below takes that padding over. Between them the text sits on exactly
+  the x it sat on as static text, so opening an editor moves nothing — the
+  control grows outwards to the cell's edges instead of the text shifting
+  inwards.
+
+  Not for a checkbox: that one is a mark rather than a field, and flush to the
+  cell edge it would sit outside the column its column is aligned to.
+*/
+.vt-td:has(> .vt-cell-editor:not([data-kind='checkbox'])) { padding: 0; }
+
 .vt-cell-editor {
   display: flex;
   align-items: center;
   gap: var(--vtc-space-3);
+  width: 100%;
+  /*
+    The row's height rather than `100%`: a percentage height on the child of a
+    `<td>` resolves against the cell in some browsers and against nothing in
+    others, and the token is the same number the cell itself is sized from —
+    including in virtual mode, where `DataTable` writes it inline.
+  */
+  height: var(--vtc-row-height);
 }
 
 /*
-  The same five declarations every other control in this file uses. Sized to sit
-  inside `--vtc-row-height` with the cell's own padding around it, because
-  `.vt-td` clips: an input taller than its row is an input with its bottom
-  sheared off.
+  The same five declarations every other control in this file uses, sized to be
+  the cell rather than to sit inside it: the `<td>` above has dropped its
+  padding, so this fills the row's full height and carries the padding itself,
+  less its own border so the text does not shift by a pixel when it appears.
+
+  `box-sizing` is written out because the library ships no reset and cannot
+  assume the page has one — under `content-box` a height of 100% plus a border
+  is an input with its bottom sheared off by `.vt-td`'s `overflow: hidden`.
 */
 .vt-cell-input {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  padding: var(--vtc-space-1) var(--vtc-space-3);
+  height: 100%;
+  padding: 0 calc(var(--vtc-cell-padding-x) - var(--vtc-stroke-1));
   border: var(--vtc-stroke-1) solid var(--vtc-border-strong);
-  border-radius: var(--vtc-radius-sm);
+  /* Square, because a rounded corner inside a square cell shows the cell's own
+     background through the gap and reads as a misdrawn box. */
+  border-radius: 0;
   background: var(--vtc-bg);
   color: inherit;
   font: inherit;
+  /* A right-aligned number column stays right-aligned once it is an input. */
+  text-align: inherit;
 }
 
 .vt-cell-input:focus-visible {

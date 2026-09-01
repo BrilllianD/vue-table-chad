@@ -208,17 +208,25 @@ Tab:
 | `Ctrl`/`Cmd` + `Enter` | commit, and move right (`Shift`: left) |
 | `Esc` | cancel, putting the cell back and handing focus to the cell itself |
 | `Tab` | commit, and open the next editable cell (`Shift`: the previous one) |
+| `↑` `↓` `←` `→` | commit, and move that way — only with `arrowMove`, and never in a `select` or a `textarea` |
 | blur | reported, not decided — a commit in cell mode, nothing in row mode |
 
 In a `textarea` both `Enter` and `Shift+Enter` insert the newline the control exists for, so the
 `Ctrl`/`Cmd` pair carries the commit there and keeps meaning *down* and *up* rather than right and
 left. That follows from the control, not from a second convention.
 
+`arrowMove` is what makes an editor opened by typing leavable by the keys that brought the user to
+it; `DataTable` turns it on for a table that has a cell cursor and is editing one cell at a time.
+Off — no cursor, or a whole row open — the arrows are left to the caret, because there is nowhere
+for them to go.
+
 A commit the server refuses **stays put**: moving would scroll the message explaining the failure
 out from under the user. The cell you land on is left read-only rather than opened, which is what a
-spreadsheet does — you land there, and typing is what starts the next edit.
+spreadsheet does — you land there, and typing is what starts the next edit: the character replaces
+the cell's value, and `Delete` or `Backspace` opens it cleared.
 
-Opening a cell from the *outside* — `Enter` or `F2` on a closed cell, arrow keys between them — is
+Opening a cell from the *outside* — `Enter`, `F2` or simply typing on a closed cell, arrow keys
+between them — is
 the cell cursor's job, and is covered in [Keyboard navigation](keyboard.md). Without a cursor,
 every editable cell carries a `<button>` instead, because a cell you can only reach with a pointer
 is a cell half your users cannot edit at all. With a cursor that button is gone: the `<td>` is

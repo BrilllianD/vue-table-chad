@@ -25,6 +25,7 @@ import type {
 import type { ColumnLayoutState } from '../../core/useColumns'
 import {
   commitMoveFor,
+  editSeedFor,
   nextScrollLeft,
   nextScrollTop,
   type CellPosition,
@@ -675,6 +676,17 @@ function onActivate(
   const column = cols.find((entry) => entry.id === position.columnId)
   if (session && row && column && session.isEditable(row, column)) {
     session.begin(row, column.id)
+    /*
+     * A cell opened by typing starts holding what was typed, not what was
+     * there: the character replaces the value, which is what a spreadsheet
+     * does and what makes retyping a cell one gesture rather than three.
+     * Delete and Backspace seed `''`, so they open the editor cleared — the
+     * clear is a draft like any other, and Escape still puts the cell back.
+     *
+     * Enter, F2 and a double-click seed nothing and open the value untouched.
+     */
+    const seed = 'key' in event ? editSeedFor(event as unknown as KeyboardEvent) : undefined
+    if (seed !== undefined) session.setValue(row, column, seed)
     return
   }
   // A `KeyboardEvent` satisfies `CursorKeyGesture` structurally; anything else

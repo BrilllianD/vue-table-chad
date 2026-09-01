@@ -164,6 +164,10 @@ describe('TableGrid', () => {
   /** A whole `<tbody>` of primitives, and nothing else — no root, no preset. */
   function mountGrid(cursor?: ReturnType<typeof cursorOver>) {
     const activated: Array<{ rowId: unknown; columnId: string }> = []
+    // The event as well as the cell: what a key press *means* is decided by the
+    // preset from the event riding along, so a report that dropped it would be
+    // a report the editing session cannot act on.
+    const activatedKeys: string[] = []
     const paged: number[] = []
     const scrolled: number[] = []
     const host = defineComponent({
@@ -174,8 +178,10 @@ describe('TableGrid', () => {
             {
               columns,
               cursor,
-              onActivate: (position: { rowId: unknown; columnId: string }) =>
-                activated.push(position),
+              onActivate: (position: { rowId: unknown; columnId: string }, event: Event) => {
+                activated.push(position)
+                activatedKeys.push('key' in event ? String((event as KeyboardEvent).key) : event.type)
+              },
               onPageMove: (pages: number) => paged.push(pages),
               onScrollMove: (cols: number) => scrolled.push(cols),
             },
@@ -188,7 +194,13 @@ describe('TableGrid', () => {
           )
       },
     })
-    return { wrapper: mount(host, { attachTo: document.body }), activated, paged, scrolled }
+    return {
+      wrapper: mount(host, { attachTo: document.body }),
+      activated,
+      activatedKeys,
+      paged,
+      scrolled,
+    }
   }
 
   function cellAt(wrapper: ReturnType<typeof mount>, rowId: number, columnId: string) {
@@ -346,6 +358,36 @@ describe('TableGrid', () => {
     wrapper.unmount()
   })
 
+  it('reports a printable key as an activation, and the key with it', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'city' })
+    const { wrapper, activated, activatedKeys } = mountGrid(cursor)
+
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'x' })
+    // Typing starts an edit, but only the table holding the editing session
+    // knows whether this cell has one — so the grid reports the gesture and
+    // what was typed, and decides neither.
+    expect(activated).toEqual([{ rowId: 2, columnId: 'city' }])
+    expect(activatedKeys).toEqual(['x'])
+
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'Delete' })
+    expect(activatedKeys).toEqual(['x', 'Delete'])
+
+    // And the cursor has not moved: typing is not navigation.
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'city' })
+    wrapper.unmount()
+  })
+
+  it('leaves a shortcut to the browser rather than typing it into a cell', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'city' })
+    const { wrapper, activated } = mountGrid(cursor)
+    // Ctrl+C is a copy, and a table that answered it with an editor holding
+    // the letter "c" would have taken the clipboard away from the user.
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'c', ctrlKey: true })
+    await cellAt(wrapper, 2, 'city').trigger('keydown', { key: 'Tab' })
+    expect(activated).toEqual([])
+    wrapper.unmount()
+  })
+
   it('leaves Alt to the header and to the browser', async () => {
     const cursor = cursorOver({ rowId: 2, columnId: 'city' })
     const { wrapper } = mountGrid(cursor)
@@ -379,6 +421,10 @@ describe('TableGrid', () => {
     // than a list of controls to skip, because the `editor:<id>` slot can
     // render anything at all.
     await wrapper.get('input.inner').trigger('keydown', { key: 'ArrowDown' })
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'city' })
+    // The same guard is what stops typing *into* an open editor from being read
+    // as the gesture that opens one.
+    await wrapper.get('input.inner').trigger('keydown', { key: 'x' })
     expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'city' })
     wrapper.unmount()
   })

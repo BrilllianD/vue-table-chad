@@ -35,6 +35,8 @@ The editing session the cursor drives — drafts, validation, and what a save do
 | `Shift`+`←` / `→` | scroll one column sideways, cursor stays put |
 | `Ctrl`/`Cmd`+`↑` / `↓` | scroll one screenful, cursor stays put |
 | `Enter` / `F2` | open this cell's editor |
+| any character | open the editor **holding that character** |
+| `Delete` / `Backspace` | open the editor **empty** |
 | `Esc` | cancel the edit, and hand the focus back to the cell |
 
 And in an open editor:
@@ -45,10 +47,18 @@ And in an open editor:
 | `Shift`+`Enter` | commit, and move **up** |
 | `Ctrl`/`Cmd`+`Enter` | commit, and move **right** |
 | `Ctrl`/`Cmd`+`Shift`+`Enter` | commit, and move **left** |
+| `↑` `↓` `←` `→` | commit, and move that way |
 | `Tab` | commit, and open the next editable cell |
 
 The destination is left read-only rather than opened. That is what a spreadsheet does: you land
-there, and typing is what starts the next edit. A commit the server refuses stays put — moving
+there, and typing is what starts the next edit — the character you type *replaces* the cell's value
+rather than being appended to it, and `Delete` or `Backspace` opens the cell cleared instead. The
+clear is a draft like any other, so `Esc` puts the value back and it is the commit that persists it.
+
+The arrows commit and move for the same reason: an editor opened by typing would otherwise be a
+cell there is no arrow out of. A `<select>` and a `<textarea>` keep their own arrows, since those
+are how a select is changed at all and how a caret crosses a line — `Home` and `End` still reach
+both ends of a text box. A commit the server refuses stays put — moving
 would scroll the message explaining the failure out from under you.
 
 `Enter` on a cell with **no** editor still moves down. Enter always means "move on", and
@@ -201,7 +211,8 @@ marks its own cells:
 the one thing the composable cannot work out for itself, and it is why `TableRoot` builds its own
 rather than accepting one.
 
-`TableGrid` **reports** `activate` (Enter, `F2`, a double-click) rather than acting on it, because
+`TableGrid` **reports** `activate` (Enter, `F2`, a printable key, a double-click) rather than
+acting on it, because
 opening an editor needs an editing session it may not have. It reports `page-move` for the same
 reason: paging needs a data source and a query, and a grid that assumed one could not be used on
 its own. `useCellCursor` never imports `useRowEditing` and never will: a cursor is useful on a

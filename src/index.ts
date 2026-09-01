@@ -186,6 +186,8 @@ export type { CellErrors, DraftValidation } from './core/editing'
 export {
   cursorMoveFor,
   commitMoveFor,
+  editSeedFor,
+  editorMoveFor,
   pageMoveFor,
   scrollMoveFor,
   viewportMoveFor,

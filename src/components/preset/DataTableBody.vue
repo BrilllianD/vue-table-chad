@@ -503,6 +503,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               :error="cellError(row, column)"
               :label="column.header ?? column.id"
               :trap-tab="!rowMode"
+              :arrow-move="Boolean(cursor) && !rowMode"
               :autofocus="props.editing.stateFor(props.editing.getRowId(row))?.activeColumnId === column.id"
               @update:value="props.editing.setValue(row, column, $event)"
               @commit="commitCell(row, $event, cursor)"

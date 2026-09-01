@@ -4,6 +4,8 @@ import {
   PAGE_MOVE_ROWS,
   commitMoveFor,
   cursorMoveFor,
+  editSeedFor,
+  editorMoveFor,
   nextPosition,
   nextScrollLeft,
   nextScrollTop,
@@ -138,9 +140,13 @@ describe('pageMoveFor', () => {
       ['pageMoveFor', pageMoveFor],
       ['scrollMoveFor', scrollMoveFor],
       ['viewportMoveFor', viewportMoveFor],
+      // A fifth decoder over the same key presses, and the one most likely to
+      // collide: it claims by shape rather than by name, so a movement key that
+      // ever became one character long would be typed into a cell instead.
+      ['editSeedFor', editSeedFor],
     ] as const
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp',
-      'PageDown', 'Enter', 'F2', 'Tab', 'a']
+      'PageDown', 'Enter', 'F2', 'Tab', 'a', 'Delete', 'Backspace', ' ']
     for (const key of keys) {
       for (const modifiers of [{}, { ctrlKey: true }, { metaKey: true }, { shiftKey: true },
         { ctrlKey: true, shiftKey: true }, { metaKey: true, shiftKey: true },
@@ -359,6 +365,73 @@ describe('commitMoveFor', () => {
   it('is not a commit for anything but Enter', () => {
     expect(commitMoveFor({ key: 'ArrowDown' })).toBeUndefined()
     expect(commitMoveFor({ key: 'Enter', altKey: true })).toBeUndefined()
+  })
+})
+
+describe('editSeedFor', () => {
+  it('reads a printable key as the value to start the editor with', () => {
+    expect(editSeedFor({ key: 'a' })).toBe('a')
+    expect(editSeedFor({ key: 'A', shiftKey: true })).toBe('A')
+    expect(editSeedFor({ key: '7' })).toBe('7')
+    expect(editSeedFor({ key: '-' })).toBe('-')
+    // Space types a space rather than scrolling the page, which is the reason
+    // the grid claims the key at all.
+    expect(editSeedFor({ key: ' ' })).toBe(' ')
+    // One key press, two code units. `.length` would call this two characters
+    // and refuse it.
+    expect(editSeedFor({ key: '😀' })).toBe('😀')
+  })
+
+  it('opens the cell empty for Delete and Backspace', () => {
+    expect(editSeedFor({ key: 'Delete' })).toBe('')
+    expect(editSeedFor({ key: 'Backspace' })).toBe('')
+  })
+
+  it('claims no named key', () => {
+    for (const key of ['Enter', 'Escape', 'Tab', 'F2', 'Home', 'End', 'ArrowUp', 'PageDown']) {
+      expect(editSeedFor({ key }), key).toBeUndefined()
+    }
+  })
+
+  it('leaves the shortcuts alone, but not Shift', () => {
+    // Ctrl+C is a copy and Alt belongs to the browser; Shift is how a capital
+    // is typed and must not be excluded with them.
+    expect(editSeedFor({ key: 'c', ctrlKey: true })).toBeUndefined()
+    expect(editSeedFor({ key: 'c', metaKey: true })).toBeUndefined()
+    expect(editSeedFor({ key: 'c', altKey: true })).toBeUndefined()
+    expect(editSeedFor({ key: 'Delete', ctrlKey: true })).toBeUndefined()
+    expect(editSeedFor({ key: 'C', shiftKey: true })).toBe('C')
+  })
+})
+
+describe('editorMoveFor', () => {
+  it('reads a bare arrow as commit-and-move', () => {
+    expect(editorMoveFor({ key: 'ArrowDown' }, 'text')).toEqual({ kind: 'by', rows: 1, columns: 0 })
+    expect(editorMoveFor({ key: 'ArrowUp' }, 'number')).toEqual({ kind: 'by', rows: -1, columns: 0 })
+    expect(editorMoveFor({ key: 'ArrowRight' }, 'date')).toEqual({ kind: 'by', rows: 0, columns: 1 })
+    expect(editorMoveFor({ key: 'ArrowLeft' }, 'checkbox')).toEqual({
+      kind: 'by',
+      rows: 0,
+      columns: -1,
+    })
+  })
+
+  it('leaves a select and a textarea their own arrows', () => {
+    // Taking these would take away the control's own operation: the arrows are
+    // how a select is changed at all, and how a caret crosses a line.
+    for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+      expect(editorMoveFor({ key }, 'select'), key).toBeUndefined()
+      expect(editorMoveFor({ key }, 'textarea'), key).toBeUndefined()
+    }
+  })
+
+  it('claims nothing modified, and no other key', () => {
+    expect(editorMoveFor({ key: 'ArrowDown', shiftKey: true }, 'text')).toBeUndefined()
+    expect(editorMoveFor({ key: 'ArrowDown', ctrlKey: true }, 'text')).toBeUndefined()
+    expect(editorMoveFor({ key: 'ArrowDown', metaKey: true }, 'text')).toBeUndefined()
+    expect(editorMoveFor({ key: 'ArrowDown', altKey: true }, 'text')).toBeUndefined()
+    expect(editorMoveFor({ key: 'Enter' }, 'text')).toBeUndefined()
+    expect(editorMoveFor({ key: 'a' }, 'text')).toBeUndefined()
   })
 })
 

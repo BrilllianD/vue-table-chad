@@ -21,6 +21,12 @@
  * for up, Ctrl for right, both for left. Run a column of numbers that way and
  * you never touch the pointer.
  *
+ * **Or just start typing.** No gesture opens the editor first: the character
+ * you typed is the new value, the old one gone the way it is in a spreadsheet,
+ * and Delete opens the cell empty instead. An arrow out of the open editor
+ * commits and moves, so a whole column is retyped without Enter at all — and
+ * the save log below stays one line per cell, not one per key.
+ *
  * **Sort by Salary while the cursor is somewhere.** The ring stays on the row
  * it was on, which has moved. The position is a row id and a column id, never a
  * pair of indices — the same reason an open draft survives a re-sort.
@@ -123,8 +129,10 @@ function onRowSaved(row: Employee): void {
   <DemoSection
     title="Cell cursor"
     blurb="A focused cell you move with the arrow keys, ringed and crossed by a tint down its
-           row and its column. Enter opens the editor on a cell that has one; Enter again
-           commits and steps down, Shift up, Ctrl right, Ctrl+Shift left. Shift and a horizontal
+           row and its column. Enter opens the editor on a cell that has one, and so does
+           simply typing — the character you typed becomes the value. Enter again
+           commits and steps down, Shift up, Ctrl right, Ctrl+Shift left, and an arrow
+           out of an open editor commits and goes that way. Shift and a horizontal
            arrow scrolls the box instead, leaving the ring where it is, and Ctrl with a vertical
            one scrolls it a screenful. One tab stop for the
            whole grid, and the cursor reaches the row pipeline not at all."
@@ -134,6 +142,8 @@ function onRowSaved(row: Employee): void {
       'useCellCursor',
       'cursorMoveFor',
       'commitMoveFor',
+      'editSeedFor',
+      'editorMoveFor',
       'pageMoveFor',
       'scrollMoveFor',
       'viewportMoveFor',
@@ -189,7 +199,11 @@ function onRowSaved(row: Employee): void {
       <em>without</em> the ring moving at all — this table is wider than its box, so it has
       somewhere to go.
       <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor — Salary is the one column that will not
-      keep your exact number, because this demo's payroll rounds to the nearest hundred.
+      keep your exact number, because this demo's payroll rounds to the nearest hundred. So does
+      just typing: the character starts the edit and replaces what was there, and
+      <kbd>Delete</kbd> or <kbd>Backspace</kbd> opens the cell empty. From inside an open editor
+      the arrows commit and move, so a column of numbers is typed straight down without ever
+      pressing <kbd>Enter</kbd>; a select and a textarea keep their own arrows.
       <kbd>Esc</kbd> puts the cell back and
       hands the focus to the cell. Turn <em>cellCursor</em> off and the table goes back to what
       it renders without one, edit buttons and all.

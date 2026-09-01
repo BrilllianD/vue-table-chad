@@ -4,10 +4,12 @@
  * `editing.ts` is the write half of a column; this is the navigation half of a
  * table. It answers two questions and holds no state at all: what a key press
  * asked for, and which cell that lands on given the cells currently on screen.
- * There are four decoders for the first question — a position move, a commit,
- * a page turn and a sideways scroll — because those are four different things
- * for a caller to do, and flattening them into one return type would only move
- * the branch.
+ * There are several decoders for the first question — a position move, a
+ * commit, a page turn, a sideways scroll, and the seed a printable key starts
+ * an editor with — because those are different things for a caller to do, and
+ * flattening them into one return type would only move the branch. They are
+ * mutually exclusive over every gesture any of them claims, and
+ * `tests/cellCursor.spec.ts` holds them to it.
  *
  * Three conventions run through the file:
  *
@@ -342,6 +344,71 @@ export function commitMoveFor(
 
   if (primary) return { kind: 'by', rows: 0, columns: back ? -1 : 1 }
   return { kind: 'by', rows: back ? -1 : 1, columns: 0 }
+}
+
+/**
+ * The text a key press should open an editor with, or `undefined` when it
+ * starts no edit at all.
+ *
+ * The spreadsheet gesture: land on a cell, type, and what you typed *is* the
+ * new value — the old one is gone rather than appended to, which is why this
+ * returns the seed instead of a boolean. Delete and Backspace are the same
+ * gesture with an empty seed: they open the editor cleared rather than wiping
+ * the cell outright, so Escape still puts it back.
+ *
+ * A single code point is the test for "printable" rather than a list of keys.
+ * Every named key — `Tab`, `Escape`, `F2`, `Home`, `ArrowUp` — is more than one
+ * character, and every character a user could mean to type is exactly one,
+ * accented letters and emoji included. A list would have to be maintained
+ * against every keyboard layout there is.
+ *
+ * The modifiers are excluded for the reason the other decoders exclude them:
+ * `Ctrl+C` is a copy and `Alt` belongs to the browser and to the header's
+ * reorder gesture. Shift is *not* excluded — it is how a capital letter is
+ * typed.
+ */
+export function editSeedFor(gesture: CursorKeyGesture): string | undefined {
+  if (gesture.altKey || isPrimaryModifier(gesture)) return undefined
+  if (gesture.key === 'Delete' || gesture.key === 'Backspace') return ''
+  // Spread rather than `.length`, so a character outside the BMP counts as the
+  // one key press it was rather than as its two code units.
+  return [...gesture.key].length === 1 ? gesture.key : undefined
+}
+
+/**
+ * Where the cursor goes when an arrow is pressed inside an **open** editor, or
+ * `undefined` when the control keeps the key for itself.
+ *
+ * An editor opened by typing has to be leavable by the keys that brought the
+ * user to it, or the cursor is trapped in the cell it just opened. So an arrow
+ * commits and moves, the same way Enter does — this is the sibling of
+ * `commitMoveFor`, and takes the same `kind` for the same reason.
+ *
+ * `select` and `textarea` are exempt, and not as a courtesy: the arrows are how
+ * a select is changed at all and how a caret crosses a line in a textarea, so
+ * claiming them would take away the control's own operation. A text or number
+ * box loses its caret movement to this, which is the trade a spreadsheet makes
+ * too — `Home` and `End` still reach both ends of the text.
+ */
+export function editorMoveFor(
+  gesture: CursorKeyGesture,
+  kind?: CellEditorKind,
+): CursorMove | undefined {
+  if (kind === 'select' || kind === 'textarea') return undefined
+  if (gesture.altKey || gesture.shiftKey || isPrimaryModifier(gesture)) return undefined
+
+  switch (gesture.key) {
+    case 'ArrowDown':
+      return { kind: 'by', rows: 1, columns: 0 }
+    case 'ArrowUp':
+      return { kind: 'by', rows: -1, columns: 0 }
+    case 'ArrowRight':
+      return { kind: 'by', rows: 0, columns: 1 }
+    case 'ArrowLeft':
+      return { kind: 'by', rows: 0, columns: -1 }
+    default:
+      return undefined
+  }
 }
 
 /** Clamps an index into a list, so a move off either end stops at the edge. */

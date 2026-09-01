@@ -146,6 +146,8 @@ export const apiReference: ApiEntry[] = [
 
   { name: 'cursorMoveFor', layer: 'core', kind: 'function', summary: 'What a key press means while a **cell** has focus, or `undefined` for a key the grid does not claim.' },
   { name: 'commitMoveFor', layer: 'core', kind: 'function', summary: 'Where the cursor goes after an Enter that commits an open editor, or `undefined` when this key press is not a commit at all.' },
+  { name: 'editSeedFor', layer: 'core', kind: 'function', summary: 'The text a key press should open an editor with, or `undefined` when it starts no edit at all.' },
+  { name: 'editorMoveFor', layer: 'core', kind: 'function', summary: 'Where the cursor goes when an arrow is pressed inside an **open** editor, or `undefined` when the control keeps the key for itself.' },
   { name: 'pageMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `←`/`→` asked to turn the page — `-1` back, `1` on — or `undefined` for any other key.' },
   { name: 'scrollMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Shift` + `←`/`→` asked to scroll the table sideways — `-1` left, `1` right — or `undefined` for any other key.' },
   { name: 'viewportMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `↑`/`↓` asked to scroll the table — `-1` up, `1` down, one screenful a press — or `undefined` for any other key.' },

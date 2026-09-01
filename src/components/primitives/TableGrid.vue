@@ -24,6 +24,7 @@ import { computed, ref, watch } from 'vue'
 import { useTableContext } from '../../core/context'
 import {
   cursorMoveFor,
+  editSeedFor,
   pageMoveFor,
   scrollMoveFor,
   viewportMoveFor,
@@ -223,6 +224,26 @@ function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Enter' || event.key === 'F2') {
     const position = cursor.position.value ?? cursor.tabStop.value
     if (!position) return
+    event.preventDefault()
+    emit('activate', position, event)
+    return
+  }
+
+  // Typing on a closed cell is an activation too, reported through the same
+  // event: the key rides along on it, so what the character means — the seed
+  // for a new editor — is decoded once, by the component that owns the editing
+  // session. A second emit would have to be kept in step with the first about
+  // which cell it meant.
+  //
+  // Nothing below claims a bare printable key or Delete/Backspace, so the
+  // position among the decoders is free; it sits here because it belongs with
+  // the other activation.
+  if (editSeedFor(event) !== undefined) {
+    const position = cursor.position.value ?? cursor.tabStop.value
+    if (!position) return
+    // Claimed even when no editor opens — the cell may be read-only, and the
+    // alternative is a space-bar that scrolls the page out from under a table
+    // the user was typing into.
     event.preventDefault()
     emit('activate', position, event)
     return

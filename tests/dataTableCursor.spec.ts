@@ -186,6 +186,69 @@ describe('Enter', () => {
     wrapper.unmount()
   })
 
+  it('opens the editor holding the character that was typed', async () => {
+    const { wrapper } = mountTable()
+    await focusCell(wrapper, 1, 'name')
+    await cell(wrapper, 1, 'name').trigger('keydown', { key: 'A' })
+    await nextTick()
+
+    const input = cell(wrapper, 1, 'name').get('.vt-cell-input')
+    // The typed character *is* the new value — the old one is gone rather than
+    // appended to, which is what makes retyping a cell one gesture.
+    expect((input.element as HTMLInputElement).value).toBe('A')
+    wrapper.unmount()
+  })
+
+  it('opens the cell empty on Delete, and saves the clear', async () => {
+    const { wrapper, rows } = mountTable()
+    await focusCell(wrapper, 1, 'name')
+    await cell(wrapper, 1, 'name').trigger('keydown', { key: 'Delete' })
+    await nextTick()
+
+    const input = cell(wrapper, 1, 'name').get('.vt-cell-input')
+    expect((input.element as HTMLInputElement).value).toBe('')
+    // A draft like any other: it is the commit that clears the cell, so
+    // Escape still puts the value back.
+    await input.trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    await nextTick()
+    expect(rows.value.find((row) => row.id === 1)!.name).toBe(null)
+    wrapper.unmount()
+  })
+
+  it('types nothing into a read-only cell, and moves nothing either', async () => {
+    const { wrapper } = mountTable()
+    await focusCell(wrapper, 1, 'hiredAt')
+    await cell(wrapper, 1, 'hiredAt').trigger('keydown', { key: 'x' })
+    await nextTick()
+
+    expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
+    // Unlike Enter, a printable key is not a movement gesture with an editor
+    // in front of it — there is nothing left to do with it.
+    expect(ringAt(wrapper)).toBe('1:hiredAt')
+    wrapper.unmount()
+  })
+
+  it('commits and moves when an arrow leaves an open editor', async () => {
+    const { wrapper, rows, saved } = mountTable()
+    await focusCell(wrapper, 1, 'name')
+    await cell(wrapper, 1, 'name').trigger('keydown', { key: 'A' })
+    await nextTick()
+
+    const input = cell(wrapper, 1, 'name').get('.vt-cell-input')
+    await input.setValue('Augusta')
+    await input.trigger('keydown', { key: 'ArrowDown' })
+    await nextTick()
+    await nextTick()
+
+    // Otherwise an editor opened by typing is a cell there is no arrow out of.
+    expect(rows.value.find((row) => row.id === 1)!.name).toBe('Augusta')
+    expect(ringAt(wrapper)).toBe('2:name')
+    expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
+    expect(saved).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('goes up with Shift, right with Ctrl, and left with both', async () => {
     // From `salary`, which is editable and has a column on either side of it —
     // `department` to its left, `hiredAt` to its right — so no case is really
