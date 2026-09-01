@@ -17,15 +17,21 @@ import { people, personColumns, type Person } from './fixtures'
  * here is what Enter does on a cell that has no editor.
  */
 
-const columns: ColumnDef<Person>[] = personColumns.map((column) =>
-  column.id === 'name' || column.id === 'salary' ? { ...column, editable: true } : column,
-)
-
 type SessionOptions = Partial<Parameters<typeof useRowEditing<Person>>[2]>
 
 function mountTable(
-  options: { cellCursor?: boolean; pageSize?: number; session?: SessionOptions } = {},
+  options: {
+    cellCursor?: boolean
+    pageSize?: number
+    session?: SessionOptions
+    /** Which columns take an editor. `name` and `salary` unless a test says otherwise. */
+    editable?: string[]
+  } = {},
 ) {
+  const editable = options.editable ?? ['name', 'salary']
+  const columns: ColumnDef<Person>[] = personColumns.map((column) =>
+    editable.includes(column.id) ? { ...column, editable: true } : column,
+  )
   const rows = shallowRef<Person[]>([...people])
   const saves: RowChange<Person>[] = []
   const saved: Person[] = []
@@ -165,7 +171,7 @@ describe('Enter', () => {
     wrapper.unmount()
   })
 
-  it('commits and lands one row down, read-only', async () => {
+  it('commits and opens the editor one row down', async () => {
     const { wrapper, rows, saved } = mountTable()
     await focusCell(wrapper, 1, 'name')
     await cell(wrapper, 1, 'name').trigger('keydown', { key: 'Enter' })
@@ -179,9 +185,64 @@ describe('Enter', () => {
 
     expect(rows.value.find((row) => row.id === 1)!.name).toBe('Augusta')
     expect(ringAt(wrapper)).toBe('2:name')
-    // Landed there, not opened there — typing is what starts the next edit.
-    expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
+    // Open, not merely landed on: Enter said this cell was finished, and a
+    // column of values is then typed with Enter alone.
+    expect(cell(wrapper, 2, 'name').find('.vt-cell-input').exists()).toBe(true)
+    // Exactly one, and it is the destination: the cell left behind must be
+    // closed, not a second editor still holding the old value.
+    expect(wrapper.findAll('.vt-cell-input')).toHaveLength(1)
     // One Enter, one save: the blur on the way out must not count as a second.
+    expect(saved).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('opens nothing when the cell it lands on has no editor', async () => {
+    // `salary` is editable, `hiredAt` below-right of it is not. Ctrl+Enter is
+    // the sideways commit, so this lands on a read-only cell by moving rather
+    // than by running out of rows.
+    const { wrapper, saved } = mountTable()
+    await focusCell(wrapper, 1, 'salary')
+    await cell(wrapper, 1, 'salary').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+
+    const input = cell(wrapper, 1, 'salary').get('.vt-cell-input')
+    await input.setValue('123')
+    await input.trigger('keydown', { key: 'Enter', ctrlKey: true })
+    await nextTick()
+    await nextTick()
+
+    // The cursor goes where the key said and stops there. No hunting past a
+    // read-only column for the next editable one — a cursor whose path
+    // depended on editability is one nobody could predict.
+    expect(ringAt(wrapper)).toBe('1:hiredAt')
+    expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
+    expect(saved).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('opens the next cell in the same row without the leaving blur closing it', async () => {
+    // Sideways is the case the blur guard exists for: the editor left behind
+    // blurs *after* the next draft is open, and on the same row, so "is this
+    // row editing" cannot tell the two apart.
+    const { wrapper, rows, saved } = mountTable({ editable: ['department', 'salary'] })
+    await focusCell(wrapper, 1, 'department')
+    await cell(wrapper, 1, 'department').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+
+    const input = cell(wrapper, 1, 'department').get('.vt-cell-input')
+    await input.setValue('Ops')
+    await input.trigger('keydown', { key: 'Enter', ctrlKey: true })
+    await nextTick()
+    await nextTick()
+    // The blur arrives after the DOM has been patched, if it arrives at all.
+    await cell(wrapper, 1, 'department').trigger('blur')
+    await nextTick()
+
+    expect(rows.value.find((row) => row.id === 1)!.department).toBe('Ops')
+    expect(ringAt(wrapper)).toBe('1:salary')
+    expect(cell(wrapper, 1, 'salary').find('.vt-cell-input').exists()).toBe(true)
+    // One save, not two: the stray blur must not commit the draft that just
+    // opened, which would close it a frame after it appeared.
     expect(saved).toHaveLength(1)
     wrapper.unmount()
   })
@@ -244,6 +305,9 @@ describe('Enter', () => {
     // Otherwise an editor opened by typing is a cell there is no arrow out of.
     expect(rows.value.find((row) => row.id === 1)!.name).toBe('Augusta')
     expect(ringAt(wrapper)).toBe('2:name')
+    // Closed, unlike Enter's destination: an arrow is navigation that happened
+    // to start inside an editor, and opening every cell it crosses would leave
+    // no way over the table that is not an edit.
     expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
     expect(saved).toHaveLength(1)
     wrapper.unmount()
@@ -605,10 +669,12 @@ describe('autofocusCursor', () => {
     const Host = defineComponent({
       setup() {
         const state = useTableState({ pageSize: 25 })
-        const source = useLocalDataSource<Person>(rows, columns, state.query, { debounceMs: 0 })
+        const source = useLocalDataSource<Person>(rows, personColumns, state.query, {
+          debounceMs: 0,
+        })
         return () =>
           h(DataTable as never, {
-            columns,
+            columns: personColumns,
             source,
             state,
             cellCursor: options.cellCursor ?? true,

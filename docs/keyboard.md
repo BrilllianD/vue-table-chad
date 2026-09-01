@@ -10,8 +10,8 @@ import Example from './.vitepress/examples/keyboard.vue'
 
 A **cell cursor**: a focused cell you move with the arrow keys, ringed and crossed by a tint down
 its column and across its row. On a table that can edit, `Enter` opens the cell's editor and
-`Enter` again commits and steps on — so a column of numbers can be typed without reaching for the
-pointer.
+`Enter` again commits and opens the next cell down — so a column of numbers can be typed with
+`Enter` alone, without reaching for the pointer.
 
 ```vue
 <DataTable :columns="columns" :source="source" :state="state" :editing="editing" cell-cursor />
@@ -59,20 +59,26 @@ And in an open editor:
 
 | Key | |
 | --- | --- |
-| `Enter` | commit, and move **down** |
-| `Shift`+`Enter` | commit, and move **up** |
-| `Ctrl`/`Cmd`+`Enter` | commit, and move **right** |
-| `Ctrl`/`Cmd`+`Shift`+`Enter` | commit, and move **left** |
-| `↑` `↓` `←` `→` | commit, and move that way |
+| `Enter` | commit, and open the cell **below** |
+| `Shift`+`Enter` | commit, and open the cell **above** |
+| `Ctrl`/`Cmd`+`Enter` | commit, and open the cell to the **right** |
+| `Ctrl`/`Cmd`+`Shift`+`Enter` | commit, and open the cell to the **left** |
+| `↑` `↓` `←` `→` | commit, and move that way, leaving the destination closed |
 | `Tab` | commit, and open the next editable cell |
 
-The destination is left read-only rather than opened. That is what a spreadsheet does: you land
-there, and typing is what starts the next edit — the character you type *replaces* the cell's value
-rather than being appended to it, and `Delete` or `Backspace` opens the cell cleared instead. The
-clear is a draft like any other, so `Esc` puts the value back and it is the commit that persists it.
+`Enter` **opens the cell it lands on**, so a column of values is typed with `Enter` alone rather
+than a keystroke between each: the gesture said this cell was finished, and the only thing left to
+do in the next one is edit it. A destination with no editor — a read-only column, or a row the
+session vetoes — is simply moved onto; the cursor goes where the key said and stops there rather
+than hunting past it for the next editable cell.
 
-The arrows commit and move for the same reason: an editor opened by typing would otherwise be a
-cell there is no arrow out of. A `<select>` and a `<textarea>` keep their own arrows, since those
+The **arrows** land read-only instead. They commit for the same reason `Enter` does — an editor
+opened by typing would otherwise be a cell there is no arrow out of — but an arrow is navigation
+that happened to start inside an editor, and opening every cell it crosses would leave no way over
+the table that is not an edit. Typing is what starts an edit on a cell you land on closed: the
+character you type *replaces* the cell's value rather than being appended to it, and `Delete` or
+`Backspace` opens the cell cleared instead. The clear is a draft like any other, so `Esc` puts the
+value back and it is the commit that persists it. A `<select>` and a `<textarea>` keep their own arrows, since those
 are how a select is changed at all and how a caret crosses a line — `Home` and `End` still reach
 both ends of a text box. A commit the server refuses stays put — moving
 would scroll the message explaining the failure out from under you.

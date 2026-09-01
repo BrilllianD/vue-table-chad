@@ -46,7 +46,12 @@ import {
   toDisplayNumber,
   toMachineNumber,
 } from '../../core/numberMask'
-import { commitMoveFor, editorMoveFor, type CursorMove } from '../../core/cellCursor'
+import {
+  commitMoveFor,
+  editorMoveFor,
+  type CommitOrigin,
+  type CursorMove,
+} from '../../core/cellCursor'
 import type { ColumnDef } from '../../core/types'
 
 const props = withDefaults(
@@ -103,8 +108,14 @@ const emit = defineEmits<{
    * an existing event rather than a new one so that every `@commit="save(row)"`
    * already written keeps working — a template handler written as a call drops
    * the argument.
+   *
+   * `origin` says which gesture asked, because the two are not the same
+   * decision: Enter is "this cell is finished, on to the next one", and the
+   * table opens what it lands on, while an arrow is navigation that happens to
+   * pass through an editor and must leave the destination closed. Optional, so
+   * the slot's plain `commit()` and a caller emitting it by hand stay valid.
    */
-  commit: [next?: CursorMove]
+  commit: [next?: CursorMove, origin?: CommitOrigin]
   cancel: []
   /** Tab, and which way: `1` forward, `-1` back. Only when `trapTab`. */
   move: [delta: number]
@@ -218,7 +229,7 @@ function onKeydown(event: KeyboardEvent): void {
     // for. Left to the control rather than swallowed.
     if (!next) return
     event.preventDefault()
-    emit('commit', next)
+    emit('commit', next, 'enter')
     return
   }
   if (props.arrowMove) {
@@ -228,7 +239,7 @@ function onKeydown(event: KeyboardEvent): void {
       // a save that fails must leave the cursor where it is, and two events
       // arrive with the save still in flight.
       event.preventDefault()
-      emit('commit', move)
+      emit('commit', move, 'arrow')
       return
     }
   }

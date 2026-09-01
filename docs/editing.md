@@ -231,9 +231,11 @@ Off — no cursor, or a whole row open — the arrows are left to the caret, bec
 for them to go.
 
 A commit the server refuses **stays put**: moving would scroll the message explaining the failure
-out from under the user. The cell you land on is left read-only rather than opened, which is what a
-spreadsheet does — you land there, and typing is what starts the next edit: the character replaces
-the cell's value, and `Delete` or `Backspace` opens it cleared.
+out from under the user. A commit that takes opens the cell `Enter` lands on, so a column of values
+is typed with `Enter` alone; an **arrow** lands on a closed cell instead, since an arrow is
+navigation that happened to start inside an editor. A destination with no editor is simply moved
+onto, and typing is then what starts the next edit: the character replaces the cell's value, and
+`Delete` or `Backspace` opens it cleared.
 
 Opening a cell from the *outside* — `Enter`, `F2` or simply typing on a closed cell, arrow keys
 between them — is

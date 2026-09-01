@@ -17,15 +17,17 @@
  * does take the caret — both toggles remount the table, because where a cursor
  * starts and whether it grabs the focus are questions asked once.
  *
- * **Type Enter, edit, Enter again.** You land one row down, read-only. Shift
- * for up, Ctrl for right, both for left. Run a column of numbers that way and
- * you never touch the pointer.
+ * **Type Enter, edit, Enter again.** You land one row down with that cell's
+ * editor already open, so the column keeps going on Enter alone. Shift for up,
+ * Ctrl for right, both for left. A destination with no editor — a read-only
+ * column — is landed on closed rather than skipped past.
  *
  * **Or just start typing.** No gesture opens the editor first: the character
  * you typed is the new value, the old one gone the way it is in a spreadsheet,
  * and Delete opens the cell empty instead. An arrow out of the open editor
- * commits and moves, so a whole column is retyped without Enter at all — and
- * the save log below stays one line per cell, not one per key.
+ * commits and moves too, but lands *closed* — it is navigation that started
+ * inside an editor, not a decision to edit the next cell — and the save log
+ * below stays one line per cell, not one per key.
  *
  * **Sort by Salary while the cursor is somewhere.** The ring stays on the row
  * it was on, which has moved. The position is a row id and a column id, never a
@@ -131,8 +133,8 @@ function onRowSaved(row: Employee): void {
     blurb="A focused cell you move with the arrow keys, ringed and crossed by a tint down its
            row and its column. Enter opens the editor on a cell that has one, and so does
            simply typing — the character you typed becomes the value. Enter again
-           commits and steps down, Shift up, Ctrl right, Ctrl+Shift left, and an arrow
-           out of an open editor commits and goes that way. Shift and a horizontal
+           commits and opens the cell below, Shift above, Ctrl right, Ctrl+Shift left, and an
+           arrow out of an open editor commits and goes that way, leaving it closed. Shift and a horizontal
            arrow scrolls the box instead, leaving the ring where it is, and Ctrl with a vertical
            one scrolls it a screenful. One tab stop for the
            whole grid, and the cursor reaches the row pipeline not at all."
@@ -202,8 +204,9 @@ function onRowSaved(row: Employee): void {
       keep your text verbatim, because this demo's server trims it. So does
       just typing: the character starts the edit and replaces what was there, and
       <kbd>Delete</kbd> or <kbd>Backspace</kbd> opens the cell empty. From inside an open editor
-      the arrows commit and move, so a column of numbers is typed straight down without ever
-      pressing <kbd>Enter</kbd>; a select and a textarea keep their own arrows.
+      the arrows commit and move onto a <em>closed</em> cell, while <kbd>Enter</kbd> commits and
+      opens the one it lands on — so a column of numbers is typed straight down either way, with
+      the arrows leaving each cell behind read-only; a select and a textarea keep their own arrows.
       <kbd>Esc</kbd> puts the cell back and
       hands the focus to the cell. <kbd>Ctrl</kbd>+<kbd>C</kbd> copies the cell's text as it is
       shown, formatting and all — Salary copies with its currency — and <kbd>Ctrl</kbd>+<kbd>V</kbd>

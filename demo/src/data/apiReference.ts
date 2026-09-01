@@ -157,6 +157,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'PAGE_MOVE_ROWS', layer: 'core', kind: 'constant', summary: 'How far PageUp and PageDown jump.' },
   { name: 'CellPosition', layer: 'core', kind: 'type', summary: 'Where the cursor is: a row and a column, by identity rather than by position.' },
   { name: 'CellCursorMark', layer: 'core', kind: 'type', summary: 'How the cursor touches one cell, as a renderer needs to know it.' },
+  { name: 'CommitOrigin', layer: 'core', kind: 'type', summary: "Which gesture finished an edit: `'enter'` asked to be done with this cell, `'arrow'` was on its way somewhere and passed through it." },
   { name: 'CursorMove', layer: 'core', kind: 'type', summary: 'What a key press asked for, before anything knows whether it is possible.' },
   { name: 'CursorKeyGesture', layer: 'core', kind: 'type', summary: 'The parts of a key press this module reads.' },
 

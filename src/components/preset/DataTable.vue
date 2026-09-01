@@ -217,7 +217,8 @@ const props = withDefaults(
     editing?: UseRowEditing<TRow>
     /**
      * A keyboard cell cursor: arrows move a focused cell, Enter opens its
-     * editor when it has one, and Enter again commits and steps on.
+     * editor when it has one, and Enter again commits and opens the cell it
+     * lands on — so a column is typed with Enter alone.
      *
      * Off by default, and off means off — no `role="grid"`, no `tabindex`, no
      * cursor attributes, and editable cells keep the button that is their only
