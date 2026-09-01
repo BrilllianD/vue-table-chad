@@ -231,10 +231,10 @@ Off — no cursor, or a whole row open — the arrows are left to the caret, bec
 for them to go.
 
 A commit the server refuses **stays put**: moving would scroll the message explaining the failure
-out from under the user. A commit that takes opens the cell `Enter` lands on, so a column of values
-is typed with `Enter` alone; an **arrow** lands on a closed cell instead, since an arrow is
-navigation that happened to start inside an editor. A destination with no editor is simply moved
-onto, and typing is then what starts the next edit: the character replaces the cell's value, and
+out from under the user. A commit that takes opens the cell it lands on, whether `Enter` or an
+**arrow** asked, so a column of values is typed with `Enter` alone and a row is crossed with the
+arrows. Only a move out of an open editor does this; an arrow on a closed cell is navigation and
+leaves it closed. A destination with no editor is simply moved onto, and typing is then what starts the next edit: the character replaces the cell's value, and
 `Delete` or `Backspace` opens it cleared.
 
 Opening a cell from the *outside* — `Enter`, `F2` or simply typing on a closed cell, arrow keys

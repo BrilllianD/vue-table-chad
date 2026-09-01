@@ -195,14 +195,14 @@ describe('what it emits', () => {
 
   it('commits and says where to go when an arrow leaves the cell', async () => {
     const wrapper = editor(text, { value: 'Ada', arrowMove: true })
-    // The origin rides along and says `arrow`: the table opens what an Enter
-    // lands on and leaves what an arrow lands on closed, so the two commits
-    // have to be tellable apart from the event alone.
+    // The same payload Enter sends, and deliberately nothing more: the table
+    // treats the two commits alike, so an origin flag would be a distinction
+    // no caller is allowed to act on.
     await wrapper.find('input').trigger('keydown', { key: 'ArrowDown' })
-    expect(wrapper.emitted('commit')![0]).toEqual([{ kind: 'by', rows: 1, columns: 0 }, 'arrow'])
+    expect(wrapper.emitted('commit')![0]).toEqual([{ kind: 'by', rows: 1, columns: 0 }])
 
     await wrapper.find('input').trigger('keydown', { key: 'ArrowRight' })
-    expect(wrapper.emitted('commit')![1]).toEqual([{ kind: 'by', rows: 0, columns: 1 }, 'arrow'])
+    expect(wrapper.emitted('commit')![1]).toEqual([{ kind: 'by', rows: 0, columns: 1 }])
   })
 
   it('leaves the arrows to the caret unless asked', async () => {

@@ -199,7 +199,6 @@ export {
 export type {
   CellPosition,
   CellCursorMark,
-  CommitOrigin,
   CursorMove,
   CursorKeyGesture,
 } from './core/cellCursor'

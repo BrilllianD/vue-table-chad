@@ -25,8 +25,8 @@
  * **Or just start typing.** No gesture opens the editor first: the character
  * you typed is the new value, the old one gone the way it is in a spreadsheet,
  * and Delete opens the cell empty instead. An arrow out of the open editor
- * commits and moves too, but lands *closed* — it is navigation that started
- * inside an editor, not a decision to edit the next cell — and the save log
+ * commits and opens its destination too: it came out of an editor, so the user
+ * is already editing. An arrow on a closed cell still only moves. The save log
  * below stays one line per cell, not one per key.
  *
  * **Sort by Salary while the cursor is somewhere.** The ring stays on the row
@@ -134,7 +134,7 @@ function onRowSaved(row: Employee): void {
            row and its column. Enter opens the editor on a cell that has one, and so does
            simply typing — the character you typed becomes the value. Enter again
            commits and opens the cell below, Shift above, Ctrl right, Ctrl+Shift left, and an
-           arrow out of an open editor commits and goes that way, leaving it closed. Shift and a horizontal
+           arrow out of an open editor commits and opens the cell that way. Shift and a horizontal
            arrow scrolls the box instead, leaving the ring where it is, and Ctrl with a vertical
            one scrolls it a screenful. One tab stop for the
            whole grid, and the cursor reaches the row pipeline not at all."
@@ -204,9 +204,9 @@ function onRowSaved(row: Employee): void {
       keep your text verbatim, because this demo's server trims it. So does
       just typing: the character starts the edit and replaces what was there, and
       <kbd>Delete</kbd> or <kbd>Backspace</kbd> opens the cell empty. From inside an open editor
-      the arrows commit and move onto a <em>closed</em> cell, while <kbd>Enter</kbd> commits and
-      opens the one it lands on — so a column of numbers is typed straight down either way, with
-      the arrows leaving each cell behind read-only; a select and a textarea keep their own arrows.
+      both <kbd>Enter</kbd> and the arrows commit and open the cell they land on — so a column of
+      numbers is typed straight down and a row across, with no keystroke between them. An arrow on
+      a closed cell only moves; a select and a textarea keep their own arrows.
       <kbd>Esc</kbd> puts the cell back and
       hands the focus to the cell. <kbd>Ctrl</kbd>+<kbd>C</kbd> copies the cell's text as it is
       shown, formatting and all — Salary copies with its currency — and <kbd>Ctrl</kbd>+<kbd>V</kbd>

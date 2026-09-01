@@ -11,7 +11,7 @@ import Example from './.vitepress/examples/keyboard.vue'
 A **cell cursor**: a focused cell you move with the arrow keys, ringed and crossed by a tint down
 its column and across its row. On a table that can edit, `Enter` opens the cell's editor and
 `Enter` again commits and opens the next cell down — so a column of numbers can be typed with
-`Enter` alone, without reaching for the pointer.
+`Enter` alone, without reaching for the pointer. The arrows do the same out of an open editor.
 
 ```vue
 <DataTable :columns="columns" :source="source" :state="state" :editing="editing" cell-cursor />
@@ -63,19 +63,19 @@ And in an open editor:
 | `Shift`+`Enter` | commit, and open the cell **above** |
 | `Ctrl`/`Cmd`+`Enter` | commit, and open the cell to the **right** |
 | `Ctrl`/`Cmd`+`Shift`+`Enter` | commit, and open the cell to the **left** |
-| `↑` `↓` `←` `→` | commit, and move that way, leaving the destination closed |
+| `↑` `↓` `←` `→` | commit, and open the cell that way |
 | `Tab` | commit, and open the next editable cell |
 
-`Enter` **opens the cell it lands on**, so a column of values is typed with `Enter` alone rather
-than a keystroke between each: the gesture said this cell was finished, and the only thing left to
-do in the next one is edit it. A destination with no editor — a read-only column, or a row the
-session vetoes — is simply moved onto; the cursor goes where the key said and stops there rather
-than hunting past it for the next editable cell.
+Every one of these **opens the cell it lands on**, so a column of values is typed with `Enter`
+alone and a run of them is crossed with the arrows, rather than a keystroke between each: the key
+came out of an open editor, which is the user saying they are editing, and closing the cell they
+asked to move to would only make them say it again. Only a move that starts *inside* an editor does
+this — an arrow on a closed cell moves the cursor and nothing more, so the table is still crossed
+read-only by anyone not already editing. A destination with no editor — a read-only column, or a
+row the session vetoes — is simply moved onto; the cursor goes where the key said and stops there
+rather than hunting past it for the next editable cell.
 
-The **arrows** land read-only instead. They commit for the same reason `Enter` does — an editor
-opened by typing would otherwise be a cell there is no arrow out of — but an arrow is navigation
-that happened to start inside an editor, and opening every cell it crosses would leave no way over
-the table that is not an edit. Typing is what starts an edit on a cell you land on closed: the
+Typing is what starts an edit on a cell you land on closed: the
 character you type *replaces* the cell's value rather than being appended to it, and `Delete` or
 `Backspace` opens the cell cleared instead. The clear is a draft like any other, so `Esc` puts the
 value back and it is the commit that persists it. A `<select>` and a `<textarea>` keep their own arrows, since those

@@ -310,16 +310,6 @@ export function nextScrollTop(
 }
 
 /**
- * Which gesture finished an edit: `'enter'` asked to be done with this cell,
- * `'arrow'` was on its way somewhere and passed through it.
- *
- * The distinction is what lets the destination be opened for one and left
- * closed for the other — see `commitMoveFor` and `editorMoveFor`, which decode
- * them.
- */
-export type CommitOrigin = 'enter' | 'arrow'
-
-/**
  * Where the cursor goes after an Enter that commits an open editor, or
  * `undefined` when this key press is not a commit at all.
  *

@@ -589,16 +589,16 @@ describe('CellEditor', () => {
     return emitted
   }
 
-  it('gives every Enter a direction, and says the direction came from Enter', () => {
-    expect(commitWith({}, {})).toEqual([[{ kind: 'by', rows: 1, columns: 0 }, 'enter']])
+  it('gives every Enter a direction', () => {
+    expect(commitWith({}, {})).toEqual([[{ kind: 'by', rows: 1, columns: 0 }]])
     expect(commitWith({}, { shiftKey: true })).toEqual([
-      [{ kind: 'by', rows: -1, columns: 0 }, 'enter'],
+      [{ kind: 'by', rows: -1, columns: 0 }],
     ])
     expect(commitWith({}, { ctrlKey: true })).toEqual([
-      [{ kind: 'by', rows: 0, columns: 1 }, 'enter'],
+      [{ kind: 'by', rows: 0, columns: 1 }],
     ])
     expect(commitWith({}, { ctrlKey: true, shiftKey: true })).toEqual([
-      [{ kind: 'by', rows: 0, columns: -1 }, 'enter'],
+      [{ kind: 'by', rows: 0, columns: -1 }],
     ])
   })
 
@@ -609,10 +609,10 @@ describe('CellEditor', () => {
     // Down, not right: a multi-line cell with no way to commit and move down
     // would be missing the gesture people actually use.
     expect(commitWith(textarea, { ctrlKey: true })).toEqual([
-      [{ kind: 'by', rows: 1, columns: 0 }, 'enter'],
+      [{ kind: 'by', rows: 1, columns: 0 }],
     ])
     expect(commitWith(textarea, { ctrlKey: true, shiftKey: true })).toEqual([
-      [{ kind: 'by', rows: -1, columns: 0 }, 'enter'],
+      [{ kind: 'by', rows: -1, columns: 0 }],
     ])
   })
 })

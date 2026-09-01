@@ -290,7 +290,7 @@ describe('Enter', () => {
     wrapper.unmount()
   })
 
-  it('commits and moves when an arrow leaves an open editor', async () => {
+  it('commits and opens the cell an arrow leaves an editor for', async () => {
     const { wrapper, rows, saved } = mountTable()
     await focusCell(wrapper, 1, 'name')
     await cell(wrapper, 1, 'name').trigger('keydown', { key: 'A' })
@@ -305,9 +305,31 @@ describe('Enter', () => {
     // Otherwise an editor opened by typing is a cell there is no arrow out of.
     expect(rows.value.find((row) => row.id === 1)!.name).toBe('Augusta')
     expect(ringAt(wrapper)).toBe('2:name')
-    // Closed, unlike Enter's destination: an arrow is navigation that happened
-    // to start inside an editor, and opening every cell it crosses would leave
-    // no way over the table that is not an edit.
+    // Open, the same as Enter's destination: the arrow came out of an editor,
+    // which is the user saying they are editing, and a closed cell would make
+    // them say it again. An arrow on a *closed* cell never commits, so this is
+    // not every arrow — only the ones that leave a draft behind.
+    expect(cell(wrapper, 2, 'name').find('.vt-cell-input').exists()).toBe(true)
+    expect(wrapper.findAll('.vt-cell-input')).toHaveLength(1)
+    expect(saved).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('leaves an arrow on a read-only destination closed', async () => {
+    // The same rule Enter follows: the cursor goes where the key said, and a
+    // cell with no editor simply has none opened.
+    const { wrapper, saved } = mountTable()
+    await focusCell(wrapper, 1, 'salary')
+    await cell(wrapper, 1, 'salary').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+
+    const input = cell(wrapper, 1, 'salary').get('.vt-cell-input')
+    await input.setValue('123')
+    await input.trigger('keydown', { key: 'ArrowRight' })
+    await nextTick()
+    await nextTick()
+
+    expect(ringAt(wrapper)).toBe('1:hiredAt')
     expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
     expect(saved).toHaveLength(1)
     wrapper.unmount()
