@@ -27,7 +27,7 @@ Identical to the TypeScript path; see [Install](getting-started.md#install) for 
 pnpm install && pnpm build && npm pack
 
 # in your project
-pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.2.1.tgz
+pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.3.0.tgz
 ```
 
 You need Vue **3.5+** and a bundler that compiles `.vue` files — the library's components arrive
