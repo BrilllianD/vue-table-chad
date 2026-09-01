@@ -3,7 +3,7 @@
  * Editing, end to end: a draft per row, validated, sent to a server that can
  * refuse it, and written back.
  *
- * Four things here are worth watching rather than reading about.
+ * Five things here are worth watching rather than reading about.
  *
  * **`city` writes through a `setValue`.** It reads `row.location.city` via an
  * accessor, and an accessor cannot be run backwards, so the column has to say
@@ -22,6 +22,14 @@
  *
  * **A failed save never loses the edit.** Turn the failure rate up. The draft
  * stays exactly where it was, and the same Save is the retry.
+ *
+ * **Edit Salary and watch the digits.** The number control is a text box rather
+ * than `input[type=number]`: it groups as you type, in whatever separators the
+ * runtime's locale uses, so a six-figure salary stays legible mid-edit instead
+ * of an unbroken run of digits. The draft underneath still holds the bare
+ * number — Open drafts below shows it — which is why `parse` and `validate` see
+ * exactly what they saw before, and why `-1` still fails on "A salary cannot be
+ * negative".
  */
 import { computed, ref, shallowRef } from 'vue'
 import {
@@ -119,7 +127,8 @@ const editableColumns = computed(() =>
            because a list needs an editor of its own. Watch the request log: a save is one request,
            and in row mode it is one request for the whole row however many fields changed.
            Name is the one column that will not keep what you type verbatim: this demo's server
-           trims it, and the table shows the row the server sent back."
+           trims it, and the table shows the row the server sent back. Salary edits in a masked
+           text box that groups thousands while the draft keeps the bare number."
     :api="[
       'useRowEditing',
       'CellEditor',
