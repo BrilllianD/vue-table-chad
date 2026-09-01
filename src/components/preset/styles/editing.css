@@ -101,6 +101,34 @@
   font: inherit;
   /* A right-aligned number column stays right-aligned once it is an input. */
   text-align: inherit;
+  /*
+    Fills the editor's remaining width rather than only asking for 100% of it:
+    the editor is a flex row, and `width` alone leaves the input shrinkable
+    against anything a `cell:<id>` slot puts beside it — a currency mark, a
+    unit — so a number cell opened for editing ends up narrower than the cell
+    it replaced.
+  */
+  flex: 1 1 auto;
+}
+
+/*
+  A number editor rendered by a caller's own slot keeps its native spinner,
+  which the default one no longer has: `CellEditor` masks a number column into
+  a text box, so there is no stepper to hide there. The buttons sit inside the
+  control at its right edge — exactly where a right-aligned number's digits
+  are — so they cover the value being typed, and with no precision declared in
+  `ColumnDef` they step by a `1` nothing chose.
+*/
+.vt-cell-editor input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.vt-cell-editor input[type='number']::-webkit-outer-spin-button,
+.vt-cell-editor input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
 }
 
 .vt-cell-input:focus-visible {

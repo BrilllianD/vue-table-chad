@@ -74,7 +74,7 @@ the value somewhere nothing reads it back from. `applyCellValue` throws rather t
 
 | Column | Control (`CellEditorKind`) |
 | --- | --- |
-| `type: 'number'` | `number` — `step="any"`, because nothing in `ColumnDef` declares a precision |
+| `type: 'number'` | `number` — a masked text box, grouped into thousands (see below) |
 | `type: 'date'` | `date` |
 | `type: 'boolean'` | `checkbox` |
 | `type: 'enum'` with `options` | `select`, with a blank choice unless the column is `required` |
@@ -82,6 +82,16 @@ the value somewhere nothing reads it back from. `applyCellValue` throws rather t
 | anything else | `text` |
 
 `textarea` exists but is never derived; ask for it with `editor: 'textarea'`.
+
+A `number` cell edits in `<input type="text" inputmode="decimal">`, not in a number input, and shows
+its value grouped — `1 234 000` — in whatever separators `Intl.NumberFormat` gives the runtime's
+locale. The draft still holds the bare `1234000`, so `column.parse` and `column.validate` see exactly
+what they saw before; only the characters on screen are grouped. A number input cannot do this: its
+value has to parse as a bare float, so it reads a grouped value as empty.
+
+That also costs the native spinner, which is no loss — nothing in `ColumnDef` declares a precision,
+so it stepped by a `1` no column chose, and over a cell cursor Up and Down already mean
+commit-and-move. A column that wants something else supplies `CellEditor`'s default slot.
 
 ## The session half
 
