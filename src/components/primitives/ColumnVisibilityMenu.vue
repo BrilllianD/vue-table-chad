@@ -49,6 +49,16 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
     </button>
 
     <div v-if="open" class="vt-columns-panel" role="dialog" aria-label="Column options">
+      <!-- The actions lead, because the row list below grows with the column count. -->
+      <div class="vt-columns-actions">
+        <button type="button" class="vt-btn vt-btn-link" @click="context.columns.showAll()">
+          Show all
+        </button>
+        <button type="button" class="vt-btn vt-btn-link" @click="context.columns.resetLayout()">
+          Reset layout
+        </button>
+      </div>
+
       <div v-for="(column, index) in columns" :key="column.id" class="vt-columns-row">
         <SelectionCheckbox
           :checked="column.visible"
@@ -85,15 +95,6 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           @click="cyclePin(column.id, column.pinned)"
         >
           {{ column.pinned === 'left' ? '⇤' : column.pinned === 'right' ? '⇥' : '⇔' }}
-        </button>
-      </div>
-
-      <div class="vt-columns-actions">
-        <button type="button" class="vt-btn vt-btn-link" @click="context.columns.showAll()">
-          Show all
-        </button>
-        <button type="button" class="vt-btn vt-btn-link" @click="context.columns.resetLayout()">
-          Reset layout
         </button>
       </div>
     </div>
