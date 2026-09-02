@@ -23,14 +23,12 @@ each; the commit subject names the task by ID.
 
 ### `[ ]` T2 — P3-8: release flow
 
-changesets → CHANGELOG → publish. The version is still `0.1.0`, and `prepublishOnly` already runs
-`pnpm test && pnpm build`, so what is left is choosing how versions are decided and writing that
-down.
+changesets → CHANGELOG → publish. Releases 0.2.1 and 0.3.0 were cut by hand — `RELEASING.md`
+documents the steps and `make release-check` runs the package checks — so what is left is the
+automated half: a changeset config, a CHANGELOG, and an actual `npm publish` instead of a tarball.
 
-**Done when:** a changeset config is committed, the first CHANGELOG entry exists, and the release
-steps are documented well enough that a second person could cut a version. Run the pre-release
-package checks from `CLAUDE.md`'s Verification section (`npm pack --dry-run`, `publint`, `attw`) before
-tagging anything.
+**Done when:** a changeset config is committed, the first CHANGELOG entry exists, and cutting a
+version is `make release-check` plus a changesets command rather than hand-edited version fields.
 
 ### `[ ]` T3 — P3-9: publish the docs site
 
@@ -44,11 +42,16 @@ it stop earning its keep.
 
 ### `[?]` T4 — Decide the `vue/no-dupe-keys` lint failure
 
-`pnpm lint` is red on two errors at `src/components/primitives/TableRoot.vue:138`: destructuring
-`useTable()` binds `state` and `columns`, which the component also declares as props. In
-`<script setup>` props are read through `props.`, so nothing collides — the rule predates the
-syntax. This is a decision to make and write down, not a bug to fix: rename the bindings, or disable
-the rule for this file with a one-line why.
+`pnpm lint` is red on 19 errors. The headline pair is at
+`src/components/primitives/TableRoot.vue:154`: destructuring `useTable()` binds `state` and
+`columns`, which the component also declares as props. In `<script setup>` props are read through
+`props.`, so nothing collides — the rule predates the syntax. This is a decision to make and write
+down, not a bug to fix: rename the bindings, or disable the rule for this file with a one-line why.
+The rest need the same treatment: `vue/multi-word-component-names` fires on every single-word docs
+example file (`docs/.vitepress/examples/*.vue` are named after the docs page they belong to, which
+is the point), `docs/examples/AddressesTable.vue` registers components the excerpt no longer uses,
+and `src/core/useVirtualRows.ts:171` reads a computed as a bare expression the way the tests do —
+the tests have a scoped rule-off for it, this file does not.
 
 **Done when:** `pnpm lint` is green, the choice is recorded in `CLAUDE.md`'s settled decisions, and CI
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
@@ -72,8 +75,9 @@ values"`, every `aria-label`). A real blocker for a public package, but not for 
 
 ### `[-]` D3 — Feature breadth
 
-Tree/hierarchical rows, expandable detail rows, CSV/clipboard export, pinned rows, and custom
-aggregate reducers beyond `sum`/`avg`/`min`/`max`.
+Tree/hierarchical rows, expandable detail rows, CSV export, pinned rows, and custom aggregate
+reducers beyond `sum`/`avg`/`min`/`max`. (Cell-level clipboard copy/paste shipped with the cursor —
+what is left here is exporting a block or the whole result set.)
 
 Block paste belongs here too, and is blocked rather than merely deferred: pasting a spreadsheet
 region needs a **cell range** to paste into, and the cursor is one cell. `Shift`+`↑`/`↓` is left

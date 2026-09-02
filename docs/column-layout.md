@@ -9,7 +9,8 @@ import Example from './.vitepress/examples/column-layout.vue'
 <<< @/.vitepress/examples/column-layout.vue
 
 Visibility, ordering, resizing and pinning all live in `useColumns` and are driven from
-`ColumnVisibilityMenu`, or programmatically:
+`ColumnVisibilityMenu` — its panel leads with **Show all** and **Reset layout**, above the
+per-column checkboxes — or programmatically:
 
 ```ts
 const columns = useColumns(defs, { … })

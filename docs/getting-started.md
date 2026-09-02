@@ -18,16 +18,14 @@ difference matters, because a consumer gets the generated `.d.ts`, not the sourc
 
 ## Install
 
-The package is not on npm yet (see [`TASKS.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TASKS.md)), and `dist/` is gitignored, so a git
-dependency would install an empty package. Until the first release, build a tarball and install
-that:
+The package is released as a tarball, not published to npm (see [`TASKS.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TASKS.md)), and `dist/` is
+gitignored, so a git dependency would install an empty package. Build the tarball and install that:
 
 ```bash
 # in this repo
 nvm use            # Node 24
 pnpm install
-pnpm build         # -> dist/
-npm pack           # -> brillliand-vue-table-chad-0.3.0.tgz
+make pack          # build + size check + npm pack -> brillliand-vue-table-chad-0.3.0.tgz
 ```
 
 ```bash
@@ -35,8 +33,9 @@ npm pack           # -> brillliand-vue-table-chad-0.3.0.tgz
 pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.3.0.tgz
 ```
 
-`files: ["dist"]` means the tarball is `dist/` plus `README.md` and `LICENSE` — 55 files, no source.
-Rebuild and re-pack after every change; `pnpm add` on the same path again picks it up.
+`files: ["dist"]` means the tarball is `dist/` plus `README.md` and `LICENSE` — six files, no
+source: one JS bundle, one stylesheet, and one rolled-up `index.d.ts`. Rebuild and re-pack after
+every change; `pnpm add` on the same path again picks it up.
 
 For live development against both at once, a workspace link is less friction:
 

@@ -24,7 +24,7 @@ Identical to the TypeScript path; see [Install](getting-started.md#install) for 
 
 ```bash
 # in this repo
-pnpm install && pnpm build && npm pack
+pnpm install && make pack
 
 # in your project
 pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.3.0.tgz

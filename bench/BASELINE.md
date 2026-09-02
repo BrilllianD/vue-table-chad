@@ -3,7 +3,8 @@
 Mean milliseconds per operation, `pnpm bench`. Lower is better. Machine-specific: re-run on your
 own hardware before reading any delta as a win.
 
-**Before** is commit `7909bd4`, the state Phase 1 opened on. **Now** is the current tree.
+**Before** is commit `7909bd4`, the state Phase 1 opened on. **Now** was last measured at
+`78a3167`; later commits touched only components and CSS, which `pnpm bench` does not cover.
 
 ## What an interaction costs
 

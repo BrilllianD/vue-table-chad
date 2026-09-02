@@ -34,10 +34,10 @@ pipelines:
           - pnpm test
           - pnpm build
           - pnpm size
-          # Non-gating, deliberately. Two vue/no-dupe-keys errors in
-          # TableRoot.vue predate this pipeline; see TODO.md's housekeeping
-          # list. Gating on a known-red check would just teach everyone to
-          # ignore the pipeline.
+          # Non-gating, deliberately. The known-red errors (vue/no-dupe-keys
+          # in TableRoot.vue and friends) predate this pipeline; T4 in TASKS.md
+          # decides them. Gating on a known-red check would just teach everyone
+          # to ignore the pipeline.
           - pnpm lint || true
           # Non-gating for a different reason: bench numbers are
           # machine-specific, and a shared runner's absolute milliseconds are a

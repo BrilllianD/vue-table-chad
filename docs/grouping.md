@@ -14,7 +14,9 @@ import Example from './.vitepress/examples/grouping.vue'
 
 Or from the toolbar's **Group by** menu, which is on by default (`:show-group-menu="false"` to
 drop it). Pick a second column to nest inside the first — `groupBy` is an ordered array, exactly
-like `sort`.
+like `sort`. The panel leads with its global actions — expand all, collapse all, clear grouping —
+and while grouping is active a **+ / −** pair sits beside the trigger, calling the same
+`expandAll()` / `collapseAll()` without opening the panel.
 
 Group headers are collapsible, count their rows, and name the blank bucket rather than rendering
 an empty band:

@@ -6,6 +6,9 @@ rather than leaving both — the same rule the **Settled decisions** section of
 
 ## Before a release
 
+`make release-check` runs all of this except `pnpm size` (which `make pack` runs); the commands
+are listed so a failure can be re-run alone:
+
 ```bash
 pnpm build && pnpm size
 npm pack --dry-run          # right name, LICENSE and README in the tarball

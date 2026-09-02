@@ -1,6 +1,7 @@
 # vue-table-chad
 
-Headless table primitives for Vue 3, on the way to being an npm package. The point of the project
+Headless table primitives for Vue 3, released as an installable tarball (npm publish is still
+open work). The point of the project
 is a universal table with a flexible config that **renders fast, without much overhead** — so
 performance is a correctness property here, not a nice-to-have.
 
@@ -15,6 +16,8 @@ directory-scoped file next to the code it governs, which loads when you open tha
 | [`src/components/preset/CLAUDE.md`](src/components/preset/CLAUDE.md) | the stylesheet's two hazards, theme plumbing, column-width measurement |
 | [`bench/CLAUDE.md`](bench/CLAUDE.md) | the fixtures, the two traps, what the bench argued against |
 | [`RELEASING.md`](RELEASING.md) | the pre-release checklist and the packaging decisions |
+| [`Makefile`](Makefile) | `make pack` / `pack-check` / `release-check` — the checklist's commands, runnable |
+| [`docs/nav.ts`](docs/nav.ts) | the one source for the README docs index, the VitePress sidebar and the demo links — `tests/docsIndex.spec.ts` guards it |
 
 ## Commands
 
@@ -24,9 +27,12 @@ pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm bench         # vitest bench over bench/**
 pnpm build         # typecheck + vite lib build -> dist/
+pnpm size          # bundle-size budget over dist/ — gates in CI
+pnpm docs:api      # regenerate demo/src/data/apiReference.ts from src/ doc comments
 pnpm demo          # http://localhost:5174 — every feature one view each
 pnpm dev           # http://localhost:5173 — the smaller playground
 pnpm build:docs    # the demo, folded into one self-contained page
+make pack          # build + size + npm pack -> the installable tarball
 ```
 
 Node 24 (`.nvmrc`). pnpm, not npm.
@@ -131,8 +137,10 @@ theme and column-width decisions live in `src/components/preset/CLAUDE.md`, the 
 ## Verification
 
 **Per push, by CI** — `bitbucket-pipelines.yml` is the list. Two facts it does not carry: `pnpm lint`
-is known-red (a task in `TASKS.md` decides it) and `pnpm bench` on a shared runner is a trend to read
-rather than a threshold to fail, so neither gates.
+is known-red on 19 errors — two `vue/no-dupe-keys` in `TableRoot.vue`, one
+`no-unused-expressions` in `useVirtualRows.ts`, the rest `vue/multi-word-component-names` on the
+single-word docs example files (T4 in `TASKS.md` decides them) — and `pnpm bench` on a shared runner
+is a trend to read rather than a threshold to fail, so neither gates.
 
 **Per task, locally**
 - `pnpm test` and `pnpm typecheck` — the same two CI gates, before the commit rather than after.

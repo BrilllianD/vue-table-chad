@@ -9,8 +9,8 @@ pnpm build:docs    # -> demo/dist/standalone.html, the whole site in one file
 ```
 
 `build:docs` inlines the bundle into a single self-contained page. It predates the Bitbucket remote
-having a real host for it: one file could be published anywhere in the meantime. P3-9 gives the demo
-a proper host alongside the VitePress docs site, and removes this step once it does.
+having a real host for it: one file could be published anywhere in the meantime. T3 in `TASKS.md`
+gives the demo a proper host alongside the VitePress docs site, and removes this step once it does.
 
 The playground (`pnpm dev`, port 5173) is four small examples. This is the exhaustive one, and
 the two run side by side.
@@ -43,15 +43,21 @@ demo/
 
 | View | Layer | What it is for |
 | --- | --- | --- |
+| Recipes | preset | What to type — the six worked examples `docs/recipes.md` runs |
 | Everything at once | preset | Every `DataTable` prop and slot wired to a live control |
 | Server data | preset | Debounce, race-safety, facets, errors — with a request log as proof |
+| Infinite scroll | preset | Server rows that accumulate instead of being replaced; no pager |
 | Filters | preset | The filter model taken apart, plus the three filter primitives standalone |
 | Grouping | preset | Client vs server grouping, nesting, and per-column aggregates |
+| Editing | preset | Per-cell drafts, validation, and a save the server can refuse |
+| Cell cursor | preset | Arrow-key navigation, editing keys, and clipboard copy/paste |
+| Header bands | preset | Columns banded under shared headers, nested, foldable |
+| Wide table | preset | 34 columns, zero declared widths — each measured once and clamped |
 | Hoisted state | preset | `QueryState` owned by a ref, mirrored into the URL, driven imperatively |
 | Theming | preset | The `--vtc-*` palette and the `data-*` state hooks |
+| Virtual rows | preset | 100k rows as one continuous scroll; the page size is everything |
 | Performance | preset | The whole 10k rows, timed in the browser to the frame after the paint |
-| API reference | preset | All 143 exports, rendered by the table they belong to |
-| Recipes | preset | What to type — the six worked examples `docs/recipes.md` runs |
+| API reference | preset | Every export, rendered by the table they belong to |
 | Selection | primitives | Modes, ranges, tri-state header, "select all matching" as a predicate |
 | Column layout | primitives | `useColumns` standalone, persisted to `localStorage` |
 | Composed | primitives | Cards, not a table — same primitives, different surface |
@@ -85,9 +91,10 @@ saying why rather than by being left out.
   `afterPaint` carries a timeout anyway, so a tab hidden *partway* through a run cannot leave the
   controls disabled for good.
 
-- **`ColumnVisibilityMenu` is the one primitive that truly needs a table context.** Everything
-  else takes explicit props that stand in for the injection, which is why the Filters view can
-  render `ValueListFilter`, `ConditionFilter` and `ColumnFilterPopover` outside any table at all.
+- **Three primitives truly need a table context** — `ColumnVisibilityMenu`, `RowGroupMenu` and
+  `ActiveFilters`, the ones marked by `requireTableContext`. Everything else takes explicit props
+  that stand in for the injection, which is why the Filters view can render `ValueListFilter`,
+  `ConditionFilter` and `ColumnFilterPopover` outside any table at all.
 - **`TableStatus.vue` and `MiniRoot.vue` are not part of the library.** They exist to prove the
   context is a real extension seam in both directions: `TableStatus` injects the same context the
   built-in primitives use and needs no props, and `MiniRoot` assembles a `TableContext` by hand
@@ -97,35 +104,40 @@ saying why rather than by being left out.
 
 ## Coverage
 
-The **API reference** view documents all 143 exports, and `tests/apiReference.spec.ts` diffs that
+The **API reference** view documents all 210 exports, and `tests/apiReference.spec.ts` diffs that
 list against `src/index.ts` in both directions — an export cannot be added without being described,
 and a description cannot outlive its export. That check is what keeps this section honest.
 
-120 of the 143 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
-checked by diffing the export list against the sources, not by eye. Most are called or
-rendered; the remainder are types that appear as explicit annotations
-(`ServerDataSourceOptions`, `UseColumnsResult`, `PageItem`, `SelectionState`, `GroupingOptions`,
-…) so the demo doubles as a typed reference rather than leaning on inference.
+178 of the 210 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
+checked by diffing the export list against the sources, not by eye. Every *value* export is among
+them; `tests/apiSurface.spec.ts` enforces that. Most are called or rendered; the rest are types
+that appear as explicit annotations (`ServerDataSourceOptions`, `UseColumnsResult`, `PageItem`,
+`SelectionState`, `GroupingOptions`, …) so the demo doubles as a typed reference rather than
+leaning on inference.
 
 Measure it with `demo/src/data/apiReference.ts` **excluded**. That file is generated and names
-every export by construction, so a plain search of `demo/src` reports 143 of 143 and means nothing.
+every export by construction, so a plain search of `demo/src` reports 210 of 210 and means nothing.
 
-The twenty-three that are not referenced, and why:
+The thirty-two that are not referenced are all types, and fall into five families:
 
-- **Column storage and drag-and-drop internals** — `ColumnLayoutState`, `ColumnLayoutField`,
-  `ColumnStorageOptions`, `StorageLike`, `DEFAULT_COLUMN_LAYOUT_FIELDS`, `sanitizeColumnLayout`,
-  `normalizeColumnStorage`, `UseColumnDnd`, `UseColumnDndOptions`, `ColumnDropTarget`,
-  `DropSide`. The Column layout view drives all of this through `DataTable` props and
-  `useColumns`, so the plumbing types never need naming.
-- **Grouping internals** — `aggregateValue`, `aggregateRow`, `groupValueOf`, `groupPathKey`,
-  `groupSortRules`. The Grouping view uses the whole-dataset entry points (`aggregateGroups`,
-  `countGroups`, `flattenGroups`, `groupKeys`) instead; these five are the single-column and
-  single-row pieces those are built from.
-- **The two-step grouping API** — `buildGroupTree`, `flattenTree`, `GroupTree`, `GroupTreeOptions`,
-  `GroupNode`. Splitting build from walk is what makes collapsing a band re-scan nothing, but
-  `useRowGrouping` already does the splitting, so no view has a reason to do it by hand.
-- **Single-pass optimisations** — `sortKeyFor` and `compileSearch`. Both exist so `sortRows` and
-  the filter pipeline can derive per row instead of per comparison; a caller that is not writing
-  its own pipeline never touches them.
+- **Column storage and drag-and-drop plumbing** — `ColumnLayoutField`, `ColumnStorageOptions`,
+  `StorageLike`, `UseColumnDnd`, `UseColumnDndOptions`, `ColumnDropTarget`, `DropSide`. The
+  Column layout view drives all of this through `DataTable` props and `useColumns`, so the
+  plumbing types never need naming.
+- **Composable option and result shapes** — `UseTable`/`UseTableOptions`,
+  `UseCellCursor`/`UseCellCursorOptions`, `UseRowEditing`/`UseRowEditingOptions`,
+  `UseVirtualRows`/`UseVirtualRowsOptions`, `InfiniteDataSource`/`InfiniteDataSourceOptions`.
+  The views call the composables and let inference carry the result; annotating each return type
+  would demonstrate nothing.
+- **Editing and cursor detail types** — `RowEditState`, `RowSaveFailure`, `CellErrors`,
+  `DraftValidation`, `CellEditorKind`, `CursorMove`, `CursorKeyGesture`, `RowClickGesture`. The
+  Editing and Cell cursor views exercise the behaviours these describe through the composables'
+  own signatures.
+- **The two-step grouping API** — `GroupTree`, `GroupTreeOptions`, `GroupNode`. Splitting build
+  from walk is what makes collapsing a band re-scan nothing, but `useRowGrouping` already does
+  the splitting, so no view has a reason to do it by hand.
+- **The header row model** — `HeaderRow`, `HeaderCell`, `HeaderGroupCell`, `HeaderColumnCell`.
+  The Header bands view renders them through the primitives' slots, where they arrive already
+  typed.
 
 Each view also lists the exports it uses in the chips under its title.

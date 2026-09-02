@@ -3,7 +3,7 @@
  * The API reference — rendered by the library it documents.
  *
  * Every other view demonstrates the table over invented employees. This one
- * puts real data through it: 143 exports, searchable, filterable by layer and
+ * puts real data through it: every export, searchable, filterable by layer and
  * kind, groupable, sortable. If the reference is hard to use, the table is hard
  * to use, and there is nowhere to hide.
  *

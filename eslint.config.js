@@ -13,7 +13,17 @@ import tseslint from 'typescript-eslint'
  * this tool's job here.
  */
 export default tseslint.config(
-  { ignores: ['dist/**', 'demo/dist/**', 'coverage/**'] },
+  {
+    ignores: [
+      'dist/**',
+      'demo/dist/**',
+      'coverage/**',
+      // VitePress build output and cache — generated, gitignored, and ~1500
+      // errors of pure noise if linted.
+      'docs/.vitepress/dist/**',
+      'docs/.vitepress/cache/**',
+    ],
+  },
 
   js.configs.recommended,
   tseslint.configs.recommended,
