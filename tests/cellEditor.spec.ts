@@ -131,6 +131,9 @@ describe('what it emits', () => {
     const wrapper = editor(number, { value: '123' })
     const input = wrapper.find('input')
     const element = input.element as HTMLInputElement
+    // Let the focus watcher run first: it selects the value, and a selection
+    // still standing when the typing starts would swallow the assertion below.
+    await nextTick()
 
     // The fourth digit, typed at the end of "123": the value regroups and a
     // separator appears *before* the caret, so an index restored as-is would
@@ -225,17 +228,6 @@ describe('what it emits', () => {
     expect(area.emitted('commit')).toBeUndefined()
   })
 
-  it('puts the caret past a value it was opened holding', async () => {
-    // The value may be the character the user just typed to open this editor,
-    // and a caret left in front of it would reverse everything typed next.
-    const wrapper = editor(text, { value: 'Ada' })
-    await nextTick()
-    const input = wrapper.find('input').element as HTMLInputElement
-    expect(document.activeElement).toBe(input)
-    expect(input.selectionStart).toBe(3)
-    expect(input.selectionEnd).toBe(3)
-  })
-
   it('leaves Enter to a textarea, and takes Ctrl+Enter instead', async () => {
     const wrapper = editor({ ...text, editor: 'textarea' })
     await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
@@ -297,6 +289,57 @@ describe('focus and substitution', () => {
     await nextTick()
     expect(document.activeElement).not.toBe(wrapper.find('input').element)
     wrapper.unmount()
+  })
+
+  it('opens with the value selected, so the first keystroke replaces it', async () => {
+    const wrapper = editor(text, { value: 'Ada' })
+    await nextTick()
+    const element = wrapper.find('input').element as HTMLInputElement
+    expect(element.selectionStart).toBe(0)
+    expect(element.selectionEnd).toBe(3)
+    wrapper.unmount()
+  })
+
+  it('selects the masked number too, separators and all', async () => {
+    const wrapper = editor(number, { value: '1234000' })
+    await nextTick()
+    const element = wrapper.find('input').element as HTMLInputElement
+    // The grouped string, not the machine one: what is on screen is what a
+    // keystroke would replace.
+    expect(element.value).toBe(display('1234000'))
+    expect(element.selectionStart).toBe(0)
+    expect(element.selectionEnd).toBe(element.value.length)
+    wrapper.unmount()
+  })
+
+  it('puts the caret past a seeded value instead of selecting it', async () => {
+    // What a cell opened by typing holds: the character just typed. Selected,
+    // the next keystroke would eat it.
+    const wrapper = editor(text, { value: 'A', selectOnFocus: false })
+    await nextTick()
+    const element = wrapper.find('input').element as HTMLInputElement
+    expect(element.selectionStart).toBe(1)
+    expect(element.selectionEnd).toBe(1)
+    wrapper.unmount()
+  })
+
+  it('only focuses the controls with no text selection to speak of', async () => {
+    // `setSelectionRange` throws an `InvalidStateError` on a date input, and a
+    // select and a checkbox have nothing to select at all.
+    const dated = editor(date, { value: '2024-01-01' })
+    await nextTick()
+    expect(document.activeElement).toBe(dated.find('input').element)
+    dated.unmount()
+
+    const chosen = editor(enumeration, { value: 'Design' })
+    await nextTick()
+    expect(document.activeElement).toBe(chosen.find('select').element)
+    chosen.unmount()
+
+    const checked = editor(boolean, { value: true })
+    await nextTick()
+    expect(document.activeElement).toBe(checked.find('input').element)
+    checked.unmount()
   })
 
   it('hands the slot everything it needs to behave the same way', async () => {

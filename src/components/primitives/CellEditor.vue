@@ -61,6 +61,16 @@ const props = withDefaults(
     disabled?: boolean
     /** Focus the control as soon as it renders — the cell was just clicked. */
     autofocus?: boolean
+    /**
+     * Select the whole value when the control takes focus, so the first
+     * keystroke replaces it the way a spreadsheet does.
+     *
+     * Turn it off for an editor opened by *typing*: the value is already the
+     * character the user just typed, and selecting it would let their next
+     * keystroke eat it. Off too where moving between open editors is
+     * navigation rather than a decision to retype — a whole row open at once.
+     */
+    selectOnFocus?: boolean
     /** Labels the control for assistive tech. Defaults to the column header. */
     label?: string
     /**
@@ -85,6 +95,7 @@ const props = withDefaults(
     error: null,
     disabled: false,
     autofocus: true,
+    selectOnFocus: true,
     label: undefined,
     trapTab: true,
     arrowMove: false,
@@ -154,10 +165,6 @@ watch(
       if (!element) return
       element.focus()
       /*
-       * The caret goes past whatever is already in the box, because the value
-       * may be a character the user has just typed to open this editor: a
-       * caret left at the start would put the next keystroke in front of it.
-       *
        * Not on `date`: `setSelectionRange` throws an `InvalidStateError`
        * there — the selection API does not apply to that control — and it
        * opens with its whole value ready to be replaced anyway. A `number`
@@ -166,7 +173,17 @@ watch(
       if (kind.value !== 'text' && kind.value !== 'textarea' && kind.value !== 'number') return
       const field = element as HTMLInputElement | HTMLTextAreaElement
       const end = field.value.length
-      field.setSelectionRange(end, end)
+      /*
+       * Selected, so the first keystroke replaces the value: the cell was
+       * opened on purpose, and retyping it is what opening it usually means.
+       *
+       * Without `selectOnFocus` the caret goes past whatever is in the box
+       * instead, because the value is then a character the user has just typed
+       * to open this editor — a selection would have their next keystroke
+       * overwrite it, and a caret at the start would put it in front.
+       */
+      if (props.selectOnFocus) field.setSelectionRange(0, end)
+      else field.setSelectionRange(end, end)
     })
   },
   { immediate: true },

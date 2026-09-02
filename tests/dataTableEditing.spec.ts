@@ -281,6 +281,18 @@ describe('cell mode', () => {
     expect(h.wrapper.find('tbody tr:first-child').attributes('data-row-state')).toBe('dirty')
     h.wrapper.unmount()
   })
+
+  it('opens a clicked cell with its value selected', async () => {
+    const h = mountEditable()
+    await openEditor(h.wrapper, 'name')
+    await nextTick()
+
+    const element = cell(h.wrapper, 'name').find('input').element as HTMLInputElement
+    expect(element.value).toBe('Ada Lovelace')
+    expect(element.selectionStart).toBe(0)
+    expect(element.selectionEnd).toBe(element.value.length)
+    h.wrapper.unmount()
+  })
 })
 
 describe('row mode', () => {
@@ -330,6 +342,19 @@ describe('row mode', () => {
       name: 'Ada L.',
       department: 'Research',
     })
+    h.wrapper.unmount()
+  })
+
+  it('leaves each field caret-at-end, because Tab between them is navigation', async () => {
+    const h = mountEditable({}, 'row')
+    await openEditor(h.wrapper, 'name')
+    await nextTick()
+
+    const element = cell(h.wrapper, 'name').find('input').element as HTMLInputElement
+    // A whole row open at once: selecting every value on the way past would
+    // leave each of them one keystroke from being wiped.
+    expect(element.selectionStart).toBe(element.value.length)
+    expect(element.selectionEnd).toBe(element.value.length)
     h.wrapper.unmount()
   })
 

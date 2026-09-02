@@ -722,6 +722,21 @@ function cellAt(
   }
 }
 
+/**
+ * The cell whose editor was opened by typing, and so holds the typed character
+ * rather than the value that was there.
+ *
+ * It lives here rather than in the draft because the seed is known only where
+ * the gesture is — `onActivate` below — while the editor that has to react to
+ * it is a level down in `DataTableBody`; and because a caret is a rendering
+ * detail, which `RowEditState` (a public type) has no business carrying.
+ *
+ * Never cleared on close, only overwritten: it is compared by row *and* column
+ * id, so a stale entry can only fail to match, which is the ordinary
+ * select-the-value case.
+ */
+const seededCell = shallowRef<CellPosition | null>(null)
+
 function onActivate(
   position: CellPosition,
   event: Event,
@@ -748,6 +763,7 @@ function onActivate(
      * Enter, F2 and a click seed nothing and open the value untouched.
      */
     const seed = 'key' in event ? editSeedFor(event as unknown as KeyboardEvent) : undefined
+    seededCell.value = seed === undefined ? null : position
     if (seed !== undefined) session.setValue(row, column, seed)
     return
   }
@@ -816,6 +832,10 @@ function onPaste(
   if (!row || !column || !session.isEditable(row, column)) return
   event.preventDefault()
   session.begin(row, column.id)
+  // Seeded like a typed-open cell: the draft holds what was pasted, not what
+  // was there, so a commit that fails must leave that text unselected rather
+  // than one keystroke from being wiped.
+  seededCell.value = position
   session.setValue(row, column, text.replace(/\r?\n$/, ''))
   // Not awaited: a save is the source's business and may take as long as it
   // likes. A failure is reported through the draft, which stays open.
@@ -1035,6 +1055,7 @@ function onPaste(
               :selectable="selectable"
               :row-click-select="rowClickSelect"
               :row-mode="rowMode"
+              :seeded-cell="seededCell"
               :actions-column="actionsColumn"
               :extra-columns="extraColumns"
               :empty-message="emptyMessage"

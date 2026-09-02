@@ -360,6 +360,57 @@ describe('Enter', () => {
     wrapper.unmount()
   })
 
+  it('leaves the typed character standing, caret after it', async () => {
+    const { wrapper } = mountTable()
+    await focusCell(wrapper, 1, 'name')
+    await cell(wrapper, 1, 'name').trigger('keydown', { key: 'A' })
+    await nextTick()
+    await nextTick()
+
+    const element = cell(wrapper, 1, 'name').get('.vt-cell-input')
+      .element as HTMLInputElement
+    // Selected, the very next keystroke would replace the character that
+    // opened the cell — the one gesture becomes two again.
+    expect(element.selectionStart).toBe(1)
+    expect(element.selectionEnd).toBe(1)
+    wrapper.unmount()
+  })
+
+  it('opens a cell with its value selected when nothing was typed', async () => {
+    const { wrapper } = mountTable()
+    await focusCell(wrapper, 1, 'name')
+    await cell(wrapper, 1, 'name').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    await nextTick()
+
+    const element = cell(wrapper, 1, 'name').get('.vt-cell-input')
+      .element as HTMLInputElement
+    expect(element.value).toBe('Ada Lovelace')
+    // Retyping the cell is what opening it usually means, so the first
+    // keystroke replaces the value the way a spreadsheet does.
+    expect(element.selectionStart).toBe(0)
+    expect(element.selectionEnd).toBe(element.value.length)
+    wrapper.unmount()
+  })
+
+  it('selects the value again in the cell an editor moved on to', async () => {
+    const { wrapper } = mountTable()
+    await focusCell(wrapper, 1, 'name')
+    // Typed open, so this first cell is the unselected one — and the cell
+    // Enter lands on must not inherit that.
+    await cell(wrapper, 1, 'name').trigger('keydown', { key: 'A' })
+    await nextTick()
+    await cell(wrapper, 1, 'name').get('.vt-cell-input').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    await nextTick()
+
+    const element = cell(wrapper, 2, 'name').get('.vt-cell-input')
+      .element as HTMLInputElement
+    expect(element.selectionStart).toBe(0)
+    expect(element.selectionEnd).toBe(element.value.length)
+    wrapper.unmount()
+  })
+
   it('opens the cell empty on Delete, and saves the clear', async () => {
     const { wrapper, rows } = mountTable()
     await focusCell(wrapper, 1, 'name')

@@ -221,6 +221,11 @@ Tab:
 | `↑` `↓` `←` `→` | commit, and move that way — only with `arrowMove`, and never in a `select` or a `textarea` |
 | blur | reported, not decided — a commit in cell mode, nothing in row mode |
 
+A cell opened by a click, `Enter` or `F2` opens with its value **selected**, so retyping it is one
+gesture. A cell opened by *typing* is already holding the character that opened it, and a paste is
+holding what was pasted: both put the caret after that text rather than selecting it, or the next
+keystroke would eat it. `selectOnFocus` is the prop underneath, if you drive `CellEditor` yourself.
+
 In a `textarea` both `Enter` and `Shift+Enter` insert the newline the control exists for, so the
 `Ctrl`/`Cmd` pair carries the commit there and keeps meaning *down* and *up* rather than right and
 left. That follows from the control, not from a second convention.
@@ -303,6 +308,7 @@ Standalone like every primitive: given a `column`, a `value` and a listener it n
 | `error` | `null` | Announced through an element of its own and mirrored into `title`, because `.vt-td` clips and a message under the input would be sheared off. |
 | `disabled` | `false` | |
 | `autofocus` | `true` | Focus the control as soon as it renders. |
+| `selectOnFocus` | `true` | Select the whole value when the control takes focus, so the first keystroke replaces it. The preset turns it off for a cell opened by typing or by a paste — the value is then the text the user just produced — and in row mode, where Tab between fields is navigation. |
 | `label` | column header | Labels the control for assistive tech. |
 | `trapTab` | `true` | Take Tab over and report it as `move`. Off in row mode, where Tab already reaches the next editor. |
 

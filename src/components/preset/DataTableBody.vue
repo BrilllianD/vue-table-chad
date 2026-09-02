@@ -29,7 +29,7 @@ import type { DataSource, DisplayRow, ResolvedColumn, RowId } from '../../core/t
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import type { UseCellCursor } from '../../core/useCellCursor'
-import type { CursorMove } from '../../core/cellCursor'
+import type { CellPosition, CursorMove } from '../../core/cellCursor'
 
 const props = defineProps<{
   columns: ResolvedColumn<TRow>[]
@@ -58,6 +58,12 @@ const props = defineProps<{
    * more thing that can drift.
    */
   rowMode: boolean
+  /**
+   * The cell whose editor was opened by typing or by a paste, if any. Its
+   * control keeps the caret past the seeded text instead of selecting it —
+   * `DataTable` says why it is passed down rather than kept in the draft.
+   */
+  seededCell: CellPosition | null
   actionsColumn: boolean
   /** Leading and trailing cells, for the rows that have to span them all. */
   extraColumns: number
@@ -241,6 +247,22 @@ function cellError(row: TRow, column: ResolvedColumn<TRow>): string | null {
   const field = session.errorFor(id, column.id)
   if (field) return field
   return session.stateFor(id)?.activeColumnId === column.id ? session.errorFor(id) : null
+}
+
+/**
+ * Whether this cell's editor should open with its value selected.
+ *
+ * Not when the draft was seeded — by typing over a closed cell, or by a paste
+ * — since the text in the box is then what the user just produced. Not in row
+ * mode either: with a whole row open at once, Tab between its fields is
+ * navigation, and selecting each value on the way past would put every one of
+ * them a keystroke from being replaced.
+ */
+function selectOnFocus(row: TRow, column: ResolvedColumn<TRow>): boolean {
+  if (props.rowMode) return false
+  const seeded = props.seededCell
+  if (!seeded || !props.editing) return true
+  return !(seeded.rowId === props.editing.getRowId(row) && seeded.columnId === column.id)
 }
 
 function rowState(row: TRow): 'dirty' | 'saving' | 'error' | undefined {
@@ -583,6 +605,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               :trap-tab="!rowMode"
               :arrow-move="Boolean(cursor) && !rowMode"
               :autofocus="props.editing.stateFor(props.editing.getRowId(row))?.activeColumnId === column.id"
+              :select-on-focus="selectOnFocus(row, column)"
               @update:value="props.editing.setValue(row, column, $event)"
               @commit="(next) => commitCell(row, next, cursor)"
               @cancel="cancelCell(row, cursor)"
