@@ -1,4 +1,4 @@
-import type { ComputedRef, Ref } from 'vue'
+import type { ComputedRef, Raw, Ref } from 'vue'
 
 /** Anything a row can be keyed by. */
 export type RowId = string | number
@@ -15,9 +15,17 @@ export type ColumnDataType = 'text' | 'number' | 'date' | 'boolean' | 'enum'
 /**
  * Which control an editable column renders. Defaults from `type` — `number`
  * and `date` to their native inputs, `boolean` to a checkbox, an `enum` that
- * declared `options` to a select, and everything else to a text box.
+ * declared `options` to a select, a column that declared `asyncOptions` to the
+ * dropdown that loads them a page at a time, and everything else to a text box.
  */
-export type CellEditorKind = 'text' | 'number' | 'date' | 'checkbox' | 'select' | 'textarea'
+export type CellEditorKind =
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'checkbox'
+  | 'select'
+  | 'async-select'
+  | 'textarea'
 
 /** 'asc' | 'desc'. Unsorted is the absence of a rule, not a third value. */
 export type SortDirection = 'asc' | 'desc'
@@ -148,6 +156,23 @@ export interface ColumnDef<TRow = Record<string, unknown>, TValue = unknown> {
   searchable?: boolean
   /** Fixed option list for `enum` columns; otherwise facets come from the data. */
   options?: FilterValue[]
+  /**
+   * Options fetched a portion at a time instead of declared up front, from
+   * `useAsyncOptions`. Renders the `async-select` editor.
+   *
+   * The counterpart to `options` rather than a variant of it, and the two are
+   * mutually exclusive: `options` is the complete list, which is what lets the
+   * filter checklist order itself by it and what lets `validateCell` reject a
+   * value outside it. Neither is true of a list that arrives in pages, so this
+   * one is read by the editor and by the cell's display text, and by nothing in
+   * the filter or query pipeline.
+   *
+   * `Raw` because a column array handed to `ref()` would otherwise be walked
+   * into and every ref inside this source unwrapped, which changes its type
+   * and deep-proxies state that is not row data. `useAsyncOptions` marks what
+   * it returns; a hand-built source has to say `markRaw` too.
+   */
+  asyncOptions?: Raw<AsyncOptionSource>
   /** Formats the value for display and for the filter checklist. */
   format?: (value: TValue, row: TRow) => string
   /**
@@ -499,6 +524,100 @@ export type DisplayRow<TRow = Record<string, unknown>> =
       /** How many group levels sit above this row; 0 when grouping is off. */
       depth: number
     }
+
+/* ------------------------------------------------------------------ *
+ * Async options
+ * ------------------------------------------------------------------ */
+
+/** One choice in a dropdown: the value stored, and the text shown for it. */
+export interface AsyncOption {
+  value: FilterValue
+  label: string
+  /** Rendered, but not choosable. */
+  disabled?: boolean
+}
+
+/**
+ * What a fetcher is told when the dropdown asks for the next portion.
+ *
+ * Everything an offset, a page-number or a cursor API could need is here at
+ * once, because the library holds no opinion about which one you have: read
+ * the two fields your endpoint speaks and ignore the rest.
+ */
+export interface OptionPageRequest {
+  /** The search box's text, or `''`. A change resets the list to the first portion. */
+  search: string
+  /** 1-based, and only advanced by a portion that actually arrived. */
+  page: number
+  /** How many options are already held — the offset, for a limit/offset API. */
+  loaded: number
+  /** Whatever the previous portion returned as `cursor`; `undefined` on the first. */
+  cursor: unknown
+  /** Aborted when a newer request supersedes this one, or the scope goes away. */
+  signal: AbortSignal
+}
+
+/**
+ * One portion of options, and however this endpoint says whether there are
+ * more.
+ *
+ * The three answers are read in one order, stated once so that no caller has
+ * to declare which protocol it speaks: an explicit `hasMore` wins; failing
+ * that a `total` means "more while fewer are loaded than that"; failing both,
+ * an empty portion is the end of the list.
+ */
+export interface OptionPage {
+  options: AsyncOption[]
+  hasMore?: boolean
+  /** Options matching the search across every portion. */
+  total?: number
+  /** Handed back in the next request, for a cursor-paged endpoint. */
+  cursor?: unknown
+}
+
+/** Fetches one portion of a dropdown's options. */
+export type AsyncOptionFetcher = (request: OptionPageRequest) => Promise<OptionPage>
+
+/**
+ * A growing list of options, plus what a scrolling dropdown needs to grow it.
+ * `useAsyncOptions` returns this; `ColumnDef.asyncOptions` holds one.
+ */
+export interface AsyncOptionSource {
+  /** Every option loaded so far, in the order the portions arrived. */
+  options: Readonly<Ref<readonly AsyncOption[]>> | ComputedRef<readonly AsyncOption[]>
+  /** The search box's text. Writing it resets the list, debounced. */
+  search: Ref<string>
+  loading: Readonly<Ref<boolean>> | ComputedRef<boolean>
+  /** True only for the first portion, when there is nothing to show yet. */
+  initialLoading: ComputedRef<boolean>
+  /** True while a *further* portion is on its way — the list's footer, not its body. */
+  loadingMore: ComputedRef<boolean>
+  hasMore: ComputedRef<boolean>
+  error: Readonly<Ref<unknown>> | ComputedRef<unknown>
+  /**
+   * Ask for the next portion.
+   *
+   * A no-op while a request is in flight, while a search is still settling,
+   * and once everything is loaded — so a scroll handler can call it on every
+   * event without counting or debouncing anything itself.
+   */
+  loadMore: () => void
+  /** Back to the first portion of the current search. */
+  reset: () => void
+  /**
+   * The label for a value, or `undefined` while there is none.
+   *
+   * What lets a closed cell holding an id show a name: every portion loaded
+   * and every option picked is remembered here. A value no portion carried is
+   * looked up through `resolveOptions` — batched across the render that found
+   * it, and asked about only once — so **reading this may schedule a request**.
+   * Without a `resolveOptions` there is nothing to ask, and the value reads as
+   * itself.
+   */
+  labelFor: (value: FilterValue) => string | undefined
+  /** Remember one option's label without having loaded it. */
+  remember: (option: AsyncOption) => void
+}
 
 /* ------------------------------------------------------------------ *
  * Data sources

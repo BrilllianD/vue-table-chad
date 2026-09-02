@@ -31,7 +31,9 @@
  * which is the one that owns the mode.
  *
  * The control itself comes from `editorFor`, so a column that declared
- * `type: 'number'` gets a number box without saying so twice. Anything more
+ * `type: 'number'` gets a number box without saying so twice — and a column
+ * whose options arrive a portion at a time gets `AsyncSelect`, which claims
+ * the arrows and, while its panel is up, Enter and Escape as well. Anything more
  * particular goes in the default slot, which is handed everything it needs to
  * behave the same way.
  *
@@ -42,6 +44,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { editorFor } from '../../core/editing'
 import { commitMoveFor, editorMoveFor, type CursorMove } from '../../core/cellCursor'
 import type { ColumnDef } from '../../core/types'
+import AsyncSelect from './AsyncSelect.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -212,8 +215,29 @@ function onKeydown(event: KeyboardEvent): void {
       :commit="() => emit('commit')"
       :cancel="() => emit('cancel')"
     >
+      <!--
+        The one control that is a component rather than an element, because a
+        list that arrives in portions needs a panel, a scroll handler and a
+        keyboard of its own. It keeps its own focus: `blur` reaches here only
+        once focus has left the panel too, which is what stops a click into the
+        dropdown from committing the row.
+      -->
+      <AsyncSelect
+        v-if="kind === 'async-select' && column.asyncOptions"
+        :source="column.asyncOptions"
+        :value="value"
+        :disabled="disabled"
+        :error="error"
+        :label="label"
+        :required="column.required"
+        :autofocus="autofocus"
+        @update:value="emit('update:value', $event)"
+        @blur="emit('blur')"
+        @keydown="onKeydown"
+      />
+
       <select
-        v-if="kind === 'select'"
+        v-else-if="kind === 'select'"
         ref="control"
         class="vt-cell-input"
         :value="text"

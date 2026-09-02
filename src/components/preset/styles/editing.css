@@ -112,6 +112,7 @@
 
 /* The ring, not a message: there is no room under the input for words. */
 .vt-cell-editor[data-invalid] .vt-cell-input,
+.vt-cell-editor[data-invalid] .vt-asyncselect-trigger,
 .vt-cell-editor[data-invalid] .vt-cell-checkbox {
   border-color: var(--vtc-danger);
   outline: var(--vtc-stroke-1) solid var(--vtc-danger);
@@ -166,4 +167,142 @@
   font-size: 0.85em;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------- async options */
+
+/*
+  The dropdown whose options arrive a portion at a time. Its trigger is a cell
+  editor like the others, so it takes `.vt-cell-input`'s sizing — the cell has
+  already dropped its padding for it. Its panel is not: that is teleported out
+  to `<body>` and is styled the way the filter panel is, for the same reason.
+*/
+.vt-asyncselect {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.vt-asyncselect-trigger {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 calc(var(--vtc-cell-padding-x) - var(--vtc-stroke-1));
+  border: var(--vtc-stroke-1) solid var(--vtc-border-strong);
+  border-radius: 0;
+  background: var(--vtc-bg);
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vt-asyncselect-trigger[data-placeholder] { color: var(--vtc-text-muted); }
+.vt-asyncselect-trigger:disabled { opacity: var(--vtc-opacity-disabled); cursor: default; }
+
+.vt-asyncselect-trigger:focus-visible {
+  outline: var(--vtc-focus-width) solid var(--vtc-focus-color);
+  outline-offset: -1px;
+}
+
+/*
+  Fixed, not absolute: the panel is teleported out of the scroll container so
+  neither `.vt-scroll`'s overflow nor the row's own `overflow: hidden` can clip
+  it. `top`/`left` come from the trigger's rect, written inline by the
+  component — the same arrangement `.vt-filter-panel` has.
+*/
+.vt-asyncselect-panel[data-inline] {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+}
+
+.vt-asyncselect-panel {
+  position: fixed;
+  z-index: var(--vtc-z-popover);
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  /* Never taller than the viewport, so positioning always has a solution. */
+  max-height: calc(100vh - 16px);
+  background: var(--vtc-bg);
+  border: var(--vtc-stroke-1) solid var(--vtc-border-strong);
+  border-radius: var(--vtc-radius);
+  box-shadow: var(--vtc-elevation-popover);
+  font: var(--vtc-font);
+  font-weight: var(--vtc-weight-normal);
+  color: var(--vtc-text);
+  white-space: normal;
+  overflow: hidden;
+}
+
+.vt-asyncselect-search {
+  box-sizing: border-box;
+  margin: var(--vtc-space-3);
+  padding: 5px var(--vtc-space-4);
+  border: var(--vtc-stroke-1) solid var(--vtc-border);
+  border-radius: var(--vtc-radius-sm);
+  background: var(--vtc-bg);
+  color: inherit;
+  font: inherit;
+}
+
+.vt-asyncselect-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* The scroll box the load-more handler reads; a panel this tall shows ~8. */
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.vt-asyncselect-option {
+  padding: var(--vtc-space-2) var(--vtc-space-4);
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vt-asyncselect-option[data-active] { background: var(--vtc-header-bg); }
+.vt-asyncselect-option[data-chosen] { color: var(--vtc-accent); font-weight: var(--vtc-weight-bold); }
+
+.vt-asyncselect-option[aria-disabled] {
+  opacity: var(--vtc-opacity-disabled);
+  cursor: default;
+}
+
+.vt-asyncselect-status {
+  padding: var(--vtc-space-2) var(--vtc-space-4);
+  color: var(--vtc-text-muted);
+  font-size: var(--vtc-font-size-sm);
+}
+
+.vt-asyncselect-more,
+.vt-asyncselect-retry {
+  border: 0;
+  background: none;
+  padding: var(--vtc-space-2) var(--vtc-space-4);
+  color: var(--vtc-accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vt-asyncselect-more { border-top: var(--vtc-stroke-1) solid var(--vtc-border); }
+.vt-asyncselect-more:disabled { color: var(--vtc-text-muted); cursor: default; }
+
+.vt-asyncselect-error {
+  margin: 0;
+  padding: var(--vtc-space-2) var(--vtc-space-4);
+  color: var(--vtc-danger);
+  font-size: var(--vtc-font-size-sm);
 }

@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, ref, shallowRef } from 'vue'
+import { defineComponent, effectScope, h, nextTick, ref, shallowRef } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { useRowEditing, type EditMode, type RowChange } from '../src/core/useRowEditing'
+import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import { replaceRowIn } from '../src/core/editing'
 import type { ColumnDef } from '../src/core/types'
 import { people, personColumns, type Person } from './fixtures'
@@ -436,5 +437,135 @@ describe('the editor slot', () => {
     await nextTick()
     expect(saves[0]!.patch).toEqual({ salary: 500000 })
     wrapper.unmount()
+  })
+})
+
+/**
+ * A column whose options are fetched a portion at a time, end to end.
+ *
+ * Three things had to be taken out of the way for this to work at all, and
+ * each is a line in `core/editing.ts`: `validateCell` would have rejected an id
+ * absent from a list that is never complete, `parseCellInput` would have turned
+ * it into a string, and `editorFor` would have offered a text box. The fourth
+ * is not in the core at all — the panel is teleported, so choosing from it
+ * looks like leaving the cell, which in cell mode is a save.
+ */
+describe('a column whose options arrive in portions', () => {
+  const MANAGERS = [
+    { value: 10, label: 'Grace Hopper' },
+    { value: 11, label: 'Alan Turing' },
+  ]
+
+  function mountAsyncColumn() {
+    const rows = shallowRef<Person[]>(people.map((person) => ({ ...person, managerId: 10 })))
+    const saves: RowChange<Person>[] = []
+    const scope = effectScope()
+
+    const source = scope.run(() =>
+      useAsyncOptions(async ({ loaded }) => ({
+        options: MANAGERS.slice(loaded, loaded + 1),
+        total: MANAGERS.length,
+      })),
+    )!
+
+    const asyncColumns: ColumnDef<Person>[] = [
+      ...personColumns,
+      { id: 'managerId', header: 'Manager', type: 'number', editable: true, asyncOptions: source },
+    ]
+
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const local = useLocalDataSource<Person>(rows, asyncColumns, state.query, {
+          debounceMs: 0,
+        })
+        const session = useRowEditing<Person>(local, asyncColumns, {
+          save: async (change) => {
+            saves.push(change)
+          },
+          apply: (next) => {
+            rows.value = replaceRowIn(rows.value, next, (row) => row.id)
+          },
+        })
+        return () =>
+          h(DataTable as never, { columns: asyncColumns, source: local, state, editing: session })
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    return { wrapper, rows, saves, dispose: () => scope.stop() }
+  }
+
+  const panel = () => document.querySelector('.vt-asyncselect-panel')
+
+  it('shows the id until a portion carries its label, then the label', async () => {
+    const table = mountAsyncColumn()
+    expect(cell(table.wrapper, 'managerId').text()).toBe('10')
+
+    await cell(table.wrapper, 'managerId').find('.vt-cell-trigger').trigger('click')
+    await vi.waitFor(() => expect(panel()).not.toBeNull())
+    await vi.waitFor(() =>
+      expect(document.querySelector('.vt-asyncselect-option[data-chosen]')).not.toBeNull(),
+    )
+    await nextTick()
+
+    // The same cell, now that the portion holding 10 has arrived. Nothing
+    // fetched it on the cell's behalf — the panel opening is what loaded it.
+    expect(cell(table.wrapper, 'managerId').text()).toContain('Grace Hopper')
+    table.wrapper.unmount()
+    table.dispose()
+  })
+
+  it('saves the chosen id once, and does not call it invalid', async () => {
+    const table = mountAsyncColumn()
+    await cell(table.wrapper, 'managerId').find('.vt-cell-trigger').trigger('click')
+    await vi.waitFor(() => expect(panel()).not.toBeNull())
+
+    // The second manager is on a portion the first request did not carry.
+    ;(document.querySelector('.vt-asyncselect-more') as HTMLButtonElement).click()
+    await vi.waitFor(() =>
+      expect(
+        [...document.querySelectorAll('.vt-asyncselect-option')].some(
+          (node) => node.textContent?.trim() === 'Alan Turing',
+        ),
+      ).toBe(true),
+    )
+
+    const turing = [...document.querySelectorAll('.vt-asyncselect-option')].find(
+      (node) => node.textContent?.trim() === 'Alan Turing',
+    ) as HTMLElement
+    turing.click()
+    await nextTick()
+
+    await cell(table.wrapper, 'managerId')
+      .find('.vt-asyncselect-trigger')
+      .trigger('keydown', { key: 'Enter' })
+    await vi.waitFor(() => expect(table.saves).toHaveLength(1))
+
+    // The id itself, not the string a `<select>` would have handed back.
+    expect(table.saves[0]!.patch).toEqual({ managerId: 11 })
+    expect(table.wrapper.find('.vt-cell-editor[data-invalid]').exists()).toBe(false)
+    await vi.waitFor(() => expect(cell(table.wrapper, 'managerId').text()).toBe('Alan Turing'))
+    table.wrapper.unmount()
+    table.dispose()
+  })
+
+  it('does not save the row when focus moves into the panel', async () => {
+    const table = mountAsyncColumn()
+    await cell(table.wrapper, 'managerId').find('.vt-cell-trigger').trigger('click')
+    await vi.waitFor(() => expect(panel()).not.toBeNull())
+
+    const search = document.querySelector('.vt-asyncselect-search') as HTMLElement
+    cell(table.wrapper, 'managerId')
+      .find('.vt-asyncselect')
+      .element.dispatchEvent(new FocusEvent('focusout', { relatedTarget: search, bubbles: true }))
+    await nextTick()
+
+    // In cell mode a blur commits, and the panel lives under `<body>` — so
+    // without the containment test this is a save fired mid-choice.
+    expect(table.saves).toHaveLength(0)
+    expect(panel()).not.toBeNull()
+    table.wrapper.unmount()
+    table.dispose()
   })
 })

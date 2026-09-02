@@ -384,17 +384,18 @@ export function editSeedFor(gesture: CursorKeyGesture): string | undefined {
  * commits and moves, the same way Enter does — this is the sibling of
  * `commitMoveFor`, and takes the same `kind` for the same reason.
  *
- * `select` and `textarea` are exempt, and not as a courtesy: the arrows are how
- * a select is changed at all and how a caret crosses a line in a textarea, so
- * claiming them would take away the control's own operation. A text or number
- * box loses its caret movement to this, which is the trade a spreadsheet makes
- * too — `Home` and `End` still reach both ends of the text.
+ * `select`, `async-select` and `textarea` are exempt, and not as a courtesy:
+ * the arrows are how a select is changed at all, how a listbox is walked, and
+ * how a caret crosses a line in a textarea, so claiming them would take away
+ * the control's own operation. A text or number box loses its caret movement
+ * to this, which is the trade a spreadsheet makes too — `Home` and `End` still
+ * reach both ends of the text.
  */
 export function editorMoveFor(
   gesture: CursorKeyGesture,
   kind?: CellEditorKind,
 ): CursorMove | undefined {
-  if (kind === 'select' || kind === 'textarea') return undefined
+  if (kind === 'select' || kind === 'async-select' || kind === 'textarea') return undefined
   if (gesture.altKey || gesture.shiftKey || isPrimaryModifier(gesture)) return undefined
 
   switch (gesture.key) {

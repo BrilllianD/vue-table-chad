@@ -49,13 +49,17 @@ export const REQUIRED_MESSAGE = 'Required'
 
 /**
  * Which control edits this column: its own `editor`, or one derived from
- * `type`.
+ * `type` and from how its options are supplied.
  *
  * An `enum` only earns a select if it declared `options`; without them there is
- * no list to offer, and a text box beats an empty dropdown.
+ * no list to offer, and a text box beats an empty dropdown. A column whose
+ * options arrive a portion at a time gets the dropdown that can ask for more,
+ * whatever its `type` — the list is the reason for the control, and a column
+ * of ids is as often typed `number` as `enum`.
  */
 export function editorFor<TRow>(column: ColumnDef<TRow>): CellEditorKind {
   if (column.editor) return column.editor
+  if (column.asyncOptions) return 'async-select'
   switch (column.type) {
     case 'number':
       return 'number'
@@ -98,6 +102,15 @@ export function parseCellInput<TRow>(
 ): unknown {
   if (column.parse) return column.parse(input, row)
   if (isBlank(input)) return null
+  /*
+   * A dropdown that loaded its options hands back the option's own value, not
+   * the string a `<select>` would have made of it — so there is nothing to
+   * coerce, and coercing anyway would turn a numeric id into text. Above the
+   * switch rather than inside the `enum` case, because a column of ids is as
+   * likely to be typed `number` as `enum` and the control is the same either
+   * way.
+   */
+  if (column.asyncOptions) return input
 
   switch (column.type) {
     case 'number':
@@ -131,6 +144,11 @@ export function validateCell<TRow>(
   if (column.required && isBlank(value)) return REQUIRED_MESSAGE
   if (
     column.type === 'enum' &&
+    // A list that arrives in portions is never the complete set, so membership
+    // in the portions loaded so far says nothing: the value in the cell may
+    // simply sit on a portion nobody has scrolled to. Rejecting it would make
+    // the whole feature unusable — the row could not be saved at all.
+    !column.asyncOptions &&
     column.options &&
     column.options.length > 0 &&
     !isBlank(value) &&

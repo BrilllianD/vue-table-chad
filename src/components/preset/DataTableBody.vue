@@ -24,7 +24,13 @@ import VirtualBody from '../primitives/VirtualBody.vue'
 import TableRow from '../primitives/TableRow.vue'
 import TableGroupRow from '../primitives/TableGroupRow.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
-import type { DataSource, DisplayRow, ResolvedColumn, RowId } from '../../core/types'
+import type {
+  DataSource,
+  DisplayRow,
+  FilterValue,
+  ResolvedColumn,
+  RowId,
+} from '../../core/types'
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import type { UseCellCursor } from '../../core/useCellCursor'
@@ -323,6 +329,21 @@ async function commitRow(row: TRow): Promise<boolean> {
 }
 
 /**
+ * What a closed cell shows.
+ *
+ * A column whose options arrive a portion at a time stores an id and knows a
+ * label for it only once some portion has carried one, so the label is looked
+ * up here — in the render — rather than through `format`. That is not a
+ * preference: `format` is what `getCellText` calls, and `getCellText` is what
+ * the global search reads, so a label landing in that cache would invalidate
+ * the filter pass and re-run it over the whole dataset. Reading it here keeps
+ * the whole mechanism out of the pipeline's sight.
+ */
+function cellText(column: ResolvedColumn<TRow>, value: unknown, text: string): string {
+  return column.asyncOptions?.labelFor(value as FilterValue) ?? text
+}
+
+/**
  * Leaving a cell finishes the edit — but only in cell mode. With a whole row
  * open, moving between its fields is navigation, not a decision to save.
  */
@@ -544,9 +565,9 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
                 :row="row"
                 :column="column"
                 :value="value"
-                :text="text"
+                :text="cellText(column, value, text)"
               >
-                {{ text }}
+                {{ cellText(column, value, text) }}
               </slot>
             </button>
 
@@ -562,9 +583,9 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
                 :row="row"
                 :column="column"
                 :value="value"
-                :text="text"
+                :text="cellText(column, value, text)"
               >
-                {{ text }}
+                {{ cellText(column, value, text) }}
               </slot>
             </span>
 
@@ -574,9 +595,9 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               :row="row"
               :column="column"
               :value="value"
-              :text="text"
+              :text="cellText(column, value, text)"
             >
-              {{ text }}
+              {{ cellText(column, value, text) }}
             </slot>
           </template>
 

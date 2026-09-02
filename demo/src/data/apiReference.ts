@@ -93,6 +93,9 @@ export const apiReference: ApiEntry[] = [
   { name: 'InfiniteDataSource', layer: 'core', kind: 'type', summary: 'A DataSource that grows, plus what a scroll handler needs to grow it.' },
   { name: 'InfiniteDataSourceOptions', layer: 'core', kind: 'type', summary: 'pageSize, debounceMs, immediate, fetchFacets and onError.' },
 
+  { name: 'useAsyncOptions', layer: 'core', kind: 'composable', summary: 'Options for a dropdown, fetched a portion at a time as something scrolls.' },
+  { name: 'AsyncOptionsOptions', layer: 'core', kind: 'type', summary: 'debounceMs, immediate and onError.' },
+
   { name: 'useRowSelection', layer: 'core', kind: 'composable', summary: 'Selection that survives paging, and that can represent "everything matching the filters" without materialising an id per row.' },
   { name: 'RowClickGesture', layer: 'core', kind: 'type', summary: 'The modifiers a click carries, and nothing else about it.' },
   { name: 'UseRowSelection', layer: 'core', kind: 'type', summary: 'Selection state, predicates and mutators.' },
@@ -132,7 +135,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'Theme', layer: 'core', kind: 'type', summary: "A theme: any subset of the preset's tokens, camelCased." },
   { name: 'ThemeToken', layer: 'core', kind: 'type', summary: "One token's name, in the camelCase form a `Theme` uses." },
 
-  { name: 'editorFor', layer: 'core', kind: 'function', summary: 'Which control edits this column: its own `editor`, or one derived from `type`.' },
+  { name: 'editorFor', layer: 'core', kind: 'function', summary: 'Which control edits this column: its own `editor`, or one derived from `type` and from how its options are supplied.' },
   { name: 'isColumnEditable', layer: 'core', kind: 'function', summary: 'Whether this column accepts an edit to this row.' },
   { name: 'parseCellInput', layer: 'core', kind: 'function', summary: "Coerces what an editor produced into the column's own value: `column.parse`, or the coercion its `type` implies." },
   { name: 'validateCell', layer: 'core', kind: 'function', summary: "One cell's error message, or `null` when the value is acceptable." },
@@ -243,6 +246,8 @@ export const apiReference: ApiEntry[] = [
 
   { name: 'CellEditor', layer: 'primitives', kind: 'component', summary: 'The control that edits one cell, and the keyboard contract around it.' },
 
+  { name: 'AsyncSelect', layer: 'primitives', kind: 'component', summary: 'A dropdown whose options arrive a portion at a time, asked for as the list is scrolled.' },
+
   { name: 'TableGroupRow', layer: 'primitives', kind: 'component', summary: "A group header row: the expand toggle and the group's label, followed by whatever the grouped rows aggregate to, under the columns those aggregates describe." },
 
   { name: 'VirtualBody', layer: 'primitives', kind: 'component', summary: 'A `<tbody>` that renders only the rows the viewport can show, with empty space standing in for the rest.' },
@@ -276,7 +281,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'RowId', layer: 'types', kind: 'type', summary: 'Anything a row can be keyed by.' },
   { name: 'FilterValue', layer: 'types', kind: 'type', summary: 'Values that may appear inside a serialized filter. Keep this JSON-safe.' },
   { name: 'ColumnDataType', layer: 'types', kind: 'type', summary: "How a column's values behave. Drives which comparator sorts it and which operators its filter panel offers." },
-  { name: 'CellEditorKind', layer: 'types', kind: 'type', summary: 'Which control an editable column renders. Defaults from `type` — `number` and `date` to their native inputs, `boolean` to a checkbox, an `enum` that declared `options` to a select, and everything else to a text box.' },
+  { name: 'CellEditorKind', layer: 'types', kind: 'type', summary: 'Which control an editable column renders. Defaults from `type` — `number` and `date` to their native inputs, `boolean` to a checkbox, an `enum` that declared `options` to a select, a column that declared `asyncOptions` to the dropdown that loads them a page at a time, and everything else to a text box.' },
   { name: 'SortDirection', layer: 'types', kind: 'type', summary: "'asc' | 'desc'. Unsorted is the absence of a rule, not a third value." },
   { name: 'SortRule', layer: 'types', kind: 'type', summary: 'One sort key: a column id and a direction.' },
   { name: 'ConditionOperator', layer: 'types', kind: 'type', summary: 'Every operator across every column type.' },
@@ -302,6 +307,11 @@ export const apiReference: ApiEntry[] = [
   { name: 'FetchParams', layer: 'types', kind: 'type', summary: 'What a server fetcher receives and must honour.' },
   { name: 'FetchResult', layer: 'types', kind: 'type', summary: 'What it must return: rows for the page, and the total across all pages.' },
   { name: 'DataSource', layer: 'types', kind: 'type', summary: 'The seam that makes local and server data interchangeable. Components consume this and never learn which implementation they were handed.' },
+  { name: 'AsyncOption', layer: 'types', kind: 'type', summary: 'One choice in a dropdown: the value stored, and the text shown for it.' },
+  { name: 'OptionPageRequest', layer: 'types', kind: 'type', summary: 'What a fetcher is told when the dropdown asks for the next portion.' },
+  { name: 'OptionPage', layer: 'types', kind: 'type', summary: 'One portion of options, and however this endpoint says whether there are more.' },
+  { name: 'AsyncOptionFetcher', layer: 'types', kind: 'type', summary: "Fetches one portion of a dropdown's options." },
+  { name: 'AsyncOptionSource', layer: 'types', kind: 'type', summary: 'A growing list of options, plus what a scrolling dropdown needs to grow it. `useAsyncOptions` returns this; `ColumnDef.asyncOptions` holds one.' },
   { name: 'SelectionMode', layer: 'types', kind: 'type', summary: 'Whether one row at a time can be selected, or many.' },
   { name: 'SelectionState', layer: 'types', kind: 'type', summary: 'Explicit id list, or "everything matching the current filters minus these exclusions" — the latter is the only sane way to select 12k server rows.' },
   { name: 'HeaderCheckboxState', layer: 'types', kind: 'type', summary: "'none' | 'some' | 'all' — the tri-state header checkbox." },
