@@ -66,6 +66,9 @@ itself at `70vh`, which is where the height comes from by default. **A theme tha
 `max-height: none` on it has made the viewport as tall as the content and turned virtualization
 off** — every row will be rendered, correctly and slowly.
 
+Lifting the cap is fine as long as something else bounds the box. A full-height table does exactly
+that, and [Styling](styling.md#height-and-filling-the-page) has the flex recipe for it.
+
 Before the box has been measured — the first render, always — the window falls back to an assumed
 viewport and narrows on the next frame. That is deliberate: a table that rendered nothing until it
 had been measured would flash empty on every mount.

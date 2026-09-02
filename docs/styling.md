@@ -374,6 +374,42 @@ column that declares no width is measured from what it holds, so a rule that
 changes `--vtc-cell-padding-x` or the font changes what gets measured on the next
 mount.
 
+## Height, and filling the page
+
+`.vt-scroll` caps itself at `max-height: 70vh`, and that is the only height the
+library declares. It is a default rather than a policy: it keeps a long table
+from running off the page on its own, and it is what gives the sticky header,
+the sticky group footer and the virtual window a viewport to work against.
+
+A table that should fill the page instead needs a bounded box handed down to it.
+`.vt-datatable` is already a flex column, so constraining the root is enough —
+the toolbar and the pager keep their natural heights and the grid takes the
+surplus:
+
+```css
+.page { display: flex; flex-direction: column; height: 100dvh; }
+
+.page .vt-datatable { flex: 1; min-height: 0; }
+.vt-datatable > .vt-scroll-frame { flex: 1; min-height: 0; }
+.vt-datatable .vt-scroll { max-height: none; height: 100%; }
+```
+
+Three parts of that are load-bearing:
+
+- **`max-height: none` on its own is the trap.** Lifting the cap without
+  bounding the box some other way makes the viewport as tall as the content,
+  which turns the scrolling off — and with it the window, so every row renders.
+  It is correct here only because the flex chain above supplies a height.
+- **`min-height: 0` is not optional.** A flex item defaults to
+  `min-height: auto`, which floors it at its content height; without it the
+  scroller grows past the page rather than scrolling inside it.
+- **Sticky only starts working once the box is bounded.** The sticky header and
+  the sticky group footer have nothing to stick to in an unbounded scroller,
+  which is why the footer rule is written as inert until the caller decides.
+
+See [Virtualization](virtualization.md) for what the viewport height means to
+the window.
+
 ---
 
 Live: the **Theming** tab of `pnpm demo` (`#theming`), and **Header bands** for the band rules. Back to the [docs index](/).
