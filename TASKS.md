@@ -21,18 +21,6 @@ each; the commit subject names the task by ID.
 
 ## Active
 
-### `[ ]` T8 — Show a pointer cursor on a header cell that acts
-
-`cursor: pointer` sits on the controls themselves (`.vt-sort`, `.vt-filter-trigger`,
-`.vt-th-group-toggle`) and nowhere else, so the cell around them reads as inert. `TableHeaderCell`
-emits `data-sortable` / `data-filterable` beside the existing state pair, and `header.css` gives
-those and `.vt-th-group[data-collapsible]` a pointer — after `[data-reorderable]`, so pointer beats
-`grab` on the columns that are both.
-
-**Done when:** a sortable, filterable or collapsible header cell shows the pointer across its whole
-box, and a column with both capabilities off still shows `grab` while reorderable and `grabbing`
-while dragged.
-
 ### `[ ]` T2 — P3-8: release flow
 
 changesets → CHANGELOG → publish. Releases 0.2.1 and 0.3.0 were cut by hand — `RELEASING.md`

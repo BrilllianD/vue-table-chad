@@ -61,6 +61,29 @@
   touch-action: pan-y;
 }
 
+/*
+  A header cell that acts says so before the click. `cursor: pointer` sits on the
+  controls themselves — `.vt-sort`, `.vt-filter-trigger`, `.vt-th-group-toggle` —
+  and the cell around them is most of their box, so a sortable header read as
+  inert everywhere but the label.
+
+  After `[data-reorderable]` on purpose. Both are (0,2,0), so source order is
+  what decides, and pointer has to win: almost every column is reorderable by
+  default, which made `grab` the cursor on a header whose ordinary click is a
+  sort. `grab` survives on a column that neither sorts nor filters, and
+  `[data-dragging]` below still turns it into `grabbing` mid-drag.
+
+  It advertises "an action lives in this cell" rather than "clicking here acts":
+  the padding around `.vt-sort` is not itself a click target, and the band cell
+  is the sharpest case of that — only its caret folds the band, deliberately, so
+  that reading a header cannot collapse it.
+*/
+.vt-th[data-sortable],
+.vt-th[data-filterable],
+.vt-th-group[data-collapsible] {
+  cursor: pointer;
+}
+
 .vt-th[data-dragging] {
   cursor: grabbing;
   opacity: var(--vtc-opacity-dragging);

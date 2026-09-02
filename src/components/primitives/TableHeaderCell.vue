@@ -115,6 +115,15 @@ function onKeydown(event: KeyboardEvent): void {
 </script>
 
 <template>
+  <!--
+    `data-sortable` and `data-filterable` are capability, next to the state pair
+    beside them: `data-sorted` says this column *is* sorted, `data-sortable` that
+    it can be. The preset styles the cursor off the capability, because a header
+    that acts on a click has to say so before the click.
+
+    `!== false` rather than a truthiness test — both default to on, and a column
+    def says so by leaving them out.
+  -->
   <th
     class="vt-th"
     scope="col"
@@ -126,6 +135,8 @@ function onKeydown(event: KeyboardEvent): void {
     :data-column-bg="column.headerBackground ? '' : undefined"
     :data-sorted="column.sortDirection || undefined"
     :data-filtered="column.hasFilter || undefined"
+    :data-sortable="column.sortable !== false || undefined"
+    :data-filterable="column.filterable !== false || undefined"
     :data-reorderable="draggable || undefined"
     :data-dragging="dnd?.isDragged(column.id) || undefined"
     :data-drop="dnd?.dropSideFor(column.id) || undefined"

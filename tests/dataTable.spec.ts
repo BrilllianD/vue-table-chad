@@ -82,6 +82,25 @@ describe('DataTable rendering', () => {
     wrapper.unmount()
   })
 
+  it('marks what a header cell can do, not only what it is doing', () => {
+    // Capability, which is what the stylesheet points the cursor at. jsdom
+    // applies no CSS, so the attribute is the whole testable half.
+    const wrapper = mountTable({
+      columns: [
+        { id: 'name', header: 'Name' },
+        { id: 'salary', header: 'Salary', sortable: false, filterable: false },
+      ],
+    })
+    const header = (id: string) =>
+      wrapper.findAll('thead th').find((th) => th.attributes('data-column') === id)!
+
+    expect(header('name').attributes('data-sortable')).toBe('true')
+    expect(header('name').attributes('data-filterable')).toBe('true')
+    expect(header('salary').attributes('data-sortable')).toBeUndefined()
+    expect(header('salary').attributes('data-filterable')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('shows the direction on the trigger itself, not only on the cell', async () => {
     const wrapper = mountTable()
     const trigger = () =>

@@ -8,7 +8,7 @@
  * contiguous slices of what was here, in the order it was in, and no selector
  * changed. `pnpm build` emits the same bytes it did before the split.
  *
- * **Partitions are contiguous slices, and stay that way.** Three pairs of rules
+ * **Partitions are contiguous slices, and stay that way.** Four pairs of rules
  * are separated by source order alone, because both sides have identical
  * specificity and the later one is meant to win:
  *
@@ -18,8 +18,11 @@
  *     (0,4,0), which is what makes a grouped table stripe by band.
  *   - `editing.css` — `[data-row-state]` against `[data-row-state='error']`,
  *     both (0,4,0), which is what makes the error stripe red.
+ *   - `header.css` — `.vt-th[data-reorderable] { cursor: grab }` against
+ *     `.vt-th[data-sortable] { cursor: pointer }`, both (0,2,0), which is what
+ *     makes a header that both sorts and reorders read as clickable.
  *
- * All three are *within* one partition, so the risk is splitting a file, not
+ * All four are *within* one partition, so the risk is splitting a file, not
  * reordering this list. What this list must not do is let a partition write
  * `background-image` or `box-shadow` wholesale: the cell layer stack and the
  * shadow stack are fixed by the declaration lists in `grid.css` and composed

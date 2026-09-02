@@ -14,11 +14,12 @@ this directory needs.
 `DataTable.vue` imports `table.css` itself — the entry file, which is now just an ordered list of
 `@import`s over `preset/styles/*`, `scales.css` and `tokens.css` first.
 
-- **Partitions are contiguous slices and stay that way.** Three pairs of rules are separated by
+- **Partitions are contiguous slices and stay that way.** Four pairs of rules are separated by
   source order alone, because both sides have identical specificity and the later one is meant to
   win: the column separator against the band edge, `:nth-child` striping against `[data-parity]`
-  striping, and `[data-row-state]` against `[data-row-state='error']`. All three sit inside one
-  partition, so the hazard is splitting a file rather than reordering the list. The pinned-cell
+  striping, `[data-row-state]` against `[data-row-state='error']`, and `[data-reorderable]`'s `grab`
+  against `[data-sortable]`'s `pointer`. All four sit inside one partition, so the hazard is
+  splitting a file rather than reordering the list. The pinned-cell
   z-index ladder is **not** order-dependent — specificity separates all three tiers.
 - **No partition writes `background-image` or `box-shadow` wholesale.** Both stacks are composed from
   `--_vtc-` slots in `grid.css`, and a direct write outranks the composition and erases every slot at
