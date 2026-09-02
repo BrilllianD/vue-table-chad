@@ -244,7 +244,7 @@ lightens a dark one from the same number:
 ```css
 .vt-datatable {
   --vtc-row-hover-delta: 6%;        /* the row under the pointer */
-  --vtc-cell-hover-delta: 0%;   /* just the cell under it, stacked on top; off at 0 */
+  --vtc-cell-hover-delta: 4%;   /* the cell under it — head, body and foot alike; off at 0 */
   --vtc-column-hover-delta: 3%; /* the whole column under it, header included; off at 0 */
 }
 ```

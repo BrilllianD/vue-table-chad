@@ -1074,6 +1074,7 @@ function onPaste(
               :columns="cols"
               :band-edges="bandEdges"
               :aggregates="grouping.overallAggregates.value"
+              :hover-column-id="hoverColumnId"
               :label="footerLabel"
               :selectable="selectable"
               :actions-column="actionsColumn"

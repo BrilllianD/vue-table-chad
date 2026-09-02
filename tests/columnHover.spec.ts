@@ -5,7 +5,7 @@ import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import type { ColumnDef } from '../src/core/types'
-import { people, personColumns, type Person } from './fixtures'
+import { aggregatedPersonColumns, people, personColumns, type Person } from './fixtures'
 
 /**
  * The column under the pointer, end to end through the preset.
@@ -17,7 +17,7 @@ import { people, personColumns, type Person } from './fixtures'
  */
 
 function mountTable(
-  options: { cellCursor?: boolean; columns?: ColumnDef<Person>[] } = {},
+  options: { cellCursor?: boolean; columns?: ColumnDef<Person>[]; footer?: boolean } = {},
 ) {
   const columns = options.columns ?? personColumns
   const rows = shallowRef<Person[]>([...people])
@@ -32,6 +32,7 @@ function mountTable(
           source,
           state,
           cellCursor: options.cellCursor ?? false,
+          showFooter: options.footer ?? false,
         })
     },
   })
@@ -68,6 +69,22 @@ describe('the column under the pointer', () => {
       wrapper.get('thead th[data-column="salary"]').attributes('data-column-hover'),
     ).toBe('true')
     expect(cell(wrapper, 1, 'name').attributes('data-column-hover')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('reaches the footer cell of that column', async () => {
+    // The footer is the section that was silently left out: the delegated
+    // listener already fires from a footer cell, so hovering one lit the header
+    // and the body while the cell under the pointer stayed plain.
+    const wrapper = mountTable({ columns: aggregatedPersonColumns, footer: true })
+    await cell(wrapper, 1, 'salary').trigger('pointerover')
+
+    expect(
+      wrapper.get('tfoot td[data-column="salary"]').attributes('data-column-hover'),
+    ).toBe('true')
+    expect(
+      wrapper.get('tfoot td[data-column="name"]').attributes('data-column-hover'),
+    ).toBeUndefined()
     wrapper.unmount()
   })
 

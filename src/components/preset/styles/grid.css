@@ -396,8 +396,21 @@
   --_vtc-layer-selected: linear-gradient(var(--vtc-row-selected-bg), var(--vtc-row-selected-bg));
 }
 
-/* The cell gets all four edges, from a single spread-only inset shadow. */
-.vt-tbody .vt-td:hover {
+/*
+  The cell gets all four edges, from a single spread-only inset shadow.
+
+  All three sections, not just the body: a `<th>` and a footer cell answer the
+  pointer with nothing else of their own — the column arm tints their whole
+  column, which says which column, never which cell. One rule rather than three,
+  because the layer and the ring are the same in each; three would be three
+  equal-specificity rules for a later reader to keep in order for no gain.
+
+  Group rows are deliberately absent. `groups.css` gives them an opaque
+  `background-color`, so a layer painted over it would be there and invisible.
+*/
+.vt-tbody .vt-td:hover,
+.vt-thead .vt-th:hover,
+.vt-tfoot .vt-td:hover {
   --_vtc-layer-cell-hover: linear-gradient(var(--vtc-cell-hover-bg), var(--vtc-cell-hover-bg));
   --_vtc-shadow-cell-hover:
     inset 0 0 0 var(--vtc-cell-hover-border-width) var(--vtc-cell-hover-border-color);

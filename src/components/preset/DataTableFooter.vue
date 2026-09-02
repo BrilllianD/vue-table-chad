@@ -21,6 +21,12 @@ const props = defineProps<{
    */
   bandEdges: ReadonlyMap<string, BandEdge>
   aggregates: Record<string, AggregateResult<TRow>>
+  /**
+   * The column the pointer is in, so the footer cell tints with the header and
+   * the body cells above it. `DataTable` owns the state — this component sees
+   * only the id, exactly as `DataTableHeader` does.
+   */
+  hoverColumnId: string | undefined
   /** Text for the leading cell, where it displaces no number of its own. */
   label: string
   /** Whether the leading selection cell is present, so the row spans it. */
@@ -44,6 +50,7 @@ function footerText(column: ResolvedColumn<TRow>): string {
         :key="column.id"
         :column="column"
         :band-edge="bandEdges.get(column.id)"
+        :column-hovered="column.id === hoverColumnId"
       >
         <slot
           name="footer"

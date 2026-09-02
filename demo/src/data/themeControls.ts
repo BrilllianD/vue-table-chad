@@ -176,7 +176,7 @@ export const TOKEN_CONTROLS: Record<ThemeToken, TokenControl> = {
   rowHoverBg: { group: 'Hover', kind: 'text', hint: 'set this to name a colour instead of a delta' },
   rowHoverBorderWidth: width('Hover', 'the row outline, top and bottom'),
   rowHoverBorderColor: colour('Hover', 'that outline'),
-  cellHoverDelta: delta('Hover', 'the single cell under the pointer'),
+  cellHoverDelta: delta('Hover', 'the single cell under the pointer, header and footer included'),
   cellHoverBg: { group: 'Hover', kind: 'text', hint: 'the same escape hatch, per cell' },
   cellHoverBorderWidth: width('Hover', 'the cell outline, all four edges'),
   cellHoverBorderColor: colour('Hover', 'that outline'),

@@ -37,8 +37,14 @@
   */
   --vtc-row-hover-delta: 6%;
   --vtc-row-hover-bg: color-mix(in srgb, var(--vtc-text) var(--_vtc-row-hover-clamped), transparent);
-  /* The single cell under the pointer, on top of the row's own hover. Off at 0. */
-  --vtc-cell-hover-delta: 0%;
+  /*
+    The single cell under the pointer, wherever it is — a body cell on top of
+    its row's own hover, and a header or footer cell, which have no row hover to
+    sit on and would otherwise answer the pointer with nothing at all. Under the
+    row delta so a hovered body cell reads as a refinement of its row rather
+    than as a second row. Off at 0.
+  */
+  --vtc-cell-hover-delta: 4%;
   --vtc-cell-hover-bg: color-mix(
     in srgb,
     var(--vtc-text) var(--_vtc-cell-hover-clamped),
