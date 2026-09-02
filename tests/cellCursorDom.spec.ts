@@ -557,11 +557,44 @@ describe('TableGrid', () => {
     wrapper.unmount()
   })
 
-  it('reports a double-clicked cell as an activation', async () => {
+  it('reports a clicked cell as an activation', async () => {
     const cursor = cursorOver()
     const { wrapper, activated } = mountGrid(cursor)
-    await cellAt(wrapper, 1, 'city').trigger('dblclick')
+    await cellAt(wrapper, 1, 'city').trigger('click')
     expect(activated).toEqual([{ rowId: 1, columnId: 'city' }])
+    wrapper.unmount()
+  })
+
+  it('leaves a modified or auxiliary click to whoever else wants it', async () => {
+    const cursor = cursorOver()
+    const { wrapper, activated } = mountGrid(cursor)
+    const cell = cellAt(wrapper, 1, 'city')
+
+    // Shift and Ctrl/Cmd are selection's gestures, and a table that opened an
+    // editor under them would take the range gesture away from every editable
+    // column. The middle button is nobody's idea of "edit this".
+    await cell.trigger('click', { shiftKey: true })
+    await cell.trigger('click', { ctrlKey: true })
+    await cell.trigger('click', { metaKey: true })
+    await cell.trigger('click', { altKey: true })
+    await cell.trigger('click', { button: 1 })
+    expect(activated).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('leaves a click on a control inside the cell to the control', async () => {
+    const cursor = cursorOver()
+    const { wrapper, activated } = mountGrid(cursor)
+
+    // The case that matters is the open editor's own input: every click into it
+    // would otherwise re-activate the cell it sits in.
+    const cell = cellAt(wrapper, 1, 'city')
+    const input = document.createElement('input')
+    cell.element.appendChild(input)
+    input.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 }))
+    await nextTick()
+
+    expect(activated).toEqual([])
     wrapper.unmount()
   })
 

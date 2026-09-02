@@ -143,7 +143,7 @@ describe('TableGrid without a cursor', () => {
     await table.trigger('keydown', { key: 'ArrowRight', ctrlKey: true })
     await table.trigger('keydown', { key: 'ArrowRight', shiftKey: true })
     await table.trigger('keydown', { key: 'ArrowDown', ctrlKey: true })
-    await table.trigger('dblclick')
+    await table.trigger('click')
     await table.trigger('focusin')
 
     // Named explicitly rather than asserting `emitted()` is empty: a native

@@ -32,6 +32,7 @@ import {
 } from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ResolvedColumn } from '../../core/types'
+import { INTERACTIVE_SELECTOR, isPlainLeftClick } from '../interactive'
 
 const props = defineProps<{
   /** Overrides the injected columns, for standalone use. */
@@ -62,7 +63,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   /**
-   * The user asked to act on the cursor cell — Enter, F2, or a double-click.
+   * The user asked to act on the cursor cell — Enter, F2, or a left click.
    *
    * Reported rather than acted on, for the reason `CellEditor` reports `blur`
    * rather than deciding what it means: opening an editor needs an editing
@@ -361,12 +362,56 @@ function onFocusIn(event: FocusEvent): void {
   cursor.moveTo({ rowId, columnId })
 }
 
-function onDblclick(event: MouseEvent): void {
+/**
+ * One left click on a body cell is an activation.
+ *
+ * A single click rather than a double one, because a table without a cursor
+ * already opens its cells on a single click — the preset renders a real
+ * `<button>` there — and one library should not have two pointer gestures for
+ * one action, chosen by whether a cursor happens to be configured. A double
+ * click still opens the cell: the first of its two clicks does it, and the
+ * second lands inside the control that is now there, where the guard below
+ * drops it.
+ *
+ * What that costs is placing a caret in an editable cell's static text with the
+ * pointer. Accepted: the editor opens on the text it was showing, `Escape` puts
+ * the cell back untouched, and a cell you can only edit by finding its second
+ * click is a cell most people never edit.
+ *
+ * Reported, not acted on, exactly as the double click was — see `activate`.
+ */
+function onClick(event: MouseEvent): void {
   const cursor = props.cursor
   if (!cursor) return
-  const cell = (event.target as HTMLElement | null)?.closest?.('.vt-td[data-column]')
-  const columnId = cell?.getAttribute('data-column')
-  const key = cell?.closest('.vt-tr')?.getAttribute('data-row-id')
+  /*
+   * The primary button, unmodified. A modified click belongs to selection —
+   * `Shift` extends a range, `Ctrl`/`Cmd` toggles a row — and opening an editor
+   * under either would cost a table that is both selectable and editable the
+   * gesture it needs most. `DataTableBody` asks the same question of the same
+   * click, which is why the test is shared rather than written twice.
+   */
+  if (!isPlainLeftClick(event)) return
+  const target = event.target as HTMLElement | null
+  const cell = target?.closest?.('.vt-td[data-column]')
+  if (!cell) return
+  /*
+   * Anything focusable inside the cell owns its own click — the open editor's
+   * control above all, whose every click would otherwise re-activate the cell
+   * it sits in, but equally a link in a cell template or a row-action button.
+   * The same rule the keyboard follows: `cursorCell` refuses a key press that
+   * did not come from the `<td>` itself.
+   */
+  if (target && target.closest(INTERACTIVE_SELECTOR)) return
+  /*
+   * The tail of a drag across the cell's text is a click too, and swallowing it
+   * into an editor is how the selection the user just made disappears. Only a
+   * selection inside this cell counts: one left somewhere else on the page has
+   * nothing to do with the click that just landed here.
+   */
+  const selection = typeof window === 'undefined' ? null : window.getSelection()
+  if (selection && !selection.isCollapsed && cell.contains(selection.anchorNode)) return
+  const columnId = cell.getAttribute('data-column')
+  const key = cell.closest('.vt-tr')?.getAttribute('data-row-id')
   if (!columnId || key === null || key === undefined) return
   const rowId = cursor.rowIdFor(key)
   if (rowId === undefined) return
@@ -382,7 +427,7 @@ const cursorHandlers = computed(() =>
     ? {
         keydown: onKeydown,
         focusin: onFocusIn,
-        dblclick: onDblclick,
+        click: onClick,
         copy: onCopy,
         paste: onPaste,
       }

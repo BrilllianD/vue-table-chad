@@ -245,6 +245,24 @@ is a cell half your users cannot edit at all. With a cursor that button is gone:
 itself the focus target, and a second tab stop per editable cell is exactly what a roving tabindex
 exists to avoid.
 
+With the pointer it is **one left click**, cursor or no cursor — the button and the cell open on
+the same gesture, so the table does not change how it is edited depending on a prop nobody clicking
+it can see. A double click still opens the cell, because the first of its two clicks is what does
+it. Three clicks are deliberately left alone:
+
+- a click carrying `Shift`, `Ctrl`/`Cmd` or `Alt` opens nothing — those belong to
+  [selection](selection.md), and `rowClickSelect` still extends a range across an editable column;
+- a click landing on a control inside the cell — the open editor's own input, a link in a
+  `#cell:<id>` template, row-mode Save and Cancel — belongs to that control;
+- a click that ends a drag across the cell's text leaves the text selected.
+
+What it costs is placing a caret in an editable cell's static text with the pointer: the click
+opens the editor instead, on the value that was showing. `Escape` puts the cell back untouched. An
+unmodified click on an editable cell does **not** select the row when `rowClickSelect` is on — one
+click cannot mean both, and the checkbox is one target away while the cell the user aimed at is
+not. `rowClick` is still emitted either way; it reports what the user did rather than deciding what
+it meant.
+
 ## What `DataTable` adds
 
 | | |

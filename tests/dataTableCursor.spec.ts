@@ -26,6 +26,7 @@ function mountTable(
     session?: SessionOptions
     /** Which columns take an editor. `name` and `salary` unless a test says otherwise. */
     editable?: string[]
+    rowClickSelect?: boolean
   } = {},
 ) {
   const editable = options.editable ?? ['name', 'salary']
@@ -56,6 +57,8 @@ function mountTable(
           state,
           editing: session,
           cellCursor: options.cellCursor ?? true,
+          selectable: options.rowClickSelect ? true : undefined,
+          rowClickSelect: options.rowClickSelect,
           onRowSaved: (row: Person) => saved.push(row),
         })
     },
@@ -138,6 +141,103 @@ describe('a table with one', () => {
     await nextTick()
     expect(ringAt(wrapper)).toBe('2:name')
     expect(document.activeElement).toBe(cell(wrapper, 2, 'name').element)
+    wrapper.unmount()
+  })
+})
+
+describe('a left click', () => {
+  it('opens the editor on an editable cell, in one click', async () => {
+    const { wrapper } = mountTable()
+    await cell(wrapper, 1, 'name').trigger('click')
+    await nextTick()
+
+    expect(cell(wrapper, 1, 'name').find('.vt-cell-input').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('opens nothing on a read-only cell', async () => {
+    const { wrapper } = mountTable()
+    // `hiredAt` has no editor. The click still places the cursor, through the
+    // focus the browser gives the cell — that half is not this component's.
+    await cell(wrapper, 1, 'hiredAt').trigger('focusin')
+    await cell(wrapper, 1, 'hiredAt').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
+    expect(ringAt(wrapper)).toBe('1:hiredAt')
+    wrapper.unmount()
+  })
+
+  it('leaves a draft alone when a second click lands in the open cell', async () => {
+    const { wrapper } = mountTable()
+    await cell(wrapper, 1, 'name').trigger('click')
+    await nextTick()
+
+    const input = cell(wrapper, 1, 'name').get('.vt-cell-input')
+    await input.setValue('Augusta')
+    // The second click of a double click, and every click into the editor
+    // after it: the draft must survive all of them.
+    await input.trigger('click')
+    await cell(wrapper, 1, 'name').trigger('click')
+    await nextTick()
+
+    expect((cell(wrapper, 1, 'name').get('.vt-cell-input').element as HTMLInputElement).value).toBe(
+      'Augusta',
+    )
+    wrapper.unmount()
+  })
+
+  it('opens nothing when the click carries a modifier', async () => {
+    const { wrapper } = mountTable()
+    await cell(wrapper, 1, 'name').trigger('click', { shiftKey: true })
+    await cell(wrapper, 1, 'name').trigger('click', { ctrlKey: true })
+    await nextTick()
+
+    // Those belong to selection, and a table that took them would leave an
+    // editable column with no range gesture at all.
+    expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+describe('a left click on a table that also selects on one', () => {
+  function selectedRowIds(wrapper: Wrapper): string[] {
+    return wrapper
+      .findAll('tbody tr[data-selected]')
+      .map((row) => row.attributes('data-row-id') ?? '')
+  }
+
+  it('edits the editable cell and leaves the selection alone', async () => {
+    const { wrapper } = mountTable({ rowClickSelect: true })
+    await cell(wrapper, 1, 'name').trigger('click')
+    await nextTick()
+
+    expect(cell(wrapper, 1, 'name').find('.vt-cell-input').exists()).toBe(true)
+    // One click cannot mean both. The editor wins because the checkbox is right
+    // there and the cell the user aimed at is not.
+    expect(selectedRowIds(wrapper)).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('still selects from a read-only cell', async () => {
+    const { wrapper } = mountTable({ rowClickSelect: true })
+    await cell(wrapper, 1, 'hiredAt').trigger('click', { ctrlKey: true })
+    await nextTick()
+
+    expect(selectedRowIds(wrapper)).toEqual(['1'])
+    wrapper.unmount()
+  })
+
+  it('still extends a range across an editable column', async () => {
+    const { wrapper } = mountTable({ rowClickSelect: true })
+    // Both clicks land on `name`, which is editable — a range gesture that died
+    // on the editable columns would be no range gesture at all.
+    await cell(wrapper, 1, 'name').trigger('click', { ctrlKey: true })
+    await cell(wrapper, 3, 'name').trigger('click', { shiftKey: true })
+    await nextTick()
+
+    expect(selectedRowIds(wrapper)).toEqual(['1', '2', '3'])
+    expect(wrapper.find('.vt-cell-input').exists()).toBe(false)
     wrapper.unmount()
   })
 })

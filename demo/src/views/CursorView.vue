@@ -131,8 +131,8 @@ function onRowSaved(row: Employee): void {
   <DemoSection
     title="Cell cursor"
     blurb="A focused cell you move with the arrow keys, ringed and crossed by a tint down its
-           row and its column. Enter opens the editor on a cell that has one, and so does
-           simply typing — the character you typed becomes the value. Enter again
+           row and its column. Enter, one left click, or simply typing opens the editor on a
+           cell that has one — the character you typed becomes the value. Enter again
            commits and opens the cell below, Shift above, Ctrl right, Ctrl+Shift left, and an
            arrow out of an open editor commits and opens the cell that way. Shift and a horizontal
            arrow scrolls the box instead, leaving the ring where it is, and Ctrl with a vertical
@@ -201,7 +201,8 @@ function onRowSaved(row: Employee): void {
       <em>without</em> the ring moving at all — this table is wider than its box, so it has
       somewhere to go.
       <kbd>Enter</kbd> or <kbd>F2</kbd> opens an editor — Name is the one column that will not
-      keep your text verbatim, because this demo's server trims it. So does
+      keep your text verbatim, because this demo's server trims it. So does one left click,
+      the same single click that opens a cell on a table with no cursor at all. So does
       just typing: the character starts the edit and replaces what was there, and
       <kbd>Delete</kbd> or <kbd>Backspace</kbd> opens the cell empty. From inside an open editor
       both <kbd>Enter</kbd> and the arrows commit and open the cell they land on — so a column of

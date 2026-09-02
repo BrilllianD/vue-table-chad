@@ -24,6 +24,7 @@ import VirtualBody from '../primitives/VirtualBody.vue'
 import TableRow from '../primitives/TableRow.vue'
 import TableGroupRow from '../primitives/TableGroupRow.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
+import { INTERACTIVE_SELECTOR, isPlainLeftClick } from '../interactive'
 import type { DataSource, DisplayRow, ResolvedColumn, RowId } from '../../core/types'
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseRowEditing } from '../../core/useRowEditing'
@@ -259,13 +260,36 @@ function rowState(row: TRow): 'dirty' | 'saving' | 'error' | undefined {
  * `closest` rather than a check on the target itself, because the click lands
  * on whatever is innermost — the `<span>` inside a button, the text node's
  * parent inside the label wrapping the checkbox.
+ *
  */
-const INTERACTIVE = 'button, input, select, textarea, a, label, [contenteditable]'
-
-function isInteractiveTarget(event: MouseEvent): boolean {
+function ownsItsClick(event: MouseEvent): boolean {
   const target = event.target
   if (!(target instanceof Element)) return false
-  return Boolean(target.closest(`${INTERACTIVE}, .vt-td-selection`))
+  return Boolean(target.closest(`${INTERACTIVE_SELECTOR}, .vt-td-selection`))
+}
+
+/**
+ * A click that is about to open an editor, so it cannot also select the row.
+ *
+ * `TableGrid` turns a plain left click on a body cell into an `activate`, and
+ * that listener is on the `<table>` — an *ancestor* of the `<tr>` this one is
+ * bound to, so it runs after and cannot tell us anything in time. What it can
+ * be is asked the same question of the same event, which is `isPlainLeftClick`
+ * plus the wrapper the preset renders only around a cell that can be edited:
+ * `.vt-cell-editable` under a cursor, and without one a `.vt-cell-trigger`
+ * button that `ownsItsClick` already catches. Both are `canEdit`-gated where
+ * they are rendered, so no editability test is repeated here — a read-only cell
+ * has neither and selects exactly as it always did.
+ *
+ * The modifier test is the load-bearing half. A `Shift`-click over an editable
+ * column opens nothing, so it must still extend the range; without this it
+ * would be a range gesture that dies on half the table's columns.
+ */
+function opensEditor(event: MouseEvent): boolean {
+  if (!props.editing || !isPlainLeftClick(event)) return false
+  const target = event.target
+  if (!(target instanceof Element)) return false
+  return Boolean(target.closest('.vt-cell-editable'))
 }
 
 /**
@@ -278,7 +302,7 @@ function isInteractiveTarget(event: MouseEvent): boolean {
  */
 function onRowMouseDown(event: MouseEvent): void {
   if (!props.rowClickSelect || !event.shiftKey) return
-  if (isInteractiveTarget(event)) return
+  if (ownsItsClick(event)) return
   event.preventDefault()
 }
 
@@ -289,7 +313,7 @@ function onRowMouseDown(event: MouseEvent): void {
 function onRowClick(row: TRow, event: MouseEvent): void {
   emit('rowClick', row, event)
   if (!props.rowClickSelect || !props.selection) return
-  if (isInteractiveTarget(event)) return
+  if (ownsItsClick(event) || opensEditor(event)) return
   props.selection.selectFromClick(row, event)
 }
 

@@ -233,7 +233,7 @@ marks its own cells:
 the one thing the composable cannot work out for itself, and it is why `TableRoot` builds its own
 rather than accepting one.
 
-`TableGrid` **reports** `activate` (Enter, `F2`, a printable key, a double-click) rather than
+`TableGrid` **reports** `activate` (Enter, `F2`, a printable key, a left click) rather than
 acting on it, because
 opening an editor needs an editing session it may not have. It reports `page-move` for the same
 reason: paging needs a data source and a query, and a grid that assumed one could not be used on

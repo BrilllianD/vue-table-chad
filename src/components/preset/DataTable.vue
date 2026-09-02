@@ -551,14 +551,14 @@ function pinnedWidth(cols: ResolvedColumn<TRow>[], side: PinSide): string {
 }
 
 /**
- * Enter, F2 or a double-click on the cursor cell.
+ * Enter, F2 or a left click on the cursor cell.
  *
  * `TableGrid` reports the gesture rather than acting on it, because opening an
  * editor needs a session it may not have. Here we do have one, so: open the
  * editor if this cell has one, and otherwise let Enter mean what it means
  * everywhere else in the grid — move on. `commitMoveFor` returns nothing for
- * F2 and nothing for a double-click, so neither of those moves a read-only
- * cell, which is right: F2 asks to edit and nothing else.
+ * F2 and nothing for a click, so neither of those moves a read-only cell,
+ * which is right: F2 asks to edit and nothing else.
  */
 /**
  * The slot names to hand down to `DataTableBody`, typed as plain strings on
@@ -693,6 +693,11 @@ function onActivate(
   const session = props.editing
   const { row, column } = cellAt(position, rows, cols, cursor)
   if (session && row && column && session.isEditable(row, column)) {
+    // Already open: leave it alone. Enter and F2 could not reach this — with an
+    // editor mounted the key press never leaves it — but a click can land in a
+    // cell that is already editing, and `begin` would reset `activeColumnId`
+    // and re-seed nothing over a draft the user is part-way through.
+    if (session.isEditing(session.getRowId(row), column.id)) return
     session.begin(row, column.id)
     /*
      * A cell opened by typing starts holding what was typed, not what was
@@ -701,7 +706,7 @@ function onActivate(
      * Delete and Backspace seed `''`, so they open the editor cleared — the
      * clear is a draft like any other, and Escape still puts the cell back.
      *
-     * Enter, F2 and a double-click seed nothing and open the value untouched.
+     * Enter, F2 and a click seed nothing and open the value untouched.
      */
     const seed = 'key' in event ? editSeedFor(event as unknown as KeyboardEvent) : undefined
     if (seed !== undefined) session.setValue(row, column, seed)
