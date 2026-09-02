@@ -3,7 +3,7 @@
  * Editing, end to end: a draft per row, validated, sent to a server that can
  * refuse it, and written back.
  *
- * Four things here are worth watching rather than reading about.
+ * Five things here are worth watching rather than reading about.
  *
  * **`city` writes through a `setValue`.** It reads `row.location.city` via an
  * accessor, and an accessor cannot be run backwards, so the column has to say
@@ -23,34 +23,27 @@
  * **A failed save never loses the edit.** Turn the failure rate up. The draft
  * stays exactly where it was, and the same Save is the retry.
  *
- * **Manager is a list nobody could send whole.** Any of 10,000 people can be
- * one, so the column declares `asyncOptions` instead of `options` and the
- * dropdown asks for 25 at a time — scroll it, or type, and watch the request
- * log. The ids the rows already hold are labelled by `resolveOptions`, in one
- * request for the whole page rather than one per cell; page forward and watch
- * the log show exactly one more.
+ * **Edit Salary and watch the digits.** The number control is a text box rather
+ * than `input[type=number]`: it groups as you type, in whatever separators the
+ * runtime's locale uses, so a six-figure salary stays legible mid-edit instead
+ * of an unbroken run of digits. The draft underneath still holds the bare
+ * number — Open drafts below shows it — which is why `parse` and `validate` see
+ * exactly what they saw before, and why `-1` still fails on "A salary cannot be
+ * negative".
  */
 import { computed, ref, shallowRef } from 'vue'
 import {
   DataTable,
   replaceRowIn,
-  useAsyncOptions,
   useLocalDataSource,
   useRowEditing,
   useTableState,
-  type ColumnDef,
   type EditMode,
   type RowChange,
 } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
-import {
-  clearRequestLog,
-  fetchManagers,
-  fetchManagersByIds,
-  requestLog,
-  saveEmployee,
-} from '../data/fakeApi'
+import { clearRequestLog, requestLog, saveEmployee } from '../data/fakeApi'
 import DemoSection from '../components/DemoSection.vue'
 import StateInspector from '../components/StateInspector.vue'
 
@@ -59,46 +52,10 @@ import StateInspector from '../components/StateInspector.vue'
  * rows rather than proxies, and `apply` below replaces the array rather than
  * writing into it, which is the only change a `shallowRef` can see.
  */
-const rows = shallowRef<Employee[]>(
-  // Each row starts out reporting to somebody, so the Manager column has ids to
-  // label — spread across the whole 10k so most of them are on a portion the
-  // dropdown has never fetched.
-  employees.slice(0, 200).map((row, index) => ({
-    ...row,
-    managerId: employees[(index * 37) % employees.length]!.id,
-  })),
-)
-
-/**
- * The 10,000 possible managers, 25 at a time.
- *
- * One source for the whole column rather than one per row: the portions it has
- * loaded are also the labels every cell reads, so a source per row would fetch
- * the same page 200 times and still know nothing about the other 199 rows.
- */
-const managers = useAsyncOptions(
-  (request) => fetchManagers(request, { latencyMs: latencyMs.value }),
-  {
-    // The ids already in the rows, labelled in one request rather than left
-    // reading as numbers until somebody scrolls past each of them.
-    resolveOptions: (values, { signal }) =>
-      fetchManagersByIds(values, signal, { latencyMs: latencyMs.value }),
-  },
-)
-
-const managerColumn: ColumnDef<Employee> = {
-  id: 'managerId',
-  header: 'Manager',
-  type: 'number',
-  editable: true,
-  width: 190,
-  asyncOptions: managers,
-}
-
-const columns: ColumnDef<Employee>[] = [...employeeColumns, managerColumn]
+const rows = shallowRef(employees.slice(0, 200))
 
 const state = useTableState({ pageSize: 8 })
-const source = useLocalDataSource<Employee>(rows, columns, state.query)
+const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 
 const mode = ref<EditMode>('cell')
 const optimistic = ref(false)
@@ -110,7 +67,7 @@ const failureRate = ref(0)
  * which is why `apply` has work to do. A server source would drop `apply`
  * entirely and let the default `source.refresh()` refetch the row.
  */
-const editing = useRowEditing<Employee>(source, columns, {
+const editing = useRowEditing<Employee>(source, employeeColumns, {
   mode,
   // Read through a getter, so the toggle takes effect on the next save rather
   // than only after a remount.
@@ -136,14 +93,10 @@ const allowInactive = ref(true)
  * column id, and a signal that aborts if the edit is taken back.
  */
 function save({ id, patch, signal }: RowChange<Employee>): Promise<Employee> {
-  return saveEmployee(
-    Number(id),
-    patch,
-    signal,
-    { latencyMs: latencyMs.value, failureRate: failureRate.value },
-    // Including `managerId`, which the shared column list does not carry.
-    columns,
-  )
+  return saveEmployee(Number(id), patch, signal, {
+    latencyMs: latencyMs.value,
+    failureRate: failureRate.value,
+  })
 }
 
 const saved = ref<string[]>([])
@@ -163,7 +116,7 @@ const openDrafts = computed(() =>
 )
 
 const editableColumns = computed(() =>
-  columns.filter((column) => column.editable).map((column) => column.id),
+  employeeColumns.filter((column) => column.editable).map((column) => column.id),
 )
 </script>
 
@@ -174,14 +127,11 @@ const editableColumns = computed(() =>
            because a list needs an editor of its own. Watch the request log: a save is one request,
            and in row mode it is one request for the whole row however many fields changed.
            Name is the one column that will not keep what you type verbatim: this demo's server
-           trims it, and the table shows the row the server sent back.
-           Manager is the other shape of column: 10,000 possible values, fetched 25 at a time as
-           the dropdown is scrolled or searched."
+           trims it, and the table shows the row the server sent back. Salary edits in a masked
+           text box that groups thousands while the draft keeps the bare number."
     :api="[
       'useRowEditing',
       'CellEditor',
-      'useAsyncOptions',
-      'AsyncSelect',
       'replaceRowIn',
       'applyPatch',
       'validateDraft',
@@ -228,12 +178,14 @@ const editableColumns = computed(() =>
         <span class="hint">
           Editable: {{ editableColumns.join(', ') }}.
           Try a negative salary, a blank name, or an email another row already has.
+          Copy and paste are on the <strong>Cell cursor</strong> tab: they belong to a focused
+          cell, and this table renders none.
         </span>
       </div>
     </template>
 
     <DataTable
-      :columns="columns"
+      :columns="employeeColumns"
       :source="source"
       :state="state"
       :editing="editing"

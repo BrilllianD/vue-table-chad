@@ -42,6 +42,12 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { editorFor } from '../../core/editing'
+import {
+  caretForSignificant,
+  significantBefore,
+  toDisplayNumber,
+  toMachineNumber,
+} from '../../core/numberMask'
 import { commitMoveFor, editorMoveFor, type CursorMove } from '../../core/cellCursor'
 import type { ColumnDef } from '../../core/types'
 import AsyncSelect from './AsyncSelect.vue'
@@ -100,6 +106,10 @@ const emit = defineEmits<{
    * an existing event rather than a new one so that every `@commit="save(row)"`
    * already written keeps working — a template handler written as a call drops
    * the argument.
+   *
+   * Enter and an arrow send the same payload on purpose: both mean "done here,
+   * the cursor goes there", and the table treats them alike. Nothing here says
+   * which key it was, because nothing downstream is allowed to care.
    */
   commit: [next?: CursorMove]
   cancel: []
@@ -122,6 +132,15 @@ const text = computed(() => (props.value === null || props.value === undefined ?
 const checked = computed(() => props.value === true)
 
 /**
+ * What a number box shows: the same value, grouped into thousands.
+ *
+ * The draft still holds the machine string — see `numberMask.ts` — so
+ * `parseCellInput` and any `column.parse` are handed exactly what a native
+ * number box used to hand them. Only the characters on screen change.
+ */
+const display = computed(() => (kind.value === 'number' ? toDisplayNumber(text.value) : text.value))
+
+/**
  * The error is announced through a element of its own rather than the control's
  * own text, because `.vt-td` clips: a message rendered under the input would be
  * cut off by the row height. `title` carries it for a pointer, this carries it
@@ -142,12 +161,12 @@ watch(
        * may be a character the user has just typed to open this editor: a
        * caret left at the start would put the next keystroke in front of it.
        *
-       * `text` and `textarea` only. `setSelectionRange` throws an
-       * `InvalidStateError` on a `number` or `date` input — the selection API
-       * does not apply to them — and both open with their whole value ready
-       * to be replaced anyway.
+       * Not on `date`: `setSelectionRange` throws an `InvalidStateError`
+       * there — the selection API does not apply to that control — and it
+       * opens with its whole value ready to be replaced anyway. A `number`
+       * column is a masked text box, so it is included.
        */
-      if (kind.value !== 'text' && kind.value !== 'textarea') return
+      if (kind.value !== 'text' && kind.value !== 'textarea' && kind.value !== 'number') return
       const field = element as HTMLInputElement | HTMLTextAreaElement
       const end = field.value.length
       field.setSelectionRange(end, end)
@@ -158,7 +177,44 @@ watch(
 
 function onInput(event: Event): void {
   const target = event.target as HTMLInputElement
-  emit('update:value', kind.value === 'checkbox' ? target.checked : target.value)
+  if (kind.value === 'checkbox') {
+    emit('update:value', target.checked)
+    return
+  }
+  if (kind.value === 'number') {
+    onNumberInput(target)
+    return
+  }
+  emit('update:value', target.value)
+}
+
+/**
+ * A masked number box, regrouped on every keystroke.
+ *
+ * The element is written to directly rather than left to the binding, because
+ * the binding cannot fix it: two typings can produce the same machine string —
+ * `1234` and `1234x` both give `1234` — and with the bound value unchanged Vue
+ * patches nothing, leaving whatever was typed on screen. Writing `value` here
+ * keeps the DOM and the vnode agreeing either way.
+ *
+ * The caret is then restored by significance rather than by index, since
+ * inserting a digit can push a separator in ahead of it. `numberMask.ts` says
+ * what that means.
+ */
+function onNumberInput(target: HTMLInputElement): void {
+  const typed = target.value
+  const caret = target.selectionStart ?? typed.length
+  const machine = toMachineNumber(typed)
+  const shown = toDisplayNumber(machine)
+
+  if (typed !== shown) {
+    const significant = significantBefore(typed, caret)
+    target.value = shown
+    const next = caretForSignificant(shown, significant)
+    target.setSelectionRange(next, next)
+  }
+
+  emit('update:value', machine)
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -292,24 +348,25 @@ function onKeydown(event: KeyboardEvent): void {
       />
 
       <!--
-        `step="any"` on the number box, because the column never said otherwise.
+        A number column edits in a **text** box carrying `inputmode`, not in
+        `input[type=number]`.
 
-        With no `step` the browser invents `step="1"`, and its step base is
-        whatever value the control started with. Type 96367.42 into a cell
-        holding 96367 and the input is `:invalid` on a stepMismatch, and the
-        native spinner and arrow keys snap to that grid — a decimal column such
-        as a rating loses its fraction to a key press that was meant to nudge
-        it. Nothing in `ColumnDef` declares a precision, so the honest default
-        is "any number the column's own `parse` and `validate` will accept",
-        and those are where a column that wants integers should say so.
+        The mask is why: a number input only accepts a bare float as its value,
+        so `1 234 000` cannot be put in one — the browser reads a grouped value
+        as empty and hands back the empty string. Going to text costs the
+        native spinner and the numeric keyboard; `inputmode="decimal"` buys the
+        keyboard back, and the spinner is no loss. It stepped by a `1` nothing
+        chose — no `ColumnDef` field declares a precision, which is why the
+        `step` here used to be `any` — and Up/Down over a cell cursor already
+        mean commit-and-move.
       -->
       <input
         v-else
         ref="control"
         class="vt-cell-input"
-        :type="kind === 'number' ? 'number' : kind === 'date' ? 'date' : 'text'"
-        :step="kind === 'number' ? 'any' : undefined"
-        :value="text"
+        :type="kind === 'date' ? 'date' : 'text'"
+        :inputmode="kind === 'number' ? 'decimal' : undefined"
+        :value="display"
         :disabled="disabled"
         :aria-label="label"
         :aria-invalid="error ? 'true' : undefined"

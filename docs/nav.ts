@@ -90,7 +90,8 @@ export const docPages: DocPage[] = [
   {
     file: 'keyboard.md',
     title: 'Keyboard navigation',
-    blurb: 'The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it.',
+    blurb:
+      'The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it.',
     demoTabs: ['cursor'],
     section: 'Features',
   },

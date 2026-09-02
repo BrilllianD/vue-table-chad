@@ -99,6 +99,30 @@ const emit = defineEmits<{
    * the markup around it.
    */
   viewportMove: [screens: number]
+  /**
+   * The user asked to copy the cursor cell — `Ctrl`/`Cmd` + `C`, or any other
+   * route the platform has to a `copy`.
+   *
+   * The event comes along because **the listener does not call
+   * `preventDefault`**, which is the opposite of what the four gestures above
+   * do. Suppressing the default is only correct once something has actually
+   * been written to the clipboard, and this component holds no row data: it
+   * knows which cell the cursor is on and nothing about what is in it. A grid
+   * that claimed the key and then emitted into a listener nobody wrote would
+   * take copy away from the user and give back nothing.
+   */
+  copy: [position: CellPosition, event: ClipboardEvent]
+  /**
+   * The user asked to paste into the cursor cell, with the clipboard's plain
+   * text already read off the event.
+   *
+   * The text is read here rather than left to the consumer because
+   * `clipboardData` is only readable during the event's own dispatch — an
+   * async handler that reached for it later would find it empty. The event is
+   * passed as well so the consumer can `preventDefault` it, which it must for
+   * the same reason `copy` leaves that call to the consumer.
+   */
+  paste: [position: CellPosition, text: string, event: ClipboardEvent]
 }>()
 
 const context = useTableContext<TRow>()
@@ -286,6 +310,36 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 /**
+ * The cell a clipboard gesture means, or `null` when it did not come from one.
+ *
+ * The same `cursorCell` guard the keyboard uses, and it does the same job here:
+ * with an editor open the event's target is the control inside the cell, so a
+ * copy or a paste inside a text box stays the browser's and behaves natively.
+ *
+ * Native `copy`/`paste` events rather than a key decoder in `cellCursor.ts`,
+ * because the clipboard is only reachable from the event the platform
+ * dispatches: `clipboardData` exists on this event and nowhere else, and
+ * `navigator.clipboard` needs a permission the user has not been asked for.
+ * That also means the gesture is whatever the platform says it is, so a machine
+ * where copy is not `Ctrl+C` keeps working with no key list to maintain.
+ */
+function clipboardPosition(event: Event): CellPosition | null {
+  const cursor = props.cursor
+  if (!cursor || !cursorCell(event.target)) return null
+  return cursor.position.value ?? cursor.tabStop.value ?? null
+}
+
+function onCopy(event: ClipboardEvent): void {
+  const position = clipboardPosition(event)
+  if (position) emit('copy', position, event)
+}
+
+function onPaste(event: ClipboardEvent): void {
+  const position = clipboardPosition(event)
+  if (position) emit('paste', position, event.clipboardData?.getData('text/plain') ?? '', event)
+}
+
+/**
  * Focus landing in a body cell puts the cursor there, which is what makes all
  * three ways in work with no code of their own: Tab arrives at the single
  * `tabindex="0"` cell, a click focuses the cell it landed in, and an editor's
@@ -321,10 +375,18 @@ function onDblclick(event: MouseEvent): void {
 
 /**
  * One object of listeners, empty when there is no cursor — a table that did not
- * ask for a keyboard should not pay for three listeners to find out it did not.
+ * ask for a keyboard should not pay for five listeners to find out it did not.
  */
 const cursorHandlers = computed(() =>
-  props.cursor ? { keydown: onKeydown, focusin: onFocusIn, dblclick: onDblclick } : {},
+  props.cursor
+    ? {
+        keydown: onKeydown,
+        focusin: onFocusIn,
+        dblclick: onDblclick,
+        copy: onCopy,
+        paste: onPaste,
+      }
+    : {},
 )
 
 /*

@@ -27,7 +27,7 @@ Identical to the TypeScript path; see [Install](getting-started.md#install) for 
 pnpm install && pnpm build && npm pack
 
 # in your project
-pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.2.1.tgz
+pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.3.0.tgz
 ```
 
 You need Vue **3.5+** and a bundler that compiles `.vue` files — the library's components arrive
@@ -361,7 +361,7 @@ thing runs against real data.
 | [Selection](selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. |
 | [Grouping rows](grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. |
 | [Editing cells](editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. |
-| [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter to edit, and the roving tabindex behind it. |
+| [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it. |
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |
 | [Header bands](column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. |
 | [Styling](styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. |

@@ -54,8 +54,6 @@ a different promise.
 | `validate(value, row)` | A message, or `null`. Runs against the **parsed** value, so it never re-does the coercion. |
 | `required` | Rejects a blank, through the same `isBlank` that buckets blanks for filtering. |
 | `editor` | Overrides which control renders. Otherwise derived from `type` and `options`. |
-| `asyncOptions` | A list fetched a portion at a time, from `useAsyncOptions`. Renders the paged dropdown. See [A list too long to send](#a-list-too-long-to-send). |
-
 
 **A column with an `accessor` must declare `setValue`.** A function cannot be run backwards, so a
 column reading `row.location.city` has to say where the edit lands; guessing `row.city` would put
@@ -76,115 +74,24 @@ the value somewhere nothing reads it back from. `applyCellValue` throws rather t
 
 | Column | Control (`CellEditorKind`) |
 | --- | --- |
-| `type: 'number'` | `number` — `step="any"`, because nothing in `ColumnDef` declares a precision |
+| `type: 'number'` | `number` — a masked text box, grouped into thousands (see below) |
 | `type: 'date'` | `date` |
 | `type: 'boolean'` | `checkbox` |
 | `type: 'enum'` with `options` | `select`, with a blank choice unless the column is `required` |
 | `type: 'enum'` without `options` | `text` — a text box beats an empty dropdown |
-| any column with `asyncOptions` | `async-select`, whatever its `type` |
 | anything else | `text` |
 
 `textarea` exists but is never derived; ask for it with `editor: 'textarea'`.
 
-## A list too long to send
+A `number` cell edits in `<input type="text" inputmode="decimal">`, not in a number input, and shows
+its value grouped — `1 234 000` — in whatever separators `Intl.NumberFormat` gives the runtime's
+locale. The draft still holds the bare `1234000`, so `column.parse` and `column.validate` see exactly
+what they saw before; only the characters on screen are grouped. A number input cannot do this: its
+value has to parse as a bare float, so it reads a grouped value as empty.
 
-A column of ids — a manager, an account, a product — has as many options as the table it points at
-has rows, and no request should carry them all. `useAsyncOptions` fetches them a portion at a time,
-and the column names it instead of `options`:
-
-```ts
-const managers = useAsyncOptions(async ({ search, loaded, signal }) => {
-  const response = await fetch(
-    `/api/managers?q=${encodeURIComponent(search)}&offset=${loaded}&limit=25`,
-    { signal },
-  )
-  const body = await response.json()
-  return {
-    options: body.items.map((m) => ({ value: m.id, label: m.name })),
-    total: body.total,
-  }
-})
-
-const columns = [
-  { id: 'managerId', header: 'Manager', type: 'number', editable: true, asyncOptions: managers },
-]
-```
-
-**The wire protocol is yours.** Each request carries everything the three common shapes need, and
-you read the ones your endpoint speaks:
-
-| `OptionPageRequest` | |
-| --- | --- |
-| `search` | The dropdown's search box, or `''`. A change resets to the first portion, debounced. |
-| `page` | 1-based, advanced only by a portion that arrived. |
-| `loaded` | How many options are already held — the offset. |
-| `cursor` | Whatever your previous portion returned as `cursor`; `undefined` on the first. |
-| `signal` | Aborted when a newer request supersedes this one, or the scope goes away. |
-
-The answer says whether to ask again, and the three ways are read in one order: an explicit
-`hasMore` wins, then a `total` compared against what is now loaded, and failing both an **empty
-portion ends the list**.
-
-| `OptionPage` | |
-| --- | --- |
-| `options` | `{ value, label, disabled? }[]`. |
-| `hasMore` | Definitive, when your endpoint says so outright. |
-| `total` | Options matching the search, across every portion. |
-| `cursor` | Handed back in the next request. |
-
-`useAsyncOptions` takes three options besides the fetcher: `debounceMs` (300), `immediate`
-(**false** — twenty such columns would otherwise fire twenty requests for lists nobody opened), and
-`resolveOptions`, below.
-
-### What a closed cell shows
-
-The cell stores an id; the label lives in whichever portion carried it. Portions are fetched in the
-order they are scrolled, so the id in row 1 may sit on portion 40 and would read as a number
-forever. `resolveOptions` is what fixes that:
-
-```ts
-const managers = useAsyncOptions(fetchManagerPage, {
-  resolveOptions: (ids, { signal }) =>
-    fetch(`/api/managers?ids=${ids.join(',')}`, { signal })
-      .then((r) => r.json())
-      .then((body) => body.items.map((m) => ({ value: m.id, label: m.name }))),
-})
-```
-
-**One request for the page, and one ask per value.** The cells are what discover an unknown id — a
-source cannot guess which of them are on screen — so every miss in a render is collected and sent
-as a single batch. A value the endpoint answers nothing for is never asked about again, which is
-what stops a deleted record turning into a request per render.
-
-Without a `resolveOptions` nothing is fetched on a cell's behalf and an id nobody has paged to
-reads as itself. That is the right default for a column whose rows already carry the label — return
-it alongside the id and give the column a `format` — and the wrong one for everything else.
-
-Two consequences worth knowing:
-
-- **The global search matches the stored id, not the label.** `format` is what the search reads,
-  and putting the label lookup there would make the filter pass depend on the label cache — one
-  full re-filter per portion that arrives. The lookup is done in the render instead, and
-  `tests/invalidation.spec.ts` pins that.
-- **Nothing validates the value against the list.** A list that arrives in portions is never the
-  complete set, so membership in the portions loaded says nothing; the `'Not one of the options'`
-  check that guards `options` is skipped for `asyncOptions` columns. Use `validate` for a rule that
-  really is one.
-
-### The keyboard, inside the dropdown
-
-The panel is teleported out of the table, so it claims the keys that would otherwise reach the
-editor around it — and hands them back the moment it closes.
-
-| Key | |
-| --- | --- |
-| `↑` `↓` `Home` `End` | Move the active option. Never a cursor move: `editorMoveFor` exempts this control the way it exempts a `select`. |
-| `Enter` | Choose the active option. With the panel closed it is the commit it always was. |
-| `Esc` | Close the panel, leaving the edit open. A second `Esc` cancels the edit. |
-| `Tab` | Close the panel and go back to the trigger. The next `Tab` leaves the cell. |
-
-Clicking into the panel does **not** finish the edit, though in cell mode leaving a cell normally
-saves it: `AsyncSelect` reports a blur only once focus has left its panel as well as its trigger.
+That also costs the native spinner, which is no loss — nothing in `ColumnDef` declares a precision,
+so it stepped by a `1` no column chose, and over a cell cursor Up and Down already mean
+commit-and-move. A column that wants something else supplies `CellEditor`'s default slot.
 
 ## The session half
 
@@ -311,7 +218,7 @@ Tab:
 | `Ctrl`/`Cmd` + `Enter` | commit, and move right (`Shift`: left) |
 | `Esc` | cancel, putting the cell back and handing focus to the cell itself |
 | `Tab` | commit, and open the next editable cell (`Shift`: the previous one) |
-| `↑` `↓` `←` `→` | commit, and move that way — only with `arrowMove`, and never in a `select`, an `async-select` or a `textarea` |
+| `↑` `↓` `←` `→` | commit, and move that way — only with `arrowMove`, and never in a `select` or a `textarea` |
 | blur | reported, not decided — a commit in cell mode, nothing in row mode |
 
 In a `textarea` both `Enter` and `Shift+Enter` insert the newline the control exists for, so the
@@ -324,9 +231,11 @@ Off — no cursor, or a whole row open — the arrows are left to the caret, bec
 for them to go.
 
 A commit the server refuses **stays put**: moving would scroll the message explaining the failure
-out from under the user. The cell you land on is left read-only rather than opened, which is what a
-spreadsheet does — you land there, and typing is what starts the next edit: the character replaces
-the cell's value, and `Delete` or `Backspace` opens it cleared.
+out from under the user. A commit that takes opens the cell it lands on, whether `Enter` or an
+**arrow** asked, so a column of values is typed with `Enter` alone and a row is crossed with the
+arrows. Only a move out of an open editor does this; an arrow on a closed cell is navigation and
+leaves it closed. A destination with no editor is simply moved onto, and typing is then what starts the next edit: the character replaces the cell's value, and
+`Delete` or `Backspace` opens it cleared.
 
 Opening a cell from the *outside* — `Enter`, `F2` or simply typing on a closed cell, arrow keys
 between them — is

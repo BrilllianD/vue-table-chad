@@ -75,6 +75,10 @@ values"`, every `aria-label`). A real blocker for a public package, but not for 
 Tree/hierarchical rows, expandable detail rows, CSV/clipboard export, pinned rows, and custom
 aggregate reducers beyond `sum`/`avg`/`min`/`max`.
 
+Block paste belongs here too, and is blocked rather than merely deferred: pasting a spreadsheet
+region needs a **cell range** to paste into, and the cursor is one cell. `Shift`+`↑`/`↓` is left
+unclaimed for that range, so the order is range selection first, block paste second.
+
 ### `[-]` D4 — A search index
 
 Global search is the one number that stayed large — 30 ms at 10k rows. Most of it is the columns'

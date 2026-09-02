@@ -7,6 +7,7 @@ import { useTableState } from '../src/core/useTableState'
 import { useRowEditing, type EditMode, type RowChange } from '../src/core/useRowEditing'
 import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import { replaceRowIn } from '../src/core/editing'
+import { toDisplayNumber, toMachineNumber } from '../src/core/numberMask'
 import type { ColumnDef } from '../src/core/types'
 import { people, personColumns, type Person } from './fixtures'
 
@@ -108,7 +109,11 @@ describe('cell mode', () => {
     const h = mountEditable()
     await openEditor(h.wrapper, 'salary')
 
-    expect(cell(h.wrapper, 'salary').find('input').attributes('type')).toBe('number')
+    // Text with `inputmode`, not `type="number"`: the editor masks a number
+    // column into thousands, which a number input's value cannot hold.
+    const salary = cell(h.wrapper, 'salary').find('input')
+    expect(salary.attributes('type')).toBe('text')
+    expect(salary.attributes('inputmode')).toBe('decimal')
     // The others stay as they were.
     expect(cell(h.wrapper, 'name').find('input').exists()).toBe(false)
     expect(h.wrapper.findAll('.vt-cell-editor')).toHaveLength(1)
@@ -163,10 +168,14 @@ describe('cell mode', () => {
     expect(h.saves[0]!.patch).toEqual({ salary: 96367.42 })
     expect(h.rows.value.find((row) => row.id === 1)!.salary).toBe(96367.42)
 
-    // And the editor seeds from the raw value, not from the rendered text, so
-    // reopening shows the number back rather than a re-parsed display string.
+    // And the editor seeds from the raw value rather than from the cell's
+    // rendered text: what comes back is that number under the editor's own
+    // thousands mask — every digit of it — not the column's `format`, which
+    // would have rounded it into currency.
     await openEditor(h.wrapper, 'salary')
-    expect(cell(h.wrapper, 'salary').find('input').element.value).toBe('96367.42')
+    const reopened = cell(h.wrapper, 'salary').find('input').element.value
+    expect(reopened).toBe(toDisplayNumber('96367.42'))
+    expect(toMachineNumber(reopened)).toBe('96367.42')
     h.wrapper.unmount()
   })
 

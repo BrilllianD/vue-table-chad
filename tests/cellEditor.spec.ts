@@ -4,6 +4,15 @@ import { mount } from '@vue/test-utils'
 import CellEditor from '../src/components/primitives/CellEditor.vue'
 import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import type { ColumnDef } from '../src/core/types'
+import { toDisplayNumber, toMachineNumber } from '../src/core/numberMask'
+
+/**
+ * The component reads its separators from `Intl` at the runtime's own locale,
+ * so the expectations do too — a literal `1,234` here would be an assertion
+ * about which ICU data the test runner shipped.
+ */
+const display = (value: string) => toDisplayNumber(value)
+const machine = (value: string) => toMachineNumber(value)
 
 /**
  * `mount` cannot infer an SFC's own generic, so the columns are declared at the
@@ -54,22 +63,26 @@ function asyncColumn(): { column: ColumnDef<Row>; dispose: () => void } {
 describe('the control it picks', () => {
   it('follows the column type', () => {
     expect(editor(text).find('input').attributes('type')).toBe('text')
-    expect(editor(number).find('input').attributes('type')).toBe('number')
+    // A number column masks into a text box; `inputmode` is what makes it a
+    // number to a touch keyboard. See the grouping tests below.
+    expect(editor(number).find('input').attributes('type')).toBe('text')
     expect(editor(date).find('input').attributes('type')).toBe('date')
     expect(editor(boolean).find('input').attributes('type')).toBe('checkbox')
     expect(editor(enumeration).find('select').exists()).toBe(true)
   })
 
-  it('lets the number box hold any number the column will take', () => {
-    // Without a `step` the browser invents `step="1"` off whatever value the
-    // control started with, which makes a decimal `:invalid` and lets the
-    // native spinner snap a rating's fraction away. No `ColumnDef` field
-    // declares a precision, so there is nothing here to derive a grid from.
-    expect(editor(number).find('input').attributes('step')).toBe('any')
-    // Only the number box. `step` on a date input means days, and one there
-    // would quietly restrict which dates a calendar offers.
+  it('asks for a numeric keyboard without asking for a number input', () => {
+    // The mask is why the control is text: `input[type=number]` only accepts a
+    // bare float as its value, so a grouped one reads back as empty. What is
+    // left to say "this is a number" is `inputmode`.
+    expect(editor(number).find('input').attributes('inputmode')).toBe('decimal')
+    expect(editor(text).find('input').attributes('inputmode')).toBeUndefined()
+    expect(editor(date).find('input').attributes('inputmode')).toBeUndefined()
+    // And with no number input there is no spinner to restrict: `step` used to
+    // be `any` here precisely because nothing in `ColumnDef` declares a
+    // precision. `step` on a date input means days, so it stays off there too.
+    expect(editor(number).find('input').attributes('step')).toBeUndefined()
     expect(editor(date).find('input').attributes('step')).toBeUndefined()
-    expect(editor(text).find('input').attributes('step')).toBeUndefined()
   })
 
   it('offers every option, plus a way back to blank', () => {
@@ -125,6 +138,54 @@ describe('what it emits', () => {
     expect(box.emitted('update:value')![0]).toEqual([true])
   })
 
+  it('groups a number as it is typed, and still reports a machine string', async () => {
+    const wrapper = editor(number)
+    const input = wrapper.find('input')
+    await input.setValue('1234000')
+
+    // What the draft gets is what a native number box gave: bare digits, so
+    // `parseCellInput` and any `column.parse` are unaffected by the mask.
+    expect(wrapper.emitted('update:value')![0]).toEqual(['1234000'])
+    // What the person sees is grouped, in the separators this runtime's `Intl`
+    // uses — asserting on a comma would be asserting on the runner's ICU data.
+    expect((input.element as HTMLInputElement).value).toBe(display('1234000'))
+
+    await wrapper.setProps({ value: '1234000' })
+    expect((input.element as HTMLInputElement).value).toBe(display('1234000'))
+  })
+
+  it('keeps the caret where the typing was, not where the index was', async () => {
+    const wrapper = editor(number, { value: '123' })
+    const input = wrapper.find('input')
+    const element = input.element as HTMLInputElement
+
+    // The fourth digit, typed at the end of "123": the value regroups and a
+    // separator appears *before* the caret, so an index restored as-is would
+    // leave it one place short.
+    element.value = '1234'
+    element.setSelectionRange(4, 4)
+    await input.trigger('input')
+
+    expect(element.value).toBe(display('1234'))
+    expect(element.selectionStart).toBe(element.value.length)
+  })
+
+  it('takes a pasted number apart rather than refusing it', async () => {
+    const wrapper = editor(number)
+    // Currency, grouping and all — dropped down to the number it meant.
+    await wrapper.find('input').setValue('$1,234.50')
+    expect(wrapper.emitted('update:value')!.at(-1)).toEqual([machine('$1,234.50')])
+  })
+
+  it('leaves the text of every other control alone', async () => {
+    const wrapper = editor(text)
+    await wrapper.find('input').setValue('1234000')
+    // No mask on a text column: `1234000` is a string that happens to be
+    // digits, and grouping it would rewrite the value.
+    expect(wrapper.emitted('update:value')![0]).toEqual(['1234000'])
+    expect((wrapper.find('input').element as HTMLInputElement).value).toBe('1234000')
+  })
+
   it('commits on Enter and cancels on Escape', async () => {
     const wrapper = editor(text, { value: 'Ada' })
     await wrapper.find('input').trigger('keydown', { key: 'Enter' })
@@ -161,6 +222,9 @@ describe('what it emits', () => {
 
   it('commits and says where to go when an arrow leaves the cell', async () => {
     const wrapper = editor(text, { value: 'Ada', arrowMove: true })
+    // The same payload Enter sends, and deliberately nothing more: the table
+    // treats the two commits alike, so an origin flag would be a distinction
+    // no caller is allowed to act on.
     await wrapper.find('input').trigger('keydown', { key: 'ArrowDown' })
     expect(wrapper.emitted('commit')![0]).toEqual([{ kind: 'by', rows: 1, columns: 0 }])
 

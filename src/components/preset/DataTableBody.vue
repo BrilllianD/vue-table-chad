@@ -346,9 +346,22 @@ function cellText(column: ResolvedColumn<TRow>, value: unknown, text: string): s
 /**
  * Leaving a cell finishes the edit — but only in cell mode. With a whole row
  * open, moving between its fields is navigation, not a decision to save.
+ *
+ * The column test is what makes the blur safe now that finishing a cell can
+ * open another one *in the same row*: Enter and Tab both close this draft and
+ * begin the next, and the blur then arrives with a draft open again, on a
+ * different column. `commitRow`'s "nothing open is not a save" guard cannot
+ * see the difference — the row is editing either way — so it would commit the
+ * editor that just opened, closing it a frame after it appeared. Asking
+ * whether *this* cell is still the active one answers exactly that: it is not,
+ * so this blur refers to a draft that is already gone.
  */
-function onCellBlur(row: TRow): void {
-  if (!props.rowMode) void commitRow(row)
+function onCellBlur(row: TRow, column: ResolvedColumn<TRow>): void {
+  if (props.rowMode) return
+  const session = props.editing
+  if (!session) return
+  if (session.stateFor(session.getRowId(row))?.activeColumnId !== column.id) return
+  void commitRow(row)
 }
 
 /**
@@ -377,12 +390,26 @@ async function moveEdit(
 }
 
 /**
- * Enter in an open editor: commit, then step the cursor if the save took.
+ * Enter or an arrow in an open editor: commit, then step the cursor if the save
+ * took.
  *
  * A failed commit stays put, matching the rule `moveEdit` follows for Tab —
  * moving would scroll the message explaining the failure out from under the
- * user. The destination is left read-only rather than opened, which is what a
- * spreadsheet does: you land there, and typing is what starts an edit.
+ * user.
+ *
+ * **The destination opens too**, so a column of values is typed with Enter
+ * alone, and a run of them is crossed with the arrows, rather than a keystroke
+ * between each. The gesture is the same claim either way: it came out of an
+ * open editor, which is the user saying they are editing, and closing the cell
+ * they asked to move to would make them say it again. Only a move that starts
+ * *inside* an editor does this — an arrow on a closed cell never reaches here,
+ * so the table is still crossed read-only by anyone not already editing.
+ *
+ * A destination that cannot be edited — a read-only column, or a row the
+ * session vetoes — is simply moved onto. No hunting for the next editable cell
+ * beyond it: the cursor goes where the key said, the same as everywhere else,
+ * and a cursor whose path depended on editability would be one nobody could
+ * predict.
  */
 async function commitCell(
   row: TRow,
@@ -390,7 +417,28 @@ async function commitCell(
   cursor: UseCellCursor<TRow> | undefined,
 ): Promise<void> {
   if (!(await commitRow(row))) return
-  if (next) cursor?.move(next)
+  if (!next || !cursor) return
+  // `false` for a move that landed nowhere — the edge of the table — and there
+  // is then nothing new to open.
+  if (!cursor.move(next)) return
+  if (props.rowMode) return
+  const session = props.editing
+  const landed = cursor.position.value
+  if (!session || !landed) return
+  const destination = rowById(landed.rowId)
+  const column = props.columns.find((entry) => entry.id === landed.columnId)
+  if (!destination || !column || !canEdit(destination, column)) return
+  session.begin(destination, column.id)
+}
+
+/** The rendered row a cursor position names, or `undefined` once it has scrolled out. */
+function rowById(rowId: RowId): TRow | undefined {
+  const getRowId = props.cursor?.getRowId
+  if (!getRowId) return undefined
+  for (const item of props.displayRows) {
+    if (item.kind === 'row' && getRowId(item.row) === rowId) return item.row
+  }
+  return undefined
 }
 
 /** Escape: put the cell back, and give the cell itself the focus the editor had. */
@@ -527,9 +575,9 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               :arrow-move="Boolean(cursor) && !rowMode"
               :autofocus="props.editing.stateFor(props.editing.getRowId(row))?.activeColumnId === column.id"
               @update:value="props.editing.setValue(row, column, $event)"
-              @commit="commitCell(row, $event, cursor)"
+              @commit="(next) => commitCell(row, next, cursor)"
               @cancel="cancelCell(row, cursor)"
-              @blur="onCellBlur(row)"
+              @blur="onCellBlur(row, column)"
               @move="moveEdit(row, column, $event, columns)"
             >
               <template v-if="$slots[`editor:${column.id}`]" #default="editorProps">

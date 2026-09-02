@@ -217,7 +217,9 @@ const props = withDefaults(
     editing?: UseRowEditing<TRow>
     /**
      * A keyboard cell cursor: arrows move a focused cell, Enter opens its
-     * editor when it has one, and Enter again commits and steps on.
+     * editor when it has one, and a move out of an open editor — Enter or an
+     * arrow — commits and opens the cell it lands on, so a run of cells is
+     * typed with no keystroke between them.
      *
      * Off by default, and off means off — no `role="grid"`, no `tabindex`, no
      * cursor attributes, and editable cells keep the button that is their only
@@ -664,6 +666,23 @@ defineExpose({
   remeasureColumns: autoWidth.remeasure,
 })
 
+/**
+ * The row and the column a cursor position names, either of which may be
+ * missing: the position outlives the rows it points at, so a cell that has been
+ * filtered or paged away resolves to nothing rather than to the wrong row.
+ */
+function cellAt(
+  position: CellPosition,
+  rows: TRow[],
+  cols: ResolvedColumn<TRow>[],
+  cursor: UseCellCursor<TRow> | undefined,
+): { row: TRow | undefined; column: ResolvedColumn<TRow> | undefined } {
+  return {
+    row: rows.find((entry) => cursor?.getRowId(entry) === position.rowId),
+    column: cols.find((entry) => entry.id === position.columnId),
+  }
+}
+
 function onActivate(
   position: CellPosition,
   event: Event,
@@ -672,8 +691,7 @@ function onActivate(
   cursor: UseCellCursor<TRow> | undefined,
 ): void {
   const session = props.editing
-  const row = rows.find((entry) => cursor?.getRowId(entry) === position.rowId)
-  const column = cols.find((entry) => entry.id === position.columnId)
+  const { row, column } = cellAt(position, rows, cols, cursor)
   if (session && row && column && session.isEditable(row, column)) {
     session.begin(row, column.id)
     /*
@@ -693,6 +711,71 @@ function onActivate(
   // has no `key` and is not a move.
   const move = 'key' in event ? commitMoveFor(event as unknown as KeyboardEvent) : undefined
   if (move) cursor?.move(move)
+}
+
+/**
+ * Copy puts the cell's **displayed** text on the clipboard, not its value.
+ *
+ * `getCellText` is what the cell renders, `column.format` included, so a date
+ * copies as the date the user is looking at rather than as an ISO string they
+ * never saw. It is also the inverse of the paste below, which parses text the
+ * same way a typed edit does.
+ *
+ * No editing session is needed and no `isEditable` check is made: copying is a
+ * read, and a table whose cells could be read on screen but not onto the
+ * clipboard would only be teaching people to retype them.
+ */
+function onCopy(
+  position: CellPosition,
+  event: ClipboardEvent,
+  rows: TRow[],
+  cols: ResolvedColumn<TRow>[],
+  cursor: UseCellCursor<TRow> | undefined,
+  getCellText: (row: TRow, column: ColumnDef<TRow>) => string,
+): void {
+  const { row, column } = cellAt(position, rows, cols, cursor)
+  if (!row || !column) return
+  // The default is not suppressed until the text is actually written, so a
+  // cell that resolved to nothing leaves the browser's own copy alone.
+  event.clipboardData?.setData('text/plain', getCellText(row, column))
+  event.preventDefault()
+}
+
+/**
+ * Paste is a typed edit whose characters arrived all at once: open the draft,
+ * set the text, save.
+ *
+ * `setValue` runs `parseCellInput`, so `column.parse` and the type coercion
+ * apply exactly as they do to typing, and a value that fails validation leaves
+ * the editor open holding the message — the same place a rejected save leaves
+ * it. Nothing about the clipboard needs its own parser or its own error path.
+ *
+ * The payload is used verbatim apart from one trailing newline. Splitting on
+ * tabs and newlines would be block paste, which needs a cell *range* to paste
+ * into and there is none; and a `textarea` column means its newlines. The one
+ * exception is the line ending a spreadsheet appends to a single-cell copy,
+ * which nobody typed and nobody wants stored.
+ */
+function onPaste(
+  position: CellPosition,
+  text: string,
+  event: ClipboardEvent,
+  rows: TRow[],
+  cols: ResolvedColumn<TRow>[],
+  cursor: UseCellCursor<TRow> | undefined,
+): void {
+  const session = props.editing
+  if (!session) return
+  const { row, column } = cellAt(position, rows, cols, cursor)
+  // A read-only cell does not claim the gesture, so the paste is still the
+  // browser's — it will do nothing to a `<td>`, which is the honest outcome.
+  if (!row || !column || !session.isEditable(row, column)) return
+  event.preventDefault()
+  session.begin(row, column.id)
+  session.setValue(row, column, text.replace(/\r?\n$/, ''))
+  // Not awaited: a save is the source's business and may take as long as it
+  // likes. A failure is reported through the draft, which stays open.
+  void session.commit(row)
 }
 </script>
 
@@ -715,6 +798,7 @@ function onActivate(
       displayRows,
       grouping,
       getRowKey: rowKey,
+      getCellText: cellText,
     }"
     :columns="columns"
     :source="source"
@@ -849,6 +933,10 @@ function onActivate(
             :actions-column="actionsColumn"
             :cursor="cursor"
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
+            @copy="(position, event) => onCopy(position, event, rows, cols, cursor, cellText)"
+            @paste="
+              (position, text, event) => onPaste(position, text, event, rows, cols, cursor)
+            "
             @page-move="(pages) => pageMove(pages, pagination)"
             @scroll-move="scrollColumns"
             @viewport-move="scrollViewport"
