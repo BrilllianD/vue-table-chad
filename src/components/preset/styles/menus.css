@@ -11,9 +11,16 @@
 
 .vt-group-trigger {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--vtc-space-2);
 }
+
+/*
+ * The shortcuts read as part of the trigger, so they take its height rather
+ * than the compact one `.vt-btn-icon` wants inside a menu row — stretch, not
+ * a repeated padding, so the two stay locked together if `.vt-btn` changes.
+ */
+.vt-group-trigger .vt-btn-icon { padding-block: 0; }
 
 .vt-group-panel {
   position: absolute;
