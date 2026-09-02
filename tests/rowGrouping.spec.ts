@@ -409,6 +409,23 @@ describe('DataTable grouping', () => {
     wrapper.unmount()
   })
 
+  it('folds and unfolds every band from the buttons beside the menu trigger', async () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    const rowCount = () => wrapper.findAll('tbody tr.vt-tr').length
+    // Second and third button of the trigger row — the panel is still closed,
+    // which is the point of putting them there.
+    const [, expandAll, collapseAll] = [
+      ...wrapper.findAll('.vt-group-trigger .vt-btn'),
+    ] as const
+
+    expect(rowCount()).toBe(people.length)
+    await collapseAll!.trigger('click')
+    expect(rowCount()).toBe(0)
+    await expandAll!.trigger('click')
+    expect(rowCount()).toBe(people.length)
+    wrapper.unmount()
+  })
+
   it('bands only what is loaded by default, counting the rows in view', () => {
     const wrapper = mountTable({ groupBy: ['department'], pageSize: 2 })
     // Two Engineering rows are loaded; the band says two, not the four the

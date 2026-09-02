@@ -48,27 +48,77 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
 
 <template>
   <div ref="root" class="vt-group-menu" @focusout="onFocusOut" @keydown.esc="open = false">
-    <button
-      type="button"
-      class="vt-btn"
-      :data-active="state.hasGrouping.value || undefined"
-      :aria-expanded="open"
-      @click="open = !open"
-    >
-      {{ props.label }}
-      <span v-if="state.hasGrouping.value" class="vt-group-badge">{{
-        state.groupBy.value.length
-      }}</span>
-      ▾
-    </button>
+    <div class="vt-group-trigger">
+      <button
+        type="button"
+        class="vt-btn"
+        :data-active="state.hasGrouping.value || undefined"
+        :aria-expanded="open"
+        @click="open = !open"
+      >
+        {{ props.label }}
+        <span v-if="state.hasGrouping.value" class="vt-group-badge">{{
+          state.groupBy.value.length
+        }}</span>
+        ▾
+      </button>
+
+      <!--
+        Expanding or collapsing every band is the gesture that gets repeated, so it sits
+        outside the panel: behind the dropdown it costs an open and a dismiss every time.
+        The panel keeps its worded copies, which is where the first-time reader looks.
+      -->
+      <button
+        type="button"
+        class="vt-btn vt-btn-icon"
+        :disabled="!state.hasGrouping.value"
+        aria-label="Expand all groups"
+        @click="context.grouping?.expandAll()"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        class="vt-btn vt-btn-icon"
+        :disabled="!state.hasGrouping.value"
+        aria-label="Collapse all groups"
+        @click="context.grouping?.collapseAll()"
+      >
+        −
+      </button>
+    </div>
 
     <div v-if="open" class="vt-group-panel" role="dialog" aria-label="Grouping options">
-      <p v-if="!state.hasGrouping.value" class="vt-group-hint">
-        Pick a column to band rows by. Pick a second to nest inside the first.
-      </p>
+      <!-- The actions lead, because the option list below grows with the column count. -->
+      <div class="vt-group-actions">
+        <button
+          type="button"
+          class="vt-btn vt-btn-link"
+          :disabled="!state.hasGrouping.value"
+          @click="context.grouping?.expandAll()"
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          class="vt-btn vt-btn-link"
+          :disabled="!state.hasGrouping.value"
+          @click="context.grouping?.collapseAll()"
+        >
+          Collapse all
+        </button>
+        <button
+          type="button"
+          class="vt-btn vt-btn-link"
+          :disabled="!state.hasGrouping.value"
+          @click="state.clearGrouping()"
+        >
+          Clear
+        </button>
+      </div>
 
-      <!-- Active levels first, because their order is the thing being edited. -->
-      <ol v-else class="vt-group-levels">
+      <!-- Active levels next, because their order is the thing being edited. -->
+      <ol v-if="state.hasGrouping.value" class="vt-group-levels">
         <li v-for="(level, index) in levels" :key="level.columnId" class="vt-group-level">
           <span class="vt-group-level-index">{{ index + 1 }}</span>
           <span class="vt-group-level-label">{{ level.label }}</span>
@@ -110,33 +160,6 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           />
           <span class="vt-group-option-label">{{ column.header ?? column.id }}</span>
         </div>
-      </div>
-
-      <div class="vt-group-actions">
-        <button
-          type="button"
-          class="vt-btn vt-btn-link"
-          :disabled="!state.hasGrouping.value"
-          @click="context.grouping?.expandAll()"
-        >
-          Expand all
-        </button>
-        <button
-          type="button"
-          class="vt-btn vt-btn-link"
-          :disabled="!state.hasGrouping.value"
-          @click="context.grouping?.collapseAll()"
-        >
-          Collapse all
-        </button>
-        <button
-          type="button"
-          class="vt-btn vt-btn-link"
-          :disabled="!state.hasGrouping.value"
-          @click="state.clearGrouping()"
-        >
-          Clear
-        </button>
       </div>
     </div>
   </div>
