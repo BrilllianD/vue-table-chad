@@ -45,6 +45,18 @@
     transparent
   );
   /*
+    The whole column under the pointer, header included — the vertical guide a
+    wide table needs to keep your eye on one field. Under the row delta on
+    purpose: it is ambient, and must not compete with the row you are actually
+    on. Off at 0.
+  */
+  --vtc-column-hover-delta: 3%;
+  --vtc-column-hover-bg: color-mix(
+    in srgb,
+    var(--vtc-text) var(--_vtc-column-hover-clamped),
+    transparent
+  );
+  /*
     `color-mix` rejects a percentage outside 0–100, and an invalid value here
     does not degrade gracefully: it invalidates the layer, which invalidates the
     whole `background-image` declaration and takes every *other* layer down with
@@ -56,6 +68,7 @@
   */
   --_vtc-row-hover-clamped: clamp(0%, var(--vtc-row-hover-delta), 100%);
   --_vtc-cell-hover-clamped: clamp(0%, var(--vtc-cell-hover-delta), 100%);
+  --_vtc-column-hover-clamped: clamp(0%, var(--vtc-column-hover-delta), 100%);
   /*
     The cell cursor: a ring on the focused cell, and a faint crosshair through
     its row and its column. The two tints are deltas for the same reason hover

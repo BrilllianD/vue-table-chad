@@ -88,6 +88,8 @@ const THEME_TOKENS = [
   'cellHoverBg',
   'cellHoverBorderWidth',
   'cellHoverBorderColor',
+  'columnHoverDelta',
+  'columnHoverBg',
   'cursorRowDelta',
   'cursorColumnDelta',
   'cursorRowBg',

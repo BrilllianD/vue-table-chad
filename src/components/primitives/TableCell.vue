@@ -17,6 +17,17 @@ const props = defineProps<{
    */
   cursor?: CellCursorMark
   /**
+   * Whether the pointer is somewhere in this cell's column.
+   *
+   * Separate from `cursor` rather than a fifth `CellCursorMark`: the two
+   * highlights are independent — a table with no cursor still hovers, and a
+   * hovered column must not disturb where the cursor is — and a cell can be in
+   * both at once, which one value could not say.
+   *
+   * `TableRow` works it out, for the same reason it works out `cursor`.
+   */
+  columnHovered?: boolean
+  /**
    * The band boundary falling to this cell's right, or `undefined` when none
    * does. Positional rather than a property of the column, so the row works it
    * out and hands it down — a cell has no idea what sits beside it.
@@ -62,6 +73,7 @@ const tabIndex = computed(() => {
     :data-pinned="column.pinned || undefined"
     :data-column-bg="column.background ? '' : undefined"
     :data-cursor="cursor === 'cell' || cursor === 'column' ? cursor : undefined"
+    :data-column-hover="columnHovered || undefined"
     :data-band-edge="bandEdge?.depth"
     :tabindex="tabIndex"
   >

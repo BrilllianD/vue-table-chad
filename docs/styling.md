@@ -221,9 +221,10 @@ the table background or the row's stripe — and every state above it is a `back
 painted over it, topmost first:
 
 ```
-cell hover    ┐ topmost   the pointer, and the most specific of the three
+cell hover    ┐ topmost   the pointer, most specific of the four first
 selected      │
-row hover     ┘
+row hover     │
+column hover  ┘           the pointer's ambient arm, under the row it is on
 cursor row    ┐           the keyboard: persistent, and under everything the
 cursor column ┘           pointer is doing right now
 column tint   ─ bottom    static, declared by the column itself
@@ -244,8 +245,18 @@ lightens a dark one from the same number:
 .vt-datatable {
   --vtc-row-hover-delta: 6%;        /* the row under the pointer */
   --vtc-cell-hover-delta: 0%;   /* just the cell under it, stacked on top; off at 0 */
+  --vtc-column-hover-delta: 3%; /* the whole column under it, header included; off at 0 */
 }
 ```
+
+The column arm is the vertical guide a wide table needs to read one field down, and it is the one
+of the three that CSS cannot express on its own: no selector relates a hovered cell to the cells
+above and below it, so the table tracks the column the pointer is in and marks every cell of it
+with `data-column-hover` — `.vt-td[data-column-hover]` and `.vt-th[data-column-hover]` are yours
+to style directly if the tint is not what you want. It is independent of
+[`cellCursor`](keyboard.md): a pointer move never disturbs where the cursor is, and the guide is
+there on a plain read-only table. Touch input sets it never — a tap has no way to say it has
+left again.
 
 Both are clamped to 0–100% for you. Worth knowing if you compute a colour of your own for any of
 these variables: `color-mix()` rejects a percentage outside that range, and an invalid value does
@@ -262,12 +273,14 @@ Name a colour instead if you'd rather — the delta only feeds the default:
 ```css
 --vtc-row-hover-bg: rgb(37 99 235 / 0.1);
 --vtc-cell-hover-bg: rgb(37 99 235 / 0.16);
+--vtc-column-hover-bg: rgb(37 99 235 / 0.06);
 --vtc-row-selected-bg: color-mix(in srgb, var(--vtc-accent) 16%, transparent);   /* the shipped default */
 ```
 
 An opaque value works too; it simply hides the layers below it. Either way the two mechanisms are
 exclusive per variable — set the colour and the delta stops being consulted, since the delta exists
-only to derive that colour. `--vtc-row-hover-delta: 0%` turns row hover off altogether.
+only to derive that colour. `--vtc-row-hover-delta: 0%` turns row hover off altogether, and
+`--vtc-column-hover-delta: 0` the column guide.
 
 **Hover outlines** are separate from the fills, and off by default:
 

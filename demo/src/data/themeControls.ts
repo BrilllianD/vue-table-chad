@@ -180,6 +180,8 @@ export const TOKEN_CONTROLS: Record<ThemeToken, TokenControl> = {
   cellHoverBg: { group: 'Hover', kind: 'text', hint: 'the same escape hatch, per cell' },
   cellHoverBorderWidth: width('Hover', 'the cell outline, all four edges'),
   cellHoverBorderColor: colour('Hover', 'that outline'),
+  columnHoverDelta: delta('Hover', "the whole column under the pointer, header included"),
+  columnHoverBg: { group: 'Hover', kind: 'text', hint: 'names that column tint outright' },
 
   cursorRowDelta: delta('Cell cursor', "the cursor's row arm"),
   cursorColumnDelta: delta('Cell cursor', "the cursor's column arm"),
@@ -239,6 +241,7 @@ export const FEATURED_TOKENS: readonly ThemeToken[] = [
   'outerBorderWidth',
   'rowHoverDelta',
   'cellHoverDelta',
+  'columnHoverDelta',
   'rowHoverBg',
   'cellHoverBg',
   'rowHoverBorderWidth',

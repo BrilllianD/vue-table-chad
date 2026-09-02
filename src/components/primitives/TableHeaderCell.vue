@@ -32,6 +32,12 @@ const props = withDefaults(
      */
     cursor?: 'column'
     /**
+     * Set while the pointer is somewhere in this column, so the header takes
+     * the hover tint with the body cells under it. Independent of `cursor`: the
+     * two highlights answer to different devices and a column can be in both.
+     */
+    columnHovered?: boolean
+    /**
      * The band boundary falling to this cell's right. Defaults to the injected
      * one for this column, so a `<th>` under a `<TableRoot>` needs nothing
      * passed and a standalone one can still be told.
@@ -125,6 +131,7 @@ function onKeydown(event: KeyboardEvent): void {
     :data-drop="dnd?.dropSideFor(column.id) || undefined"
     :data-band-edge="bandEdge?.depth"
     :data-cursor="cursor"
+    :data-column-hover="columnHovered || undefined"
     :aria-sort="
       column.sortDirection === 'asc'
         ? 'ascending'

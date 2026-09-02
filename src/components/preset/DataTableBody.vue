@@ -42,6 +42,11 @@ const props = defineProps<{
   error: unknown
   selection: UseRowSelection<TRow> | undefined
   cursor: UseCellCursor<TRow> | undefined
+  /**
+   * The column the pointer is in. Passed straight through to every rendered
+   * row: `DataTable` owns the state and the listeners that write it.
+   */
+  hoverColumnId: string | undefined
   editing: UseRowEditing<TRow> | undefined
   rowKey: (row: TRow, index: number) => RowId
   selectable: boolean
@@ -538,6 +543,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           :selected="selection ? selection.isSelected(item.row) : false"
           :state="rowState(item.row)"
           :cursor="cursor"
+          :hover-column-id="hoverColumnId"
           @click="onRowClick(item.row, $event)"
           @mousedown="onRowMouseDown"
         >

@@ -424,6 +424,45 @@ function pageMove(pages: number, pagination: UsePagination): void {
 const scrollBox = ref<HTMLElement | null>(null)
 
 /**
+ * The column the pointer is in, or `undefined` while it is outside the table.
+ *
+ * Its own state rather than a use of the cell cursor. Moving the mouse must not
+ * move the cursor: the cursor carries the focus, the roving `tabindex="0"` and
+ * the cell an editor opens on, and a pointer crossing the table on its way
+ * somewhere else has asked for none of that. It is also independent of whether
+ * a cursor exists at all — `cellCursor` is off by default, and the column guide
+ * is useful on a plain read-only table.
+ *
+ * A `shallowRef` holding one string, written only when the column changes, so
+ * a mouse move within one column propagates nothing — the pointer's version of
+ * the rule that a clamped cursor move writes no state.
+ */
+const hoverColumnId = shallowRef<string | undefined>(undefined)
+
+/**
+ * The pointer entered a cell — in the body or in the header, since one listener
+ * on `.vt-scroll` sees both.
+ *
+ * `pointerover` rather than `pointerenter` because only the former bubbles, and
+ * `.vt-td`/`.vt-th` rather than the event target itself because the pointer is
+ * usually over a `<span>`, a sort button or an editor inside the cell.
+ *
+ * Touch is dropped outright. A tap synthesises one `pointerover` and never the
+ * `pointerleave` that would undo it, so a touch device would light a column and
+ * leave it lit until the next tap — a highlight nobody asked for, describing
+ * where a finger was rather than where a pointer is.
+ */
+function onPointerOver(event: PointerEvent): void {
+  if (event.pointerType === 'touch') return
+  const cell = (event.target as HTMLElement | null)?.closest?.(
+    '.vt-td[data-column], .vt-th[data-column]',
+  )
+  const columnId = cell?.getAttribute('data-column') ?? undefined
+  if (columnId === hoverColumnId.value) return
+  hoverColumnId.value = columnId
+}
+
+/**
  * Which rows the body has actually rendered, in virtual mode.
  *
  * It comes back up from `DataTableBody` and goes straight down into
@@ -920,6 +959,8 @@ function onPaste(
           ref="scrollBox"
           class="vt-scroll"
           :data-sticky="stickyHeader || undefined"
+          @pointerover="onPointerOver"
+          @pointerleave="hoverColumnId = undefined"
           :style="{
             '--vtc-header-rows': headerRows.length,
             '--vtc-pin-left': pinnedWidth(cols, 'left'),
@@ -956,6 +997,7 @@ function onPaste(
               in row two would push every real column one place to the right.
             -->
             <DataTableHeader
+              :hover-column-id="hoverColumnId"
               :header-rows="headerRows"
               :selectable="selectable"
               :selection-mode="props.selectable"
@@ -987,6 +1029,7 @@ function onPaste(
               :error="error"
               :selection="selection"
               :cursor="cursor"
+              :hover-column-id="hoverColumnId"
               :editing="props.editing"
               :row-key="rowKey"
               :selectable="selectable"

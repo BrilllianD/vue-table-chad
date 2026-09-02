@@ -105,9 +105,10 @@
   first, which is what lets any of them carry an alpha channel and blend with
   what is underneath instead of replacing it:
 
-      cell hover    ┐ topmost   the pointer, and the most specific of the three
+      cell hover    ┐ topmost   the pointer, most specific of the four first
       selected      │
-      row hover     ┘
+      row hover     │
+      column hover  ┘           the pointer's ambient arm, under the row it is on
       cursor row    ┐           the keyboard: persistent, and deliberately under
       cursor column ┘           everything the pointer is doing right now
       column tint   ─ bottom    static, declared by the column itself
@@ -135,6 +136,7 @@
   --_vtc-layer-cell-hover: none;
   --_vtc-layer-selected: none;
   --_vtc-layer-hover: none;
+  --_vtc-layer-column-hover: none;
   --_vtc-layer-cursor-row: none;
   --_vtc-layer-cursor-column: none;
   --_vtc-layer-column: none;
@@ -170,6 +172,7 @@
     var(--_vtc-layer-cell-hover),
     var(--_vtc-layer-selected),
     var(--_vtc-layer-hover),
+    var(--_vtc-layer-column-hover),
     var(--_vtc-layer-cursor-row),
     var(--_vtc-layer-cursor-column),
     var(--_vtc-layer-column);
@@ -398,6 +401,23 @@
   --_vtc-layer-cell-hover: linear-gradient(var(--vtc-cell-hover-bg), var(--vtc-cell-hover-bg));
   --_vtc-shadow-cell-hover:
     inset 0 0 0 var(--vtc-cell-hover-border-width) var(--vtc-cell-hover-border-color);
+}
+
+/*
+  The column under the pointer, header cell included.
+
+  Driven by `data-column-hover` rather than by `:hover`, because no selector
+  relates one hovered cell to the cells above and below it — `DataTable` tracks
+  the column the pointer is in and marks every cell of it. Same shape as the
+  cursor's column arm below, and for the same reason: a wide table is hard to
+  read a single field down without one.
+*/
+.vt-th[data-column-hover],
+.vt-td[data-column-hover] {
+  --_vtc-layer-column-hover: linear-gradient(
+    var(--vtc-column-hover-bg),
+    var(--vtc-column-hover-bg)
+  );
 }
 
 /* ----------------------------------------------------------- cell cursor */

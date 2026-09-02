@@ -71,6 +71,16 @@ const props = withDefaults(
      * query fields rather than on the query object.
      */
     cursor?: UseCellCursor<TRow>
+    /**
+     * The column the pointer is in, so this row tints its cell there.
+     *
+     * A plain id rather than a composable, unlike `cursor`: there is one scalar
+     * to read and no predicates to call, and the id changes only when the
+     * pointer crosses a column boundary — a move inside one column re-renders
+     * nothing. Whoever owns the pointer decides what it means; this row only
+     * paints it.
+     */
+    hoverColumnId?: string
     /** Overrides the id this row is known by. Defaults to the cursor's own `getRowId`. */
     rowId?: RowId
   }>(),
@@ -82,6 +92,7 @@ const props = withDefaults(
     bandEdges: undefined,
     state: undefined,
     cursor: undefined,
+    hoverColumnId: undefined,
     rowId: undefined,
   },
 )
@@ -228,6 +239,7 @@ function cursorFor(columnId: string): CellCursorMark | undefined {
       :column="cell.column"
       :band-edge="cell.bandEdge"
       :cursor="cursorFor(cell.column.id)"
+      :column-hovered="cell.column.id === hoverColumnId"
     >
       <!--
         The first cell carries the group indent, so rows sit visibly inside

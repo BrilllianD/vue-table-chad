@@ -34,6 +34,11 @@ defineProps<{
   selectionMode: boolean | SelectionMode
   selection: UseRowSelection<TRow> | undefined
   cursor: UseCellCursor<TRow> | undefined
+  /**
+   * The column the pointer is in, so a `<th>` tints with the cells under it.
+   * `DataTable` owns the state — this component sees only the id.
+   */
+  hoverColumnId: string | undefined
   /** Whether the trailing actions cell is present, so the header can span it. */
   actionsColumn: boolean
   /**
@@ -87,6 +92,7 @@ defineProps<{
           :rowspan="cell.rowspan"
           :depth="cell.depth"
           :cursor="cursor?.isCursorColumn(cell.column.id) ? 'column' : undefined"
+          :column-hovered="cell.column.id === hoverColumnId"
         >
           <template #default>
             <SortTrigger
