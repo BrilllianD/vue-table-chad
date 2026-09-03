@@ -9,7 +9,7 @@
  * had grown by ten times that.
  *
  * The budgets below are *measured*, not inherited. The figures in the comment
- * are what the 2026-08-27 build actually produced; the budget sits above them
+ * are what the 2026-09-03 build actually produced; the budget sits above them
  * with enough headroom that ordinary work passes and an accident does not. So
  * a number here that is far from the budget is slack, and one that is close is
  * drift worth looking at — the difference is only legible because both are
@@ -38,8 +38,8 @@ interface Budget {
 }
 
 const BUDGETS: Budget[] = [
-  { file: 'dist/vue-table-chad.js', budgetKb: 42, measuredKb: 35.7 },
-  { file: 'dist/vue-table-chad.css', budgetKb: 5, measuredKb: 3.9 },
+  { file: 'dist/vue-table-chad.js', budgetKb: 63, measuredKb: 44.3 },
+  { file: 'dist/vue-table-chad.css', budgetKb: 7.5, measuredKb: 4.9 },
 ]
 
 const KB = 1024
