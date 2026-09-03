@@ -1,50 +1,70 @@
 <script setup lang="ts">
+// No preset, no stylesheet import — this file's own scoped CSS is the only
+// styling anywhere in it, which is the whole "headless buys you zero CSS"
+// contract.
 import { shallowRef } from 'vue'
 import {
   ColumnFilterPopover,
   SortTrigger,
-  TableGrid,
-  TableGroupRow,
-  TableHeaderCell,
   TablePagination,
   TableRoot,
-  TableRow,
   useLocalDataSource,
   useTableState,
+  type ColumnDef,
 } from '@brillliand/vue-table-chad'
-import { makeRows, employeeColumns, type Employee } from '@fixtures'
 
-const shown = employeeColumns.filter((c) => ['name', 'department', 'role', 'salary'].includes(c.id))
+type Person = { id: number; name: string; department: string; salary: number; hiredAt: string }
 
-const rows = shallowRef<Employee[]>(makeRows(200))
+const columns: ColumnDef<Person>[] = [
+  { id: 'name', header: 'Name', type: 'text' },
+  { id: 'department', header: 'Department', type: 'enum', options: ['Engineering', 'Design', 'Sales', 'Support'] },
+  { id: 'salary', header: 'Salary', type: 'number' },
+  { id: 'hiredAt', header: 'Hired', type: 'date' },
+]
+
+function makePeople(count: number): Person[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    name: `Person ${i + 1}`,
+    department: ['Engineering', 'Design', 'Sales', 'Support'][i % 4]!,
+    salary: 50_000 + ((i * 7919) % 90_000),
+    hiredAt: new Date(2015 + (i % 9), i % 12, 1 + (i % 28)).toISOString().slice(0, 10),
+  }))
+}
+
+const rows = shallowRef<Person[]>(makePeople(120))
 const state = useTableState({ pageSize: 10 })
-const source = useLocalDataSource<Employee>(rows, shown, state.query)
+const source = useLocalDataSource(rows, columns, state.query)
 </script>
 
 <template>
-  <TableRoot
-    v-slot="{ displayRows, columns }"
-    :columns="shown"
-    :source="source"
-    :state="state"
-    selectable
-  >
-    <TableGrid :columns="columns" selection-column>
-      <thead>
-        <tr>
-          <TableHeaderCell v-for="column in columns" :key="column.id" :column="column">
-            <SortTrigger :column-id="column.id" :label="column.header ?? column.id" />
-            <ColumnFilterPopover :column-id="column.id" :type="column.type ?? 'text'" />
-          </TableHeaderCell>
-        </tr>
-      </thead>
-      <tbody>
-        <template v-for="item in displayRows" :key="item.kind === 'group' ? item.group.key : item.row.id">
-          <TableGroupRow v-if="item.kind === 'group'" :group="item.group" />
-          <TableRow v-else :row="item.row" :columns="columns" :index="item.index" :depth="item.depth" />
-        </template>
-      </tbody>
-    </TableGrid>
+  <TableRoot v-slot="{ rows: pageRows, total }" :columns="columns" :source="source" :state="state">
+    <header class="toolbar">
+      <SortTrigger column-id="salary" label="Salary" />
+      <ColumnFilterPopover column-id="department" type="enum" />
+      <span>{{ total }} rows</span>
+    </header>
+
+    <!-- Cards, not a <table> — the primitives do not care what wraps them. -->
+    <article v-for="row in pageRows" :key="row.id" class="card">
+      <strong>{{ row.name }}</strong> — {{ row.department }}
+    </article>
+
     <TablePagination />
   </TableRoot>
 </template>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+</style>

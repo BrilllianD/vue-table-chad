@@ -24,23 +24,38 @@ import {
   type ColumnDef,
   type SortRule,
 } from '@brillliand/vue-table-chad'
-import { makeRows, employeeColumns, type Employee } from '@fixtures'
 
-const shown: ColumnDef<Employee>[] = employeeColumns.filter((c) =>
-  ['name', 'department', 'role', 'salary'].includes(c.id),
-)
+type Person = { id: number; name: string; department: string; role: string; salary: number }
+
+const columns: ColumnDef<Person>[] = [
+  { id: 'name', header: 'Name', type: 'text' },
+  { id: 'department', header: 'Department', type: 'enum', options: ['Engineering', 'Design', 'Sales', 'Support'] },
+  { id: 'role', header: 'Role', type: 'text' },
+  { id: 'salary', header: 'Salary', type: 'number', align: 'right' },
+]
+
+function makePeople(count: number): Person[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    name: `Person ${i + 1}`,
+    department: ['Engineering', 'Design', 'Sales', 'Support'][i % 4]!,
+    role: ['Junior', 'Mid', 'Senior', 'Staff'][(i * 7) % 4]!,
+    salary: 50_000 + ((i * 7919) % 90_000),
+  }))
+}
+
 // useColumns is a composable, not a component — it works with no TableRoot
 // above it, and is what turns a ColumnDef[] into the ResolvedColumn[] every
 // primitive below wants (pin offsets, sort state, and the rest).
-const { visible: resolved } = useColumns<Employee>(shown)
+const { visible: resolved } = useColumns<Person>(columns)
 
-const all = shallowRef<Employee[]>(makeRows(300))
+const all = shallowRef<Person[]>(makePeople(300))
 const sort = shallowRef<SortRule[]>([])
 const page = shallowRef(1)
 const pageSize = 10
 
-const filtered = computed(() => filterRows(all.value, shown, { filters: {}, globalSearch: '' }))
-const sorted = computed(() => sortRows(filtered.value, sort.value, shown))
+const filtered = computed(() => filterRows(all.value, columns, { filters: {}, globalSearch: '' }))
+const sorted = computed(() => sortRows(filtered.value, sort.value, columns))
 const pageRows = computed(() => {
   const start = (page.value - 1) * pageSize
   return sorted.value.slice(start, start + pageSize)

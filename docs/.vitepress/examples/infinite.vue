@@ -2,13 +2,56 @@
 import {
   DataTable,
   INFINITE_PAGE_SIZE,
+  filterRows,
+  groupedSort,
+  sortRows,
   useInfiniteDataSource,
   useTableState,
+  type ColumnDef,
   type FetchParams,
+  type FetchResult,
 } from '@brillliand/vue-table-chad'
-import { employeeColumns, type Employee } from '@fixtures'
-// The same fake server the demo talks to — a promise and a delay, no network.
-import { fetchEmployees } from '../../../demo/src/data/fakeApi'
+import '@brillliand/vue-table-chad/style.css'
+
+type Person = { id: number; name: string; department: string; salary: number; hiredAt: string }
+
+const columns: ColumnDef<Person>[] = [
+  { id: 'name', header: 'Name', type: 'text', pinned: 'left' },
+  { id: 'department', header: 'Department', type: 'enum', options: ['Engineering', 'Design', 'Sales', 'Support'] },
+  {
+    id: 'salary',
+    header: 'Salary',
+    type: 'number',
+    align: 'right',
+    format: (v) => (v == null ? '—' : `$${Number(v).toLocaleString()}`),
+  },
+  { id: 'hiredAt', header: 'Hired', type: 'date' },
+]
+
+function makePeople(count: number): Person[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    name: `Person ${i + 1}`,
+    department: ['Engineering', 'Design', 'Sales', 'Support'][i % 4]!,
+    salary: 50_000 + ((i * 7919) % 90_000),
+    hiredAt: new Date(2015 + (i % 9), i % 12, 1 + (i % 28)).toISOString().slice(0, 10),
+  }))
+}
+
+/**
+ * A stand-in server — a promise and a delay, no network. The query it gets
+ * carries the page the source wants next, so the same fetcher would serve a
+ * paged table too; only what happens to the rows on arrival differs.
+ */
+const ALL = makePeople(10_000)
+async function fetchPeople({ query, signal }: FetchParams): Promise<FetchResult<Person>> {
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+  const matched = filterRows(ALL, columns, query)
+  const ordered = sortRows(matched, groupedSort(query.sort, query.groupBy), columns)
+  const start = (query.page - 1) * query.pageSize
+  return { rows: ordered.slice(start, start + query.pageSize), total: matched.length }
+}
 
 const state = useTableState({ pageSize: 25 })
 
@@ -18,12 +61,7 @@ const state = useTableState({ pageSize: 25 })
  * `loadMore` is guarded, so wiring `@end-reached` straight to it is safe
  * however often the window fires.
  */
-const source = useInfiniteDataSource<Employee>(
-  ({ query, signal }: FetchParams) =>
-    fetchEmployees(query, employeeColumns, signal, { latencyMs: 300 }),
-  state.query,
-  { pageSize: INFINITE_PAGE_SIZE },
-)
+const source = useInfiniteDataSource(fetchPeople, state.query, { pageSize: INFINITE_PAGE_SIZE })
 </script>
 
 <template>
@@ -35,7 +73,7 @@ const source = useInfiniteDataSource<Employee>(
   </p>
 
   <DataTable
-    :columns="employeeColumns"
+    :columns="columns"
     :source="source"
     :state="state"
     virtual

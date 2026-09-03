@@ -62,6 +62,37 @@ the tests have a scoped rule-off for it, this file does not.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
+### `[ ]` T13 — Docs: complete the DataTable and primitive reference
+
+`docs/getting-started.md`'s prop table lacks `rowClickSelect`, `selectionState`, `measureRows` and
+`endThreshold`; its events line lacks `update:selectionState`, `update:selectedRows` and
+`endReached`; the `defineExpose` surface is documented nowhere. `docs/composing.md` points at the
+playground, which neither the site nor the tarball reaches, and no page names the `leading`,
+`trailing`, `summary`, `resize` and `aggregate` primitive slots, `useTableContext`, `TableCell` or
+`ColumnResizeHandle`. T8's `data-sortable` / `data-filterable` hooks are in no page.
+
+**Done when:** each name above appears on the page that owns it, and the exposed-methods snippet
+type-checks.
+
+### `[ ]` T14 — Docs: correct the stale counts and the not-included lists
+
+`README.md` counts 881 tests / 47 files and says virtual rows are "uniform row heights only";
+`docs/getting-started.md` still lists clipboard export as missing; `demo/README.md` counts 210
+exports against 218; `CLAUDE.md` and T4 count 19 lint errors against 20; `bench/BASELINE.md` says
+nothing in `src/core` changed since `78a3167`.
+
+**Done when:** every number above is what the commands report today, and the two not-included
+lists agree with each other.
+
+### `[ ]` T15 — Docs: complete the prose snippets
+
+Fenced snippets in `README.md` and the pages use identifiers declared nowhere — `people`, `Person`,
+`api`, `readFromUrl`, `loadPeople`. Each gets a declaration or a `// your …` comment; snippets whose
+omission is the point (`/* … */` column lists) stay.
+
+**Done when:** the README quick start is one complete file, and no snippet on the swept pages
+references a name it does not declare or comment.
+
 ---
 
 ## To Work

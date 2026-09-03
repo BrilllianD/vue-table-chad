@@ -1,18 +1,43 @@
 <script setup lang="ts">
-import { createQueryState, filterRows, sortRows, conditionsFilter } from '@brillliand/vue-table-chad'
-import { makeRows, employeeColumns, type Employee } from '@fixtures'
+import {
+  conditionsFilter,
+  createQueryState,
+  filterRows,
+  sortRows,
+  type ColumnDef,
+} from '@brillliand/vue-table-chad'
 
-const all: Employee[] = makeRows(50)
+// No component, no stylesheet: this file is the two pure functions and the
+// query object they read, which is all `useTableState` does on every change.
+type Person = { id: number; name: string; department: string; salary: number; hiredAt: string }
 
-// The same shape `useTableState` owns internally — no component in sight,
-// just the two pure functions it calls on every change.
+const columns: ColumnDef<Person>[] = [
+  { id: 'name', header: 'Name', type: 'text' },
+  { id: 'department', header: 'Department', type: 'enum', options: ['Engineering', 'Design', 'Sales', 'Support'] },
+  { id: 'salary', header: 'Salary', type: 'number' },
+  { id: 'hiredAt', header: 'Hired', type: 'date' },
+]
+
+function makePeople(count: number): Person[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    name: `Person ${i + 1}`,
+    department: ['Engineering', 'Design', 'Sales', 'Support'][i % 4]!,
+    salary: 50_000 + ((i * 7919) % 90_000),
+    hiredAt: new Date(2015 + (i % 9), i % 12, 1 + (i % 28)).toISOString().slice(0, 10),
+  }))
+}
+
+const all = makePeople(50)
+
+// The same shape `useTableState` owns internally.
 const query = createQueryState({
   initialSort: [{ columnId: 'salary', direction: 'desc' }],
   initialFilters: { department: conditionsFilter([{ operator: 'eq', value: 'Engineering' }]) },
 })
 
-const filtered = filterRows(all, employeeColumns, query)
-const rows = sortRows(filtered, query.sort, employeeColumns)
+const filtered = filterRows(all, columns, query)
+const rows = sortRows(filtered, query.sort, columns)
 </script>
 
 <template>
