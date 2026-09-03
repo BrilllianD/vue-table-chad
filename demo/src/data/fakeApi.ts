@@ -19,6 +19,8 @@ import {
   type ColumnDef,
   type FacetValue,
   type FetchResult,
+  type OptionPage,
+  type OptionPageRequest,
   type QueryState,
 } from '@brillliand/vue-table-chad'
 import { employees, type Employee } from './dataset'
@@ -33,7 +35,7 @@ export interface ApiOptions {
 export interface RequestLogEntry {
   id: number
   at: number
-  kind: 'rows' | 'facets' | 'save'
+  kind: 'rows' | 'facets' | 'save' | 'options'
   label: string
   outcome: 'pending' | 'ok' | 'error' | 'aborted'
   ms: number
@@ -144,6 +146,10 @@ export async function saveEmployee(
   patch: Record<string, unknown>,
   signal: AbortSignal,
   options: ApiOptions = {},
+  // The caller's columns, because a view may edit one this module has never
+  // heard of — `applyPatch` throws for a field with no column rather than
+  // dropping it silently, which is how the Manager column found this.
+  columns: ColumnDef<Employee>[] = employeeColumns,
 ): Promise<Employee> {
   const entry = logStart('save', `#${id} · ${Object.keys(patch).join(', ')}`)
   try {
@@ -172,7 +178,7 @@ export async function saveEmployee(
 
     // `applyPatch` is the library's own, so the demo writes rows back exactly
     // the way the table computed them — including through `city`'s `setValue`.
-    const saved = applyPatch(employees[index]!, patch, employeeColumns)
+    const saved = applyPatch(employees[index]!, patch, columns)
     // Names are stored trimmed. Visible proof that the row the server returns
     // is the row the table ends up showing — type a name with spaces around it
     // and the saved cell comes back without them.
@@ -218,6 +224,73 @@ export async function fetchEmployeeFacets(
 
     logEnd(entry, 'ok')
     return facets
+  } catch (caught) {
+    logEnd(entry, signal.aborted ? 'aborted' : 'error')
+    throw caught
+  }
+}
+
+/** How many managers one request hands back. Small, so scrolling asks again quickly. */
+const MANAGER_PAGE_SIZE = 25
+
+/**
+ * Simulates `GET /employees?role=Manager&q=…&offset=…&limit=…` — one portion of
+ * a list far too long to send whole.
+ *
+ * Written against `offset` rather than `page` on purpose: those are two of the
+ * three fields `OptionPageRequest` carries, and reading a different one is all
+ * a differently-paged endpoint has to do. The `total` is what tells the
+ * dropdown there is more; an endpoint with no count would send `hasMore`
+ * instead.
+ */
+export async function fetchManagers(
+  request: OptionPageRequest,
+  options: ApiOptions = {},
+): Promise<OptionPage> {
+  const entry = logStart(
+    'options',
+    `managers · offset ${request.loaded}${request.search ? ` · "${request.search}"` : ''}`,
+  )
+  try {
+    await delay(options.latencyMs ?? 250, request.signal)
+
+    const term = request.search.trim().toLowerCase()
+    const matched = term
+      ? employees.filter((row) => row.name.toLowerCase().includes(term))
+      : employees
+
+    const page = matched.slice(request.loaded, request.loaded + MANAGER_PAGE_SIZE)
+    logEnd(entry, 'ok')
+    return {
+      options: page.map((row) => ({ value: row.id, label: `${row.name} · ${row.department}` })),
+      total: matched.length,
+    }
+  } catch (caught) {
+    logEnd(entry, request.signal.aborted ? 'aborted' : 'error')
+    throw caught
+  }
+}
+
+/**
+ * Simulates `GET /employees?ids=1,38,75…` — the labels for ids the dropdown
+ * has never paged past.
+ *
+ * One request for the whole page's worth of unknown ids, which is what
+ * `resolveOptions` batches for. Without it the Manager column would read as
+ * numbers until a user happened to scroll to the portion holding each one.
+ */
+export async function fetchManagersByIds(
+  ids: readonly (string | number | boolean | null)[],
+  signal: AbortSignal,
+  options: ApiOptions = {},
+): Promise<{ value: number; label: string }[]> {
+  const entry = logStart('options', `managers · ${ids.length} by id`)
+  try {
+    await delay(options.latencyMs ?? 250, signal)
+    const wanted = new Set(ids.map(Number))
+    const found = employees.filter((row) => wanted.has(row.id))
+    logEnd(entry, 'ok')
+    return found.map((row) => ({ value: row.id, label: `${row.name} · ${row.department}` }))
   } catch (caught) {
     logEnd(entry, signal.aborted ? 'aborted' : 'error')
     throw caught

@@ -16,6 +16,7 @@ import type {
   FilterValue,
   ValuesFilter,
 } from '../../core/types'
+import { usePopoverPosition } from './usePopoverPosition'
 import ValueListFilter from './ValueListFilter.vue'
 import ConditionFilter from './ConditionFilter.vue'
 
@@ -98,55 +99,22 @@ async function loadFacets(): Promise<void> {
 
 /* ------------------------------------------------------------- positioning */
 
+/** The panel's declared width, assumed until it has been rendered and measured. */
 const PANEL_WIDTH = 268
-const GAP = 4
-const MARGIN = 8
 
-const position = ref<{ top: number; left: number }>({ top: 0, left: 0 })
-
-/**
- * Anchors the fixed-position panel under the trigger, right-aligned like
- * Excel's, and clamped into the viewport so an edge column's panel stays fully
- * on screen. Flips above the trigger when there is no room below.
- */
-function updatePosition(): void {
-  if (!teleported.value || !root.value) return
-  const rect = root.value.getBoundingClientRect()
-  const width = panel.value?.offsetWidth || PANEL_WIDTH
-  const height = panel.value?.offsetHeight ?? 0
-  const viewportWidth = window.innerWidth || 0
-  const viewportHeight = window.innerHeight || 0
-
-  const maxLeft = Math.max(MARGIN, viewportWidth - width - MARGIN)
-  const left = Math.min(Math.max(rect.right - width, MARGIN), maxLeft)
-
-  const below = rect.bottom + GAP
-  const flip = height > 0 && below + height > viewportHeight - MARGIN && rect.top - height > MARGIN
-  const top = flip ? rect.top - height - GAP : below
-  // Clamp as a last resort, for when the panel fits neither above nor below.
-  const maxTop = Math.max(MARGIN, viewportHeight - height - MARGIN)
-  position.value = { top: Math.min(Math.max(top, MARGIN), maxTop), left }
-}
-
-/**
- * The panel changes height after it opens — facets arrive, the search box
- * narrows the list, the Conditions tab is a different shape entirely. Position
- * it again whenever that happens, or a tall panel opened low on the page stays
- * hanging off the bottom of the viewport.
- */
-let resizeObserver: ResizeObserver | undefined
-
-watch(panel, (element) => {
-  resizeObserver?.disconnect()
-  resizeObserver = undefined
-  if (!element || typeof ResizeObserver === 'undefined') return
-  resizeObserver = new ResizeObserver(() => updatePosition())
-  resizeObserver.observe(element)
+/*
+  Right-aligned like Excel's. The arithmetic, the ResizeObserver and the
+  scroll/resize listeners are `usePopoverPosition`, shared with the dropdown
+  that `AsyncSelect` teleports — none of it is specific to a filter panel, and
+  a second copy would be a second thing to get wrong low on a page.
+*/
+const { style: panelStyle, update: updatePosition } = usePopoverPosition({
+  root,
+  panel,
+  open,
+  enabled: teleported,
+  width: PANEL_WIDTH,
 })
-
-const panelStyle = computed(() =>
-  teleported.value ? { top: `${position.value.top}px`, left: `${position.value.left}px` } : undefined,
-)
 
 function onPointerDownOutside(event: Event): void {
   const target = event.target as Node | null
@@ -154,16 +122,14 @@ function onPointerDownOutside(event: Event): void {
   open.value = false
 }
 
-function bindWindowListeners(active: boolean): void {
+/** Dismissal only; the panel's own position binds its listeners itself. */
+function bindDismissListener(active: boolean): void {
   const method = active ? 'addEventListener' : 'removeEventListener'
-  // Capture, so scrolling any ancestor container repositions the panel too.
-  window[method]('scroll', updatePosition, true)
-  window[method]('resize', updatePosition)
   document[method]('pointerdown', onPointerDownOutside, true)
 }
 
 watch(open, (isOpen) => {
-  bindWindowListeners(isOpen)
+  bindDismissListener(isOpen)
   if (!isOpen) return
   // Start on the tab matching whatever filter already exists.
   tab.value = current.value?.kind === 'conditions' ? 'conditions' : 'values'
@@ -183,8 +149,7 @@ function panelInput(): HTMLInputElement | null {
 }
 
 onBeforeUnmount(() => {
-  bindWindowListeners(false)
-  resizeObserver?.disconnect()
+  bindDismissListener(false)
 })
 
 function commit(filter: ColumnFilter | undefined): void {

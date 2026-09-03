@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { effectScope } from 'vue'
+import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import {
   applyCellValue,
   applyPatch,
@@ -10,8 +12,16 @@ import {
   validateDraft,
   REQUIRED_MESSAGE,
 } from '../src/core/editing'
-import type { ColumnDef } from '../src/core/types'
+import type { AsyncOptionSource, ColumnDef } from '../src/core/types'
 import { people, personColumns, type Person } from './fixtures'
+
+/**
+ * A source that has loaded nothing, which is the state that matters here: every
+ * rule below has to hold for a value whose portion has not arrived.
+ */
+const asyncOptions: AsyncOptionSource = effectScope().run(() =>
+  useAsyncOptions(async () => ({ options: [], hasMore: false })),
+)!
 
 /**
  * The pure write half. Everything here is a function of its arguments, so this
@@ -61,8 +71,17 @@ describe('editorFor', () => {
     expect(editorFor({ id: 'department', type: 'enum', options: [] })).toBe('text')
   })
 
+  it('offers the paged dropdown to any column that fetches its options', () => {
+    // Whatever the `type`: the list is the reason for the control, and a column
+    // of ids is as often `number` as `enum`.
+    expect(editorFor({ id: 'managerId', type: 'number', asyncOptions })).toBe('async-select')
+    expect(editorFor({ id: 'managerId', asyncOptions })).toBe('async-select')
+  })
+
   it('lets an explicit editor override the type', () => {
     expect(editorFor({ id: 'notes', type: 'text', editor: 'textarea' })).toBe('textarea')
+    // And override the dropdown, for a caller who wants to type the id.
+    expect(editorFor({ id: 'managerId', asyncOptions, editor: 'number' })).toBe('number')
   })
 })
 
@@ -109,6 +128,16 @@ describe('parseCellInput', () => {
     expect(parseCellInput('2', priority, row)).toBe(2)
   })
 
+  it('leaves a fetched option\'s value exactly as the dropdown gave it', () => {
+    const manager: ColumnDef<Person> = { id: 'managerId', type: 'enum', asyncOptions }
+    // Not a `<select>`: the dropdown hands back the option's own value, so
+    // there is nothing to reconcile — and stringifying it would turn a numeric
+    // id into text on its way into the draft.
+    expect(parseCellInput(41, manager, row)).toBe(41)
+    // A blank still collapses to null, so the cell can be cleared.
+    expect(parseCellInput('', manager, row)).toBeNull()
+  })
+
   it('hands everything to a column that brought its own parse', () => {
     const upper: ColumnDef<Person> = { id: 'name', parse: (input) => String(input).toUpperCase() }
     expect(parseCellInput('ada', upper, row)).toBe('ADA')
@@ -138,6 +167,15 @@ describe('validateCell', () => {
     expect(validateCell('Piracy', dept, row)).toBe('Not one of the options')
     // A blank is a separate question, answered by `required`.
     expect(validateCell(null, dept, row)).toBeNull()
+  })
+
+  it('does not hold a fetched list against the value', () => {
+    // The portions loaded are never the whole list, so membership in them says
+    // nothing — and rejecting on it would make the row unsavable outright.
+    const manager: ColumnDef<Person> = { id: 'managerId', type: 'enum', asyncOptions }
+    expect(validateCell(41, manager, row)).toBeNull()
+    // The rule that still applies.
+    expect(validateCell(null, { ...manager, required: true }, row)).toBe(REQUIRED_MESSAGE)
   })
 
   it('runs the column validator against the parsed value', () => {

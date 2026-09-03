@@ -57,6 +57,9 @@ export type {
   InfiniteDataSourceOptions,
 } from './core/useInfiniteDataSource'
 
+export { useAsyncOptions } from './core/useAsyncOptions'
+export type { AsyncOptionsOptions } from './core/useAsyncOptions'
+
 export { useRowSelection } from './core/useRowSelection'
 export type {
   RowClickGesture,
@@ -225,6 +228,7 @@ export { default as TableHeaderGroupCell } from './components/primitives/TableHe
 export { default as TableCell } from './components/primitives/TableCell.vue'
 export { default as TableRow } from './components/primitives/TableRow.vue'
 export { default as CellEditor } from './components/primitives/CellEditor.vue'
+export { default as AsyncSelect } from './components/primitives/AsyncSelect.vue'
 export { default as TableGroupRow } from './components/primitives/TableGroupRow.vue'
 export { default as VirtualBody } from './components/primitives/VirtualBody.vue'
 export { default as SortTrigger } from './components/primitives/SortTrigger.vue'
@@ -289,6 +293,11 @@ export type {
   FetchParams,
   FetchResult,
   DataSource,
+  AsyncOption,
+  OptionPageRequest,
+  OptionPage,
+  AsyncOptionFetcher,
+  AsyncOptionSource,
   SelectionMode,
   SelectionState,
   HeaderCheckboxState,

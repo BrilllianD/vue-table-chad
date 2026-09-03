@@ -9,6 +9,7 @@ import { useRowSelection } from '../src/core/useRowSelection'
 import { useCellCursor } from '../src/core/useCellCursor'
 import { useVirtualRows } from '../src/core/useVirtualRows'
 import { useRowEditing } from '../src/core/useRowEditing'
+import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import { replaceRowIn } from '../src/core/editing'
 import { useTableState } from '../src/core/useTableState'
 import { valuesFilter } from '../src/core/filters/model'
@@ -306,6 +307,88 @@ describe('what editing is allowed to recompute', () => {
     expect(counters.count).toBe(0)
     expect(counters.aggregate).toBe(0)
     h.stop()
+  })
+
+  it('a portion of async options arriving never reaches the pipeline', async () => {
+    /*
+     * The trap this guards, which is a rendered one rather than a composable
+     * one — so this case mounts the table rather than driving composables.
+     *
+     * A column whose options load in portions has to show a *label* for the id
+     * in the cell, and the obvious place to put that lookup is the column's
+     * `format`. It is the wrong place: `format` is what `getCellText` calls,
+     * and `getCellText` is what the global search reads inside `filterRows`.
+     * A label landing in the cache would then invalidate the filter pass and
+     * re-run it over the whole dataset — once per portion, per column. So the
+     * lookup lives in the render instead, and this counts the difference.
+     */
+    // Rows that actually hold the id whose label is about to arrive, and a
+    // column the search reads — without both, the assertion below passes for
+    // the boring reason that nothing ever looked the label up.
+    const searched = shallowRef<Employee[]>(rows.map((row) => ({ ...row, managerId: row.id })))
+    const scope = effectScope()
+    const options = scope.run(() =>
+      useAsyncOptions(
+        async () => ({ options: [], hasMore: false }),
+        {
+          // Through the resolver, which is the path a real table takes: the
+          // cells ask for the ids they hold and the labels arrive afterwards.
+          // A reactive write landing mid-render is exactly the shape that
+          // would re-run a pass if the lookup sat in `format`.
+          resolveOptions: async (values) =>
+            values.map((value) => ({ value, label: 'A label nothing had before' })),
+        },
+      ),
+    )!
+
+    /*
+     * First in the list, and searchable, so the search reads this column for
+     * every row rather than short-circuiting on a `name` that already matched.
+     * That is what makes the counters below mean something: were the label
+     * looked up through `format`, the filter pass would depend on the cache
+     * and a portion arriving would re-run it over all 400 rows.
+     */
+    const asyncColumns = [
+      { id: 'managerId', header: 'Manager', searchable: true, asyncOptions: options },
+      ...employeeColumns,
+    ]
+
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Employee>(searched, asyncColumns, () => state.query.value, {
+          debounceMs: 0,
+        })
+        // A search active, so the filter pass is real work rather than a
+        // short-circuit — the cache invalidating it would be visible here.
+        state.setSearch('a')
+        return () => h(DataTable as never, { columns: asyncColumns, source, state })
+      },
+    })
+
+    const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
+    const managerCell = () =>
+      wrapper.find('tbody tr:first-child td[data-column="managerId"]').text()
+    const before = managerCell()
+    reset()
+
+    await vi.waitFor(() =>
+      expect(options.labelFor(rows[0]!.id)).toBe('A label nothing had before'),
+    )
+    await nextTick()
+
+    // The label did reach the cell — without this the counters below are flat
+    // for the boring reason that nothing looked anything up.
+    expect(before).not.toBe('A label nothing had before')
+    expect(managerCell()).toBe('A label nothing had before')
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.flatten).toBe(0)
+    wrapper.unmount()
+    scope.stop()
   })
 
   it('a save that succeeds does redo the pipeline, and only once', async () => {

@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { nextTick } from 'vue'
+import { describe, expect, it, vi } from 'vitest'
+import { effectScope, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import CellEditor from '../src/components/primitives/CellEditor.vue'
+import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import type { ColumnDef } from '../src/core/types'
 import { toDisplayNumber, toMachineNumber } from '../src/core/numberMask'
 
@@ -42,6 +43,21 @@ const enumeration: ColumnDef<Row> = {
   header: 'Department',
   type: 'enum',
   options: ['Design', 'Sales'],
+}
+
+/** A column whose options arrive in portions rather than being declared. */
+function asyncColumn(): { column: ColumnDef<Row>; dispose: () => void } {
+  const scope = effectScope()
+  const source = scope.run(() =>
+    useAsyncOptions(async () => ({
+      options: [{ value: 1, label: 'Anna' }],
+      hasMore: false,
+    })),
+  )!
+  return {
+    column: { id: 'manager', header: 'Manager', asyncOptions: source },
+    dispose: () => scope.stop(),
+  }
 }
 
 describe('the control it picks', () => {
@@ -86,6 +102,17 @@ describe('the control it picks', () => {
     expect(
       (editor(text, { value: undefined }).find('input').element as HTMLInputElement).value,
     ).toBe('')
+  })
+
+  it('picks the paged dropdown for a column whose options are fetched', () => {
+    const { column, dispose } = asyncColumn()
+    const wrapper = editor(column, { autofocus: false })
+    // Whatever its `type`: the list is the reason for the control, and a
+    // column of ids is as often typed `number` as `enum`.
+    expect(wrapper.find('.vt-asyncselect-trigger').exists()).toBe(true)
+    expect(wrapper.find('.vt-cell-editor').attributes('data-kind')).toBe('async-select')
+    wrapper.unmount()
+    dispose()
   })
 
   it('takes an explicit editor over the type', () => {
@@ -226,6 +253,41 @@ describe('what it emits', () => {
     const area = editor({ ...text, editor: 'textarea' }, { arrowMove: true })
     await area.find('textarea').trigger('keydown', { key: 'ArrowDown' })
     expect(area.emitted('commit')).toBeUndefined()
+  })
+
+  it('leaves the arrows to the paged dropdown as well', async () => {
+    const { column, dispose } = asyncColumn()
+    const wrapper = editor(column, { arrowMove: true, autofocus: false })
+    // Same reason as the select: the arrows are how the listbox is walked, so
+    // claiming them would take the control's own operation away.
+    await wrapper.find('.vt-asyncselect-trigger').trigger('keydown', { key: 'ArrowDown' })
+    expect(wrapper.emitted('commit')).toBeUndefined()
+    wrapper.unmount()
+    dispose()
+  })
+
+  it('hears Enter from the dropdown only once its panel is closed', async () => {
+    const { column, dispose } = asyncColumn()
+    const wrapper = editor(column, { autofocus: false })
+    const trigger = wrapper.find('.vt-asyncselect-trigger')
+
+    // Closed, Enter is the commit it always was.
+    await trigger.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('commit')).toHaveLength(1)
+
+    await trigger.trigger('click')
+    await vi.waitFor(() =>
+      expect(document.querySelector('.vt-asyncselect-panel')).not.toBeNull(),
+    )
+    // Open, Enter is the choice — and the panel is teleported, so it never
+    // reaches this component at all.
+    document
+      .querySelector('.vt-asyncselect-panel')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await nextTick()
+    expect(wrapper.emitted('commit')).toHaveLength(1)
+    wrapper.unmount()
+    dispose()
   })
 
   it('leaves Enter to a textarea, and takes Ctrl+Enter instead', async () => {

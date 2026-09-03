@@ -286,6 +286,26 @@ const editing = useRowEditing(source, columns, {
 one — hence `replaceRowIn`. Reject from `save` with an object carrying `fields` to put messages on
 particular cells. Editing never touches the data pipeline until a save *succeeds*.
 
+A column whose options are too many to send declares `asyncOptions` instead of `options`, and the
+cell gets a dropdown that fetches them a portion at a time as it is scrolled or searched:
+
+```ts
+const managers = useAsyncOptions(
+  async ({ search, loaded, signal }) => {
+    const body = await api.managers({ q: search, offset: loaded, limit: 25, signal })
+    return { options: body.items.map((m) => ({ value: m.id, label: m.name })), total: body.total }
+  },
+  // Labels the ids the rows already hold — one request for the whole page.
+  { resolveOptions: (ids, { signal }) => api.managersByIds(ids, signal) },
+)
+// { id: 'managerId', header: 'Manager', editable: true, asyncOptions: managers }
+```
+
+The request carries `page`, `loaded` and `cursor` together, so an offset, a page-number or a cursor
+endpoint all fit without the library naming a protocol. See
+[Editing](editing.md#a-list-too-long-to-send) for what a *closed* cell shows, which is the part
+worth reading before you use it.
+
 ## Building your own table
 
 `DataTable` is one caller of `TableRoot`, not a privileged one. Two levels below it:
