@@ -146,13 +146,14 @@ describe('pageMoveFor', () => {
       // ever became one character long would be typed into a cell instead.
       ['editSeedFor', editSeedFor],
       // The sixth, and the reason the band fold is not an arrow: every arrow is
-      // spoken for, so it claims a printable key that `editSeedFor` would
-      // otherwise seed an editor with, and only the primary modifier keeps them
-      // apart.
+      // spoken for, so it claims two bare printable keys, `=` and `+`. Nothing
+      // keeps it apart from `editSeedFor` except that decoder giving those two
+      // characters up — which makes this case the only thing guarding the
+      // trade.
       ['bandFoldFor', bandFoldFor],
     ] as const
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp',
-      'PageDown', 'Enter', 'F2', 'Tab', 'a', 'Delete', 'Backspace', ' ', '.', '>']
+      'PageDown', 'Enter', 'F2', 'Tab', 'a', 'Delete', 'Backspace', ' ', '.', '=', '+']
     for (const key of keys) {
       for (const modifiers of [{}, { ctrlKey: true }, { metaKey: true }, { shiftKey: true },
         { ctrlKey: true, shiftKey: true }, { metaKey: true, shiftKey: true },
@@ -170,34 +171,36 @@ describe('pageMoveFor', () => {
 })
 
 describe('bandFoldFor', () => {
-  it('reads the primary modifier plus a period as a fold of the cursor\'s band', () => {
-    expect(bandFoldFor({ key: '.', ctrlKey: true })).toEqual({ kind: 'toggle' })
-    expect(bandFoldFor({ key: '.', metaKey: true })).toEqual({ kind: 'toggle' })
+  it("reads a bare equals sign as a fold of the cursor's band", () => {
+    expect(bandFoldFor({ key: '=' })).toEqual({ kind: 'toggle' })
   })
 
-  it('reads Shift as "open every band", on both characters the key sends', () => {
-    // A US layout reports `>` for the same physical key with Shift held, and
-    // the browser gives the character rather than the key cap. Matching only
-    // `.` would leave the expand-all gesture unreachable on that layout.
-    expect(bandFoldFor({ key: '.', ctrlKey: true, shiftKey: true })).toEqual({ kind: 'expandAll' })
-    expect(bandFoldFor({ key: '>', ctrlKey: true, shiftKey: true })).toEqual({ kind: 'expandAll' })
-    expect(bandFoldFor({ key: '>', metaKey: true })).toEqual({ kind: 'toggle' })
+  it('reads the shifted character as "open every band"', () => {
+    // A US layout sends `+` for the same physical key with Shift held, and the
+    // browser reports the character rather than the key cap. The character is
+    // what is read, so a layout that sends `+` without Shift still expands.
+    expect(bandFoldFor({ key: '+', shiftKey: true })).toEqual({ kind: 'expandAll' })
+    expect(bandFoldFor({ key: '+' })).toEqual({ kind: 'expandAll' })
+    // Shift alone does not make the unshifted character mean the other gesture.
+    expect(bandFoldFor({ key: '=', shiftKey: true })).toEqual({ kind: 'toggle' })
   })
 
-  it('needs the modifier, and refuses Alt', () => {
-    // A bare period is a character someone is typing into a cell — `editSeedFor`
-    // claims it, and taking it here would make a decimal point fold the header.
-    expect(bandFoldFor({ key: '.' })).toBeUndefined()
-    expect(bandFoldFor({ key: '>', shiftKey: true })).toBeUndefined()
-    expect(bandFoldFor({ key: '.', altKey: true })).toBeUndefined()
-    expect(bandFoldFor({ key: '.', ctrlKey: true, altKey: true })).toBeUndefined()
+  it('refuses the primary modifier and Alt', () => {
+    // Every modified `=` is spoken for outside the table: `Ctrl`/`Cmd`+`=` is
+    // the browser's zoom, and Alt belongs to the header reorder. Claiming them
+    // would be claiming a press this decoder mostly never receives.
+    expect(bandFoldFor({ key: '=', ctrlKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: '=', metaKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: '+', ctrlKey: true, shiftKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: '=', altKey: true })).toBeUndefined()
   })
 
   it('claims no other key', () => {
-    expect(bandFoldFor({ key: ',', ctrlKey: true })).toBeUndefined()
-    expect(bandFoldFor({ key: 'ArrowRight', ctrlKey: true })).toBeUndefined()
-    expect(bandFoldFor({ key: 'Enter', ctrlKey: true })).toBeUndefined()
-    expect(bandFoldFor({ key: 'c', ctrlKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: '.' })).toBeUndefined()
+    expect(bandFoldFor({ key: '-' })).toBeUndefined()
+    expect(bandFoldFor({ key: 'ArrowRight' })).toBeUndefined()
+    expect(bandFoldFor({ key: 'Enter' })).toBeUndefined()
+    expect(bandFoldFor({ key: 'c' })).toBeUndefined()
   })
 })
 

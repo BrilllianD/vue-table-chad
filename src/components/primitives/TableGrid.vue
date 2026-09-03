@@ -272,9 +272,10 @@ function onKeydown(event: KeyboardEvent): void {
   // session. A second emit would have to be kept in step with the first about
   // which cell it meant.
   //
-  // Nothing below claims a bare printable key or Delete/Backspace, so the
-  // position among the decoders is free; it sits here because it belongs with
-  // the other activation.
+  // `bandFoldFor` below claims two bare printable keys, `=` and `+`, and
+  // `editSeedFor` gives exactly those two up — so the two never answer the same
+  // press and the order between them is still free. It sits here because it
+  // belongs with the other activation.
   if (editSeedFor(event) !== undefined) {
     const position = cursor.position.value ?? cursor.tabStop.value
     if (!position) return
@@ -289,7 +290,8 @@ function onKeydown(event: KeyboardEvent): void {
   // Before `cursorMoveFor`, which returns nothing for a modified arrow — the
   // one place all four decoders see the same key press, and only one of them
   // may claim it. The order between these is free; that they all come first is
-  // not.
+  // not. This one is a bare `=`/`+` rather than an arrow, argued in
+  // `bandFoldFor`.
   const fold = bandFoldFor(event)
   if (fold) {
     event.preventDefault()

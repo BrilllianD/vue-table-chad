@@ -722,7 +722,7 @@ describe('what an interaction is allowed to recompute', () => {
     h.cursor.moveTo({ rowId: first.id, columnId: 'city' })
     reset()
 
-    // What `DataTable` does for `Ctrl`/`Cmd`+`.`: decide the band, fold it, and
+    // What `DataTable` does for a bare `=`: decide the band, fold it, and
     // carry the ring to the column the fold left standing.
     const target = foldTargetFor(
       h.columns.all.value.find((column) => column.id === 'city'),

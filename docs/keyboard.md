@@ -34,21 +34,24 @@ The editing session the cursor drives — drafts, validation, and what a save do
 | `Ctrl`/`Cmd`+`←` / `→` | previous / next **page** |
 | `Shift`+`←` / `→` | scroll one column sideways, cursor stays put |
 | `Ctrl`/`Cmd`+`↑` / `↓` | scroll one screenful, cursor stays put |
-| `Ctrl`/`Cmd`+`.` | fold or unfold the [header band](column-groups.md) over this column |
-| `Ctrl`/`Cmd`+`Shift`+`.` | open every band |
+| `=` | fold or unfold the [header band](column-groups.md) over this column |
+| `+` (`Shift`+`=`) | open every band |
 | `Enter` / `F2` | open this cell's editor |
-| any character | open the editor **holding that character** |
+| any character except `=` and `+` | open the editor **holding that character** |
 | `Delete` / `Backspace` | open the editor **empty** |
 | `Ctrl`/`Cmd`+`C` | copy this cell's text |
 | `Ctrl`/`Cmd`+`V` | paste into this cell, and save it |
 | `Esc` | cancel the edit, and hand the focus back to the cell |
 
-`Ctrl`/`Cmd`+`.` acts on the band **closest to the cursor's column**, and unfolds before it folds:
+`=` acts on the band **closest to the cursor's column**, and unfolds before it folds:
 a folded band leaves one column standing, that column is still inside the band, so the press that
 closed a band is the press that reopens it. A fold that takes the cursor's own column away carries
 the ring to the column the band left standing, rather than dropping it somewhere arithmetic. On a
-column under no band — or under none that folds — the key does nothing at all. A **bare** period is
-still a character typed into the cell; only the modifier makes it a fold.
+column under no band — or under none that folds — the key does nothing at all.
+
+The key is bare because every modified `=` is already the browser's zoom. The price is the only
+two characters typing does not open an editor with: `=` and `+` fold instead. Both are still
+editable — `Enter` or `F2` opens the cell first, and from there the keys mean themselves.
 
 Copy and paste are the clipboard's own events rather than a key binding, so whatever gesture the
 platform uses is the gesture that works, and inside an **open editor** both keep their ordinary

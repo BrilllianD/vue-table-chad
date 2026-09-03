@@ -317,22 +317,23 @@ describe('TableGrid', () => {
     const cursor = cursorOver({ rowId: 2, columnId: 'name' })
     const { wrapper, folded, activated } = mountGrid(cursor)
 
-    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: '.', ctrlKey: true })
+    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: '=' })
     expect(folded).toEqual([{ kind: 'toggle' }])
     // The grid is handed its columns rather than owning them, so it cannot fold
     // a band any more than it can turn a page — and the cursor stays put, since
     // where it lands afterwards depends on columns the fold has not removed yet.
     expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'name' })
 
-    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: '>', metaKey: true, shiftKey: true })
+    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: '+', shiftKey: true })
     expect(folded).toEqual([{ kind: 'toggle' }, { kind: 'expandAll' }])
-    // A bare period is still a character typed into the cell.
+    // Neither press opened an editor, though both keys are printable: this is
+    // the pair `editSeedFor` gives up.
     expect(activated).toEqual([])
 
     wrapper.unmount()
   })
 
-  it('leaves a bare period to the editor it seeds', async () => {
+  it('leaves every other printable key to the editor it seeds', async () => {
     const cursor = cursorOver({ rowId: 2, columnId: 'salary' })
     const { wrapper, folded, activated, activatedKeys } = mountGrid(cursor)
 

@@ -236,26 +236,30 @@ export type BandFold = { kind: 'toggle' } | { kind: 'expandAll' }
  * header's buttons and Tab back. This is that gesture from the body, where the
  * cursor already is.
  *
- * The primary modifier with `.`, and not an arrow, because the arrows are
- * spent and each spend is argued above: bare moves a cell, the primary
- * modifier turns the page or scrolls a screenful, `Shift`+`←`/`→` scrolls
- * sideways, and `Shift`+`↑`/`↓` is being held for range selection. A bare
- * printable key is an editor seed, but `editSeedFor` refuses the primary
- * modifier, so `Ctrl`/`Cmd`+`.` collides with nothing here — nor with the
- * browser, unlike `Ctrl`+`-`/`+` (zoom) and `Ctrl`/`Cmd`+`Shift`+`[`/`]`
- * (tab switching).
+ * A bare `=`, and not an arrow, because the arrows are spent and each spend is
+ * argued above: bare moves a cell, the primary modifier turns the page or
+ * scrolls a screenful, `Shift`+`←`/`→` scrolls sideways, and `Shift`+`↑`/`↓`
+ * is being held for range selection. Bare rather than modified because
+ * `Ctrl`+`=` is the browser's zoom and `Cmd`+`=` is a page zoom too, so a
+ * modified `=` would never arrive here at all.
  *
- * `'>'` is the same physical key with Shift held on a US layout, and the
- * browser reports the character rather than the key cap. Matching both is what
- * makes `Ctrl`+`Shift`+`.` reach this decoder at all.
+ * The cost is paid in `editSeedFor`, which gives up these two characters: a
+ * cell no longer starts an edit from a typed `=` or `+`, and Enter or F2 opens
+ * it first instead. That is the trade the bare key buys — `=` is one keystroke
+ * on every layout, where the modified form was not.
+ *
+ * `'+'` is the same physical key with Shift held on a US layout, and the
+ * browser reports the character rather than the key cap. Reading the character
+ * rather than `shiftKey` is what makes the gesture survive a layout that sends
+ * `+` without Shift.
  *
  * Which band `toggle` means is `foldTargetFor` in `columnGroups.ts`: a key
  * press names the cursor's column and nothing about the header above it.
  */
 export function bandFoldFor(gesture: CursorKeyGesture): BandFold | undefined {
-  if (gesture.altKey || !isPrimaryModifier(gesture)) return undefined
-  if (gesture.key !== '.' && gesture.key !== '>') return undefined
-  return gesture.shiftKey ? { kind: 'expandAll' } : { kind: 'toggle' }
+  if (gesture.altKey || isPrimaryModifier(gesture)) return undefined
+  if (gesture.key !== '=' && gesture.key !== '+') return undefined
+  return gesture.key === '+' ? { kind: 'expandAll' } : { kind: 'toggle' }
 }
 
 /**
@@ -405,9 +409,16 @@ export function commitMoveFor(
  * `Ctrl+C` is a copy and `Alt` belongs to the browser and to the header's
  * reorder gesture. Shift is *not* excluded — it is how a capital letter is
  * typed.
+ *
+ * `=` and `+` are the two printable characters this decoder does not claim:
+ * they are the band fold (`bandFoldFor`), which had to take them bare because
+ * every modified form of `=` is a browser zoom. Editing those two characters
+ * into a cell still works — Enter or F2 opens the editor, and the key means
+ * itself from there.
  */
 export function editSeedFor(gesture: CursorKeyGesture): string | undefined {
   if (gesture.altKey || isPrimaryModifier(gesture)) return undefined
+  if (gesture.key === '=' || gesture.key === '+') return undefined
   if (gesture.key === 'Delete' || gesture.key === 'Backspace') return ''
   // Spread rather than `.length`, so a character outside the BMP counts as the
   // one key press it was rather than as its two code units.

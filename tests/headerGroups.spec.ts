@@ -559,7 +559,7 @@ describe('DataTable with header bands', () => {
   })
   /**
    * The keyboard route to a fold, end to end: the cursor is in the body, the
-   * band is in the header, and `Ctrl`/`Cmd`+`.` is what joins them.
+   * band is in the header, and a bare `=` is what joins them.
    */
   describe('folding from the cell cursor', () => {
     const cursorCell = (wrapper: ReturnType<typeof mountTable>, rowId: number, columnId: string) =>
@@ -596,7 +596,7 @@ describe('DataTable with header bands', () => {
       await focusCell(wrapper, 2, 'department')
       expect(ringAt(wrapper)).toBe('2:department')
 
-      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '.', ctrlKey: true })
+      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '=' })
 
       // `identity` declares no `collapseTo`, so it keeps its first member — and
       // the cursor's own column is the one that went away, so the ring has to
@@ -613,32 +613,28 @@ describe('DataTable with header bands', () => {
     it('reopens from the column the fold left standing', async () => {
       const wrapper = mountTable({ cellCursor: true })
       await focusCell(wrapper, 2, 'department')
-      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '.', ctrlKey: true })
+      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '=' })
 
       // The same key on the survivor: its band path still runs through the
       // folded band, so the press that closed it is the press that reopens it,
       // and the ring does not move this time.
-      await cursorCell(wrapper, 2, 'name').trigger('keydown', { key: '.', metaKey: true })
+      await cursorCell(wrapper, 2, 'name').trigger('keydown', { key: '=' })
       expect(headerColumns(wrapper)).toContain('department')
       expect(ringAt(wrapper)).toBe('2:name')
       wrapper.unmount()
     })
 
-    it('opens every band with Shift, whichever column the cursor is on', async () => {
+    it('opens every band with the shifted key, whichever column the cursor is on', async () => {
       const wrapper = mountTable({ cellCursor: true })
       await focusCell(wrapper, 2, 'department')
-      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '.', ctrlKey: true })
+      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '=' })
       await focusCell(wrapper, 2, 'hiredAt')
-      await cursorCell(wrapper, 2, 'hiredAt').trigger('keydown', { key: '.', ctrlKey: true })
+      await cursorCell(wrapper, 2, 'hiredAt').trigger('keydown', { key: '=' })
       expect(headerColumns(wrapper)).not.toContain('department')
       expect(headerColumns(wrapper)).not.toContain('hiredAt')
 
       await focusCell(wrapper, 2, 'salary')
-      await cursorCell(wrapper, 2, 'salary').trigger('keydown', {
-        key: '>',
-        ctrlKey: true,
-        shiftKey: true,
-      })
+      await cursorCell(wrapper, 2, 'salary').trigger('keydown', { key: '+', shiftKey: true })
       expect(headerColumns(wrapper)).toContain('department')
       expect(headerColumns(wrapper)).toContain('hiredAt')
       expect(ringAt(wrapper)).toBe('2:salary')
@@ -650,7 +646,7 @@ describe('DataTable with header bands', () => {
       // stays where it was rather than the gesture finding something else.
       const wrapper = mountTable({ cellCursor: true })
       await focusCell(wrapper, 2, 'active')
-      await cursorCell(wrapper, 2, 'active').trigger('keydown', { key: '.', ctrlKey: true })
+      await cursorCell(wrapper, 2, 'active').trigger('keydown', { key: '=' })
 
       expect(bodyColumns(wrapper)).toEqual(['name', 'department', 'salary', 'hiredAt', 'active'])
       expect(ringAt(wrapper)).toBe('2:active')

@@ -125,9 +125,8 @@ function toggle(band: ColumnGroupDef): void {
            control that folds it down to one column. Folding is a subtraction from the visible
            column list — the same list the header, the colgroup, the rows and the footer all
            read — so a fold moves all four together and reaches the row pipeline not at all.
-           With the cell cursor on, Ctrl/Cmd + . folds the band over the cursor's column and
-           carries the ring to the column the fold leaves standing; add Shift to open every
-           band."
+           With the cell cursor on, = folds the band over the cursor's column and carries the
+           ring to the column the fold leaves standing; + (Shift + =) opens every band."
     :api="[
       'DataTable columnGroups',
       'ColumnDef.group',
