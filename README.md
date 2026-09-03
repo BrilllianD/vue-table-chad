@@ -25,7 +25,7 @@ nvm use          # Node 24; pnpm crashes on Node 20 here
 pnpm install
 pnpm dev         # playground at http://localhost:5173
 pnpm demo        # full feature demo at http://localhost:5174
-pnpm test        # 881 tests across 47 files
+pnpm test        # 999 tests across 51 files
 pnpm typecheck
 pnpm bench       # pipeline and interaction benchmarks
 pnpm build       # library -> dist/
@@ -39,7 +39,7 @@ make pack        # build + size check + npm pack -> the installable tarball
 view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
 
 Released as a tarball, not published to npm: `make pack` produces
-`brillliand-vue-table-chad-<version>.tgz` (currently 0.3.1), which other projects install directly —
+`brillliand-vue-table-chad-<version>.tgz` (currently 0.3.2), which other projects install directly —
 see [Using it in another project](docs/getting-started.md). Inside this repo,
 `@brillliand/vue-table-chad` is an alias onto `src/index.ts`. [`RELEASING.md`](RELEASING.md) holds
 the release checklist; [`TASKS.md`](TASKS.md) tracks what an npm publish still needs.
@@ -148,8 +148,9 @@ Tree rows (parent/child hierarchies, as opposed to the value-based grouping in
 [Keyboard navigation](docs/keyboard.md)). Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer. There is no
 i18n either: around 35 English strings are hardcoded across the components, `aria-label`s included.
 
-Row virtualization has since landed — see [Virtual rows](docs/virtualization.md) — though with
-uniform row heights only. It did slot in at the rendering layer without touching the pipeline, but
+Row virtualization has since landed — see [Virtual rows](docs/virtualization.md). Rows are taken
+to be one height unless `measure-rows` is on, which measures each rendered row at the cost of a
+layout per update. It did slot in at the rendering layer without touching the pipeline, but
 not through the hook this file used to predict: `filteredRows` on the local source would have meant
 a second row path, one the grouping, the selection and the cursor all read differently. What it
 took instead was a page size of everything, so there is still exactly one list.

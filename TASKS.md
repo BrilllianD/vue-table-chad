@@ -47,7 +47,7 @@ it stop earning its keep.
 
 ### `[?]` T4 — Decide the `vue/no-dupe-keys` lint failure
 
-`pnpm lint` is red on 19 errors. The headline pair is at
+`pnpm lint` is red on 20 errors. The headline pair is at
 `src/components/primitives/TableRoot.vue:154`: destructuring `useTable()` binds `state` and
 `columns`, which the component also declares as props. In `<script setup>` props are read through
 `props.`, so nothing collides — the rule predates the syntax. This is a decision to make and write
@@ -55,22 +55,14 @@ down, not a bug to fix: rename the bindings, or disable the rule for this file w
 The rest need the same treatment: `vue/multi-word-component-names` fires on every single-word docs
 example file (`docs/.vitepress/examples/*.vue` are named after the docs page they belong to, which
 is the point), `docs/examples/AddressesTable.vue` registers components the excerpt no longer uses,
-and `src/core/useVirtualRows.ts:171` reads a computed as a bare expression the way the tests do —
-the tests have a scoped rule-off for it, this file does not.
+`src/core/useVirtualRows.ts:171` reads a computed as a bare expression the way the tests do —
+the tests have a scoped rule-off for it, this file does not — and
+`src/components/primitives/AsyncSelect.vue:131` writes a ref reached through the `source` prop,
+which `vue/no-mutating-props` reads as mutating the prop.
 
 **Done when:** `pnpm lint` is green, the choice is recorded in `CLAUDE.md`'s settled decisions, and CI
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
-
-### `[ ]` T14 — Docs: correct the stale counts and the not-included lists
-
-`README.md` counts 881 tests / 47 files and says virtual rows are "uniform row heights only";
-`docs/getting-started.md` still lists clipboard export as missing; `demo/README.md` counts 210
-exports against 218; `CLAUDE.md` and T4 count 19 lint errors against 20; `bench/BASELINE.md` says
-nothing in `src/core` changed since `78a3167`.
-
-**Done when:** every number above is what the commands report today, and the two not-included
-lists agree with each other.
 
 ### `[ ]` T15 — Docs: complete the prose snippets
 

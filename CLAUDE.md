@@ -137,8 +137,9 @@ theme and column-width decisions live in `src/components/preset/CLAUDE.md`, the 
 ## Verification
 
 **Per push, by CI** — `bitbucket-pipelines.yml` is the list. Two facts it does not carry: `pnpm lint`
-is known-red on 19 errors — two `vue/no-dupe-keys` in `TableRoot.vue`, one
-`no-unused-expressions` in `useVirtualRows.ts`, the rest `vue/multi-word-component-names` on the
+is known-red on 20 errors — two `vue/no-dupe-keys` in `TableRoot.vue`, one
+`no-unused-expressions` in `useVirtualRows.ts`, one `vue/no-mutating-props` in `AsyncSelect.vue`,
+the rest `vue/multi-word-component-names` on the
 single-word docs example files (T4 in `TASKS.md` decides them) — and `pnpm bench` on a shared runner
 is a trend to read rather than a threshold to fail, so neither gates.
 

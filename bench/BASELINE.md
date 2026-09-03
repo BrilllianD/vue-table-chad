@@ -4,7 +4,9 @@ Mean milliseconds per operation, `pnpm bench`. Lower is better. Machine-specific
 own hardware before reading any delta as a win.
 
 **Before** is commit `7909bd4`, the state Phase 1 opened on. **Now** was last measured at
-`78a3167`; later commits touched only components and CSS, which `pnpm bench` does not cover.
+`78a3167` and has not been re-measured since; later commits did touch `src/core` — the cell
+cursor, grouping, async options — so treat these as the last recorded numbers, not the current
+ones.
 
 ## What an interaction costs
 

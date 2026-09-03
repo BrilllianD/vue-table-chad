@@ -471,8 +471,9 @@ you page 3.
 
 ## What is not included
 
-Tree rows, expandable detail rows, pinned rows, pivoting, and CSV or clipboard
-export. Aggregation covers `sum`/`avg`/`min`/`max` with no custom reducer. There is no i18n: around
+Tree rows, expandable detail rows, pinned rows, pivoting, and CSV export (cell-level clipboard
+copy and paste *is* in — see [Keyboard navigation](keyboard.md)). Aggregation covers
+`sum`/`avg`/`min`/`max` with no custom reducer. There is no i18n: around
 35 English strings are hardcoded across the components, `aria-label`s included, and only
 `emptyMessage`, `loadingMessage` and `footerLabel` are props. [`TASKS.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TASKS.md) has the
 reasoning for each.

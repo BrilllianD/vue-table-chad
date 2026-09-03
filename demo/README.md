@@ -104,11 +104,11 @@ saying why rather than by being left out.
 
 ## Coverage
 
-The **API reference** view documents all 210 exports, and `tests/apiReference.spec.ts` diffs that
+The **API reference** view documents all 218 exports, and `tests/apiReference.spec.ts` diffs that
 list against `src/index.ts` in both directions — an export cannot be added without being described,
 and a description cannot outlive its export. That check is what keeps this section honest.
 
-178 of the 210 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
+182 of the 218 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
 checked by diffing the export list against the sources, not by eye. Every *value* export is among
 them; `tests/apiSurface.spec.ts` enforces that. Most are called or rendered; the rest are types
 that appear as explicit annotations (`ServerDataSourceOptions`, `UseColumnsResult`, `PageItem`,
@@ -116,9 +116,9 @@ that appear as explicit annotations (`ServerDataSourceOptions`, `UseColumnsResul
 leaning on inference.
 
 Measure it with `demo/src/data/apiReference.ts` **excluded**. That file is generated and names
-every export by construction, so a plain search of `demo/src` reports 210 of 210 and means nothing.
+every export by construction, so a plain search of `demo/src` reports 218 of 218 and means nothing.
 
-The thirty-two that are not referenced are all types, and fall into five families:
+The thirty-six that are not referenced are all types, and fall into six families:
 
 - **Column storage and drag-and-drop plumbing** — `ColumnLayoutField`, `ColumnStorageOptions`,
   `StorageLike`, `UseColumnDnd`, `UseColumnDndOptions`, `ColumnDropTarget`, `DropSide`. The
@@ -139,5 +139,8 @@ The thirty-two that are not referenced are all types, and fall into five familie
 - **The header row model** — `HeaderRow`, `HeaderCell`, `HeaderGroupCell`, `HeaderColumnCell`.
   The Header bands view renders them through the primitives' slots, where they arrive already
   typed.
+- **The async-options shapes** — `AsyncOption`, `AsyncOptionFetcher`, `AsyncOptionSource`,
+  `AsyncOptionsOptions`. The Editing view hands `useAsyncOptions` a fetcher and a column its
+  result, and inference names both.
 
 Each view also lists the exports it uses in the chips under its title.
