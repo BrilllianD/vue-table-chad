@@ -469,6 +469,26 @@ describe('DataTable grouping', () => {
     wrapper.unmount()
   })
 
+  it('folds once from the caret, the label and the padding alike', async () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    const header = () =>
+      wrapper.findAll('thead th').find((th) => th.attributes('data-column') === 'department')!
+    const rowCount = () => wrapper.findAll('tbody tr.vt-tr').length
+
+    // Every one of these bubbles to the cell as well as to the button, so a
+    // second toggle would show up as the fold undoing itself in one click.
+    await header().find('.vt-group-caret').trigger('click')
+    expect(rowCount()).toBe(0)
+    await header().find('.vt-th-label').trigger('click')
+    expect(rowCount()).toBe(people.length)
+    await header().find('button.vt-th-fold').trigger('click')
+    expect(rowCount()).toBe(0)
+    // The cell's own padding, where no control sits.
+    await header().trigger('click')
+    expect(rowCount()).toBe(people.length)
+    wrapper.unmount()
+  })
+
   it('names the fold for a screen reader, which has no caret to read', async () => {
     const wrapper = mountTable({ groupBy: ['department'] })
     const fold = () => wrapper.find('button.vt-th-fold')
