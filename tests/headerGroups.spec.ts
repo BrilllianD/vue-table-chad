@@ -93,6 +93,39 @@ describe('TableHeaderGroupCell as a primitive', () => {
     wrapper.unmount()
   })
 
+  it('folds from the cell itself, not only from the caret', () => {
+    const wrapper = mount(TableHeaderGroupCell, {
+      props: { cell: bandCell(), collapsed: false },
+    })
+
+    // The label, the padding around it — anywhere in the cell that is not a
+    // control of its own. Reading a band is a hover, not a click.
+    wrapper.find('th').trigger('click')
+    expect(wrapper.emitted('toggle')).toEqual([['identity', true]])
+    wrapper.unmount()
+  })
+
+  it('folds once when the caret inside the cell is what was clicked', () => {
+    const wrapper = mount(TableHeaderGroupCell, {
+      props: { cell: bandCell(), collapsed: false },
+    })
+
+    // The button's click bubbles to the cell around it; acting on both would
+    // fold and immediately unfold, which reads as the caret doing nothing.
+    wrapper.find('button').trigger('click')
+    expect(wrapper.emitted('toggle')).toEqual([['identity', true]])
+    wrapper.unmount()
+  })
+
+  it('leaves a band it offers no toggle for alone when its cell is clicked', () => {
+    const cell = { ...bandCell(), group: { id: 'identity', collapsible: false } }
+    const wrapper = mount(TableHeaderGroupCell, { props: { cell, collapsed: false } })
+
+    wrapper.find('th').trigger('click')
+    expect(wrapper.emitted('toggle')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('reports its state through aria-expanded and data-collapsed', () => {
     const open = mount(TableHeaderGroupCell, { props: { cell: bandCell(), collapsed: false } })
     expect(open.find('button').attributes('aria-expanded')).toBe('true')
@@ -348,6 +381,27 @@ describe('DataTable with header bands', () => {
     await toggle().trigger('click')
     await nextTick()
     expect(headerColumns(wrapper)).toContain('department')
+    gridIsSquare(wrapper)
+    wrapper.unmount()
+  })
+
+  it('folds and unfolds a band from the cell around its caret', async () => {
+    const wrapper = mountTable()
+    const band = () => wrapper.find('thead th[data-column-group="identity"]')
+    const label = () => band().find('.vt-th-label')
+
+    await band().trigger('click')
+    await nextTick()
+    expect(headerColumns(wrapper)).not.toContain('department')
+    expect(band().attributes('data-collapsed')).toBe('true')
+    gridIsSquare(wrapper)
+
+    // The label sits inside the caret's sticky wrapper but is not a control, so
+    // its click reaches the cell — and unfolds rather than folding a second time.
+    await label().trigger('click')
+    await nextTick()
+    expect(headerColumns(wrapper)).toContain('department')
+    expect(band().attributes('data-collapsed')).toBeUndefined()
     gridIsSquare(wrapper)
     wrapper.unmount()
   })

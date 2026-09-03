@@ -69,8 +69,10 @@ const columnGroups: ColumnGroupDef[] = [
 
 ## Folding a band
 
-Every band gets a caret unless it declares `collapsible: false`. Folding one is also reachable
-from the composable, which is where the state lives:
+Every band gets a caret unless it declares `collapsible: false`, and **the whole band cell folds
+it** — clicking the label or the space around it does what the caret does. A click that starts
+inside a control of its own is left to that control, and a band offering no caret ignores its cell's
+clicks entirely. Folding one is also reachable from the composable, which is where the state lives:
 
 ```ts
 const columns = useColumns(defs, { groups: columnGroups })

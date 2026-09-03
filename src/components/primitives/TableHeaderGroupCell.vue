@@ -90,6 +90,41 @@ function toggle(): void {
   context?.columns.toggleGroup(props.cell.group.id, next)
   emit('toggle', props.cell.group.id, next)
 }
+
+/**
+ * Where the pointer went down, so selecting the band's label by dragging across
+ * it does not also read as a click that folds it. The cell is not a drag source
+ * the way a column header is, but text selection is a gesture all the same.
+ */
+let pressedAt: { x: number; y: number } | undefined
+
+/** Past this many pixels the gesture was a drag, whatever it ended up doing. */
+const CLICK_SLOP = 4
+
+function onPointerDown(event: PointerEvent): void {
+  pressedAt = { x: event.clientX, y: event.clientY }
+}
+
+function onClick(event: MouseEvent): void {
+  if (event.button !== 0 || !collapsible.value) return
+  const moved = pressedAt
+    ? Math.abs(event.clientX - pressedAt.x) > CLICK_SLOP ||
+      Math.abs(event.clientY - pressedAt.y) > CLICK_SLOP
+    : false
+  pressedAt = undefined
+  if (moved) return
+  // The toggle button's own click bubbles through here, as does anything a
+  // caller put in the slot. Acting on those would fold and immediately unfold.
+  const target = event.target as HTMLElement | null
+  if (
+    target?.closest(
+      'button, a, input, select, textarea, label, [role="separator"], [role="button"], .vt-filter',
+    )
+  ) {
+    return
+  }
+  toggle()
+}
 </script>
 
 <template>
@@ -106,6 +141,8 @@ function toggle(): void {
     :data-band-edge="bandEdge?.depth"
     :data-collapsed="collapsed || undefined"
     :data-collapsible="collapsible || undefined"
+    @click="onClick"
+    @pointerdown="onPointerDown"
   >
     <!--
       The label stays put while the cell scrolls: a band spanning four columns

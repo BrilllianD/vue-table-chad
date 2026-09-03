@@ -73,10 +73,9 @@
   sort. `grab` survives on a column that neither sorts nor filters, and
   `[data-dragging]` below still turns it into `grabbing` mid-drag.
 
-  It advertises "an action lives in this cell" rather than "clicking here acts":
-  the padding around `.vt-sort` is not itself a click target, and the band cell
-  is the sharpest case of that — only its caret folds the band, deliberately, so
-  that reading a header cannot collapse it.
+  Every one of these cells does act on its own click, band cells included: the
+  caret is the keyboard-reachable control, and the cell around it folds the same
+  band, so the cursor is a promise the whole box keeps.
 */
 .vt-th[data-sortable],
 .vt-th[data-filterable],
