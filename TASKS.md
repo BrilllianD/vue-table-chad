@@ -17,6 +17,11 @@ Status flags:
 Working agreement is unchanged: one task, one commit; `pnpm test` and `pnpm typecheck` green before
 each; the commit subject names the task by ID.
 
+Two further sections hold work that is agreed but not yet begun. **To Work** is what comes next;
+**Backlog** is what has been proposed and not yet scheduled. Both carry an ID and a **Done when**,
+and an entry moves into **Active** by flipping it to `[~]` when the work starts. Their IDs are
+`F`-prefixed so they cannot collide with the `T` numbers the commit history already uses.
+
 ---
 
 ## Active
@@ -59,29 +64,181 @@ ignore the pipeline.
 
 ---
 
+## To Work
+
+Agreed and next up, in the order they are meant to land. F5 goes first because F11's announcements
+read through its labels.
+
+### `[ ]` F5 — Label overrides (i18n)
+
+Around 35 user-facing English strings are hardcoded across `primitives/` and `preset/` — 30
+distinct `aria-label`s plus the visible handful (`"Search…"`, `"Select all rows on this page"`,
+`"No matching values"`, the pager's labels). Add `src/core/labels.ts` with a typed `TableLabels`
+record and `DEFAULT_LABELS`; entries that carry a number are functions (`selectedCount(n)`).
+`useTable` takes `labels: Partial<TableLabels>` and `DataTable` forwards it as a prop; the record
+rides on the table context, and a `useTableLabels()` falls back to the defaults so every primitive
+still renders standalone. A source-grep spec in the style of `tests/presetStyles.spec.ts` fails on
+any new user-facing literal in either directory, so the record cannot drift behind the components.
+
+**Done when:** every string routes through the record, the grep spec is green, a docs page shows a
+non-English override end to end, and the README's i18n caveat is gone.
+
+### `[ ]` F4 — Export the result set (CSV / TSV)
+
+A pure `src/core/export.ts`: `toDelimited(rows, columns, { delimiter, header, formatted,
+columnIds })` reads cells through `readValue` and each column's `format`, so the file matches what
+the user sees, with RFC 4180 quoting. `exportRows(source, columns, opts)` reads `filteredRows` on a
+local source (`useLocalDataSource.ts` already exposes the sorted, filtered, unpaged set) and takes
+a `fetchAll` callback for a remote one, since only the consumer knows how to ask a server for
+everything. The Blob download lives in the preset only — it touches the DOM, which `core/` may not.
+`DataTable` gains `showExport` and an `export` emit.
+
+**Done when:** `HeadlessView` calls `toDelimited`, `OverviewView` shows the button, a spec covers
+quoting and `formatted: false`, and the README's CSV line is gone.
+
+### `[ ]` F6 — Expandable detail rows
+
+Core `useRowExpansion({ getRowId, initial })` returning `expanded`, `isExpanded`, `toggle`,
+`expandAll` and `collapseAll` — the same shape as `useRowGrouping`'s collapse API, and like it
+never entering the pipeline: it reads the pipeline's output and writes none of its inputs.
+`DataTable` gains `expandable` and a `#detail="{ row }"` slot rendered as a second `<tr>` spanning
+every column; `TableRow` gets `expanded` and emits `data-expanded`; `Alt`+`↓`/`↑` on the cursor row
+toggles. Under `virtual` a detail row changes the row's height, so it requires `measureRows` and
+`devWarn`s otherwise.
+
+**Done when:** a demo view toggles details over a local source, `invalidation.spec.ts` asserts zero
+dataset passes across expand and collapse, virtual + `measureRows` scrolls without gaps, and the
+README's detail-rows line is gone.
+
+### `[ ]` F8 — Context menu primitive
+
+`TableContextMenu`, built on `useMenuDismiss` and `usePopoverPosition` (both already in
+`primitives/`), opened from a cell or header cell on `contextmenu` or `Shift`+`F10`. Five actions:
+"Filter by this value", "Sort ascending / descending", "Group by this column", "Hide column",
+"Copy". Every one is an existing `TableState` or `useColumns` mutator — the primitive composes them
+and owns no logic. `DataTable` gains `contextMenu` and a `#contextMenu` slot for a consumer's own
+items.
+
+**Done when:** the five actions work in `OverviewView`, the primitive renders standalone with
+explicit props, and a spec covers dismissal and the keyboard open.
+
+### `[ ]` F11 — Accessibility beyond the grid
+
+Phase 2 landed only the `aria-rowcount` / `aria-rowindex` floor that virtualization required. Add
+`aria-colindex` on every cell, `aria-selected` on selected rows, and a polite live region that
+announces the cursor cell ("Salary, row 12 of 200") and a sort change. The announcement text goes
+through F5's labels. One spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
+
+**Done when:** the axe spec is green with no rule disabled, the announcements read correctly in the
+demo under a screen reader, and `docs/keyboard.md` has an accessibility section.
+
+---
+
+## Backlog
+
+Proposed and not yet scheduled, in dependency order. Each stays out of the pipeline unless its
+entry says otherwise — that is the property that made it cheap enough to propose.
+
+### `[ ]` F1 — Cell range selection
+
+`Shift`+`↑`/`↓`/`←`/`→` extends a range from an anchor, `Shift`+click sets the far corner, and a
+plain move collapses it back to the cursor. `useCellCursor` gains `anchor` and a `range` computed
+in row-index / column-index space, clamped the way `nextPosition` clamps; `cellCursor.ts` gains
+`rangeMoveFor` beside `cursorMoveFor`. `TableCell` emits `data-in-range` and the preset styles it.
+A page turn and a grouping change collapse the range, the same rule the cursor's carry-over
+follows. This claims the keys `docs/keyboard.md` has deliberately left unclaimed, and is the
+prerequisite block paste has been waiting on.
+
+**Done when:** the five gestures produce a range, `invalidation.spec.ts` asserts zero dataset
+passes across all of them, and `docs/keyboard.md` documents the keys.
+
+### `[ ]` F2 — Block copy and paste (TSV)
+
+Depends on F1. Copy writes the range's displayed text tab- and newline-separated; a paste of a
+k×m grid lands at the cursor as one draft per row through `useRowEditing`. Add `commitMany(ids)`
+so `apply` runs once at the end — today every successful save calls `source.refresh()`, and the
+invariant says a successful save redoes the pipeline exactly once, so k saves must not mean k
+passes. Cells past the last column or on an uneditable column are skipped and reported. Removes the
+single-cell refusal in `DataTable.vue`'s paste handler.
+
+**Done when:** `dataTableClipboard.spec.ts` covers a 2×2 copy-and-paste round trip, a k-row paste
+redoes the pipeline once, and the refusal is gone.
+
+### `[ ]` F3 — Custom aggregate reducers, plus `count` and `countDistinct`
+
+`ColumnDef.aggregate` accepts `AggregateFn | AggregateReducer<TRow>` where a reducer is
+`{ init(): S; step(state: S, value, row): S; result(state: S): unknown }`. That shape slots into
+`aggregateGroups`' single pass over the dataset; a whole-array `(rows) => value` callback is
+refused because it would need per-group row arrays materialized and a second pass. `aggregateFormat`
+already handles the display, so nothing changes in the group row.
+
+**Done when:** `GroupingView` shows one custom reducer, the `pipeline.bench.ts` aggregate numbers
+stay inside the baseline spread, and the README's custom-reducer line is gone.
+
+### `[ ]` F7 — Cursor-to-selection keys
+
+`Space` toggles the cursor row, `Shift`+`Space` selects anchor-to-cursor, `Ctrl`/`Cmd`+`A` selects
+all matching. Each is an existing `useRowSelection` call — `toggle`, `toggleRange`,
+`selectAllMatching` — decoded in `cellCursor.ts` the way the other gestures are.
+
+**Done when:** the three keys work in `CursorView` with `selectable` on, `invalidation.spec.ts`
+asserts zero dataset passes, and `docs/keyboard.md` lists them.
+
+### `[ ]` F9 — Pinned rows
+
+`pinnedRows: { top?: TRow[]; bottom?: TRow[] }` on `useTable` and `DataTable`, rendered in sticky
+`<tbody>` sections outside the pipeline. Excluded from select-all and aggregates by default.
+Refused with `devWarn` under `virtual`, where the window would have to reserve for them.
+
+**Done when:** a demo view pins a row top and bottom over a local source, and
+`invalidation.spec.ts` asserts zero dataset passes for pinning and unpinning.
+
+### `[ ]` F10 — Query persistence and URL serialisation
+
+`serializeQuery` / `parseQuery` in core — what `StateView.vue` does by hand today with the
+location hash — and `useTableState({ storageKey })` symmetric with `columnStorage.ts`: same
+`StorageLike`, sanitised on read, a saved query outranking the options' initial values.
+
+**Done when:** `StateView` uses the helpers, a round-trip spec covers every `QueryState` field, and
+a stub-storage spec restores filters and sort on setup.
+
+### `[ ]` F12 — Tree rows
+
+Parent/child hierarchies with a match-preserving filter (a parent stays when a descendant
+matches). The largest item here, and value-based grouping covers most uses today, so it needs a
+design note before code: flattening with an expand set the way `flattenTree` reads collapse state,
+sorting within siblings, and what `total` means.
+
+**Done when:** the design note is in `docs/` and agreed. The implementation gets its own ID.
+
+### `[ ]` F13 — Undo and redo of saves
+
+A change log of `RowChange` in `useRowEditing`; `Ctrl`/`Cmd`+`Z` reverts the last successful patch
+through another `save`, so the server stays the record. Needs F2's `commitMany` to undo a block
+paste as one step.
+
+**Done when:** undo of a single-cell save and of a block paste each round-trip through `save`.
+
+### `[ ]` F14 — Fill down
+
+`Ctrl`/`Cmd`+`D` copies the range's first row down the range, and a fill handle does the same by
+pointer. Same machinery as F1 and F2.
+
+**Done when:** fill-down over a 1×n range writes n−1 drafts and commits once.
+
+### `[ ]` F15 — Column virtualization
+
+Bench first. `WideColumnsView` at 34 columns shows no need; a 300-column fixture in
+`bench/reactive.bench.ts` measuring resize, hover and scroll decides whether windowing columns is
+worth a second axis of complexity. Promote only if the number says so.
+
+**Done when:** the fixture and its numbers are in `bench/BASELINE.md` with a go / no-go line.
+
+---
+
 ## Deferred
 
 Decisions rather than oversights. Promote one into **Active** when it becomes real work.
-
-### `[-]` D1 — i18n / label overrides
-
-Roughly 35 hardcoded English strings (`"Search…"`, `"Select all rows on this page"`, `"No matching
-values"`, every `aria-label`). A real blocker for a public package, but not for making it fast.
-
-### `[-]` D2 — Full a11y beyond the grid
-
-`aria-colindex`, and an announced live region for cursor movement. Phase 2 landed only the
-`aria-rowcount`/`aria-rowindex` floor that virtualization required.
-
-### `[-]` D3 — Feature breadth
-
-Tree/hierarchical rows, expandable detail rows, CSV export, pinned rows, and custom aggregate
-reducers beyond `sum`/`avg`/`min`/`max`. (Cell-level clipboard copy/paste shipped with the cursor —
-what is left here is exporting a block or the whole result set.)
-
-Block paste belongs here too, and is blocked rather than merely deferred: pasting a spreadsheet
-region needs a **cell range** to paste into, and the cursor is one cell. `Shift`+`↑`/`↓` is left
-unclaimed for that range, so the order is range selection first, block paste second.
 
 ### `[-]` D4 — A search index
 
