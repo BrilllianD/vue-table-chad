@@ -172,6 +172,7 @@ describe('TableGrid', () => {
     const activatedKeys: string[] = []
     const paged: number[] = []
     const scrolled: number[] = []
+    const folded: Array<{ kind: string }> = []
     const host = defineComponent({
       setup() {
         return () =>
@@ -186,6 +187,7 @@ describe('TableGrid', () => {
               },
               onPageMove: (pages: number) => paged.push(pages),
               onScrollMove: (cols: number) => scrolled.push(cols),
+              onBandFold: (fold: { kind: string }) => folded.push(fold),
               onCopy: (position: { rowId: unknown; columnId: string }) => copied.push(position),
               onPaste: (position: { rowId: unknown; columnId: string }, text: string) =>
                 pasted.push({ position, text }),
@@ -205,6 +207,7 @@ describe('TableGrid', () => {
       activatedKeys,
       paged,
       scrolled,
+      folded,
       copied,
       pasted,
     }
@@ -306,6 +309,37 @@ describe('TableGrid', () => {
 
     await cellAt(wrapper, 3, 'salary').trigger('keydown', { key: 'ArrowDown' })
     expect(cursor.position.value).toEqual({ rowId: 3, columnId: 'salary' })
+
+    wrapper.unmount()
+  })
+
+  it('reports a band fold rather than folding anything itself', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'name' })
+    const { wrapper, folded, activated } = mountGrid(cursor)
+
+    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: '.', ctrlKey: true })
+    expect(folded).toEqual([{ kind: 'toggle' }])
+    // The grid is handed its columns rather than owning them, so it cannot fold
+    // a band any more than it can turn a page — and the cursor stays put, since
+    // where it lands afterwards depends on columns the fold has not removed yet.
+    expect(cursor.position.value).toEqual({ rowId: 2, columnId: 'name' })
+
+    await cellAt(wrapper, 2, 'name').trigger('keydown', { key: '>', metaKey: true, shiftKey: true })
+    expect(folded).toEqual([{ kind: 'toggle' }, { kind: 'expandAll' }])
+    // A bare period is still a character typed into the cell.
+    expect(activated).toEqual([])
+
+    wrapper.unmount()
+  })
+
+  it('leaves a bare period to the editor it seeds', async () => {
+    const cursor = cursorOver({ rowId: 2, columnId: 'salary' })
+    const { wrapper, folded, activated, activatedKeys } = mountGrid(cursor)
+
+    await cellAt(wrapper, 2, 'salary').trigger('keydown', { key: '.' })
+    expect(folded).toEqual([])
+    expect(activated).toEqual([{ rowId: 2, columnId: 'salary' }])
+    expect(activatedKeys).toEqual(['.'])
 
     wrapper.unmount()
   })

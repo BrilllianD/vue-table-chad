@@ -23,11 +23,13 @@
 import { computed, ref, watch } from 'vue'
 import { useTableContext } from '../../core/context'
 import {
+  bandFoldFor,
   cursorMoveFor,
   editSeedFor,
   pageMoveFor,
   scrollMoveFor,
   viewportMoveFor,
+  type BandFold,
   type CellPosition,
 } from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
@@ -100,6 +102,16 @@ const emit = defineEmits<{
    * the markup around it.
    */
   viewportMove: [screens: number]
+  /**
+   * The user asked to fold the band over the cursor's column, or to open every
+   * band — `Ctrl`/`Cmd` + `.`, with `Shift` for all of them.
+   *
+   * Reported rather than acted on, for the reason `page-move` is: folding is a
+   * write to column layout, and this component is handed the columns rather
+   * than owning them. It also cannot tell *which* band the gesture means — that
+   * needs the band declarations, which live with the layout state.
+   */
+  bandFold: [fold: BandFold]
   /**
    * The user asked to copy the cursor cell — `Ctrl`/`Cmd` + `C`, or any other
    * route the platform has to a `copy`.
@@ -278,6 +290,13 @@ function onKeydown(event: KeyboardEvent): void {
   // one place all four decoders see the same key press, and only one of them
   // may claim it. The order between these is free; that they all come first is
   // not.
+  const fold = bandFoldFor(event)
+  if (fold) {
+    event.preventDefault()
+    emit('bandFold', fold)
+    return
+  }
+
   const pages = pageMoveFor(event)
   if (pages) {
     event.preventDefault()

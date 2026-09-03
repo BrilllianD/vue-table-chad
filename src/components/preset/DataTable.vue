@@ -28,8 +28,10 @@ import {
   editSeedFor,
   nextScrollLeft,
   nextScrollTop,
+  type BandFold,
   type CellPosition,
 } from '../../core/cellCursor'
+import { columnGroupPath, foldTargetFor } from '../../core/columnGroups'
 import type { UsePagination } from '../../core/usePagination'
 import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
@@ -412,6 +414,54 @@ const extraColumns = computed(() => (selectable.value ? 1 : 0) + (actionsColumn.
  */
 function pageMove(pages: number, pagination: UsePagination): void {
   pagination.go(pagination.page.value + pages)
+}
+
+/**
+ * `Ctrl`/`Cmd` + `.` from a cell: fold the band over the cursor's column, or
+ * with `Shift` open every band.
+ *
+ * Here rather than in `TableGrid` because folding writes column layout, and the
+ * grid is handed columns rather than owning them — the same split `page-move`
+ * draws. `foldTargetFor` decides *which* band, since the key press names only
+ * the column the cursor is on.
+ *
+ * A fold that takes the cursor's own column away moves the ring to the column
+ * the band left standing, which is the one thing this cannot leave to
+ * `nextPosition`: a position naming a column that is gone re-anchors to column
+ * index 0, and the ring would jump to the far left of the table. The survivor
+ * is read back out of `visible` rather than re-derived from `collapseTo` —
+ * `useColumns` already decided which column a folded band keeps, and a second
+ * opinion here could disagree with the header on screen.
+ */
+function bandFold(fold: BandFold, cursor: UseCellCursor<TRow> | undefined): void {
+  const api = root.value?.columns
+  if (!api) return
+  if (fold.kind === 'expandAll') {
+    api.expandAllGroups()
+    return
+  }
+
+  const columnId = cursor?.columnId.value
+  const rowId = cursor?.rowId.value
+  if (columnId === undefined || rowId === undefined) return
+
+  const target = foldTargetFor(
+    api.all.value.find((column) => column.id === columnId),
+    props.columnGroups,
+    api.isGroupCollapsed,
+  )
+  if (!target) return
+  api.toggleGroup(target.groupId, target.collapsed)
+
+  // The layout write is synchronous, so `visible` already describes the folded
+  // header and this reads the answer rather than predicting it.
+  const visible = api.visible.value
+  if (visible.some((column) => column.id === columnId)) return
+  const survivor = visible.find((column) =>
+    columnGroupPath(column, props.columnGroups).some((group) => group.id === target.groupId),
+  )
+  if (!survivor) return
+  cursor?.moveTo({ rowId, columnId: survivor.id }, { focus: true })
 }
 
 /**
@@ -1003,6 +1053,7 @@ function onPaste(
             @paste="
               (position, text, event) => onPaste(position, text, event, rows, cols, cursor)
             "
+            @band-fold="(fold) => bandFold(fold, cursor)"
             @page-move="(pages) => pageMove(pages, pagination)"
             @scroll-move="scrollColumns"
             @viewport-move="scrollViewport"

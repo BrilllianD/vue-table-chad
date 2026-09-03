@@ -220,6 +220,45 @@ export function scrollMoveFor(gesture: CursorKeyGesture): -1 | 1 | undefined {
 }
 
 /**
+ * What a fold gesture asked for: `toggle` acts on the band over the cursor's
+ * column, `expandAll` opens every band on the table.
+ *
+ * Two kinds rather than a boolean, because they are not opposites: one gesture
+ * names a band by where the cursor is, the other names all of them.
+ */
+export type BandFold = { kind: 'toggle' } | { kind: 'expandAll' }
+
+/**
+ * Whether a key press asked to fold a header band, and which of the two ways.
+ *
+ * Folding was pointer-only — a click anywhere in the band cell — so from a
+ * focused cell the only route to one was to Tab out of the grid, walk the
+ * header's buttons and Tab back. This is that gesture from the body, where the
+ * cursor already is.
+ *
+ * The primary modifier with `.`, and not an arrow, because the arrows are
+ * spent and each spend is argued above: bare moves a cell, the primary
+ * modifier turns the page or scrolls a screenful, `Shift`+`←`/`→` scrolls
+ * sideways, and `Shift`+`↑`/`↓` is being held for range selection. A bare
+ * printable key is an editor seed, but `editSeedFor` refuses the primary
+ * modifier, so `Ctrl`/`Cmd`+`.` collides with nothing here — nor with the
+ * browser, unlike `Ctrl`+`-`/`+` (zoom) and `Ctrl`/`Cmd`+`Shift`+`[`/`]`
+ * (tab switching).
+ *
+ * `'>'` is the same physical key with Shift held on a US layout, and the
+ * browser reports the character rather than the key cap. Matching both is what
+ * makes `Ctrl`+`Shift`+`.` reach this decoder at all.
+ *
+ * Which band `toggle` means is `foldTargetFor` in `columnGroups.ts`: a key
+ * press names the cursor's column and nothing about the header above it.
+ */
+export function bandFoldFor(gesture: CursorKeyGesture): BandFold | undefined {
+  if (gesture.altKey || !isPrimaryModifier(gesture)) return undefined
+  if (gesture.key !== '.' && gesture.key !== '>') return undefined
+  return gesture.shiftKey ? { kind: 'expandAll' } : { kind: 'toggle' }
+}
+
+/**
  * Where a sideways scroll lands the scroll box, or `undefined` when it cannot
  * move — the arithmetic behind `scrollMoveFor`, with the DOM read out of it.
  *

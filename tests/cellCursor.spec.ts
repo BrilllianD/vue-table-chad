@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { shallowRef } from 'vue'
 import {
   PAGE_MOVE_ROWS,
+  bandFoldFor,
   commitMoveFor,
   cursorMoveFor,
   editSeedFor,
@@ -144,9 +145,14 @@ describe('pageMoveFor', () => {
       // collide: it claims by shape rather than by name, so a movement key that
       // ever became one character long would be typed into a cell instead.
       ['editSeedFor', editSeedFor],
+      // The sixth, and the reason the band fold is not an arrow: every arrow is
+      // spoken for, so it claims a printable key that `editSeedFor` would
+      // otherwise seed an editor with, and only the primary modifier keeps them
+      // apart.
+      ['bandFoldFor', bandFoldFor],
     ] as const
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp',
-      'PageDown', 'Enter', 'F2', 'Tab', 'a', 'Delete', 'Backspace', ' ']
+      'PageDown', 'Enter', 'F2', 'Tab', 'a', 'Delete', 'Backspace', ' ', '.', '>']
     for (const key of keys) {
       for (const modifiers of [{}, { ctrlKey: true }, { metaKey: true }, { shiftKey: true },
         { ctrlKey: true, shiftKey: true }, { metaKey: true, shiftKey: true },
@@ -160,6 +166,38 @@ describe('pageMoveFor', () => {
         ).toBeLessThan(2)
       }
     }
+  })
+})
+
+describe('bandFoldFor', () => {
+  it('reads the primary modifier plus a period as a fold of the cursor\'s band', () => {
+    expect(bandFoldFor({ key: '.', ctrlKey: true })).toEqual({ kind: 'toggle' })
+    expect(bandFoldFor({ key: '.', metaKey: true })).toEqual({ kind: 'toggle' })
+  })
+
+  it('reads Shift as "open every band", on both characters the key sends', () => {
+    // A US layout reports `>` for the same physical key with Shift held, and
+    // the browser gives the character rather than the key cap. Matching only
+    // `.` would leave the expand-all gesture unreachable on that layout.
+    expect(bandFoldFor({ key: '.', ctrlKey: true, shiftKey: true })).toEqual({ kind: 'expandAll' })
+    expect(bandFoldFor({ key: '>', ctrlKey: true, shiftKey: true })).toEqual({ kind: 'expandAll' })
+    expect(bandFoldFor({ key: '>', metaKey: true })).toEqual({ kind: 'toggle' })
+  })
+
+  it('needs the modifier, and refuses Alt', () => {
+    // A bare period is a character someone is typing into a cell — `editSeedFor`
+    // claims it, and taking it here would make a decimal point fold the header.
+    expect(bandFoldFor({ key: '.' })).toBeUndefined()
+    expect(bandFoldFor({ key: '>', shiftKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: '.', altKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: '.', ctrlKey: true, altKey: true })).toBeUndefined()
+  })
+
+  it('claims no other key', () => {
+    expect(bandFoldFor({ key: ',', ctrlKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: 'ArrowRight', ctrlKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: 'Enter', ctrlKey: true })).toBeUndefined()
+    expect(bandFoldFor({ key: 'c', ctrlKey: true })).toBeUndefined()
   })
 })
 

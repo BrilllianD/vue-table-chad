@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildHeaderRows, columnBandEdges, columnGroupPath } from '../src/core/columnGroups'
+import {
+  buildHeaderRows,
+  columnBandEdges,
+  columnGroupPath,
+  foldTargetFor,
+} from '../src/core/columnGroups'
 import type { ColumnGroupDef, HeaderRow, PinSide, ResolvedColumn } from '../src/core/types'
 import { groupedPersonColumns, personColumnGroups, type Person } from './fixtures'
 
@@ -64,6 +69,71 @@ describe('columnGroupPath', () => {
     // detail, so this asserts only that the path is finite and holds each once.
     const path = columnGroupPath({ id: 'x', group: 'a' }, cyclic)
     expect(path.map((group) => group.id).sort()).toEqual(['a', 'b'])
+  })
+})
+
+describe('foldTargetFor', () => {
+  /** A collapsed set as `useColumns().isGroupCollapsed` would answer it. */
+  function collapsed(...ids: string[]): (groupId: string) => boolean {
+    const set = new Set(ids)
+    return (groupId) => set.has(groupId)
+  }
+
+  it('folds the innermost band above the column', () => {
+    // `salary` sits under Money, which sits under Record. The key means the
+    // band closest to the column, the way a click on the band cell above it
+    // would.
+    expect(
+      foldTargetFor({ id: 'salary', group: 'money' }, personColumnGroups, collapsed()),
+    ).toEqual({ groupId: 'money', collapsed: true })
+  })
+
+  it('unfolds before it folds, which is what makes one key both gestures', () => {
+    // A folded band leaves its `collapseTo` column standing, and that column's
+    // path still runs through the band. So the press that closed Money lands on
+    // `salary`, and the next press has to reopen it rather than fold Record.
+    expect(
+      foldTargetFor({ id: 'salary', group: 'money' }, personColumnGroups, collapsed('money')),
+    ).toEqual({ groupId: 'money', collapsed: false })
+  })
+
+  it('unfolds the innermost folded band first when both are shut', () => {
+    expect(
+      foldTargetFor(
+        { id: 'salary', group: 'money' },
+        personColumnGroups,
+        collapsed('money', 'record'),
+      ),
+    ).toEqual({ groupId: 'money', collapsed: false })
+  })
+
+  it('folds the next band out when the innermost declares it never folds', () => {
+    const groups: ColumnGroupDef[] = [
+      { id: 'record', header: 'Record' },
+      { id: 'money', header: 'Money', parent: 'record', collapsible: false },
+    ]
+    expect(foldTargetFor({ id: 'salary', group: 'money' }, groups, collapsed())).toEqual({
+      groupId: 'record',
+      collapsed: true,
+    })
+  })
+
+  it('claims nothing for a column under no band, or under none that folds', () => {
+    // The key then goes unclaimed rather than folding something else: a table
+    // with no bands must not have a keystroke that appears to do nothing.
+    expect(foldTargetFor({ id: 'active' }, personColumnGroups, collapsed())).toBeUndefined()
+    expect(foldTargetFor(undefined, personColumnGroups, collapsed())).toBeUndefined()
+    const sealed: ColumnGroupDef[] = [{ id: 'record', collapsible: false }]
+    expect(foldTargetFor({ id: 'salary', group: 'record' }, sealed, collapsed())).toBeUndefined()
+  })
+
+  it('still unfolds a band declared uncollapsible, once it somehow is', () => {
+    // `collapsible: false` says "do not fold this", not "leave it shut": a band
+    // folded by a stored layout that later gained the flag has to be reachable.
+    const sealed: ColumnGroupDef[] = [{ id: 'record', collapsible: false }]
+    expect(
+      foldTargetFor({ id: 'salary', group: 'record' }, sealed, collapsed('record')),
+    ).toEqual({ groupId: 'record', collapsed: false })
   })
 })
 

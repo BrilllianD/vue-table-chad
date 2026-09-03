@@ -32,6 +32,7 @@ export {
   columnBandEdges,
   columnGroupPath,
   columnGroupPaths,
+  foldTargetFor,
 } from './core/columnGroups'
 export type { BandEdge } from './core/columnGroups'
 
@@ -194,6 +195,7 @@ export {
   pageMoveFor,
   scrollMoveFor,
   viewportMoveFor,
+  bandFoldFor,
   nextPosition,
   nextScrollLeft,
   nextScrollTop,
@@ -204,6 +206,7 @@ export type {
   CellCursorMark,
   CursorMove,
   CursorKeyGesture,
+  BandFold,
 } from './core/cellCursor'
 
 /* ----------------------------------------------------------------- utils */

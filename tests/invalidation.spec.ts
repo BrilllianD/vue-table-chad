@@ -12,6 +12,7 @@ import { useRowEditing } from '../src/core/useRowEditing'
 import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import { replaceRowIn } from '../src/core/editing'
 import { useTableState } from '../src/core/useTableState'
+import { foldTargetFor } from '../src/core/columnGroups'
 import { valuesFilter } from '../src/core/filters/model'
 import {
   employeeColumnGroups,
@@ -712,6 +713,39 @@ describe('what an interaction is allowed to recompute', () => {
       rowId: rows[rows.length - 1]!.id,
       columnId: h.columns.visible.value[h.columns.visible.value.length - 1]!.id,
     })
+    h.stop()
+  })
+
+  it('folding a band from the cursor never reaches the pipeline', () => {
+    const h = harness()
+    const first = h.source.rows.value[0]!
+    h.cursor.moveTo({ rowId: first.id, columnId: 'city' })
+    reset()
+
+    // What `DataTable` does for `Ctrl`/`Cmd`+`.`: decide the band, fold it, and
+    // carry the ring to the column the fold left standing.
+    const target = foldTargetFor(
+      h.columns.all.value.find((column) => column.id === 'city'),
+      employeeColumnGroups,
+      h.columns.isGroupCollapsed,
+    )!
+    h.columns.toggleGroup(target.groupId, target.collapsed)
+    h.cursor.moveTo({ rowId: first.id, columnId: 'country' })
+    h.columns.visible.value
+    h.cursor.position.value
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    // Both halves are interaction state: the fold is column layout, and the
+    // carry is a cursor move. Neither says anything about which rows exist.
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.flatten).toBe(0)
+    // And it did do the work it was asked for.
+    expect(h.columns.visible.value.map((column) => column.id)).not.toContain('city')
+    expect(h.cursor.position.value).toEqual({ rowId: first.id, columnId: 'country' })
     h.stop()
   })
 

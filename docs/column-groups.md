@@ -72,7 +72,14 @@ const columnGroups: ColumnGroupDef[] = [
 Every band gets a caret unless it declares `collapsible: false`, and **the whole band cell folds
 it** — clicking the label or the space around it does what the caret does. A click that starts
 inside a control of its own is left to that control, and a band offering no caret ignores its cell's
-clicks entirely. Folding one is also reachable from the composable, which is where the state lives:
+clicks entirely.
+
+With the [cell cursor](keyboard.md) on, `Ctrl`/`Cmd`+`.` folds the band over the cursor's column
+without leaving the body, and `Ctrl`/`Cmd`+`Shift`+`.` opens every band. The gesture acts on the
+innermost band and unfolds before it folds, so one key closes a band and reopens it from the column
+the fold left standing.
+
+Folding is also reachable from the composable, which is where the state lives:
 
 ```ts
 const columns = useColumns(defs, { groups: columnGroups })

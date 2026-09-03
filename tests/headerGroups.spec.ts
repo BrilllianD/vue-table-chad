@@ -557,4 +557,104 @@ describe('DataTable with header bands', () => {
     expect(wrapper.find('thead em.custom').text()).toBe('Identity')
     wrapper.unmount()
   })
+  /**
+   * The keyboard route to a fold, end to end: the cursor is in the body, the
+   * band is in the header, and `Ctrl`/`Cmd`+`.` is what joins them.
+   */
+  describe('folding from the cell cursor', () => {
+    const cursorCell = (wrapper: ReturnType<typeof mountTable>, rowId: number, columnId: string) =>
+      wrapper.get(`tbody tr[data-row-id="${rowId}"] td[data-column="${columnId}"]`)
+
+    /**
+     * Put the cursor on a cell the way a user does: focus it. A click focuses
+     * the cell in a browser and `TableGrid` adopts whatever focus landed on,
+     * which jsdom does not do for a synthetic click.
+     */
+    const focusCell = async (
+      wrapper: ReturnType<typeof mountTable>,
+      rowId: number,
+      columnId: string,
+    ) => {
+      const cell = cursorCell(wrapper, rowId, columnId)
+      await cell.trigger('focusin')
+      return cell
+    }
+
+    /** The columns the body is rendering, left to right. */
+    const bodyColumns = (wrapper: ReturnType<typeof mountTable>) =>
+      wrapper.findAll('tbody tr:first-child td[data-column]').map((td) => td.attributes('data-column'))
+
+    /** Where the ring is, as the DOM reports it. */
+    function ringAt(wrapper: ReturnType<typeof mountTable>): string | undefined {
+      const cell = wrapper.find('tbody td[data-cursor="cell"]')
+      if (!cell.exists()) return undefined
+      return `${cell.element.closest('tr')?.getAttribute('data-row-id')}:${cell.attributes('data-column')}`
+    }
+
+    it('folds the band over the cursor column, and carries the ring to the survivor', async () => {
+      const wrapper = mountTable({ cellCursor: true })
+      await focusCell(wrapper, 2, 'department')
+      expect(ringAt(wrapper)).toBe('2:department')
+
+      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '.', ctrlKey: true })
+
+      // `identity` declares no `collapseTo`, so it keeps its first member — and
+      // the cursor's own column is the one that went away, so the ring has to
+      // follow it there rather than re-anchor at the far left of the table.
+      expect(headerColumns(wrapper)).not.toContain('department')
+      expect(ringAt(wrapper)).toBe('2:name')
+      expect(
+        wrapper.find('thead th[data-column-group="identity"] button').attributes('aria-expanded'),
+      ).toBe('false')
+      gridIsSquare(wrapper)
+      wrapper.unmount()
+    })
+
+    it('reopens from the column the fold left standing', async () => {
+      const wrapper = mountTable({ cellCursor: true })
+      await focusCell(wrapper, 2, 'department')
+      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '.', ctrlKey: true })
+
+      // The same key on the survivor: its band path still runs through the
+      // folded band, so the press that closed it is the press that reopens it,
+      // and the ring does not move this time.
+      await cursorCell(wrapper, 2, 'name').trigger('keydown', { key: '.', metaKey: true })
+      expect(headerColumns(wrapper)).toContain('department')
+      expect(ringAt(wrapper)).toBe('2:name')
+      wrapper.unmount()
+    })
+
+    it('opens every band with Shift, whichever column the cursor is on', async () => {
+      const wrapper = mountTable({ cellCursor: true })
+      await focusCell(wrapper, 2, 'department')
+      await cursorCell(wrapper, 2, 'department').trigger('keydown', { key: '.', ctrlKey: true })
+      await focusCell(wrapper, 2, 'hiredAt')
+      await cursorCell(wrapper, 2, 'hiredAt').trigger('keydown', { key: '.', ctrlKey: true })
+      expect(headerColumns(wrapper)).not.toContain('department')
+      expect(headerColumns(wrapper)).not.toContain('hiredAt')
+
+      await focusCell(wrapper, 2, 'salary')
+      await cursorCell(wrapper, 2, 'salary').trigger('keydown', {
+        key: '>',
+        ctrlKey: true,
+        shiftKey: true,
+      })
+      expect(headerColumns(wrapper)).toContain('department')
+      expect(headerColumns(wrapper)).toContain('hiredAt')
+      expect(ringAt(wrapper)).toBe('2:salary')
+      wrapper.unmount()
+    })
+
+    it('leaves the key unclaimed on a column under no band', async () => {
+      // `active` is outside every band on purpose. Nothing folds, and the ring
+      // stays where it was rather than the gesture finding something else.
+      const wrapper = mountTable({ cellCursor: true })
+      await focusCell(wrapper, 2, 'active')
+      await cursorCell(wrapper, 2, 'active').trigger('keydown', { key: '.', ctrlKey: true })
+
+      expect(bodyColumns(wrapper)).toEqual(['name', 'department', 'salary', 'hiredAt', 'active'])
+      expect(ringAt(wrapper)).toBe('2:active')
+      wrapper.unmount()
+    })
+  })
 })

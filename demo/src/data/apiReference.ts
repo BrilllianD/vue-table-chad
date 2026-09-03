@@ -68,6 +68,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'columnBandEdges', layer: 'core', kind: 'function', summary: 'The band boundaries in a row of columns, keyed by the column each one falls to the right of.' },
   { name: 'columnGroupPath', layer: 'core', kind: 'function', summary: 'The chain of bands above a column, outermost first.' },
   { name: 'columnGroupPaths', layer: 'core', kind: 'function', summary: "Every column's band path at once, keyed by column id." },
+  { name: 'foldTargetFor', layer: 'core', kind: 'function', summary: 'Which band a fold gesture on one column means, and which way — or `undefined` when the column is under no band a fold could act on.' },
   { name: 'BandEdge', layer: 'core', kind: 'type', summary: "Where a band's run ends, and how heavy the rule there should be." },
 
   { name: 'useColumnDnd', layer: 'core', kind: 'composable', summary: 'Pointer-driven column reordering: a drag threshold, drop sides, Escape to cancel, and keyboard moves for anyone not using a pointer.' },
@@ -154,6 +155,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'pageMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `←`/`→` asked to turn the page — `-1` back, `1` on — or `undefined` for any other key.' },
   { name: 'scrollMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Shift` + `←`/`→` asked to scroll the table sideways — `-1` left, `1` right — or `undefined` for any other key.' },
   { name: 'viewportMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `↑`/`↓` asked to scroll the table — `-1` up, `1` down, one screenful a press — or `undefined` for any other key.' },
+  { name: 'bandFoldFor', layer: 'core', kind: 'function', summary: 'Whether a key press asked to fold a header band, and which of the two ways.' },
   { name: 'nextPosition', layer: 'core', kind: 'function', summary: 'Where `move` lands, given the cells currently on screen — or `undefined` when it lands nowhere new.' },
   { name: 'nextScrollLeft', layer: 'core', kind: 'function', summary: 'Where a sideways scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `scrollMoveFor`, with the DOM read out of it.' },
   { name: 'nextScrollTop', layer: 'core', kind: 'function', summary: 'Where a vertical scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `viewportMoveFor`, with the DOM read out of it.' },
@@ -162,6 +164,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'CellCursorMark', layer: 'core', kind: 'type', summary: 'How the cursor touches one cell, as a renderer needs to know it.' },
   { name: 'CursorMove', layer: 'core', kind: 'type', summary: 'What a key press asked for, before anything knows whether it is possible.' },
   { name: 'CursorKeyGesture', layer: 'core', kind: 'type', summary: 'The parts of a key press this module reads.' },
+  { name: 'BandFold', layer: 'core', kind: 'type', summary: "What a fold gesture asked for: `toggle` acts on the band over the cursor's column, `expandAll` opens every band on the table." },
 
   /* --------------------------------------------------------------- filters */
   { name: 'valuesFilter', layer: 'filters', kind: 'function', summary: "Excel's checkbox list: which distinct values survive." },

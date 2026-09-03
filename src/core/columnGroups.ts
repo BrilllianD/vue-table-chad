@@ -102,6 +102,48 @@ function pathFrom(
 }
 
 /**
+ * Which band a fold gesture on one column means, and which way — or
+ * `undefined` when the column is under no band a fold could act on.
+ *
+ * The keyboard's half of folding. A pointer names the band it clicks; a key
+ * press names only the cursor's column, so the band has to be derived, and
+ * this is the derivation — pure, so `tests/columnGroups.spec.ts` can hold it
+ * without a header on screen.
+ *
+ * Innermost first, and **unfold before fold**: that ordering is what makes one
+ * key both gestures. A folded band leaves its `collapseTo` column standing and
+ * that column's path still runs through the band, so the press that closed a
+ * band lands on the survivor and the next press reopens exactly what the last
+ * one closed. Walking for "the innermost collapsible band" instead would fold
+ * the *next* band in from a column already folded shut, and the gesture would
+ * only ever close things.
+ *
+ * `isCollapsed` is a callback rather than the collapsed list, so this module
+ * keeps knowing nothing about collapse — the split the file header declares,
+ * and the one that lets `buildHeaderRows` stay out of the fold's way.
+ */
+export function foldTargetFor<TRow>(
+  column: ColumnDef<TRow> | ResolvedColumn<TRow> | undefined,
+  groups: readonly ColumnGroupDef[] | undefined,
+  isCollapsed: (groupId: string) => boolean,
+): { groupId: string; collapsed: boolean } | undefined {
+  if (!column) return undefined
+  const path = columnGroupPath(column, groups)
+
+  for (let depth = path.length - 1; depth >= 0; depth -= 1) {
+    const group = path[depth]!
+    if (isCollapsed(group.id)) return { groupId: group.id, collapsed: false }
+  }
+  for (let depth = path.length - 1; depth >= 0; depth -= 1) {
+    const group = path[depth]!
+    // `collapsible: false` is the caller saying this band never folds — from a
+    // caret, from a click on the cell, and so from the keyboard too.
+    if (group.collapsible !== false) return { groupId: group.id, collapsed: true }
+  }
+  return undefined
+}
+
+/**
  * Which run of the header a cell belongs to at one depth.
  *
  * The whole prefix is in the key, not just the band at this level, so two
