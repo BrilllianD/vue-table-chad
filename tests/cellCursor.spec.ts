@@ -609,6 +609,87 @@ describe('useCellCursor', () => {
     expect(c.position.value).toEqual({ rowId: 2, columnId: 'name' })
   })
 
+  it('waits while the rendered rows are still the page it was told to replace', () => {
+    const data = shallowRef<Row[]>([...rows])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    // What a page turn against a server source looks like from here: the page
+    // was asked for, and the rows on screen are still the one being left.
+    c.anchorAt(1, 'name', { replacing: [1, 2, 3] })
+    expect(c.position.value).toBeNull()
+    // And no caret is demanded mid-flight either — focus follows the anchor,
+    // so asking for it before the anchor landed would move it to the old page.
+    expect(c.focusRequests.value).toBe(0)
+
+    data.value = [
+      { id: 7, name: 'Barbara' },
+      { id: 8, name: 'Margaret' },
+    ]
+    expect(c.position.value).toEqual({ rowId: 8, columnId: 'name' })
+  })
+
+  it('counts a reordered page as arrived, because order is what the offset reads', () => {
+    const data = shallowRef<Row[]>([...rows])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    c.anchorAt(0, 'name', { replacing: [1, 2, 3] })
+    // The same rows in a new order are a new page as far as an offset is
+    // concerned: offset 0 now names a different row.
+    data.value = [rows[2]!, rows[1]!, rows[0]!]
+    expect(c.position.value).toEqual({ rowId: 3, columnId: 'name' })
+  })
+
+  it('resolves through the empty interlude a source that drops its rows leaves', () => {
+    const data = shallowRef<Row[]>([...rows])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    c.anchorAt(1, 'name', { replacing: [1, 2, 3] })
+    // `keepPreviousData: false` clears the rows before the request lands. Empty
+    // is not an answer either, so the wait outlives it.
+    data.value = []
+    expect(c.position.value).toBeNull()
+
+    data.value = [
+      { id: 7, name: 'Barbara' },
+      { id: 8, name: 'Margaret' },
+    ]
+    expect(c.position.value).toEqual({ rowId: 8, columnId: 'name' })
+  })
+
+  it('resolves on the first try when nothing was named as replaced', () => {
+    const data = shallowRef<Row[]>([...rows])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    // The seeding call. Any rows will do, which is what a table naming its
+    // first cell means.
+    c.anchorAt(0)
+    expect(c.position.value).toEqual({ rowId: 1, columnId: 'id' })
+  })
+
+  it('reports the ids it is walking, so a caller can name the page it replaces', () => {
+    const data = shallowRef<Row[]>([...rows])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    expect(c.rowIds.value).toEqual([1, 2, 3])
+    data.value = [rows[2]!]
+    expect(c.rowIds.value).toEqual([3])
+  })
+
+  it('stops waiting when the anchor is cancelled', () => {
+    const data = shallowRef<Row[]>([])
+    const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })
+
+    c.anchorAt(1, 'name', { focus: true })
+    // The page never arrived and the user moved on. Whatever rows land next are
+    // some other query's, and moving the ring to them would be answering a
+    // question nobody is still asking.
+    c.cancelAnchor()
+
+    data.value = [...rows]
+    expect(c.position.value).toBeNull()
+    expect(c.focusRequests.value).toBe(0)
+  })
+
   it('lets a second anchor replace one still waiting', () => {
     const data = shallowRef<Row[]>([])
     const c = useCellCursor<Row>(data, columns, { getRowId: (row) => row.id })

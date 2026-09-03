@@ -6,6 +6,11 @@
  *
  * Note what is *not* here: nothing about debouncing, aborting or facet scoping.
  * That all lives in `useServerDataSource`; this file just hands it a fetcher.
+ *
+ * The cursor is on, and deliberately without `autofocusCursor` — a view should
+ * not take the caret merely by being opened. It is here because a page turn
+ * against a source that answers later is the one case the local views cannot
+ * show: turn up the latency and the ring waits with you.
  */
 import { ref } from 'vue'
 import {
@@ -85,6 +90,7 @@ const source: ServerDataSource<Employee> = useServerDataSource<Employee>(
       :source="source"
       :state="state"
       selectable
+      cell-cursor
       @update:query="lastQuery = $event"
     >
       <!-- `error` is a DataTable slot with a default, overridden here to show

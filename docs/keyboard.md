@@ -112,6 +112,11 @@ strands a keyboard user on `<body>`. Only the *implicit* resets are left alone: 
 or search sends the table back to page 1 without moving the cursor, because pulling the caret out of
 the search box you are typing in is not a page turn.
 
+Over a **server** source the page does not arrive in the tick it was asked for, so the ring waits
+with you: it stays on the row you were reading — that page is still what is rendered — and moves to
+the same offset on the new one the moment it lands. A page turn whose request fails moves nothing at
+all, leaving the ring where it validly is.
+
 `Shift`+`←`/`→` is the third meaning of the same pair of keys, and the only one that moves neither
 the cursor nor the rows: it scrolls the **viewport** one column, and the ring stays exactly where it
 was. That is the point of it. On a table wider than its box the far columns were otherwise reachable
@@ -245,12 +250,21 @@ is nothing left to read it from afterwards — and hand it to `anchorAt`:
 
 ```ts
 const offset = Math.max(0, cursor.rowOffset.value)
+const replacing = cursor.rowIds.value
 pagination.go(pagination.page.value + pages)
-cursor.anchorAt(offset, cursor.columnId.value, { focus: true })
+cursor.anchorAt(offset, cursor.columnId.value, { focus: true, replacing })
 ```
 
-`anchorAt` waits for the rows if they are not there yet, which is what makes the same three lines
-work against a server source that has to fetch the page first.
+`anchorAt` waits until the rendered rows are ones it has not already seen, and `replacing` is what
+tells it which those are. Naming the outgoing page is what makes this work against a server source:
+"are there rows yet" is answered "yes" by the very page you are turning away from, and with
+`keepPreviousData` that page stays on screen for the whole fetch. So the ring holds on the row you
+were reading until the new page lands, and then appears at the same height on it.
+
+`cancelAnchor()` drops an anchor that is still waiting. A page whose fetch never arrives leaves one
+armed, and the next rows to land need not be that page's — a new search produces rows too, and
+resolving there would move the ring for a page turn you had already given up on. `DataTable` calls it
+for you whenever the query's shape changes.
 
 The pure half is exported too, for a key map of your own:
 

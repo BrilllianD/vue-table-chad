@@ -215,3 +215,142 @@ describe('useTable in virtual mode, over a source that has not loaded', () => {
     dispose()
   })
 })
+
+/**
+ * The cursor across a page turn on a *server* source.
+ *
+ * Every other page-turn test in the suite is local, and a local source is
+ * immune to what these cover: its rows are a computed, so the new page is
+ * already readable in the tick the page was written. A remote one is still
+ * rendering the outgoing page then — for the whole fetch, with
+ * `keepPreviousData` — and re-anchoring against it puts the ring on a row that
+ * is about to leave the document.
+ */
+describe('useTable over a server source, turning the page', () => {
+  function deferred<T>() {
+    let resolve!: (value: T) => void
+    let reject!: (reason?: unknown) => void
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res
+      reject = rej
+    })
+    // A rejection nobody has attached a handler to yet is still a rejection as
+    // far as the runner is concerned.
+    promise.catch(() => {})
+    return { promise, resolve, reject }
+  }
+
+  function setupServer(options: { keepPreviousData?: boolean } = {}) {
+    const pending: ReturnType<typeof deferred<{ rows: Person[]; total: number }>>[] = []
+    const scope = effectScope()
+    const result = scope.run(() => {
+      const state = useTableState({ pageSize: 3 })
+      const source = useServerDataSource<Person>(
+        () => {
+          const next = deferred<{ rows: Person[]; total: number }>()
+          pending.push(next)
+          return next.promise
+        },
+        state.query,
+        { debounceMs: 0, ...options },
+      )
+      const table = useTable<Person>({
+        columns: () => personColumns,
+        source: () => source,
+        state,
+        cellCursor: () => true,
+      })
+      return { state, source, table }
+    })!
+    /** Answers the oldest unanswered request with a page of `people`. */
+    const land = async (from: number, to: number) => {
+      pending.shift()!.resolve({ rows: people.slice(from, to), total: people.length })
+      await vi.waitFor(() => expect(result.source.rows.value.length).toBe(to - from))
+      await nextTick()
+    }
+    return { ...result, pending, land, dispose: () => scope.stop() }
+  }
+
+  it('keeps the cursor on the page it can see until the next one arrives', async () => {
+    const { table, land, dispose } = setupServer()
+    await land(0, 3)
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'salary' })
+    const requests = table.cellCursor.focusRequests.value
+
+    table.state.setPage(2)
+    await nextTick()
+    // Mid-flight. The old page is still what is rendered, so the ring stays on
+    // the row the user was reading — and no focus is asked for, because moving
+    // the caret now would move it to a cell that is about to leave.
+    expect(table.cellCursor.position.value).toEqual({ rowId: 2, columnId: 'salary' })
+    expect(table.cellCursor.focusRequests.value).toBe(requests)
+
+    await land(3, 6)
+    // Second row of the new page, same column — what the local page turn does.
+    expect(table.cellCursor.position.value).toEqual({ rowId: 5, columnId: 'salary' })
+    expect(table.cellCursor.focusRequests.value).toBe(requests + 1)
+    dispose()
+  })
+
+  it('lands on the new page when the old rows are cleared first', async () => {
+    const { table, land, dispose } = setupServer({ keepPreviousData: false })
+    await land(0, 3)
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'salary' })
+    table.state.setPage(2)
+    await nextTick()
+    // The rows went before the replacements came. An empty list is not an
+    // answer either, so the anchor outlives the interlude.
+    expect(table.cellCursor.position.value).toEqual({ rowId: 2, columnId: 'salary' })
+
+    await land(3, 6)
+    expect(table.cellCursor.position.value).toEqual({ rowId: 5, columnId: 'salary' })
+    dispose()
+  })
+
+  it('leaves the cursor where it validly is when the page never arrives', async () => {
+    const { table, pending, land, dispose } = setupServer()
+    await land(0, 3)
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'salary' })
+    const requests = table.cellCursor.focusRequests.value
+
+    pending.shift() // the request the mount made, already answered
+    table.state.setPage(2)
+    await nextTick()
+    pending[pending.length - 1]!.reject(new Error('nope'))
+    await nextTick()
+
+    // The rows never changed, so the row the cursor names is still on screen.
+    // Clearing it would cost the user their place over someone else's outage.
+    expect(table.cellCursor.position.value).toEqual({ rowId: 2, columnId: 'salary' })
+    expect(table.cellCursor.focusRequests.value).toBe(requests)
+    dispose()
+  })
+
+  it('does not fire an abandoned anchor at the rows a new search brings back', async () => {
+    const { state, table, pending, land, dispose } = setupServer()
+    await land(0, 3)
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'salary' })
+    const requests = table.cellCursor.focusRequests.value
+
+    pending.shift()
+    table.state.setPage(2)
+    await nextTick()
+    pending[pending.length - 1]!.reject(new Error('nope'))
+    await nextTick()
+
+    // The user gave up on that page and typed in the search box instead. Those
+    // results are not the page that was asked for, and grabbing the caret out
+    // of the box they are still typing in is exactly what the implicit resets
+    // are kept out of `turnPage` to avoid.
+    state.setSearch('a')
+    await nextTick()
+    await land(3, 6)
+
+    expect(table.cellCursor.focusRequests.value).toBe(requests)
+    dispose()
+  })
+})

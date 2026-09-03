@@ -49,6 +49,7 @@ function outcomeClass(outcome: string): string {
       'DataTable.loadingMessage',
       'refresh',
       'DataSource.remote',
+      'DataTable cellCursor',
     ]"
   >
     <template #controls>
@@ -106,6 +107,13 @@ function outcomeClass(outcome: string): string {
         <strong>aborted</strong> entries are the race guard doing its job: a newer request
         superseded that one, and its response can no longer overwrite the newer result even if it
         arrives later.
+      </p>
+      <p class="hint">
+        The cell cursor is switched on here, because a page turn that answers later is the one thing
+        the local views cannot show. Push the latency up, click a cell in the middle of the table and
+        page forward: the ring stays on the row you were reading for the whole request — that page is
+        still what is rendered — and lands at the same height on the new one. Turn the failure rate
+        up and a page turn that never arrives moves it nowhere at all.
       </p>
     </div>
   </DemoSection>

@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick, shallowRef } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
+import { useServerDataSource } from '../src/core/useServerDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { useRowEditing, type RowChange } from '../src/core/useRowEditing'
 import { replaceRowIn } from '../src/core/editing'
@@ -71,6 +72,11 @@ type Wrapper = ReturnType<typeof mountTable>['wrapper']
 
 function cell(wrapper: Wrapper, rowId: number, columnId: string) {
   return wrapper.get(`tbody tr[data-row-id="${rowId}"] td[data-column="${columnId}"]`)
+}
+
+/** The row ids the body is showing, top to bottom. */
+function pageIds(wrapper: Wrapper): string[] {
+  return wrapper.findAll('tbody tr[data-row-id]').map((row) => row.attributes('data-row-id')!)
 }
 
 /** Where the ring is right now, as the DOM reports it. */
@@ -566,13 +572,6 @@ describe('Ctrl and an arrow', () => {
     return wrapper.get('.vt-pagination-controls button[aria-label="Last page"]')
   }
 
-  /** The row ids the body is showing, top to bottom. */
-  function pageIds(wrapper: Wrapper): string[] {
-    return wrapper
-      .findAll('tbody tr[data-row-id]')
-      .map((row) => row.attributes('data-row-id')!)
-  }
-
   it('turns the page and keeps the cursor at the same offset and column', async () => {
     const { wrapper } = mountTable({ pageSize: 3 })
     expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
@@ -924,6 +923,78 @@ describe('autofocusCursor', () => {
     await nextTick()
     await nextTick()
     expect(focused()).toBeUndefined()
+    wrapper.unmount()
+  })
+})
+
+/**
+ * The same page turn, over a source that answers over the network.
+ *
+ * The local version of this lives in `Ctrl and an arrow` above, and it passed
+ * throughout the bug this covers: a local source hands back the new page in the
+ * same tick the page field is written, so re-anchoring against "the rows on
+ * screen" happens to be right. A remote one is still showing the page being
+ * left — for the whole fetch, with the default `keepPreviousData` — so the same
+ * re-anchor put the ring on a row that then left the document, taking the caret
+ * to `<body>` with it.
+ */
+describe('a page turn on a server source', () => {
+  function mountServerTable() {
+    const pending: ((page: { rows: Person[]; total: number }) => void)[] = []
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useServerDataSource<Person>(
+          () =>
+            new Promise<{ rows: Person[]; total: number }>((resolve) => {
+              pending.push(resolve)
+            }),
+          state.query,
+          { debounceMs: 0 },
+        )
+        return () =>
+          h(DataTable as never, { columns: personColumns, source, state, cellCursor: true })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    /** Answers the request in flight with a slice of `people`. */
+    const land = async (from: number, to: number) => {
+      pending.shift()!({ rows: people.slice(from, to), total: people.length })
+      await nextTick()
+      await nextTick()
+      await nextTick()
+    }
+    return { wrapper: wrapper as unknown as Wrapper, land }
+  }
+
+  it('holds the ring on the page in view, then carries it to the one that arrives', async () => {
+    const { wrapper, land } = mountServerTable()
+    await land(0, 3)
+    expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
+
+    // A real `focus()` rather than a synthetic `focusin`, because half of what
+    // this asserts is where the caret is, and only the former puts it anywhere.
+    ;(cell(wrapper, 2, 'salary').element as HTMLElement).focus()
+    await nextTick()
+    expect(ringAt(wrapper)).toBe('2:salary')
+    expect(document.activeElement).toBe(cell(wrapper, 2, 'salary').element)
+
+    await wrapper
+      .get('.vt-pagination-controls button[aria-label="Next page"]')
+      .trigger('click')
+    await nextTick()
+    // Mid-flight: the rows have not moved, so neither has the ring or the
+    // caret. Re-anchoring here is what used to strand both.
+    expect(pageIds(wrapper)).toEqual(['1', '2', '3'])
+    expect(ringAt(wrapper)).toBe('2:salary')
+    expect(document.activeElement).toBe(cell(wrapper, 2, 'salary').element)
+
+    await land(3, 6)
+    expect(pageIds(wrapper)).toEqual(['4', '5', '6'])
+    // Second row of the new page, same column, caret with it — the same
+    // promise the local page turn keeps.
+    expect(ringAt(wrapper)).toBe('5:salary')
+    expect(document.activeElement).toBe(cell(wrapper, 5, 'salary').element)
     wrapper.unmount()
   })
 })

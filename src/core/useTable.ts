@@ -571,6 +571,13 @@ export function useTable<TRow>(
    * `-1`. `anchorAt` then resolves it whenever the new rows arrive — the same
    * tick for a local source, some tick later for a server one, which is why
    * this is not simply a `moveTo` on the line after the write.
+   *
+   * The rendered ids are read before the write for a second reason, and the
+   * offset alone was never enough without them. In that later tick the rows are
+   * *still* the outgoing page: the source has not been asked yet, and with
+   * `keepPreviousData` it goes on rendering that page for the whole fetch. So
+   * the anchor is handed the list it is replacing, and waits for rows that are
+   * not it.
    */
   function turnPage(write: () => void): void {
     const page = state.page.value
@@ -584,12 +591,38 @@ export function useTable<TRow>(
     const placed = cursorEnabled() && cellCursor.position.value !== null
     const offset = placed ? Math.max(0, cellCursor.rowOffset.value) : 0
     const columnId = placed ? cellCursor.columnId.value : undefined
+    const replacing = placed ? cellCursor.rowIds.value : undefined
 
     write()
     if (state.page.value === page && state.pageSize.value === size) return
     if (!placed) return
-    cellCursor.anchorAt(offset, columnId, { focus: true })
+    cellCursor.anchorAt(offset, columnId, { focus: true, replacing })
   }
+
+  /*
+   * An anchor outlives the page turn that armed it when the page never arrives
+   * — a rejected fetch leaves the rows exactly as they were. The next rows to
+   * land then need not be that page's at all: a new search or filter produces
+   * rows too, and it reaches the pipeline by assigning the field rather than
+   * through `turnPage`, precisely so the caret is left alone. Letting the stale
+   * anchor resolve there would move the ring for a page turn the user has
+   * already given up on and pull the caret out of the box they are typing in —
+   * the very thing wrapping the writers instead of watching `page` avoids.
+   *
+   * The four fields are the ones `shapeKey` reads, watched as fields rather
+   * than as `state.query`, which is what keeps `page` and `pageSize` out of it:
+   * an anchor must survive the page turn that created it.
+   */
+  watch(
+    [
+      () => state.sort.value,
+      () => state.filters.value,
+      () => state.globalSearch.value,
+      () => state.groupBy.value,
+    ],
+    () => cellCursor.cancelAnchor(),
+    { deep: true },
+  )
 
   /*
    * The state everyone else sees. A spread rather than a mutation: `options.state`

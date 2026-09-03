@@ -103,11 +103,41 @@ export interface UseCellCursor<TRow> {
    *
    * Clamped, so the last page being short lands on its last row rather than
    * nowhere.
+   *
+   * `replacing` is what makes the waiting correct rather than merely present.
+   * "Are there rows" and "have the new rows arrived" are the same question only
+   * for a source that swaps them synchronously; a remote one keeps rendering
+   * the outgoing page for the whole flight, and answers the first question
+   * "yes" with the very page the caller is turning away from. Naming that list
+   * says which rows do not count as an answer. Omit it and any rows will do,
+   * which is what a first-load `anchorAt(0)` wants.
    */
-  anchorAt: (offset: number, columnId?: string, options?: { focus?: boolean }) => void
+  anchorAt: (
+    offset: number,
+    columnId?: string,
+    options?: { focus?: boolean; replacing?: readonly RowId[] },
+  ) => void
+  /**
+   * Drops an anchor that is still waiting, without moving the cursor.
+   *
+   * A page whose fetch never lands leaves one armed, and the next rows to
+   * arrive need not be that page's — a new filter or search produces rows too.
+   * Letting the stale anchor resolve there would move the ring for a page turn
+   * the user has already abandoned, and take the caret with it.
+   */
+  cancelAnchor: () => void
   /** Asks for the focus back without moving — what Escape in an editor needs. */
   requestFocus: () => void
   clear: () => void
+  /**
+   * The ids of the rows the cursor is currently walking, in render order.
+   *
+   * Offered so a caller about to replace them can name the list it is
+   * replacing — see `anchorAt`'s `replacing`. This is the *display* list:
+   * page-sized, grouped, with the columns and rows a folded band withholds
+   * already gone. A data source's own `rows` is a different list.
+   */
+  rowIds: ComputedRef<readonly RowId[]>
   /**
    * The rendered row whose id stringifies to `key`, or `undefined`.
    *
@@ -118,6 +148,23 @@ export interface UseCellCursor<TRow> {
    */
   rowIdFor: (key: string) => RowId | undefined
   getRowId: (row: TRow) => RowId
+}
+
+/**
+ * Whether two rendered-row lists are the same page.
+ *
+ * Element-wise rather than by array identity: `rowIds` is a computed rebuilt on
+ * every pipeline pass, so a re-sort that happened to produce the same order
+ * would hand back a fresh array and an identity check would call it a new page.
+ * Page-sized lists of primitives, so the walk is cheap and the early-out on
+ * length covers the common case.
+ */
+function sameIds(a: readonly RowId[], b: readonly RowId[]): boolean {
+  if (a.length !== b.length) return false
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) return false
+  }
+  return true
 }
 
 /**
@@ -160,8 +207,10 @@ export function useCellCursor<TRow>(
    * because these are what the components compare against — a re-render that
    * produced the same ids leaves every predicate below answering as before.
    */
-  const rowIds = computed(() => (toValue(rows) ?? []).map(getRowId))
-  const columnIds = computed(() => (toValue(columns) ?? []).map((column) => column.id))
+  const rowIds = computed<readonly RowId[]>(() => (toValue(rows) ?? []).map(getRowId))
+  const columnIds = computed<readonly string[]>(() =>
+    (toValue(columns) ?? []).map((column) => column.id),
+  )
 
   /** Stringified ids back to the real ones, for reading a position off the DOM. */
   const rowIdsByKey = computed(() => {
@@ -174,7 +223,7 @@ export function useCellCursor<TRow>(
    * The rows a Tab can land on. The addressable ones unless a caller has said
    * otherwise — see `renderedRowIds`.
    */
-  const tabbableRowIds = computed<RowId[]>(
+  const tabbableRowIds = computed<readonly RowId[]>(
     () => toValue(options.renderedRowIds) ?? rowIds.value,
   )
 
@@ -223,11 +272,21 @@ export function useCellCursor<TRow>(
   function resolveWhenRendered(
     resolve: (rowIds: readonly RowId[], columnIds: readonly string[]) => CellPosition | undefined,
     focus: boolean,
+    replacing: readonly RowId[] | undefined,
   ): void {
     pending?.()
     pending = undefined
 
-    const landed = resolve(rowIds.value, columnIds.value)
+    /*
+     * Rows the caller has already declared stale are not an answer. A remote
+     * source keeps the outgoing page rendered for the whole fetch, so without
+     * this the anchor resolves against the page being turned away from, moves
+     * the ring there, and loses it again the moment the real page lands.
+     */
+    const arrived = (ids: readonly RowId[]): boolean =>
+      replacing === undefined || !sameIds(ids, replacing)
+
+    const landed = arrived(rowIds.value) ? resolve(rowIds.value, columnIds.value) : undefined
     if (landed) {
       moveTo(landed, { focus })
       return
@@ -248,7 +307,7 @@ export function useCellCursor<TRow>(
       watch(
         [rowIds, columnIds],
         ([rows, cols]) => {
-          const next = resolve(rows, cols)
+          const next = arrived(rows) ? resolve(rows, cols) : undefined
           if (!next) return
           pending?.()
           pending = undefined
@@ -262,7 +321,7 @@ export function useCellCursor<TRow>(
   function anchorAt(
     offset: number,
     columnId?: string,
-    anchorOptions?: { focus?: boolean },
+    anchorOptions?: { focus?: boolean; replacing?: readonly RowId[] },
   ): void {
     resolveWhenRendered((rows, cols) => {
       if (rows.length === 0) return undefined
@@ -276,7 +335,7 @@ export function useCellCursor<TRow>(
       if (column === undefined) return undefined
       const index = Math.min(Math.max(offset, 0), rows.length - 1)
       return { rowId: rows[index]!, columnId: column }
-    }, anchorOptions?.focus ?? false)
+    }, anchorOptions?.focus ?? false, anchorOptions?.replacing)
   }
 
   function isCursor(rowId: RowId, columnId: string): boolean {
@@ -329,6 +388,11 @@ export function useCellCursor<TRow>(
     move,
     moveTo,
     anchorAt,
+    cancelAnchor: () => {
+      pending?.()
+      pending = undefined
+    },
+    rowIds,
     requestFocus: () => {
       focusRequests.value += 1
     },
