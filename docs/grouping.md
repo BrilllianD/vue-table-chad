@@ -18,6 +18,11 @@ like `sort`. The panel leads with its global actions — expand all, collapse al
 and while grouping is active a **+ / −** pair sits beside the trigger, calling the same
 `expandAll()` / `collapseAll()` without opening the panel.
 
+A grouped column's own header cell changes job: it stops being a sort control — sorting stays on
+the columns below it — and a left click anywhere in it folds every band that column produced, at
+that level only, leaving any level nested inside it as the user left it. The cell carries
+`data-grouped` and, once folded, `data-groups-collapsed`; the button inside it is `.vt-th-fold`.
+
 Group headers are collapsible, count their rows, and name the blank bucket rather than rendering
 an empty band:
 
@@ -165,7 +170,9 @@ Pure functions underneath, usable with no component at all: `aggregateValue`, `a
 
 `useRowGrouping` also gathers the rows it is handed into bands (`orderedRows`), which is what makes
 `'client'` mode work — pass it the active `sort` so the bands come out the way the grouped column is
-sorted. `grouping.toggle(key)`, `grouping.collapseAll()` and `grouping.expandAll()` drive collapse;
+sorted. `grouping.toggle(key)`, `grouping.toggleColumn(columnId)`, `grouping.collapseAll()` and
+`grouping.expandAll()` drive collapse — `toggleColumn` is one grouping level, folded in a single
+write, and `grouping.isColumnCollapsed(columnId)` answers whether it already is;
 `collapsedByDefault` (`:groups-collapsed` on the preset) flips the starting state, and applies to
 groups that only appear later — after a filter change, or on page 4 — rather than only to the ones
 visible at mount.
@@ -173,7 +180,8 @@ visible at mount.
 Below that sit the pure functions, usable with no component at all: `groupedSort`,
 `groupSortRules`, `flattenGroups`, `countGroups`, `groupValueOf`, `groupPathKey`.
 
-Styling hooks: `.vt-group-row[data-depth][data-collapsed]`, `.vt-group-cell`, `.vt-group-toggle`,
+Styling hooks: `.vt-th[data-grouped][data-groups-collapsed]`, `.vt-th-fold`,
+`.vt-group-row[data-depth][data-collapsed]`, `.vt-group-cell`, `.vt-group-toggle`,
 `.vt-group-label`, `.vt-group-count`, plus `--vtc-group-bg` and `--vtc-group-indent-step`.
 
 ---

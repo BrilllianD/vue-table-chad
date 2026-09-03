@@ -359,3 +359,34 @@ export function countGroups<TRow>(
   }
   return counts
 }
+
+/**
+ * Every group key produced by one grouped column, from an already built tree.
+ *
+ * The keys at a single grouping *level* — what folding one column's bands shut
+ * needs, as against `groupKeys`, which is every level at once. It takes a tree
+ * rather than rows because the caller folding bands already holds one, and
+ * rebuilding it to answer a question about collapse state is exactly the cost
+ * `buildGroupTree` and `flattenTree` were split apart to avoid.
+ *
+ * Collapse state does not enter into it: a band nested inside a folded parent
+ * is still one of the bands this column produced.
+ */
+export function groupKeysOf<TRow>(tree: GroupTree<TRow>, columnId: string): string[] {
+  const keys: string[] = []
+
+  function walk(nodes: readonly GroupNode<TRow>[]): void {
+    for (const node of nodes) {
+      if (node.group.columnId === columnId) {
+        keys.push(node.group.key)
+        // A column sits at exactly one depth, so nothing below this node can
+        // match — the levels are the `groupBy` list, and it holds each id once.
+        continue
+      }
+      walk(node.children)
+    }
+  }
+
+  walk(tree.nodes)
+  return keys
+}

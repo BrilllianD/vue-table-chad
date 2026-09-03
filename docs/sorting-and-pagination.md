@@ -32,7 +32,12 @@ state.setSort('salary', 'desc')     // set a direction directly, no cycling
 ```
 
 `SortTrigger` calls `toggleSort`, additive on shift-click — that is the entire mechanism behind
-clicking a header and shift-clicking a second one.
+clicking a header and shift-clicking a second one. The whole `<th>` is the target, not only the
+trigger inside it: a left click anywhere in the cell sorts, and shift, ctrl or cmd makes it
+additive there too. Clicks that came from a control the cell contains — the sort button itself, the
+filter popover, the resize handle — belong to that control alone, so nothing fires twice. The one
+exception is a column the rows are currently grouped by: its header carries no sort trigger at all
+and folds that grouping level instead. See [Grouping](./grouping.md).
 
 **Column type decides the comparator**, and `comparator` overrides it. `role` in `employeeColumns`
 is the reason the override exists: `SENIORITY` — `['Junior', 'Mid', 'Senior', 'Staff', 'Principal',

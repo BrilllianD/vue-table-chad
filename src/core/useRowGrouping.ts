@@ -1,6 +1,6 @@
 import { computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref } from 'vue'
 import type { AggregateResult, ColumnDef, DisplayRow, RowGroup, SortRule } from './types'
-import { ROOT_GROUP_KEY, buildGroupTree, flattenTree, groupSortRules } from './grouping'
+import { ROOT_GROUP_KEY, buildGroupTree, flattenTree, groupKeysOf, groupSortRules } from './grouping'
 import { aggregateRow } from './aggregation'
 import { sortRows } from './sorting'
 
@@ -58,7 +58,22 @@ export interface UseRowGrouping<TRow> {
   collapsed: Ref<string[]>
 
   isCollapsed: (key: string) => boolean
+  /**
+   * Whether every band this column produced is folded shut.
+   *
+   * `false` when the column produced none, so a column that is not grouped —
+   * or one whose page holds no rows — never reads as folded.
+   */
+  isColumnCollapsed: (columnId: string) => boolean
   toggle: (key: string, collapsed?: boolean) => void
+  /**
+   * Folds one grouping level shut, or opens it, in a single write.
+   *
+   * The level in between `toggle` and `collapseAll`: a header cell for a
+   * grouped column acts on the bands *that column* produced and leaves the
+   * levels under it as the user left them.
+   */
+  toggleColumn: (columnId: string, collapsed?: boolean) => void
   expandAll: () => void
   collapseAll: () => void
 }
@@ -184,6 +199,28 @@ export function useRowGrouping<TRow>(
     collapsed.value = [...set]
   }
 
+  function isColumnCollapsed(columnId: string): boolean {
+    const keys = groupKeysOf(tree.value, columnId)
+    return keys.length > 0 && keys.every(isCollapsed)
+  }
+
+  function toggleColumn(columnId: string, next?: boolean): void {
+    const keys = groupKeysOf(tree.value, columnId)
+    if (keys.length === 0) return
+    // `keys.every` rather than `isColumnCollapsed`, which would walk the tree a
+    // second time for the answer this one already holds the keys for.
+    const shouldCollapse = next ?? !keys.every(isCollapsed)
+    // One write for the whole level. Looping over `toggle` would reassign the
+    // ref once per band, and `displayRows` would re-walk the tree each time.
+    const listed = shouldCollapse !== inverted.value
+    const set = new Set(collapsed.value)
+    for (const key of keys) {
+      if (listed) set.add(key)
+      else set.delete(key)
+    }
+    collapsed.value = [...set]
+  }
+
   function expandAll(): void {
     inverted.value = false
     collapsed.value = []
@@ -202,7 +239,9 @@ export function useRowGrouping<TRow>(
     isGrouped,
     collapsed,
     isCollapsed,
+    isColumnCollapsed,
     toggle,
+    toggleColumn,
     expandAll,
     collapseAll,
   }

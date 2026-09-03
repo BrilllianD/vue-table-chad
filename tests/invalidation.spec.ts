@@ -508,6 +508,23 @@ describe('what an interaction is allowed to recompute', () => {
     h.stop()
   })
 
+  it('folding a whole grouping level costs one walk, not one per band', () => {
+    const h = harness(['department', 'role'])
+    h.grouping.displayRows.value
+
+    h.grouping.toggleColumn('role')
+    h.grouping.displayRows.value
+
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.tree).toBe(0)
+    // The whole level in one write. A loop over `toggle` would reassign the
+    // collapse list once per band and re-walk the tree behind each one — the
+    // reason `toggleColumn` exists rather than being spelled out at the caller.
+    expect(counters.walk).toBe(1)
+    h.stop()
+  })
+
   it('one search change costs exactly one filter pass', () => {
     const h = harness()
     h.state.setSearch('ada')

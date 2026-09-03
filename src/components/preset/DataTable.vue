@@ -1018,6 +1018,8 @@ function onPaste(
             -->
             <DataTableHeader
               :hover-column-id="hoverColumnId"
+              :group-by="tableState.groupBy.value"
+              :grouping="grouping"
               :header-rows="headerRows"
               :selectable="selectable"
               :selection-mode="props.selectable"

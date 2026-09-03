@@ -277,6 +277,59 @@ describe('useRowGrouping', () => {
     scope.stop()
   })
 
+  it('folds one grouping level and leaves the level under it alone', () => {
+    const { scope, grouping } = setup(['department', 'active'])
+    const outer = grouping.groups.value.filter((group) => group.columnId === 'department')
+    const inner = grouping.groups.value.filter((group) => group.columnId === 'active')
+    expect(outer.length).toBeGreaterThan(1)
+    expect(inner.length).toBeGreaterThan(1)
+
+    grouping.toggleColumn('active')
+    expect(grouping.isColumnCollapsed('active')).toBe(true)
+    expect(inner.every((group) => grouping.isCollapsed(group.key))).toBe(true)
+    // The level above stays open, or the fold would have hidden its own result.
+    expect(grouping.isColumnCollapsed('department')).toBe(false)
+    expect(outer.every((group) => !grouping.isCollapsed(group.key))).toBe(true)
+
+    grouping.toggleColumn('active')
+    expect(grouping.isColumnCollapsed('active')).toBe(false)
+    expect(inner.every((group) => !grouping.isCollapsed(group.key))).toBe(true)
+    scope.stop()
+  })
+
+  it('reads as folded only once every one of the column\'s bands is', () => {
+    const { scope, grouping } = setup(['department'])
+    // A column producing no bands is not folded — it is not grouped at all.
+    expect(grouping.isColumnCollapsed('active')).toBe(false)
+
+    const keys = grouping.groups.value.map((group) => group.key)
+    for (const key of keys.slice(1)) grouping.toggle(key)
+    expect(grouping.isColumnCollapsed('department')).toBe(false)
+
+    grouping.toggle(keys[0]!)
+    expect(grouping.isColumnCollapsed('department')).toBe(true)
+    scope.stop()
+  })
+
+  it('folds a level under `collapsedByDefault`, where the list means the opposite', () => {
+    const scope = effectScope()
+    const grouping = scope.run(() =>
+      useRowGrouping<Person>(people, personColumns, {
+        groupBy: ['department'],
+        collapsedByDefault: true,
+      }),
+    )!
+    expect(grouping.isColumnCollapsed('department')).toBe(true)
+
+    grouping.toggleColumn('department')
+    expect(grouping.isColumnCollapsed('department')).toBe(false)
+    expect(grouping.groups.value.every((group) => !grouping.isCollapsed(group.key))).toBe(true)
+
+    grouping.toggleColumn('department', true)
+    expect(grouping.isColumnCollapsed('department')).toBe(true)
+    scope.stop()
+  })
+
   it('collapses every group, including ones it has not rendered yet', () => {
     const { scope, grouping } = setup(['department'])
     grouping.collapseAll()
@@ -366,6 +419,65 @@ describe('DataTable grouping', () => {
 
     await wrapper.find('.vt-group-toggle').trigger('click')
     expect(rowCount()).toBe(people.length)
+    wrapper.unmount()
+  })
+
+  it('turns a grouped column\'s header into a fold control, not a sort one', async () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    const header = (id: string) =>
+      wrapper.findAll('thead th').find((th) => th.attributes('data-column') === id)!
+    const rowCount = () => wrapper.findAll('tbody tr.vt-tr').length
+
+    // Grouped: no sort trigger at all, and the capability attribute says so —
+    // sorting stays on the columns under it.
+    expect(header('department').find('button.vt-sort').exists()).toBe(false)
+    expect(header('department').attributes('data-sortable')).toBeUndefined()
+    expect(header('department').attributes('data-grouped')).toBe('true')
+    expect(header('salary').find('button.vt-sort').exists()).toBe(true)
+
+    await header('department').trigger('click')
+    expect(rowCount()).toBe(0)
+    expect(header('department').attributes('data-groups-collapsed')).toBe('true')
+    expect(wrapper.findAll('.vt-group-row')).toHaveLength(4)
+
+    await header('department').trigger('click')
+    expect(rowCount()).toBe(people.length)
+    expect(header('department').attributes('data-groups-collapsed')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('folds only its own level, and the button inside it folds it once', async () => {
+    const wrapper = mountTable({ groupBy: ['department', 'active'] })
+    const header = (id: string) =>
+      wrapper.findAll('thead th').find((th) => th.attributes('data-column') === id)!
+    const groupRows = (columnId: string) =>
+      wrapper.findAll('.vt-group-row').filter((row) => row.attributes('data-column') === columnId)
+
+    // The inner level's button, whose click also bubbles to the cell around it.
+    await header('active').find('button.vt-th-fold').trigger('click')
+    expect(groupRows('active').every((row) => row.attributes('data-collapsed') !== undefined)).toBe(
+      true,
+    )
+    // The outer level is still open, or its own bands would have gone with it.
+    expect(groupRows('department')).toHaveLength(4)
+    expect(groupRows('department').every((row) => row.attributes('data-collapsed') === undefined))
+      .toBe(true)
+    expect(wrapper.findAll('tbody tr.vt-tr')).toHaveLength(0)
+
+    await header('active').find('button.vt-th-fold').trigger('click')
+    expect(wrapper.findAll('tbody tr.vt-tr')).toHaveLength(people.length)
+    wrapper.unmount()
+  })
+
+  it('names the fold for a screen reader, which has no caret to read', async () => {
+    const wrapper = mountTable({ groupBy: ['department'] })
+    const fold = () => wrapper.find('button.vt-th-fold')
+    expect(fold().attributes('aria-expanded')).toBe('true')
+    expect(fold().attributes('aria-label')).toBe('Collapse all Department groups')
+
+    await fold().trigger('click')
+    expect(fold().attributes('aria-expanded')).toBe('false')
+    expect(fold().attributes('aria-label')).toBe('Expand all Department groups')
     wrapper.unmount()
   })
 

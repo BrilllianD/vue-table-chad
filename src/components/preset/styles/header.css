@@ -80,9 +80,41 @@
 */
 .vt-th[data-sortable],
 .vt-th[data-filterable],
+.vt-th[data-grouped],
 .vt-th-group[data-collapsible] {
   cursor: pointer;
 }
+
+/*
+  A grouped column's header folds the bands that column produced, so it carries
+  a caret instead of a sort glyph. `.vt-th-fold` and not `.vt-th-group-toggle`:
+  that one folds a *column band*, a different axis, and the two would read as
+  the same control.
+
+  The caret is `.vt-group-caret` from `groups.css`, the one the band rows use,
+  because it is the same statement about the same fold — and its rotation is
+  keyed on the cell here, at (0,2,0) against that file's (0,1,0), so which
+  partition loads first does not decide it.
+*/
+.vt-th-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--vtc-space-2);
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.vt-th-fold:focus-visible {
+  outline: var(--vtc-focus-width) solid var(--vtc-focus-color);
+  outline-offset: -2px;
+}
+
+.vt-th[data-groups-collapsed] .vt-group-caret { transform: rotate(0deg); }
 
 .vt-th[data-dragging] {
   cursor: grabbing;

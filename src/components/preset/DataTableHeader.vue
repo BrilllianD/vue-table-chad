@@ -21,6 +21,7 @@ import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
 import type { HeaderRow, SelectionMode } from '../../core/types'
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseCellCursor } from '../../core/useCellCursor'
+import type { UseRowGrouping } from '../../core/useRowGrouping'
 
 defineProps<{
   headerRows: HeaderRow<TRow>[]
@@ -39,6 +40,15 @@ defineProps<{
    * `DataTable` owns the state — this component sees only the id.
    */
   hoverColumnId: string | undefined
+  /**
+   * The columns the rows are grouped by. A grouped column's header folds its
+   * bands instead of sorting, so this decides which control the cell renders —
+   * `TableHeaderCell` resolves the same thing from the context for its own
+   * click, but a component that takes props may not go around it for the half
+   * it renders.
+   */
+  groupBy: string[]
+  grouping: UseRowGrouping<TRow> | undefined
   /** Whether the trailing actions cell is present, so the header can span it. */
   actionsColumn: boolean
   /**
@@ -93,10 +103,33 @@ defineProps<{
           :depth="cell.depth"
           :cursor="cursor?.isCursorColumn(cell.column.id) ? 'column' : undefined"
           :column-hovered="cell.column.id === hoverColumnId"
+          :grouped="groupBy.includes(cell.column.id)"
+          :groups-collapsed="grouping?.isColumnCollapsed(cell.column.id)"
         >
-          <template #default>
+          <template #default="cellProps">
+            <!--
+              A grouped column gets a real `<button>` rather than leaving the
+              fold to the cell's click alone: the `<th>` itself takes no focus,
+              so without one this level would be unreachable from a keyboard.
+              Its click bubbles to the cell, which ignores clicks that came from
+              a control inside it, so the fold happens once either way.
+            -->
+            <button
+              v-if="groupBy.includes(cell.column.id)"
+              type="button"
+              class="vt-th-fold"
+              :aria-expanded="!grouping?.isColumnCollapsed(cell.column.id)"
+              :aria-label="`${
+                grouping?.isColumnCollapsed(cell.column.id) ? 'Expand' : 'Collapse'
+              } all ${cell.column.header ?? cell.column.id} groups`"
+              @click="cellProps.fold()"
+            >
+              <span class="vt-group-caret" aria-hidden="true">▸</span>
+              <span class="vt-th-label">{{ cell.column.header ?? cell.column.id }}</span>
+            </button>
+
             <SortTrigger
-              v-if="cell.column.sortable !== false"
+              v-else-if="cell.column.sortable !== false"
               :column-id="cell.column.id"
               :label="cell.column.header ?? cell.column.id"
             />

@@ -43,13 +43,47 @@ const props = withDefaults(
      * passed and a standalone one can still be told.
      */
     bandEdge?: BandEdge
+    /**
+     * Whether this column is one the rows are grouped by. Defaults to the
+     * injected grouping, so a `<th>` under a `<TableRoot>` needs nothing passed.
+     *
+     * A grouped column's header is not a sort control: clicking it folds the
+     * bands that column produced. Sorting stays on the columns underneath it.
+     */
+    grouped?: boolean
+    /** Whether every band this column produced is folded shut. */
+    groupsCollapsed?: boolean
   }>(),
   // Vue casts an absent boolean prop to `false`; the explicit `undefined`
-  // default keeps "not passed" distinguishable from "passed as false".
-  { reorderable: undefined },
+  // default keeps "not passed" distinguishable from "passed as false" — which
+  // for `grouped` would read as "not grouped" and shadow the context for good.
+  { reorderable: undefined, grouped: undefined, groupsCollapsed: undefined },
 )
 
+const emit = defineEmits<{
+  sort: [columnId: string, additive: boolean]
+  toggleGroups: [columnId: string, collapsed: boolean]
+}>()
+
 const context = useTableContext()
+
+const grouped = computed(
+  () => props.grouped ?? context?.state.isGrouped(props.column.id) ?? false,
+)
+
+const groupsCollapsed = computed(
+  () => props.groupsCollapsed ?? context?.grouping?.isColumnCollapsed(props.column.id) ?? false,
+)
+
+/**
+ * What a click on the cell itself does. Grouped wins over sortable: the two
+ * would otherwise both want the same gesture, and a column the rows are
+ * grouped by is a fold control, not a sort one.
+ */
+const action = computed<'group' | 'sort' | undefined>(() => {
+  if (grouped.value) return 'group'
+  return props.column.sortable !== false ? 'sort' : undefined
+})
 
 const bandEdge = computed(
   () => props.bandEdge ?? context?.columns.bandEdges.value.get(props.column.id),
@@ -82,7 +116,18 @@ function sideOf(event: PointerEvent): 'before' | 'after' {
   return event.clientX < rect.left + rect.width / 2 ? 'before' : 'after'
 }
 
+/**
+ * Where the pointer went down, so a drag that ends over this cell does not also
+ * read as a click on it. `dnd.dragging` is already false by the time `click`
+ * fires, so the distance has to be remembered rather than asked for.
+ */
+let pressedAt: { x: number; y: number } | undefined
+
+/** Past this many pixels the gesture was a drag, whatever it ended up doing. */
+const CLICK_SLOP = 4
+
 function onPointerDown(event: PointerEvent): void {
+  pressedAt = { x: event.clientX, y: event.clientY }
   if (!draggable.value) return
   // No preventDefault: the sort button and filter trigger still need their
   // click. A drag only actually starts once the pointer clears the threshold.
@@ -99,6 +144,60 @@ function onPointerLeave(): void {
   // Only clears if *this* cell is still the target — the next cell's
   // pointermove may already have claimed it.
   dnd.value?.clearOver(props.column.id)
+}
+
+/**
+ * Folds this column's bands, or opens them. Handed to the default slot as well,
+ * so the control a caller renders inside the cell drives the same action rather
+ * than reaching for the context a second time — the cell ignores clicks that
+ * came from a control, so exactly one of the two runs.
+ */
+function fold(): void {
+  const next = !groupsCollapsed.value
+  emit('toggleGroups', props.column.id, next)
+  context?.grouping?.toggleColumn(props.column.id, next)
+}
+
+/**
+ * The whole cell acts, not just the control inside it: a header that shows a
+ * pointer cursor has to do something when the padding around its label is
+ * clicked.
+ *
+ * The controls it contains keep their own clicks — each of them bubbles up to
+ * here, and acting on those too would sort twice per click, or sort while the
+ * user was opening a filter.
+ */
+function onClick(event: MouseEvent): void {
+  if (event.button !== 0 || action.value === undefined) return
+
+  const moved = pressedAt
+    ? Math.abs(event.clientX - pressedAt.x) > CLICK_SLOP ||
+      Math.abs(event.clientY - pressedAt.y) > CLICK_SLOP
+    : false
+  pressedAt = undefined
+  if (moved) return
+
+  const target = event.target as HTMLElement | null
+  // `.vt-filter` is the popover root rather than a control: its panel is full
+  // of inputs and labels, and it is inside this cell.
+  if (
+    target?.closest(
+      'button, a, input, select, textarea, label, [role="separator"], [role="button"], .vt-filter',
+    )
+  ) {
+    return
+  }
+
+  if (action.value === 'group') {
+    fold()
+    return
+  }
+
+  // The same modifier rule as `SortTrigger`, so the two routes to a sort stay
+  // one gesture.
+  const additive = event.shiftKey || event.ctrlKey || event.metaKey
+  emit('sort', props.column.id, additive)
+  context?.state.toggleSort(props.column.id, additive)
 }
 
 /**
@@ -121,8 +220,11 @@ function onKeydown(event: KeyboardEvent): void {
     it can be. The preset styles the cursor off the capability, because a header
     that acts on a click has to say so before the click.
 
-    `!== false` rather than a truthiness test — both default to on, and a column
-    def says so by leaving them out.
+    `data-filterable` reads `!== false` rather than a truthiness test — it
+    defaults to on, and a column def says otherwise by saying so. `data-sortable`
+    goes through `action` instead, because a grouped column is sortable by its
+    definition and still does not sort here: its click folds its bands, and
+    `data-grouped` is what says so.
   -->
   <th
     class="vt-th"
@@ -135,7 +237,9 @@ function onKeydown(event: KeyboardEvent): void {
     :data-column-bg="column.headerBackground ? '' : undefined"
     :data-sorted="column.sortDirection || undefined"
     :data-filtered="column.hasFilter || undefined"
-    :data-sortable="column.sortable !== false || undefined"
+    :data-sortable="action === 'sort' || undefined"
+    :data-grouped="grouped || undefined"
+    :data-groups-collapsed="(grouped && groupsCollapsed) || undefined"
     :data-filterable="column.filterable !== false || undefined"
     :data-reorderable="draggable || undefined"
     :data-dragging="dnd?.isDragged(column.id) || undefined"
@@ -150,13 +254,16 @@ function onKeydown(event: KeyboardEvent): void {
           ? 'descending'
           : 'none'
     "
+    @click="onClick"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerleave="onPointerLeave"
     @keydown="onKeydown"
   >
     <div class="vt-th-inner">
-      <slot :column="column">{{ column.header ?? column.id }}</slot>
+      <slot :column="column" :grouped="grouped" :groups-collapsed="groupsCollapsed" :fold="fold">
+        {{ column.header ?? column.id }}
+      </slot>
     </div>
     <slot name="resize" :column="column" />
   </th>

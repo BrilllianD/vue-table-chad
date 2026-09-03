@@ -82,6 +82,62 @@ describe('DataTable rendering', () => {
     wrapper.unmount()
   })
 
+  it('sorts when the cell around the trigger is clicked, and only once', async () => {
+    const wrapper = mountTable()
+    const salaryHeader = wrapper
+      .findAll('thead th')
+      .find((th) => th.attributes('data-column') === 'salary')!
+
+    // The padding around the label, which the pointer cursor already claimed.
+    await salaryHeader.trigger('click')
+    expect(salaryHeader.attributes('data-sorted')).toBe('asc')
+
+    // The trigger's own click bubbles up to the cell. Acting on both would
+    // land on 'desc' in one click.
+    await salaryHeader.find('button.vt-sort').trigger('click')
+    expect(salaryHeader.attributes('data-sorted')).toBe('desc')
+
+    // Shift is additive from the cell too, the same as from the trigger.
+    const nameHeader = wrapper
+      .findAll('thead th')
+      .find((th) => th.attributes('data-column') === 'name')!
+    await nameHeader.trigger('click', { shiftKey: true })
+    expect(salaryHeader.attributes('data-sorted')).toBe('desc')
+    expect(nameHeader.attributes('data-sorted')).toBe('asc')
+    wrapper.unmount()
+  })
+
+  it('leaves the cell click to the controls inside it', async () => {
+    const wrapper = mountTable()
+    const salaryHeader = wrapper
+      .findAll('thead th')
+      .find((th) => th.attributes('data-column') === 'salary')!
+
+    // The resize handle is a `<span role="separator">`, not a button, and a
+    // drag of it must not also sort the column it resizes.
+    await salaryHeader.find('.vt-resize').trigger('click')
+    expect(salaryHeader.attributes('data-sorted')).toBeUndefined()
+
+    await salaryHeader.find('.vt-filter-trigger').trigger('click')
+    expect(salaryHeader.attributes('data-sorted')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('does not sort a header that cannot, however much of it is clicked', async () => {
+    const wrapper = mountTable({
+      columns: [
+        { id: 'name', header: 'Name' },
+        { id: 'salary', header: 'Salary', sortable: false },
+      ],
+    })
+    const salaryHeader = wrapper
+      .findAll('thead th')
+      .find((th) => th.attributes('data-column') === 'salary')!
+    await salaryHeader.trigger('click')
+    expect(salaryHeader.attributes('data-sorted')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('marks what a header cell can do, not only what it is doing', () => {
     // Capability, which is what the stylesheet points the cursor at. jsdom
     // applies no CSS, so the attribute is the whole testable half.
