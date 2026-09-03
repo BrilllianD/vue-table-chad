@@ -9,12 +9,12 @@ import Example from './.vitepress/examples/editing.vue'
 <<< @/.vitepress/examples/editing.vue
 
 ```ts
-const rows = shallowRef(employees)
+const rows = shallowRef(employees)              // your rows; `columns` as in the example above
 const state = useTableState({ pageSize: 20 })
 const source = useLocalDataSource(rows, columns, state.query)
 
 const editing = useRowEditing(source, columns, {
-  save: ({ id, patch }) => api.patchEmployee(id, patch),
+  save: ({ id, patch }) => api.patchEmployee(id, patch),   // `api`: your HTTP client
   apply: (next) => { rows.value = replaceRowIn(rows.value, next, (row) => row.id) },
 })
 ```
@@ -152,6 +152,7 @@ order they are scrolled, so the id in row 1 may sit on portion 40 and would read
 forever. `resolveOptions` is what fixes that:
 
 ```ts
+// `fetchManagerPage` is the fetcher from the first snippet, moved out to a name.
 const managers = useAsyncOptions(fetchManagerPage, {
   resolveOptions: (ids, { signal }) =>
     fetch(`/api/managers?ids=${ids.join(',')}`, { signal })
@@ -198,7 +199,7 @@ saves it: `AsyncSelect` reports a blur only once focus has left its panel as wel
 ## The session half
 
 ```ts
-const editing = useRowEditing(source, columns, options)
+const editing = useRowEditing(source, columns, options)   // `options`: the callbacks below
 ```
 
 | Option | Default | What it is for |

@@ -97,6 +97,8 @@ Two mechanics behind that split:
 A column declares what its group rows should show, and the value lands under that column:
 
 ```ts
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+
 { id: 'salary', header: 'Salary', type: 'number',
   aggregate: 'sum',
   aggregateFormat: (r) => money.format(Number(r.value)) },

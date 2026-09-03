@@ -128,11 +128,17 @@ type Person = {
   hiredAt: string
 }
 
-const rows = shallowRef<Person[]>(await loadPeople())
+// Your rows. Three inline ones here; a fetch that assigns `rows.value` later
+// works the same, and the table shows its empty message until it lands.
+const rows = shallowRef<Person[]>([
+  { id: 1, name: 'Ada Lovelace', department: 'Engineering', salary: 120_000, hiredAt: '2019-03-04' },
+  { id: 2, name: 'Grace Hopper', department: 'Engineering', salary: 145_000, hiredAt: '2017-08-15' },
+  { id: 3, name: 'Barbara Liskov', department: 'Research', salary: 150_000, hiredAt: '2021-01-11' },
+])
 
 const columns: ColumnDef<Person>[] = [
   { id: 'name', header: 'Name', type: 'text', pinned: 'left' },
-  { id: 'department', header: 'Department', type: 'enum' },
+  { id: 'department', header: 'Department', type: 'enum', options: ['Engineering', 'Research'] },
   {
     id: 'salary',
     header: 'Salary',
@@ -260,6 +266,7 @@ Three things, for code that would rather not wire a slot or an event:
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
 import { DataTable } from '@brillliand/vue-table-chad'
+// `Person`, `rows`, `columns` and `source` as in the table above.
 
 // `DataTable` is a generic component, so `InstanceType<typeof DataTable>` is
 // the way to name what the ref holds; `ComponentPublicInstance` would lose the
@@ -316,6 +323,8 @@ The session is built separately and passed in, because it carries four callbacks
 opinion about:
 
 ```ts
+// `api` is your HTTP client. `save` resolves once the server holds the row and
+// rejects when it refused; `source`, `columns` and `rows` are the ones above.
 const editing = useRowEditing(source, columns, {
   mode: 'cell',                                   // or 'row' — one Save for the whole row
   validate: (next) => (next.salary > 0 ? null : { salary: 'Must be positive' }),
@@ -337,6 +346,7 @@ A column whose options are too many to send declares `asyncOptions` instead of `
 cell gets a dropdown that fetches them a portion at a time as it is scrolled or searched:
 
 ```ts
+// `api` again stands for your HTTP client; each call returns `{ items, total }`.
 const managers = useAsyncOptions(
   async ({ search, loaded, signal }) => {
     const body = await api.managers({ q: search, offset: loaded, limit: 25, signal })
@@ -364,6 +374,7 @@ they need no props:
 
 ```vue
 <script setup lang="ts">
+import { shallowRef } from 'vue'
 import {
   TableRoot, SortTrigger, ColumnFilterPopover, TablePagination,
   useLocalDataSource, useTableState, type ColumnDef,
@@ -371,8 +382,8 @@ import {
 
 type Person = { id: number; name: string; department: string; salary: number }
 
-const rows = shallowRef<Person[]>(people)
-const columns: ColumnDef<Person>[] = [/* … */]
+const rows = shallowRef<Person[]>(people)      // your rows, as in the table above
+const columns: ColumnDef<Person>[] = [/* … */]  // the same column definitions work here
 const state = useTableState({ pageSize: 10 })
 const source = useLocalDataSource(rows, columns, state.query)
 </script>
@@ -430,6 +441,7 @@ renders a slot. Call it directly when you want the wiring and none of the markup
 ```ts
 interface Person { id: number; name: string; salary: number }
 
+// `columns`, `source` and `state` as declared for the table above.
 const table = useTable<Person>({
   columns: () => columns,
   source: () => source,
@@ -459,6 +471,11 @@ and the comparators are all exported and all pure — usable in a worker, a test
 `QueryState` is plain JSON by contract, which is what makes this a two-liner:
 
 ```ts
+function readFromUrl(): QueryState | null {
+  const raw = new URLSearchParams(location.search).get('q')
+  return raw ? (JSON.parse(raw) as QueryState) : null
+}
+
 const external = ref<QueryState>(readFromUrl() ?? createQueryState({ pageSize: 25 }))
 const state = useTableState({ state: external })
 

@@ -57,6 +57,8 @@ What it handles for you:
 ## Infinite data
 
 ```ts
+// `fetchPage` has the same signature as a server source's fetcher: `({ query, signal })`
+// to `{ rows, total }`, with `query.page` and `query.pageSize` saying which portion.
 const source = useInfiniteDataSource(fetchPage, state.query, { pageSize: 100 })
 ```
 

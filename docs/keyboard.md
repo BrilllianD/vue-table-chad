@@ -220,6 +220,8 @@ a fetch is a different feature with a different failure mode, namely rows that h
 there is nothing to configure. Assembling a table from primitives, build it directly:
 
 ```ts
+// `renderedRows` and `visibleColumns` are getters or refs for what you actually
+// render, in that order; `getRowId` is the same function you gave the source.
 const cursor = useCellCursor(renderedRows, visibleColumns, { getRowId })
 ```
 
@@ -227,6 +229,7 @@ Hand it to `<TableGrid>`, which owns the keyboard and the focus, and to each `<T
 marks its own cells:
 
 ```vue
+<!-- `onActivate` receives the cell and the event; open your editor there. -->
 <TableGrid :columns="columns" :cursor="cursor" @activate="onActivate">
   <tbody>
     <TableRow v-for="row in rows" :key="row.id" :row="row" :columns="columns" :cursor="cursor" />
@@ -249,6 +252,7 @@ To take the cursor along with the page yourself, read the offset *before* the pa
 is nothing left to read it from afterwards — and hand it to `anchorAt`:
 
 ```ts
+// `pagination` from `usePagination`, `pages` the -1 or 1 that `page-move` reported.
 const offset = Math.max(0, cursor.rowOffset.value)
 const replacing = cursor.rowIds.value
 pagination.go(pagination.page.value + pages)

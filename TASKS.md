@@ -64,15 +64,6 @@ which `vue/no-mutating-props` reads as mutating the prop.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
-### `[ ]` T15 — Docs: complete the prose snippets
-
-Fenced snippets in `README.md` and the pages use identifiers declared nowhere — `people`, `Person`,
-`api`, `readFromUrl`, `loadPeople`. Each gets a declaration or a `// your …` comment; snippets whose
-omission is the point (`/* … */` column lists) stay.
-
-**Done when:** the README quick start is one complete file, and no snippet on the swept pages
-references a name it does not declare or comment.
-
 ---
 
 ## To Work

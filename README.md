@@ -46,16 +46,26 @@ the release checklist; [`TASKS.md`](TASKS.md) tracks what an npm publish still n
 
 ## Quick start
 
+Everything below is one file; paste it in as `App.vue` and it runs.
+
 ```vue
 <script setup lang="ts">
 import { shallowRef } from 'vue'
 import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@brillliand/vue-table-chad'
+import '@brillliand/vue-table-chad/style.css'
 
-const rows = shallowRef(people)
+type Person = { id: number; name: string; department: string; salary: number; hiredAt: string }
+
+// Your rows. Anything with an `id` works; see "Hold rows in a shallowRef" below.
+const rows = shallowRef<Person[]>([
+  { id: 1, name: 'Ada Lovelace', department: 'Engineering', salary: 120_000, hiredAt: '2019-03-04' },
+  { id: 2, name: 'Grace Hopper', department: 'Engineering', salary: 145_000, hiredAt: '2017-08-15' },
+  { id: 3, name: 'Barbara Liskov', department: 'Research', salary: 150_000, hiredAt: '2021-01-11' },
+])
 
 const columns: ColumnDef<Person>[] = [
   { id: 'name', header: 'Name', type: 'text', pinned: 'left' },
-  { id: 'department', header: 'Department', type: 'enum' },
+  { id: 'department', header: 'Department', type: 'enum', options: ['Engineering', 'Research'] },
   { id: 'salary', header: 'Salary', type: 'number', align: 'right',
     format: (v) => (v == null ? '—' : `$${Number(v).toLocaleString()}`) },
   { id: 'hiredAt', header: 'Hired', type: 'date' },

@@ -168,6 +168,8 @@ pays nothing for it.
 
 ```vue
 <script setup>
+import { useTemplateRef } from 'vue'
+
 const table = useTemplateRef('table')
 
 function submit() {
@@ -188,6 +190,10 @@ a function makes that a cost you ask for at the moment you want the answer.
 
 ```vue
 <DataTable ... selectable v-model:selection-state="selectionState" />
+```
+
+```ts
+const selectionState = ref<SelectionState>({ mode: 'ids', ids: [] })   // or whatever you stored
 ```
 
 Not `v-model:selection`: `update:selection` already carries `RowId[]`, and only the state can also
@@ -236,7 +242,7 @@ never appears.
 first two accept a ref or a getter:
 
 ```ts
-const selection = useRowSelection<Employee>(
+const selection = useRowSelection<Person>(
   () => source.rows.value,
   () => source.total.value,
   { mode: 'multiple', getRowId: (row) => row.id },
