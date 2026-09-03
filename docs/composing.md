@@ -33,7 +33,38 @@ Every primitive also takes explicit props that override the injected context, so
 <TablePagination :page="page" :page-size="20" :total="count" @update:page="page = $event" />
 ```
 
-See `playground/src/examples/ComposedCustom.vue` for the full version.
+The live example at the top of this page is that shape with cards; the fully standalone form — no
+`TableRoot` at all, every primitive fed by props — is
+[`docs/examples/ComposedFromPrimitives.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/ComposedFromPrimitives.vue),
+walked through in [Porting an existing table](examples/README.md).
+
+## The primitives, and what each one slots
+
+Every primitive reads the table context with `useTableContext()`, which returns `undefined` with
+no `TableRoot` above, and then prefers whatever explicit props you passed — which is what makes
+each of them usable standalone. Three read a whole model rather than a value and cannot do that:
+`ColumnVisibilityMenu`, `RowGroupMenu` and `ActiveFilters` call `requireTableContext()` instead and
+throw a named error outside a root.
+
+The slots below are the ones the preset's own slot table does not show, because `DataTable` fills
+them itself. Reach for them when you assemble the rows and headers from the primitives directly:
+
+| Primitive | Slot | Props | What it replaces |
+| --- | --- | --- | --- |
+| `TableRow` | `leading` | `row`, `selected` | The first cell — the preset puts the selection checkbox here. Rendered only when the slot is given, so the grid stays aligned with a `<colgroup>` that has no column for it. |
+| `TableRow` | `trailing` | `row`, `state` | The last cell — the preset's row-edit Save/Cancel. Same rule: no slot, no cell. |
+| `TableRow` | `cell` | `row`, `column`, `value`, `text`, `index` | Per-cell content, for every column at once; the preset routes its `cell:<id>` slots through it. |
+| `TableHeaderCell` | default | `column`, `grouped`, `groupsCollapsed`, `fold` | The header label. `fold` is the call a grouped column's click makes. |
+| `TableHeaderCell` | `resize` | `column` | Where the preset mounts `ColumnResizeHandle`. Left empty, the column has no drag handle. |
+| `TableGroupRow` | `aggregate` | `column`, `result`, `text` | One aggregate figure inside a group header row. |
+| `TablePagination` | `summary` | `pagination`, `total` | The "X–Y of Z" text. `pagination` is the whole `UsePagination`, so `firstRow` and `lastRow` are there. |
+
+Two primitives carry no slot of their own worth naming and are easy to miss. `TableCell` is one
+`<td>` sharing the header's sticky and pin logic, so a hand-built row that uses it stays aligned
+with a pinned header; `TableRow` renders one per column, and a row built without `TableRow` can
+render them itself. `ColumnResizeHandle` is the pointer-and-keyboard resizer, a `separator` role
+that emits `resize(columnId, width)` and reads the width to start from off the header cell when
+the column declared none.
 
 ## Without a component at all — `useTable()`
 

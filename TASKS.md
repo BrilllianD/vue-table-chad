@@ -62,18 +62,6 @@ the tests have a scoped rule-off for it, this file does not.
 promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
 ignore the pipeline.
 
-### `[ ]` T13 — Docs: complete the DataTable and primitive reference
-
-`docs/getting-started.md`'s prop table lacks `rowClickSelect`, `selectionState`, `measureRows` and
-`endThreshold`; its events line lacks `update:selectionState`, `update:selectedRows` and
-`endReached`; the `defineExpose` surface is documented nowhere. `docs/composing.md` points at the
-playground, which neither the site nor the tarball reaches, and no page names the `leading`,
-`trailing`, `summary`, `resize` and `aggregate` primitive slots, `useTableContext`, `TableCell` or
-`ColumnResizeHandle`. T8's `data-sortable` / `data-filterable` hooks are in no page.
-
-**Done when:** each name above appears on the page that owns it, and the exposed-methods snippet
-type-checks.
-
 ### `[ ]` T14 — Docs: correct the stale counts and the not-included lists
 
 `README.md` counts 881 tests / 47 files and says virtual rows are "uniform row heights only";

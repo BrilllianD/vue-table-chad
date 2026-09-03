@@ -186,6 +186,8 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `selectable` | `boolean \| 'single' \| 'multiple'` | `false` | `true` means multiple. |
 | `getRowId` | `(row) => RowId` | `row.id` | Identity for selection, drafts, cursor and render keys. |
 | `isRowSelectable` | `(row) => boolean` | all | Greys out the checkbox for rows it refuses. |
+| `rowClickSelect` | `boolean` | `false` | Shift- and Ctrl/Cmd-click on the row itself, not only on its checkbox. An unmodified click still never changes the selection, so `@row-click` keeps working. |
+| `selectionState` | `SelectionState` | table-owned | `v-model:selection-state` — the whole selection, for a caller that wants to seed, store or restore it. See [Selection](selection.md#owning-the-selection-yourself). |
 | `columnGroups` | `ColumnGroupDef[]` | — | Header bands. Optional even when columns declare `group`. |
 | `initialLayout` | `Partial<ColumnLayoutState>` | — | Read once at setup. |
 | `storageKey` | `string` | — | Remembers the column layout in `localStorage`. |
@@ -194,6 +196,8 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `virtual` | `boolean` | `false` | Every row as one continuous scroll, only the visible ones in the DOM. Mutually exclusive with paging: the page size becomes the whole result set and no pager is rendered. |
 | `rowHeight` | `number` | `38` | Row height in CSS px. Read only in `virtual` mode, where it also becomes `--vtc-row-height` — change the prop, never the token. |
 | `overscan` | `number` | `4` | Rows kept rendered beyond each edge of the viewport. |
+| `measureRows` | `boolean` | `false` | Measure each rendered row instead of trusting `rowHeight`, for a virtual body whose rows are not all one height. Costs one forced layout per update, on the rows in the window. |
+| `endThreshold` | `number` | `0` | How many rows before the end of a virtual window `endReached` fires. Larger fires earlier, which a slow request wants; `0` waits for the last row. |
 | `reorderable` | `boolean` | `true` | Drag headers to reorder. |
 | `initialGroupBy` | `string[]` | `[]` | Outermost level first. |
 | `groupMode` | `'client' \| 'server'` | `'client'` | See [Grouping](grouping.md). |
@@ -212,8 +216,14 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `initialCursor` | `CellPosition` | first cell | |
 | `autofocusCursor` | `boolean` | `false` | Take the caret on load. Only for pages where the table is the point. |
 
-Events: `update:query`, `update:selection`, `update:columnOrder`, `rowClick(row, event)`,
-`rowSaved(row)`, `rowSaveError(row, error)`.
+Events: `update:query(query)`, `update:selection(ids)`, `update:selectionState(state)`,
+`update:selectedRows(rows)`, `update:columnOrder(order)`, `rowClick(row, event)`, `rowSaved(row)`,
+`rowSaveError(row, error)`, `endReached()`.
+
+Two of those are gated on being listened for. `update:selectedRows` resolves the selected rows
+across the whole filtered set, which is a walk over the dataset, so a table that never binds it
+pays nothing. `endReached` is what a virtual table wires to an infinite source's `loadMore` — see
+[Virtual rows](virtualization.md).
 
 ## `DataTable` slots
 
@@ -235,6 +245,43 @@ Events: `update:query`, `update:selection`, `update:columnOrder`, `rowClick(row,
 `cell:<id>` and `editor:<id>` carry a column id in the name, so there is no fixed list — the preset
 forwards whatever you passed, which is what keeps its own fallbacks (plain cell text, the default
 group header) working for the columns you did not override.
+
+## What a template ref exposes
+
+Three things, for code that would rather not wire a slot or an event:
+
+| Member | What it is |
+| --- | --- |
+| `selection` | The `UseRowSelection` behind the checkboxes, or `undefined` when `selectable` is off. |
+| `getSelectedRows()` | The selected rows themselves, resolved across pages where the source holds them all. A function, not a computed: resolving is a walk, and a function makes that a cost you ask for when you want the answer. |
+| `remeasureColumns()` | Measure the undeclared column widths again, for a caller that swapped the dataset for one whose cells are a different size. Widths a user dragged are untouched. |
+
+```vue
+<script setup lang="ts">
+import { useTemplateRef } from 'vue'
+import { DataTable } from '@brillliand/vue-table-chad'
+
+// `DataTable` is a generic component, so `InstanceType<typeof DataTable>` is
+// the way to name what the ref holds; `ComponentPublicInstance` would lose the
+// exposed members.
+const table = useTemplateRef<InstanceType<typeof DataTable>>('table')
+
+function submit() {
+  console.log(table.value?.selection?.count.value, table.value?.getSelectedRows())
+}
+
+function swapDataset(next: Person[]) {
+  rows.value = next
+  table.value?.remeasureColumns()
+}
+</script>
+
+<template>
+  <DataTable ref="table" :columns="columns" :source="source" selectable />
+</template>
+```
+
+The live example on [Selection](selection.md) reads `getSelectedRows()` through exactly this ref.
 
 ## Server data instead of local
 

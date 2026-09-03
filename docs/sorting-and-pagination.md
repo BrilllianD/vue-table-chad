@@ -39,6 +39,11 @@ filter popover, the resize handle — belong to that control alone, so nothing f
 exception is a column the rows are currently grouped by: its header carries no sort trigger at all
 and folds that grouping level instead. See [Grouping](./grouping.md).
 
+The header says which it will do before the click. A cell that sorts carries `data-sortable`, one
+with a filter carries `data-filterable`, and the preset paints `cursor: pointer` on either — a
+grouped column carries `data-grouped` instead and gets the same cursor for its fold. Style your own
+against those attributes rather than against the sort button, which is only part of the box.
+
 **Column type decides the comparator**, and `comparator` overrides it. `role` in `employeeColumns`
 is the reason the override exists: `SENIORITY` — `['Junior', 'Mid', 'Senior', 'Staff', 'Principal',
 'Manager']` — is not alphabetical, so the default text comparator would put `'Junior'` ahead of
