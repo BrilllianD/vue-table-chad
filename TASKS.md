@@ -114,7 +114,8 @@ explicit props, and a spec covers dismissal and the keyboard open.
 Phase 2 landed only the `aria-rowcount` / `aria-rowindex` floor that virtualization required. Add
 `aria-colindex` on every cell, `aria-selected` on selected rows, and a polite live region that
 announces the cursor cell ("Salary, row 12 of 200") and a sort change. The announcement text goes
-through the label record (`src/core/labels.ts`), as new keys on it rather than as literals. One spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
+through the label record (`src/core/labels.ts`), as new keys on it rather than as literals. One
+spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
 
 **Done when:** the axe spec is green with no rule disabled, the announcements read correctly in the
 demo under a screen reader, and `docs/keyboard.md` has an accessibility section.
@@ -220,6 +221,40 @@ Bench first. `WideColumnsView` at 34 columns shows no need; a 300-column fixture
 worth a second axis of complexity. Promote only if the number says so.
 
 **Done when:** the fixture and its numbers are in `bench/BASELINE.md` with a go / no-go line.
+
+### `[ ]` F16 — Ship locale presets
+
+F5 made every string overridable and shipped exactly one record, `DEFAULT_LABELS` (English). A
+consumer wanting French writes the whole `Partial<TableLabels>` themselves, and the two in the tree
+today — `FRENCH` / `GERMAN` in `demo/src/views/LabelsView.vue`, `french` in
+`docs/.vitepress/examples/labels.vue` — are deliberately partial demonstrations of the fallback, not
+translations anyone should import.
+
+Add `src/locales/`, one module per language exporting a **complete** `TableLabels` rather than a
+`Partial`: `import { fr } from '@brillliand/vue-table-chad/locales'`, passed straight to the
+`labels` prop. Complete is the whole point — a preset that silently renders half English is worse
+than no preset, because the caller has no way to see which half is missing. So the type is
+`TableLabels`, not `Partial<TableLabels>`, and `noUncheckedIndexedAccess` plus the compiler make a
+missing key a build error rather than a runtime surprise for the nested `operators` and `parse`
+maps too.
+
+Which languages is the open question, and it is a maintenance commitment rather than a code one:
+every key added to `TableLabels` afterwards breaks every locale's build until it is translated,
+which is the ratchet working but is also work per key per language. Start with the smallest set
+that proves the shape — French and German — and treat further languages as contributions.
+
+Packaging: a second entry point, so a consumer importing no locale ships no locale. `package.json`
+`exports` gains `./locales`, `vite.config.ts` a second lib entry, and `pnpm size` a budget line per
+chunk. `RELEASING.md`'s checklist covers the new entry point. This is why it is not just another
+file under `src/core/` — the whole point of the tarball's size discipline is that unused features
+are not in the bundle.
+
+**Done when:** `src/locales/fr.ts` and `de.ts` export full `TableLabels`; a spec asserts each has
+every key of `DEFAULT_LABELS`, including the nested maps, and names any it lacks; the `./locales`
+entry point resolves from the packed tarball (`make pack-check`); `pnpm size` budgets the new
+chunk; the demo's **Labels** view imports `fr` rather than declaring its own object, and its
+partial `GERMAN` stays as the fallback demonstration with a comment saying which is which; and
+`docs/labels.md` documents the import beside the hand-written `Partial` it already teaches.
 
 ---
 
