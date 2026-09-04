@@ -24,6 +24,7 @@ import grouping from '../../docs/.vitepress/examples/grouping.vue?highlight'
 import hoistedState from '../../docs/.vitepress/examples/hoisted-state.vue?highlight'
 import infinite from '../../docs/.vitepress/examples/infinite.vue?highlight'
 import keyboard from '../../docs/.vitepress/examples/keyboard.vue?highlight'
+import labels from '../../docs/.vitepress/examples/labels.vue?highlight'
 import recipe1 from '../../docs/.vitepress/examples/recipe-1.vue?highlight'
 import recipe2 from '../../docs/.vitepress/examples/recipe-2.vue?highlight'
 import recipe3 from '../../docs/.vitepress/examples/recipe-3.vue?highlight'
@@ -58,6 +59,7 @@ export const exampleFiles: Record<string, HighlightedFile> = {
   'grouping.vue': grouping,
   'hoisted-state.vue': hoistedState,
   'infinite.vue': infinite,
+  'labels.vue': labels,
   'keyboard.vue': keyboard,
   'recipe-1.vue': recipe1,
   'recipe-2.vue': recipe2,
@@ -106,6 +108,7 @@ export const examplesByTab: Record<string, TabExamples> = {
   },
   state: { files: ['hoisted-state.vue'] },
   theming: { files: ['styling.vue'] },
+  labels: { files: ['labels.vue'] },
   virtual: { files: ['virtualization.vue'] },
   perf: {
     files: [],

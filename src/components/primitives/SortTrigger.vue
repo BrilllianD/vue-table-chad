@@ -7,7 +7,7 @@
  * and the badge shows the column's position in that ordering.
  */
 import { computed } from 'vue'
-import { useTableContext } from '../../core/context'
+import { useTableContext, useTableLabels } from '../../core/context'
 import type { SortDirection } from '../../core/types'
 
 const props = withDefaults(
@@ -29,6 +29,7 @@ const props = withDefaults(
 const emit = defineEmits<{ toggle: [columnId: string, additive: boolean] }>()
 
 const context = useTableContext()
+const labels = useTableLabels()
 
 const direction = computed(() => props.direction ?? context?.state.sortFor(props.columnId) ?? false)
 const index = computed(() => props.index ?? context?.state.sortIndexFor(props.columnId) ?? 0)
@@ -49,7 +50,7 @@ function onClick(event: MouseEvent | KeyboardEvent): void {
     class="vt-sort"
     :disabled="disabled"
     :data-direction="direction || 'none'"
-    :title="`Sort by ${label ?? columnId} (shift-click to add to multi-sort)`"
+    :title="labels.sortByColumn(label ?? columnId)"
     @click="onClick"
   >
     <span class="vt-sort-label"><slot>{{ label ?? columnId }}</slot></span>

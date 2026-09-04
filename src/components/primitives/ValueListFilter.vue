@@ -6,6 +6,7 @@
  * boxes one at a time must not refetch or re-filter on every click.
  */
 import { computed, ref, watch } from 'vue'
+import { useTableLabels } from '../../core/context'
 import type { FacetValue, FilterValue, ValuesFilter } from '../../core/types'
 import { facetKey } from '../../core/utils/values'
 import SelectionCheckbox from './SelectionCheckbox.vue'
@@ -20,6 +21,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [filter: ValuesFilter | undefined] }>()
 
+const labels = useTableLabels()
 const search = ref('')
 
 /** Checked facet keys, re-seeded from props by the watcher below. */
@@ -55,16 +57,22 @@ const filtered = computed(() => {
 })
 
 function label(value: FilterValue): string {
-  if (value === null) return '(Blanks)'
+  if (value === null) return labels.value.blanksFacet
   if (props.format) return props.format(value)
   return String(value)
 }
 
-/** "(Blanks)" is part of the list, so the search box filters it too. */
+/**
+ * The blanks row is part of the list, so the search box filters it too —
+ * matched against the label itself rather than against a second literal. A
+ * translated label and a hardcoded `'(blanks)'` needle would agree only in
+ * English, and the row would vanish the moment anything was typed everywhere
+ * else.
+ */
 const blankVisible = computed(() => {
   if (!blankFacet.value) return false
   const needle = search.value.trim().toLowerCase()
-  return needle === '' || '(blanks)'.includes(needle)
+  return needle === '' || labels.value.blanksFacet.toLowerCase().includes(needle)
 })
 
 /**
@@ -141,26 +149,28 @@ defineExpose({ apply, clear })
       v-model="search"
       type="search"
       class="vt-valuelist-search"
-      placeholder="Search values…"
-      aria-label="Search values"
+      :placeholder="labels.searchValuesPlaceholder"
+      :aria-label="labels.searchValues"
     />
 
-    <div v-if="loading" class="vt-valuelist-status">Loading…</div>
+    <div v-if="loading" class="vt-valuelist-status">{{ labels.loading }}</div>
 
     <template v-else>
       <label class="vt-valuelist-row vt-valuelist-all">
         <SelectionCheckbox
           :checked="allChecked"
           :indeterminate="someChecked"
-          label="Select all"
+          :label="labels.selectAllValues"
           @change="toggleAll"
         />
-        <span class="vt-valuelist-label">(Select All)</span>
+        <span class="vt-valuelist-label">{{ labels.selectAllRow }}</span>
         <span class="vt-valuelist-count">{{ filtered.length + (blankVisible ? 1 : 0) }}</span>
       </label>
 
       <div class="vt-valuelist-items" role="group">
-        <p v-if="filtered.length === 0" class="vt-valuelist-status">No matching values</p>
+        <p v-if="filtered.length === 0" class="vt-valuelist-status">
+          {{ labels.noMatchingValues }}
+        </p>
 
         <label v-for="facet in filtered" :key="facetKey(facet.value)" class="vt-valuelist-row">
           <SelectionCheckbox
@@ -175,18 +185,20 @@ defineExpose({ apply, clear })
         <label v-if="blankFacet && blankVisible" class="vt-valuelist-row vt-valuelist-blank">
           <SelectionCheckbox
             :checked="blanksChecked"
-            label="Blanks"
+            :label="labels.blanksCheckbox"
             @change="blanksChecked = !blanksChecked"
           />
-          <span class="vt-valuelist-label">(Blanks)</span>
+          <span class="vt-valuelist-label">{{ labels.blanksFacet }}</span>
           <span class="vt-valuelist-count">{{ blankFacet.count }}</span>
         </label>
       </div>
     </template>
 
     <div class="vt-valuelist-actions">
-      <button type="button" class="vt-btn" @click="clear">Clear</button>
-      <button type="button" class="vt-btn vt-btn-primary" @click="apply">Apply</button>
+      <button type="button" class="vt-btn" @click="clear">{{ labels.clear }}</button>
+      <button type="button" class="vt-btn vt-btn-primary" @click="apply">
+        {{ labels.apply }}
+      </button>
     </div>
   </div>
 </template>

@@ -16,7 +16,7 @@
  * driven explicitly when this row is used outside a `<TableRoot>`.
  */
 import { computed } from 'vue'
-import { useTableContext } from '../../core/context'
+import { useTableContext, useTableLabels } from '../../core/context'
 import { formatAggregate } from '../../core/aggregation'
 import type { BandEdge } from '../../core/columnGroups'
 import type { AggregateResult, ResolvedColumn, RowGroup } from '../../core/types'
@@ -63,6 +63,7 @@ const props = withDefaults(
 const emit = defineEmits<{ toggle: [key: string, collapsed: boolean] }>()
 
 const context = useTableContext()
+const labels = useTableLabels()
 
 const collapsed = computed(
   () => props.collapsed ?? context?.grouping?.isCollapsed(props.group.key) ?? false,
@@ -144,7 +145,11 @@ function toggle(): void {
         type="button"
         class="vt-group-toggle"
         :aria-expanded="!collapsed"
-        :aria-label="`${collapsed ? 'Expand' : 'Collapse'} ${columnLabel} ${group.label}`"
+        :aria-label="
+          collapsed
+            ? labels.expandGroup(columnLabel, group.label)
+            : labels.collapseGroup(columnLabel, group.label)
+        "
         @click="toggle"
       >
         <!--

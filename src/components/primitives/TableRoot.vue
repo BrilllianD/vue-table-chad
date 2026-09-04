@@ -22,7 +22,8 @@ import type {
   SelectionMode,
   SelectionState,
 } from '../../core/types'
-import { provideTableContext } from '../../core/context'
+import { provideTableContext, provideTableLabels } from '../../core/context'
+import type { TableLabels } from '../../core/labels'
 import { useTable } from '../../core/useTable'
 import type { TableState } from '../../core/useTableState'
 import type { ColumnLayoutState } from '../../core/useColumns'
@@ -91,6 +92,8 @@ const props = withDefaults(
     groupsCollapsed?: boolean
     /** Header text for the bucket holding rows with no value. */
     blankGroupLabel?: string
+    /** Wording for every string the table renders, over the English defaults. */
+    labels?: Partial<TableLabels>
     /** An editing session, from `useRowEditing`. Without one, cells are read-only. */
     editing?: UseRowEditing<TRow>
     /** A keyboard cell cursor: arrow keys move a focused cell. Off by default. */
@@ -145,6 +148,7 @@ const table = useTable<TRow>({
   groupMode: () => props.groupMode,
   groupsCollapsed: props.groupsCollapsed,
   blankGroupLabel: props.blankGroupLabel,
+  labels: () => props.labels,
   editing: () => props.editing,
   cellCursor: () => props.cellCursor,
   initialCursor: props.initialCursor,
@@ -155,6 +159,7 @@ const { state, columns, grouping, dnd, pagination, selection, cursor, headerRows
 const rows = table.rows
 
 provideTableContext(table)
+provideTableLabels(table.labels)
 
 /**
  * What the slot receives, built here rather than listed on the `<slot>` itself
@@ -173,6 +178,7 @@ provideTableContext(table)
  */
 const slotBindings = computed(() => ({
   rows: rows.value,
+  labels: table.labels.value,
   displayRows: grouping.displayRows.value,
   get overallAggregates() {
     return grouping.overallAggregates.value

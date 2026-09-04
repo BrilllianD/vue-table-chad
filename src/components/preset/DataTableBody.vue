@@ -25,6 +25,7 @@ import TableRow from '../primitives/TableRow.vue'
 import TableGroupRow from '../primitives/TableGroupRow.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
 import { INTERACTIVE_SELECTOR, isPlainLeftClick } from '../interactive'
+import { useTableLabels } from '../../core/context'
 import type {
   DataSource,
   DisplayRow,
@@ -113,6 +114,8 @@ const emit = defineEmits<{
    */
   'update:renderedRowIds': [ids: RowId[]]
 }>()
+
+const labels = useTableLabels()
 
 /**
  * What `VirtualBody` exposes, spelled out.
@@ -528,9 +531,9 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
         <td :colspan="columns.length + extraColumns">
           <slot name="error" :error="error" :refresh="source.refresh">
             <span class="vt-error">
-              Failed to load data.
+              {{ labels.loadFailed }}
               <button type="button" class="vt-btn vt-btn-link" @click="source.refresh()">
-                Retry
+                {{ labels.retry }}
               </button>
             </span>
           </slot>
@@ -658,7 +661,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               v-else-if="canEdit(row, column) && !cursor"
               type="button"
               class="vt-cell-trigger"
-              :aria-label="`Edit ${column.header ?? column.id}`"
+              :aria-label="labels.editCell(column.header ?? column.id)"
               @click="props.editing?.begin(row, column.id)"
             >
               <slot
@@ -714,7 +717,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
                   :disabled="rowState(row) === 'saving'"
                   @click="commitRow(row)"
                 >
-                  Save
+                  {{ labels.save }}
                 </button>
                 <button
                   type="button"
@@ -722,7 +725,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
                   :disabled="rowState(row) === 'saving'"
                   @click="props.editing.cancel(row)"
                 >
-                  Cancel
+                  {{ labels.cancel }}
                 </button>
                 <span
                   v-if="props.editing.errorFor(props.editing.getRowId(row))"

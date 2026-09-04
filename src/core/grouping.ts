@@ -6,6 +6,7 @@ import type {
   RowGroup,
   SortRule,
 } from './types'
+import { DEFAULT_LABELS } from './labels'
 import { readValue } from './sorting'
 import { facetKey, toFilterValue } from './utils/values'
 
@@ -22,8 +23,13 @@ import { facetKey, toFilterValue } from './utils/values'
 /** Separator for path keys — a control character cannot occur in `facetKey`. */
 const KEY_SEPARATOR = '\u001F'
 
-/** What a blank group is called when the column says nothing better. */
-export const BLANK_GROUP_LABEL = 'Blank'
+/**
+ * What a blank group is called when the column says nothing better.
+ *
+ * An alias onto the label record, so a table that translates its labels and a
+ * caller that imports this constant read the same word.
+ */
+export const BLANK_GROUP_LABEL = DEFAULT_LABELS.blankGroup
 
 /**
  * The key an empty group path produces — `groupPathKey([])` — and so the key

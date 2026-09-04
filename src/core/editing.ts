@@ -16,7 +16,8 @@
  *     rows are handed out by reference and a caller's `shallowRef` only notices
  *     a replacement.
  */
-import type { CellEditorKind, ColumnDataType, ColumnDef, RowId } from './types'
+import type { CellEditorKind, ColumnDef, RowId } from './types'
+import { DEFAULT_LABELS, type TableLabels } from './labels'
 import { isBlank, toBoolean, toIsoDate, toNumber } from './utils/values'
 
 /** Error messages by column id — the shape both validators and a rejected save produce. */
@@ -35,17 +36,13 @@ export interface DraftValidation<TRow> {
   nextRow: TRow | undefined
 }
 
-/** Shown when a cell holds something its column's `type` cannot read. */
-const PARSE_MESSAGES: Record<ColumnDataType, string> = {
-  text: 'Not valid text',
-  number: 'Not a number',
-  date: 'Not a date',
-  boolean: 'Not a yes or no',
-  enum: 'Not one of the options',
-}
-
-/** Shown when a `required` column is left blank. */
-export const REQUIRED_MESSAGE = 'Required'
+/**
+ * Shown when a `required` column is left blank.
+ *
+ * An alias onto the label record rather than a literal of its own, so the
+ * message a caller imports and the message a table renders cannot drift apart.
+ */
+export const REQUIRED_MESSAGE = DEFAULT_LABELS.required
 
 /**
  * Which control edits this column: its own `editor`, or one derived from
@@ -139,9 +136,10 @@ export function validateCell<TRow>(
   value: unknown,
   column: ColumnDef<TRow>,
   row: TRow,
+  labels: TableLabels = DEFAULT_LABELS,
 ): string | null {
-  if (value === undefined) return PARSE_MESSAGES[column.type ?? 'text']
-  if (column.required && isBlank(value)) return REQUIRED_MESSAGE
+  if (value === undefined) return labels.parse[column.type ?? 'text']
+  if (column.required && isBlank(value)) return labels.required
   if (
     column.type === 'enum' &&
     // A list that arrives in portions is never the complete set, so membership
@@ -154,7 +152,7 @@ export function validateCell<TRow>(
     !isBlank(value) &&
     !column.options.includes(value as never)
   ) {
-    return PARSE_MESSAGES.enum
+    return labels.parse.enum
   }
   return column.validate?.(value, row) ?? null
 }
@@ -217,11 +215,12 @@ export function validateDraft<TRow>(
   draft: Record<string, unknown>,
   columns: ColumnDef<TRow>[],
   rowValidate?: (next: TRow, draft: Record<string, unknown>) => CellErrors | string | null,
+  labels: TableLabels = DEFAULT_LABELS,
 ): DraftValidation<TRow> {
   const fields: CellErrors = {}
 
   for (const [columnId, value] of Object.entries(draft)) {
-    const message = validateCell(value, columnFor(columns, columnId), row)
+    const message = validateCell(value, columnFor(columns, columnId), row, labels)
     if (message) fields[columnId] = message
   }
 

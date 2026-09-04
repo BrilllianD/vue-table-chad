@@ -1,4 +1,4 @@
-import { inject, provide, type ComputedRef, type InjectionKey, type Ref } from 'vue'
+import { computed, inject, provide, type ComputedRef, type InjectionKey, type Ref } from 'vue'
 import type { ColumnDef, DataSource, DisplayRow, ResolvedColumn, RowId } from './types'
 import type { TableState } from './useTableState'
 import type { UseColumnsResult } from './useColumns'
@@ -7,6 +7,7 @@ import type { UseRowGrouping } from './useRowGrouping'
 import type { UseRowSelection } from './useRowSelection'
 import type { UseRowEditing } from './useRowEditing'
 import type { UsePagination } from './usePagination'
+import { DEFAULT_LABELS, type TableLabels } from './labels'
 
 /**
  * Everything a primitive can reach: state, columns, source, selection,
@@ -107,6 +108,33 @@ export function provideTableTheme(theme: Readonly<Ref<TableTheme>>): void {
  */
 export function useTableTheme(): Readonly<Ref<TableTheme>> | undefined {
   return inject(TableThemeKey, undefined)
+}
+
+/**
+ * The label record, published on its own key rather than as a field on
+ * `TableContext`, for the reason the theme is: a hand-built context has to
+ * satisfy that interface in full, and a caller assembling a table out of
+ * primitives should not have to hand over ~120 strings to render a pager.
+ */
+export const TableLabelsKey: InjectionKey<Readonly<Ref<TableLabels>>> = Symbol(
+  'vue-table-chad:labels',
+)
+
+/** Publishes the labels, so every primitive beneath reads the same wording. */
+export function provideTableLabels(labels: Readonly<Ref<TableLabels>>): void {
+  provide(TableLabelsKey, labels)
+}
+
+/**
+ * The labels a table above asked for, or the English defaults.
+ *
+ * Never `undefined`, unlike `useTableContext` — which is what keeps every
+ * primitive standalone: with no `<TableRoot>` above, a primitive still renders
+ * full English rather than blank buttons or a thrown error.
+ */
+export function useTableLabels(): ComputedRef<TableLabels> {
+  const injected = inject(TableLabelsKey, undefined)
+  return computed(() => injected?.value ?? DEFAULT_LABELS)
 }
 
 /**

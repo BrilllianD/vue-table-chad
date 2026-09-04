@@ -4,11 +4,12 @@
  * column that later got hidden or scrolled away is invisible and unexplainable.
  */
 import { computed } from 'vue'
-import { requireTableContext } from '../../core/context'
+import { requireTableContext, useTableLabels } from '../../core/context'
 import type { ColumnFilter } from '../../core/types'
-import { OPERATOR_LABELS, isUnaryOperator } from '../../core/filters/model'
+import { isUnaryOperator } from '../../core/filters/model'
 
 const context = requireTableContext('ActiveFilters')
+const labels = useTableLabels()
 
 const chips = computed(() =>
   context.state.activeFilterIds.value.map((columnId) => {
@@ -22,18 +23,21 @@ const chips = computed(() =>
 )
 
 function describe(filter: ColumnFilter): string {
+  const words = labels.value
   if (filter.kind === 'values') {
     const count = filter.include?.length ?? 0
-    if (count === 0) return filter.includeBlanks ? 'blanks only' : 'none'
+    if (count === 0) return filter.includeBlanks ? words.filterBlanksOnly : words.filterNone
     if (count <= 2) return filter.include!.map((v) => String(v)).join(', ')
-    return `${count} values`
+    return words.valueCount(count)
   }
   return filter.rules
     .map((rule) =>
       isUnaryOperator(rule.operator)
-        ? OPERATOR_LABELS[rule.operator]
-        : `${OPERATOR_LABELS[rule.operator]} ${rule.value}${
-            rule.value2 !== undefined && rule.value2 !== '' ? ` and ${rule.value2}` : ''
+        ? words.operators[rule.operator]
+        : `${words.operators[rule.operator]} ${rule.value}${
+            rule.value2 !== undefined && rule.value2 !== ''
+              ? ` ${words.conditionAnd} ${rule.value2}`
+              : ''
           }`,
     )
     .join(` ${filter.op} `)
@@ -46,21 +50,21 @@ function describe(filter: ColumnFilter): string {
       v-for="chip in chips"
       :key="chip.columnId"
       class="vt-chip"
-      :title="`${chip.label}: ${chip.summary}`"
+      :title="labels.filterChip(chip.label, chip.summary)"
     >
       <strong>{{ chip.label }}</strong>
       <span class="vt-chip-summary">{{ chip.summary }}</span>
       <button
         type="button"
         class="vt-chip-remove"
-        :aria-label="`Clear filter on ${chip.label}`"
+        :aria-label="labels.clearFilterOn(chip.label)"
         @click="context.state.clearFilter(chip.columnId)"
       >
         ×
       </button>
     </span>
     <button type="button" class="vt-btn vt-btn-link" @click="context.state.clearAllFilters()">
-      Clear all
+      {{ labels.clearAll }}
     </button>
   </div>
 </template>

@@ -6,13 +6,19 @@
  * the usual way to stop repeating the same value in every row of a band.
  */
 import { computed, ref } from 'vue'
-import { requireTableContext } from '../../core/context'
+import { requireTableContext, useTableLabels } from '../../core/context'
 import SelectionCheckbox from './SelectionCheckbox.vue'
 import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
 
-const props = withDefaults(defineProps<{ label?: string }>(), { label: 'Group by' })
+const props = defineProps<{
+  /** The trigger's text. Defaults to the table's `groupBy` label. */
+  label?: string
+}>()
 
 const context = requireTableContext('RowGroupMenu')
+const labels = useTableLabels()
+/** The prop wins; the record is only where its default comes from. */
+const triggerLabel = computed(() => props.label ?? labels.value.groupBy)
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
 
@@ -56,7 +62,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
         :aria-expanded="open"
         @click="open = !open"
       >
-        {{ props.label }}
+        {{ triggerLabel }}
         <span v-if="state.hasGrouping.value" class="vt-group-badge">{{
           state.groupBy.value.length
         }}</span>
@@ -72,7 +78,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
         type="button"
         class="vt-btn vt-btn-icon"
         :disabled="!state.hasGrouping.value"
-        aria-label="Expand all groups"
+        :aria-label="labels.expandAllGroups"
         @click="context.grouping?.expandAll()"
       >
         +
@@ -81,14 +87,14 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
         type="button"
         class="vt-btn vt-btn-icon"
         :disabled="!state.hasGrouping.value"
-        aria-label="Collapse all groups"
+        :aria-label="labels.collapseAllGroups"
         @click="context.grouping?.collapseAll()"
       >
         −
       </button>
     </div>
 
-    <div v-if="open" class="vt-group-panel" role="dialog" aria-label="Grouping options">
+    <div v-if="open" class="vt-group-panel" role="dialog" :aria-label="labels.groupingOptions">
       <!-- The actions lead, because the option list below grows with the column count. -->
       <div class="vt-group-actions">
         <button
@@ -97,7 +103,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           :disabled="!state.hasGrouping.value"
           @click="context.grouping?.expandAll()"
         >
-          Expand all
+          {{ labels.expandAll }}
         </button>
         <button
           type="button"
@@ -105,7 +111,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           :disabled="!state.hasGrouping.value"
           @click="context.grouping?.collapseAll()"
         >
-          Collapse all
+          {{ labels.collapseAll }}
         </button>
         <button
           type="button"
@@ -113,7 +119,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           :disabled="!state.hasGrouping.value"
           @click="state.clearGrouping()"
         >
-          Clear
+          {{ labels.clear }}
         </button>
       </div>
 
@@ -126,7 +132,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
             type="button"
             class="vt-btn vt-btn-icon"
             :disabled="index === 0"
-            aria-label="Move up a level"
+            :aria-label="labels.moveUpLevel"
             @click="move($event, level.columnId, -1)"
           >
             ↑
@@ -135,7 +141,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
             type="button"
             class="vt-btn vt-btn-icon"
             :disabled="index === levels.length - 1"
-            aria-label="Move down a level"
+            :aria-label="labels.moveDownLevel"
             @click="move($event, level.columnId, 1)"
           >
             ↓
@@ -143,7 +149,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           <button
             type="button"
             class="vt-btn vt-btn-icon"
-            :aria-label="`Stop grouping by ${level.label}`"
+            :aria-label="labels.stopGroupingBy(level.label)"
             @click="state.removeGroup(level.columnId)"
           >
             ×
@@ -155,7 +161,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
         <div v-for="column in candidates" :key="column.id" class="vt-group-option">
           <SelectionCheckbox
             :checked="state.isGrouped(column.id)"
-            :label="`Group by ${column.header ?? column.id}`"
+            :label="labels.groupByColumn(column.header ?? column.id)"
             @change="state.toggleGroup(column.id)"
           />
           <span class="vt-group-option-label">{{ column.header ?? column.id }}</span>

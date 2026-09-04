@@ -8,6 +8,7 @@ import type {
   ValuesFilter,
 } from '../types'
 import { UNARY_OPERATORS, BINARY_OPERATORS } from '../types'
+import { DEFAULT_LABELS } from '../labels'
 
 /**
  * Excel's checkbox list: which distinct values survive.
@@ -120,25 +121,13 @@ export function operatorsFor(type: ColumnDataType): ConditionOperator[] {
   }
 }
 
-/** Human-readable names for every operator. */
-export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
-  contains: 'contains',
-  notContains: 'does not contain',
-  startsWith: 'begins with',
-  endsWith: 'ends with',
-  eq: 'equals',
-  neq: 'does not equal',
-  empty: 'is empty',
-  notEmpty: 'is not empty',
-  gt: 'is greater than',
-  gte: 'is greater than or equal to',
-  lt: 'is less than',
-  lte: 'is less than or equal to',
-  between: 'is between',
-  on: 'is on',
-  before: 'is before',
-  after: 'is after',
-}
+/**
+ * Human-readable names for every operator.
+ *
+ * An alias onto the label record, so a table that translates its operators and
+ * a caller that imports this map cannot end up wording them differently.
+ */
+export const OPERATOR_LABELS: Record<ConditionOperator, string> = DEFAULT_LABELS.operators
 
 /** The operator a fresh rule on this type starts with. */
 export function defaultOperator(type: ColumnDataType): ConditionOperator {

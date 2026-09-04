@@ -31,7 +31,7 @@
  * `<TableRoot>` above it, and it ships no CSS.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { useTableTheme } from '../../core/context'
+import { useTableLabels, useTableTheme } from '../../core/context'
 import type { AsyncOption, AsyncOptionSource, FilterValue } from '../../core/types'
 import { useMenuDismiss } from './useMenuDismiss'
 import { usePopoverPosition } from './usePopoverPosition'
@@ -47,7 +47,7 @@ const props = withDefaults(
     error?: string | null
     /** Labels the control for assistive tech. */
     label?: string
-    /** Shown when nothing is chosen. */
+    /** Shown when nothing is chosen. Defaults to the table's `selectPlaceholder`. */
     placeholder?: string
     /** Offer a search box, which the source turns into a new first portion. */
     searchable?: boolean
@@ -68,7 +68,7 @@ const props = withDefaults(
     error: null,
     disabled: false,
     label: undefined,
-    placeholder: 'Select…',
+    placeholder: undefined,
     searchable: true,
     required: false,
     autofocus: false,
@@ -102,6 +102,10 @@ const activeIndex = ref(-1)
   be stamped on the wrapper for the same reason `.vt-portal` re-declares the
   palette at all. Inline it inherits normally and the attribute would be noise.
 */
+const labels = useTableLabels()
+/** The prop wins; the record is only where its default comes from. */
+const placeholderText = computed(() => props.placeholder ?? labels.value.selectPlaceholder)
+
 const theme = useTableTheme()
 const themeAttribute = computed(() =>
   !theme || theme.value === 'system' ? undefined : theme.value,
@@ -361,7 +365,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
       @click="open ? closePanel() : openPanel()"
       @keydown="onKeydown"
     >
-      {{ chosenLabel || placeholder }}
+      {{ chosenLabel || placeholderText }}
     </button>
 
     <!--
@@ -387,8 +391,8 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
           v-model="search"
           type="search"
           class="vt-asyncselect-search"
-          :placeholder="'Search…'"
-          :aria-label="label ? `Search ${label}` : 'Search'"
+          :placeholder="labels.search"
+          :aria-label="labels.searchIn(label)"
           :aria-controls="listId"
           :aria-activedescendant="activeIndex >= 0 ? optionId(activeIndex) : undefined"
           autocomplete="off"
@@ -436,13 +440,15 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             {{ option.label }}
           </li>
 
-          <li v-if="initialLoading" class="vt-asyncselect-status" role="status">Loading…</li>
+          <li v-if="initialLoading" class="vt-asyncselect-status" role="status">
+            {{ labels.loading }}
+          </li>
           <li
             v-else-if="options.length === 0 && !loadError"
             class="vt-asyncselect-status"
             role="status"
           >
-            No matching options
+            {{ labels.noMatchingOptions }}
           </li>
         </ul>
 
@@ -458,18 +464,20 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
           :disabled="loadingMore"
           @click="source.loadMore()"
         >
-          {{ loadingMore ? 'Loading…' : 'Load more' }}
+          {{ loadingMore ? labels.loading : labels.loadMore }}
         </button>
 
         <p v-if="loadError" class="vt-asyncselect-error" role="alert">
-          Could not load options.
+          {{ labels.optionsFailed }}
           <button type="button" class="vt-asyncselect-retry" @click="source.loadMore()">
-            Retry
+            {{ labels.retry }}
           </button>
         </p>
       </div>
     </Teleport>
 
-    <span v-if="loading && !open" class="vt-visually-hidden" role="status">Loading options</span>
+    <span v-if="loading && !open" class="vt-visually-hidden" role="status">
+      {{ labels.loadingOptions }}
+    </span>
   </span>
 </template>

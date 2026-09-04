@@ -7,7 +7,7 @@
  * wasted work, and pointless for a server source.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { useTableContext, useTableTheme } from '../../core/context'
+import { useTableContext, useTableLabels, useTableTheme } from '../../core/context'
 import type {
   ColumnDataType,
   ColumnFilter,
@@ -43,6 +43,7 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [filter: ColumnFilter | undefined] }>()
 
 const context = useTableContext()
+const labels = useTableLabels()
 
 /*
   Teleported, the panel is no longer under the table, so a forced theme has to
@@ -187,8 +188,8 @@ function onFocusOut(event: FocusEvent): void {
       class="vt-filter-trigger"
       :data-active="hasFilter || undefined"
       :aria-expanded="open"
-      :aria-label="`Filter ${label ?? columnId}`"
-      :title="hasFilter ? 'Filter applied — click to edit' : 'Filter'"
+      :aria-label="labels.filterColumn(label ?? columnId)"
+      :title="hasFilter ? labels.filterApplied : labels.filter"
       @click="open = !open"
     >
       <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
@@ -211,7 +212,7 @@ function onFocusOut(event: FocusEvent): void {
         :data-inline="!teleported || undefined"
         :style="panelStyle"
         role="dialog"
-        :aria-label="`Filter ${label ?? columnId}`"
+        :aria-label="labels.filterColumn(label ?? columnId)"
         @focusout="onFocusOut"
         @keydown.esc="open = false"
       >
@@ -224,7 +225,7 @@ function onFocusOut(event: FocusEvent): void {
           :aria-selected="tab === 'values'"
           @click="tab = 'values'"
         >
-          Values
+          {{ labels.filterValuesTab }}
         </button>
         <button
           type="button"
@@ -234,7 +235,7 @@ function onFocusOut(event: FocusEvent): void {
           :aria-selected="tab === 'conditions'"
           @click="tab = 'conditions'"
         >
-          Conditions
+          {{ labels.filterConditionsTab }}
         </button>
         <button
           v-if="hasFilter"
@@ -242,13 +243,15 @@ function onFocusOut(event: FocusEvent): void {
           class="vt-btn vt-btn-link vt-filter-clear"
           @click="clearFilter"
         >
-          Clear
+          {{ labels.clear }}
         </button>
       </div>
 
       <p v-if="facetError" class="vt-filter-error" role="alert">
-        Could not load filter values.
-        <button type="button" class="vt-btn vt-btn-link" @click="loadFacets()">Retry</button>
+        {{ labels.facetsFailed }}
+        <button type="button" class="vt-btn vt-btn-link" @click="loadFacets()">
+          {{ labels.retry }}
+        </button>
       </p>
 
       <ValueListFilter

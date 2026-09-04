@@ -118,6 +118,14 @@ export const docPages: DocPage[] = [
     section: 'Presentation',
   },
   {
+    file: 'labels.md',
+    title: 'Labels and i18n',
+    blurb:
+      'Overriding every string the table renders, the shapes that are functions rather than strings, and the spec that keeps new literals out.',
+    demoTabs: ['labels'],
+    section: 'Presentation',
+  },
+  {
     file: 'virtualization.md',
     title: 'Virtual rows',
     blurb: 'Windowing a fixed-height list, and the whole-result-set caveat over a server source.',

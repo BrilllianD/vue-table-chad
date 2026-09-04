@@ -18,6 +18,7 @@ import TableHeaderGroupCell from '../primitives/TableHeaderGroupCell.vue'
 import ColumnFilterPopover from '../primitives/ColumnFilterPopover.vue'
 import ColumnResizeHandle from '../primitives/ColumnResizeHandle.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
+import { useTableLabels } from '../../core/context'
 import type { HeaderRow, SelectionMode } from '../../core/types'
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseCellCursor } from '../../core/useCellCursor'
@@ -58,6 +59,8 @@ defineProps<{
    */
   numbered?: boolean
 }>()
+
+const labels = useTableLabels()
 </script>
 
 <template>
@@ -77,7 +80,7 @@ defineProps<{
           v-if="selection && selectionMode !== 'single'"
           :checked="selection.headerState.value === 'all'"
           :indeterminate="selection.headerState.value === 'some'"
-          label="Select all rows on this page"
+          :label="labels.selectAllOnPage"
           @change="selection.toggleAllOnPage()"
         />
       </th>
@@ -119,9 +122,11 @@ defineProps<{
               type="button"
               class="vt-th-fold"
               :aria-expanded="!grouping?.isColumnCollapsed(cell.column.id)"
-              :aria-label="`${
-                grouping?.isColumnCollapsed(cell.column.id) ? 'Expand' : 'Collapse'
-              } all ${cell.column.header ?? cell.column.id} groups`"
+              :aria-label="
+                grouping?.isColumnCollapsed(cell.column.id)
+                  ? labels.expandColumnGroups(cell.column.header ?? cell.column.id)
+                  : labels.collapseColumnGroups(cell.column.header ?? cell.column.id)
+              "
               @click="cellProps.fold()"
             >
               <span class="vt-group-caret" aria-hidden="true">▸</span>
@@ -161,7 +166,7 @@ defineProps<{
         scope="col"
         :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
       >
-        <span class="vt-visually-hidden">Row actions</span>
+        <span class="vt-visually-hidden">{{ labels.rowActions }}</span>
       </th>
     </tr>
   </thead>

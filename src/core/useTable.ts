@@ -13,6 +13,7 @@ import type {
   SelectionMode,
 } from './types'
 import type { TableContext } from './context'
+import { mergeLabels, type TableLabels } from './labels'
 import { useTableState, type TableState } from './useTableState'
 import { useColumns, type ColumnLayoutState } from './useColumns'
 import { devChecksEnabled, devWarn } from './devWarn'
@@ -123,8 +124,18 @@ export interface UseTableOptions<TRow> {
   groupMode?: () => GroupMode | undefined
   /** Renders every group folded shut until the user opens it. */
   groupsCollapsed?: boolean
-  /** Header text for the bucket holding rows with no value. */
+  /**
+   * Header text for the bucket holding rows with no value. Defaults to
+   * `labels.blankGroup`, and outranks it when both are given.
+   */
   blankGroupLabel?: string
+  /**
+   * Wording for every string the table renders, over the English defaults.
+   *
+   * A getter, like `columns` and `source`, so switching locale re-renders the
+   * table rather than needing it remounted. Only the keys given are replaced.
+   */
+  labels?: () => Partial<TableLabels> | undefined
   /**
    * An editing session, from `useRowEditing`. Passed in rather than built
    * here, unlike selection: editing carries a `save`, a `validate`, an `apply`
@@ -187,6 +198,16 @@ export interface UseTable<TRow> extends TableContext<TRow> {
    * the table.
    */
   getRowKey: (row: TRow, index: number) => RowId
+  /**
+   * The merged label record — the caller's overrides over the defaults.
+   *
+   * On the return rather than on `TableContext` for the reason the theme is
+   * published on its own key: a hand-built context must satisfy that interface
+   * in full, and a full label record is not something a caller assembling
+   * primitives should have to produce. `<TableRoot>` publishes this with
+   * `provideTableLabels`; a hand-built table can too.
+   */
+  labels: ComputedRef<TableLabels>
 }
 
 /**
@@ -218,6 +239,14 @@ export interface UseTable<TRow> extends TableContext<TRow> {
 export function useTable<TRow>(
   options: UseTableOptions<TRow>,
 ): UseTable<TRow> {
+  /**
+   * The wording, merged once. Nothing downstream of the pipeline reads it, with
+   * one deliberate exception: the blank-group label is part of a group's own
+   * header text, so translating it does re-derive the group tree. That is work
+   * that was asked for, not an accident of where the record sits.
+   */
+  const labels = computed(() => mergeLabels(options.labels?.()))
+
   /** The three defaulted options, read through one place each. */
   const selectableOf = (): boolean | SelectionMode => options.selectable?.() ?? false
   const cursorEnabled = (): boolean => options.cellCursor?.() ?? false
@@ -372,7 +401,7 @@ export function useTable<TRow>(
           ? options.source().groupAggregates?.(state.groupBy.value)
           : undefined,
       collapsedByDefault: options.groupsCollapsed,
-      blankLabel: options.blankGroupLabel,
+      blankLabel: options.blankGroupLabel ?? labels.value.blankGroup,
     },
   )
 
@@ -666,6 +695,7 @@ export function useTable<TRow>(
   }
 
   return {
+    labels,
     state: pagedState,
     columns,
     // A getter, so swapping the source (local ⇄ server) reaches everyone holding

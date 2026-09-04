@@ -133,6 +133,7 @@ pages are also a VitePress site — `pnpm docs:dev` serves it locally, `pnpm doc
 | [Column layout](docs/column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. | Column layout |
 | [Header bands](docs/column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. | Header bands |
 | [Styling](docs/styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. | Theming |
+| [Labels and i18n](docs/labels.md) | Overriding every string the table renders, the shapes that are functions rather than strings, and the spec that keeps new literals out. | Labels |
 | [Virtual rows](docs/virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. | Virtual rows |
 | [Composing your own](docs/composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. | Composed, Hoisted state |
 | [Performance](docs/performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. | Performance |
@@ -155,8 +156,7 @@ turned out not to be worth it, [`TASKS.md`](TASKS.md) for what is planned and wh
 Tree rows (parent/child hierarchies, as opposed to the value-based grouping in
 [Grouping rows](docs/grouping.md)), expandable detail rows, pinned rows, pivoting, and CSV export
 (cell-level clipboard copy and paste *is* in — see
-[Keyboard navigation](docs/keyboard.md)). Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer. There is no
-i18n either: around 35 English strings are hardcoded across the components, `aria-label`s included.
+[Keyboard navigation](docs/keyboard.md)). Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer.
 
 Row virtualization has since landed — see [Virtual rows](docs/virtualization.md). Rows are taken
 to be one height unless `measure-rows` is on, which measures each rendered row at the cost of a

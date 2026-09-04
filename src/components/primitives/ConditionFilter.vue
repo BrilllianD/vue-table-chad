@@ -4,9 +4,9 @@
  * Offers only the operators that make sense for the column's data type.
  */
 import { computed, ref, watch } from 'vue'
+import { useTableLabels } from '../../core/context'
 import type { ColumnDataType, ConditionRule, ConditionsFilter } from '../../core/types'
 import {
-  OPERATOR_LABELS,
   conditionsFilter,
   defaultOperator,
   isBinaryOperator,
@@ -22,6 +22,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [filter: ConditionsFilter | undefined] }>()
 
+const labels = useTableLabels()
 const rules = ref<ConditionRule[]>([])
 const op = ref<'and' | 'or'>('and')
 
@@ -76,16 +77,18 @@ defineExpose({ apply, clear })
         v-if="index > 0"
         v-model="op"
         class="vt-condition-op"
-        aria-label="Combine conditions with"
+        :aria-label="labels.combineConditions"
       >
-        <option value="and">And</option>
-        <option value="or">Or</option>
+        <option value="and">{{ labels.conjunctionAnd }}</option>
+        <option value="or">{{ labels.conjunctionOr }}</option>
       </select>
-      <span v-else class="vt-condition-op vt-condition-op-first">Where</span>
+      <span v-else class="vt-condition-op vt-condition-op-first">
+        {{ labels.conditionWhere }}
+      </span>
 
-      <select v-model="rule.operator" class="vt-condition-operator" aria-label="Operator">
+      <select v-model="rule.operator" class="vt-condition-operator" :aria-label="labels.operator">
         <option v-for="operator in operators" :key="operator" :value="operator">
-          {{ OPERATOR_LABELS[operator] }}
+          {{ labels.operators[operator] }}
         </option>
       </select>
 
@@ -94,16 +97,16 @@ defineExpose({ apply, clear })
           v-model="rule.value"
           :type="inputType"
           class="vt-condition-value"
-          placeholder="Value"
-          aria-label="Value"
+          :placeholder="labels.conditionValue"
+          :aria-label="labels.conditionValue"
         />
         <input
           v-if="isBinaryOperator(rule.operator)"
           v-model="rule.value2"
           :type="inputType"
           class="vt-condition-value"
-          placeholder="and"
-          aria-label="Second value"
+          :placeholder="labels.conditionSecondValuePlaceholder"
+          :aria-label="labels.conditionSecondValue"
         />
       </template>
 
@@ -111,7 +114,7 @@ defineExpose({ apply, clear })
         v-if="rules.length > 1"
         type="button"
         class="vt-btn vt-btn-icon"
-        aria-label="Remove condition"
+        :aria-label="labels.removeCondition"
         @click="removeRule(index)"
       >
         ×
@@ -119,12 +122,14 @@ defineExpose({ apply, clear })
     </div>
 
     <button v-if="canAdd" type="button" class="vt-btn vt-btn-link" @click="addRule">
-      + Add condition
+      + {{ labels.addCondition }}
     </button>
 
     <div class="vt-valuelist-actions">
-      <button type="button" class="vt-btn" @click="clear">Clear</button>
-      <button type="button" class="vt-btn vt-btn-primary" @click="apply">Apply</button>
+      <button type="button" class="vt-btn" @click="clear">{{ labels.clear }}</button>
+      <button type="button" class="vt-btn vt-btn-primary" @click="apply">
+        {{ labels.apply }}
+      </button>
     </div>
   </div>
 </template>

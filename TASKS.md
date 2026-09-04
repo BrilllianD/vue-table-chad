@@ -68,22 +68,7 @@ ignore the pipeline.
 
 ## To Work
 
-Agreed and next up, in the order they are meant to land. F5 goes first because F11's announcements
-read through its labels.
-
-### `[ ]` F5 — Label overrides (i18n)
-
-Around 35 user-facing English strings are hardcoded across `primitives/` and `preset/` — 30
-distinct `aria-label`s plus the visible handful (`"Search…"`, `"Select all rows on this page"`,
-`"No matching values"`, the pager's labels). Add `src/core/labels.ts` with a typed `TableLabels`
-record and `DEFAULT_LABELS`; entries that carry a number are functions (`selectedCount(n)`).
-`useTable` takes `labels: Partial<TableLabels>` and `DataTable` forwards it as a prop; the record
-rides on the table context, and a `useTableLabels()` falls back to the defaults so every primitive
-still renders standalone. A source-grep spec in the style of `tests/presetStyles.spec.ts` fails on
-any new user-facing literal in either directory, so the record cannot drift behind the components.
-
-**Done when:** every string routes through the record, the grep spec is green, a docs page shows a
-non-English override end to end, and the README's i18n caveat is gone.
+Agreed and next up, in the order they are meant to land.
 
 ### `[ ]` F4 — Export the result set (CSV / TSV)
 
@@ -129,7 +114,7 @@ explicit props, and a spec covers dismissal and the keyboard open.
 Phase 2 landed only the `aria-rowcount` / `aria-rowindex` floor that virtualization required. Add
 `aria-colindex` on every cell, `aria-selected` on selected rows, and a polite live region that
 announces the cursor cell ("Salary, row 12 of 200") and a sort change. The announcement text goes
-through F5's labels. One spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
+through the label record (`src/core/labels.ts`), as new keys on it rather than as literals. One spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
 
 **Done when:** the axe spec is green with no rule disabled, the announcements read correctly in the
 demo under a screen reader, and `docs/keyboard.md` has an accessibility section.

@@ -38,6 +38,7 @@ import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import { provideTableTheme, type TableTheme } from '../../core/context'
+import { mergeLabels, type TableLabels } from '../../core/labels'
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseColumnsResult } from '../../core/useColumns'
 import TableRoot from '../primitives/TableRoot.vue'
@@ -162,7 +163,7 @@ const props = withDefaults(
      * declaring an aggregate should not add a row nobody asked for.
      */
     showFooter?: boolean
-    /** Text for the footer's leading cell. */
+    /** Text for the footer's leading cell. Defaults to the `footerLabel` label. */
     footerLabel?: string
     /**
      * Vertical rules between every pair of columns, header and body alike.
@@ -205,9 +206,21 @@ const props = withDefaults(
      * would otherwise be left behind under the OS setting.
      */
     theme?: TableTheme
+    /** Text shown when nothing matched. Defaults to the `emptyMessage` label. */
     emptyMessage?: string
-    /** Text shown beside the spinner while the source is fetching. */
+    /**
+     * Text shown beside the spinner while the source is fetching. Defaults to
+     * the `loading` label.
+     */
     loadingMessage?: string
+    /**
+     * Wording for every string the table renders, over the English defaults.
+     *
+     * Forwarded to `<TableRoot>`, which publishes it for the primitives; this
+     * component reads the same record for the toolbar and the banner it renders
+     * itself. The three message props above win over it where both are given.
+     */
+    labels?: Partial<TableLabels>
     /**
      * An editing session from `useRowEditing`. Without one every cell renders
      * read-only, and the table costs exactly what it always did.
@@ -261,7 +274,7 @@ const props = withDefaults(
     measureRows: false,
     endThreshold: 0,
     showFooter: false,
-    footerLabel: 'Total',
+    footerLabel: undefined,
     showToolbar: true,
     showSearch: true,
     showColumnsMenu: true,
@@ -269,8 +282,9 @@ const props = withDefaults(
     showPagination: true,
     stickyHeader: true,
     theme: 'system',
-    emptyMessage: 'No rows match the current filters.',
-    loadingMessage: 'Loading…',
+    emptyMessage: undefined,
+    loadingMessage: undefined,
+    labels: undefined,
   },
 )
 
@@ -338,6 +352,27 @@ const themeAttribute = computed(() => (props.theme === 'system' ? undefined : pr
   table's edge and the filter popover would open in the OS's colours.
 */
 provideTableTheme(computed(() => props.theme))
+
+/*
+  The same record `<TableRoot>` publishes below, merged a second time here.
+
+  Not injected: this component is `TableRoot`'s *parent*, so it sits above the
+  `provide` and could never see it. The toolbar, the select-all banner and the
+  three message props are rendered by this component rather than by a primitive,
+  so they read the merge directly. `mergeLabels` is pure, and both calls are
+  computeds over the same prop, so the second costs one object per change of
+  wording rather than one per render.
+*/
+const words = computed(() => mergeLabels(props.labels))
+
+/*
+  The three message props, resolved against the record. Each prop still wins
+  where it is given: a caller who passed `emptyMessage` before this existed must
+  keep seeing it, whatever the record says.
+*/
+const footerText = computed(() => props.footerLabel ?? words.value.footerLabel)
+const emptyText = computed(() => props.emptyMessage ?? words.value.emptyMessage)
+const loadingText = computed(() => props.loadingMessage ?? words.value.loading)
 
 /**
  * The two rule widths, as inline custom properties on `.vt-datatable`.
@@ -933,6 +968,7 @@ function onPaste(
     :group-mode="groupMode"
     :groups-collapsed="groupsCollapsed"
     :blank-group-label="blankGroupLabel"
+    :labels="labels"
     :editing="editing"
     :cell-cursor="cellCursor"
     :initial-cursor="initialCursor"
@@ -958,7 +994,7 @@ function onPaste(
         is what the previous `role="status"` on the `v-if`'d overlay was doing.
       -->
       <span class="vt-visually-hidden" role="status" aria-live="polite">
-        {{ loading ? loadingMessage : '' }}
+        {{ loading ? loadingText : '' }}
       </span>
 
       <div v-if="showToolbar" class="vt-toolbar">
@@ -967,15 +1003,15 @@ function onPaste(
             v-if="showSearch"
             class="vt-search"
             type="search"
-            placeholder="Search…"
+            :placeholder="words.search"
             :value="tableState.globalSearch.value"
-            aria-label="Search all columns"
+            :aria-label="words.searchAllColumns"
             @input="tableState.setSearch(($event.target as HTMLInputElement).value)"
           />
           <span v-if="selection && !selection.isEmpty.value" class="vt-selection-summary">
-            {{ selection.count.value }} selected
+            {{ words.selectedCount(selection.count.value) }}
             <button type="button" class="vt-btn vt-btn-link" @click="selection.clear()">
-              Clear
+              {{ words.clear }}
             </button>
           </span>
           <span class="vt-toolbar-spacer" />
@@ -995,15 +1031,15 @@ function onPaste(
         class="vt-selectall-banner"
       >
         <template v-if="selection.isAllMatching.value">
-          All {{ selection.count.value }} rows matching the current filters are selected.
+          {{ words.allMatchingSelected(selection.count.value) }}
           <button type="button" class="vt-btn vt-btn-link" @click="selection.clear()">
-            Clear selection
+            {{ words.clearSelection }}
           </button>
         </template>
         <template v-else>
-          All {{ rows.length }} rows on this page are selected.
+          {{ words.allOnPageSelected(rows.length) }}
           <button type="button" class="vt-btn vt-btn-link" @click="selection.selectAllMatching()">
-            Select all {{ total }} matching rows
+            {{ words.selectAllMatching(total) }}
           </button>
         </template>
       </div>
@@ -1111,7 +1147,7 @@ function onPaste(
               :seeded-cell="seededCell"
               :actions-column="actionsColumn"
               :extra-columns="extraColumns"
-              :empty-message="emptyMessage"
+              :empty-message="emptyText"
               @row-click="(row, event) => $emit('rowClick', row, event)"
               @row-saved="(row) => $emit('rowSaved', row)"
               @row-save-error="(row, err) => $emit('rowSaveError', row, err)"
@@ -1149,7 +1185,7 @@ function onPaste(
               :band-edges="bandEdges"
               :aggregates="grouping.overallAggregates.value"
               :hover-column-id="hoverColumnId"
-              :label="footerLabel"
+              :label="footerText"
               :selectable="selectable"
               :actions-column="actionsColumn"
             >
@@ -1168,7 +1204,7 @@ function onPaste(
                 real text now, so an `aria-label` here would be read twice.
               -->
               <span class="vt-spinner" aria-hidden="true" />
-              {{ loadingMessage }}
+              {{ loadingText }}
             </span>
           </slot>
         </div>

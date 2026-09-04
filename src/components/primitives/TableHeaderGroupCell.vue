@@ -12,7 +12,7 @@
  * down and rebuilt by the very reorder that split the band in two.
  */
 import { computed } from 'vue'
-import { useTableContext } from '../../core/context'
+import { useTableContext, useTableLabels } from '../../core/context'
 import { paintBandEdge, type BandEdge } from '../../core/columnGroups'
 import type { HeaderGroupCell } from '../../core/types'
 
@@ -41,6 +41,7 @@ const props = withDefaults(
 const emit = defineEmits<{ toggle: [groupId: string, collapsed: boolean] }>()
 
 const context = useTableContext<TRow>()
+const labels = useTableLabels()
 
 const label = computed(() => props.cell.group.header ?? props.cell.group.id)
 
@@ -156,7 +157,7 @@ function onClick(event: MouseEvent): void {
           type="button"
           class="vt-th-group-toggle"
           :aria-expanded="!collapsed"
-          :aria-label="`${collapsed ? 'Expand' : 'Collapse'} ${label} columns`"
+          :aria-label="collapsed ? labels.expandBand(label) : labels.collapseBand(label)"
           @click="toggle"
         >
           <span class="vt-group-caret" aria-hidden="true">▸</span>

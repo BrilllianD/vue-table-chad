@@ -4,14 +4,20 @@
  * button-driven rather than drag-only so it stays keyboard-accessible.
  */
 import { computed, ref } from 'vue'
-import { requireTableContext } from '../../core/context'
+import { requireTableContext, useTableLabels } from '../../core/context'
 import type { PinSide } from '../../core/types'
 import SelectionCheckbox from './SelectionCheckbox.vue'
 import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
 
-const props = withDefaults(defineProps<{ label?: string }>(), { label: 'Columns' })
+const props = defineProps<{
+  /** The trigger's text. Defaults to the table's `columns` label. */
+  label?: string
+}>()
 
 const context = requireTableContext('ColumnVisibilityMenu')
+const labels = useTableLabels()
+/** The prop wins; the record is only where its default comes from. */
+const triggerLabel = computed(() => props.label ?? labels.value.columns)
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
 
@@ -45,17 +51,17 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
 <template>
   <div ref="root" class="vt-columns-menu" @focusout="onFocusOut" @keydown.esc="open = false">
     <button type="button" class="vt-btn" :aria-expanded="open" @click="open = !open">
-      {{ props.label }} ▾
+      {{ triggerLabel }} ▾
     </button>
 
-    <div v-if="open" class="vt-columns-panel" role="dialog" aria-label="Column options">
+    <div v-if="open" class="vt-columns-panel" role="dialog" :aria-label="labels.columnOptions">
       <!-- The actions lead, because the row list below grows with the column count. -->
       <div class="vt-columns-actions">
         <button type="button" class="vt-btn vt-btn-link" @click="context.columns.showAll()">
-          Show all
+          {{ labels.showAll }}
         </button>
         <button type="button" class="vt-btn vt-btn-link" @click="context.columns.resetLayout()">
-          Reset layout
+          {{ labels.resetLayout }}
         </button>
       </div>
 
@@ -63,7 +69,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
         <SelectionCheckbox
           :checked="column.visible"
           :disabled="!canHide(column.id)"
-          :label="`Show ${column.header ?? column.id}`"
+          :label="labels.showColumn(column.header ?? column.id)"
           @change="context.columns.toggleVisibility(column.id)"
         />
         <span class="vt-columns-label">{{ column.header ?? column.id }}</span>
@@ -72,7 +78,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           type="button"
           class="vt-btn vt-btn-icon"
           :disabled="index === 0"
-          aria-label="Move up"
+          :aria-label="labels.moveUp"
           @click="move($event, column.id, -1)"
         >
           ↑
@@ -81,7 +87,7 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           type="button"
           class="vt-btn vt-btn-icon"
           :disabled="index === columns.length - 1"
-          aria-label="Move down"
+          :aria-label="labels.moveDown"
           @click="move($event, column.id, 1)"
         >
           ↓
@@ -90,8 +96,8 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
           type="button"
           class="vt-btn vt-btn-icon"
           :data-active="!!column.pinned || undefined"
-          :title="`Pin: ${column.pinned || 'none'}`"
-          :aria-label="`Pin ${column.header ?? column.id}`"
+          :title="labels.pinState(column.pinned || 'none')"
+          :aria-label="labels.pinColumn(column.header ?? column.id)"
           @click="cyclePin(column.id, column.pinned)"
         >
           {{ column.pinned === 'left' ? '⇤' : column.pinned === 'right' ? '⇥' : '⇔' }}

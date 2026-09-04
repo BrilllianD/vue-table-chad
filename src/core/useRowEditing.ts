@@ -15,14 +15,20 @@ import {
   validateDraft,
   type CellErrors,
 } from './editing'
+import { DEFAULT_LABELS, mergeLabels, type TableLabels } from './labels'
 import { readValue } from './sorting'
 import { defaultRowId } from './useRowSelection'
 
 /** `'cell'` commits each field on its own; `'row'` commits a whole draft at once. */
 export type EditMode = 'cell' | 'row'
 
-/** Shown when a save rejected with nothing that could be turned into a message. */
-export const SAVE_FAILED_MESSAGE = 'Could not save'
+/**
+ * Shown when a save rejected with nothing that could be turned into a message.
+ *
+ * An alias onto the label record for the reason `REQUIRED_MESSAGE` is one: the
+ * message a caller imports and the one a table renders must not drift apart.
+ */
+export const SAVE_FAILED_MESSAGE = DEFAULT_LABELS.saveFailed
 
 /** What a `save` receives: the row, what changed, what it would become. */
 export interface RowChange<TRow> {
@@ -110,6 +116,15 @@ export interface UseRowEditingOptions<TRow> {
   apply?: (next: TRow, previous: TRow) => void
   /** Turns a rejection into messages. Defaults to reading `error.fields` and `error.message`. */
   mapError?: (error: unknown) => RowSaveFailure
+  /**
+   * Wording for the messages this session produces — the parse and required
+   * messages and the fallback for a save that rejected with nothing to say.
+   *
+   * Taken here rather than from the table because a session is built before
+   * one and handed in: `useTable` never sees this composable's inputs. Pass the
+   * same override both places to keep a locale in one piece.
+   */
+  labels?: MaybeRefOrGetter<Partial<TableLabels> | undefined>
   onSaved?: (row: TRow) => void
   onError?: (error: unknown, row: TRow) => void
 }
@@ -194,6 +209,7 @@ export function useRowEditing<TRow>(
   const mapError = options.mapError ?? defaultMapError
   const apply = options.apply ?? (() => source.refresh())
   const columnsOf = () => toValue(columns) ?? []
+  const labels = computed(() => mergeLabels(toValue(options.labels)))
 
   /**
    * `shallowRef` around a Map of `reactive` states, and the split is the whole
@@ -343,7 +359,7 @@ export function useRowEditing<TRow>(
       return true
     }
 
-    const result = validateDraft(row, patch, columnsOf(), options.validate)
+    const result = validateDraft(row, patch, columnsOf(), options.validate, labels.value)
     state.errors = result.fields
     state.error = result.error
     if (!result.nextRow) {
@@ -384,7 +400,7 @@ export function useRowEditing<TRow>(
       const fields = failure.fields ?? {}
       state.errors = fields
       state.error =
-        failure.message ?? (Object.keys(fields).length > 0 ? null : SAVE_FAILED_MESSAGE)
+        failure.message ?? (Object.keys(fields).length > 0 ? null : labels.value.saveFailed)
       state.status = 'error'
       options.onError?.(caught, row)
       return false

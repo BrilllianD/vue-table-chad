@@ -129,8 +129,14 @@ export const apiReference: ApiEntry[] = [
   { name: 'useTableContext', layer: 'core', kind: 'composable', summary: 'The table context, or `undefined` — which is what lets a primitive work standalone.' },
   { name: 'requireTableContext', layer: 'core', kind: 'function', summary: 'The context, or a thrown error, for the primitives that genuinely need one.' },
   { name: 'TableContextKey', layer: 'core', kind: 'constant', summary: 'The injection key, exported so you can provide a context by hand.' },
+  { name: 'provideTableLabels', layer: 'core', kind: 'function', summary: 'Publishes the labels, so every primitive beneath reads the same wording.' },
+  { name: 'useTableLabels', layer: 'core', kind: 'composable', summary: 'The labels a table above asked for, or the English defaults.' },
   { name: 'TableContext', layer: 'core', kind: 'type', summary: 'Everything a primitive can reach: state, columns, source, selection, grouping, cell readers.' },
   { name: 'TableTheme', layer: 'core', kind: 'type', summary: 'A palette a table asks for outright, rather than following the OS.' },
+
+  { name: 'DEFAULT_LABELS', layer: 'core', kind: 'constant', summary: 'The English every table renders unless it is handed something else.' },
+  { name: 'mergeLabels', layer: 'core', kind: 'function', summary: '`DEFAULT_LABELS` with an override laid over it.' },
+  { name: 'TableLabels', layer: 'core', kind: 'type', summary: 'The strings a table renders, overridable per table.' },
 
   { name: 'defineTheme', layer: 'core', kind: 'function', summary: 'Turns a `Theme` into the custom properties that carry it, ready to bind.' },
   { name: 'Theme', layer: 'core', kind: 'type', summary: "A theme: any subset of the preset's tokens, camelCased." },

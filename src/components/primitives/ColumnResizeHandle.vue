@@ -7,7 +7,7 @@
  * the handle — without it, a fast drag drops the column mid-resize.
  */
 import { ref } from 'vue'
-import { useTableContext } from '../../core/context'
+import { useTableContext, useTableLabels } from '../../core/context'
 
 const props = defineProps<{
   columnId: string
@@ -23,6 +23,7 @@ const props = defineProps<{
 const emit = defineEmits<{ resize: [columnId: string, width: number] }>()
 
 const context = useTableContext()
+const labels = useTableLabels()
 const dragging = ref(false)
 
 let startX = 0
@@ -105,7 +106,7 @@ function onKeydown(event: KeyboardEvent): void {
     role="separator"
     tabindex="0"
     aria-orientation="vertical"
-    :aria-label="`Resize column ${columnId}`"
+    :aria-label="labels.resizeColumn(columnId)"
     :data-dragging="dragging || undefined"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
