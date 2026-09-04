@@ -40,6 +40,11 @@ interface Budget {
 const BUDGETS: Budget[] = [
   { file: 'dist/vue-table-chad.js', budgetKb: 63, measuredKb: 44.3 },
   { file: 'dist/vue-table-chad.css', budgetKb: 7.5, measuredKb: 4.9 },
+  // Its own entry point, so its own line: four complete locales are ~5.7 kB of
+  // strings that a consumer importing none never downloads. The budget has
+  // room for roughly two more languages before it wants revisiting, which is
+  // the decision it exists to force.
+  { file: 'dist/locales.js', budgetKb: 9, measuredKb: 5.5 },
 ]
 
 const KB = 1024

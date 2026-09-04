@@ -33,9 +33,10 @@ make pack          # build + size check + npm pack -> brillliand-vue-table-chad-
 pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.3.2.tgz
 ```
 
-`files: ["dist"]` means the tarball is `dist/` plus `README.md` and `LICENSE` — six files, no
-source: one JS bundle, one stylesheet, and one rolled-up `index.d.ts`. Rebuild and re-pack after
-every change; `pnpm add` on the same path again picks it up.
+`files: ["dist"]` means the tarball is `dist/` plus `README.md` and `LICENSE` — eight files, no
+source: one JS bundle with its rolled-up `vue-table-chad.d.ts`, one stylesheet, and the `locales`
+entry point with declarations of its own. Rebuild and re-pack after every change; `pnpm add` on the
+same path again picks it up.
 
 For live development against both at once, a workspace link is less friction:
 
@@ -518,7 +519,7 @@ Every page below has a matching view in `pnpm demo`, where the same thing runs a
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |
 | [Header bands](column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. |
 | [Styling](styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. |
-| [Labels and i18n](labels.md) | Overriding every string the table renders, the shapes that are functions rather than strings, and the spec that keeps new literals out. |
+| [Labels and i18n](labels.md) | The four shipped locales, overriding every string the table renders, and the spec that keeps new literals out. |
 | [Virtual rows](virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. |
 | [Composing your own](composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. |
 | [Performance](performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. |

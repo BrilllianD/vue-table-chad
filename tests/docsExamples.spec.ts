@@ -29,7 +29,16 @@ const LIVE_DIR = resolve(ROOT, 'docs/.vitepress/examples')
 const LONG_FORM_DIR = resolve(ROOT, 'docs/examples')
 const EXEMPT = new Set(['AddressesTable.vue'])
 
-const ALLOWED_SOURCES = new Set(['vue', '@brillliand/vue-table-chad', '@brillliand/vue-table-chad/style.css'])
+// The three specifiers the package's own `exports` map answers, and nothing
+// else. The `locales` subpath is on the list for the same reason `style.css`
+// is: it ships in the tarball, so pasting an example that imports it works in
+// the reader's project unchanged.
+const ALLOWED_SOURCES = new Set([
+  'vue',
+  '@brillliand/vue-table-chad',
+  '@brillliand/vue-table-chad/style.css',
+  '@brillliand/vue-table-chad/locales',
+])
 
 function vueFiles(dir: string): string[] {
   return readdirSync(dir)

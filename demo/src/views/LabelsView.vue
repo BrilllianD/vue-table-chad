@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Every string the table renders, in one overridable record.
+ * Every string the table renders, in one overridable record — four complete
+ * locales shipped, and a hand-written partial beside them.
  *
  * Two things are worth watching as the locale flips. The table below takes the
  * record as a prop, so its toolbar, its pager, its filter panels and its
@@ -9,9 +10,10 @@
  * all: it reads the same record out of `provideTableLabels`, which is how a
  * hand-assembled table gets translated without a preset in sight.
  *
- * A locale is a `Partial`, never a whole record. `mergeLabels` fills the rest
- * from `DEFAULT_LABELS`, so a half-finished translation renders half in English
- * rather than rendering `undefined`.
+ * The prop takes either shape. A shipped locale is a whole `TableLabels` and
+ * has nothing to fall back to; a hand-written `Partial` is filled in from
+ * `DEFAULT_LABELS` by `mergeLabels`, so what it leaves out renders in English
+ * rather than as `undefined`.
  */
 import { computed, ref, shallowRef } from 'vue'
 import {
@@ -26,6 +28,7 @@ import {
   type TableLabels,
   type TableState,
 } from '@brillliand/vue-table-chad'
+import { es, ja, ru, zhCN } from '@brillliand/vue-table-chad/locales'
 import { employeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import DemoSection from '../components/DemoSection.vue'
@@ -35,70 +38,38 @@ const state: TableState = useTableState({ pageSize: 10 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 
 /**
- * Partial on purpose, and short on purpose: enough keys to translate what this
- * view actually shows, with the rest left to fall through. Flip to Français and
- * the condition-filter panel is still half English — that is the fallback
- * working, not a bug, and it is what makes shipping a locale incrementally
- * possible.
+ * The four shipped locales, imported from the package's own `locales` entry
+ * point. Each is a *whole* `TableLabels`, so nothing falls back — flip to
+ * Русский and the condition-filter panel is Russian too, down to the operator
+ * names the core owns.
  */
-const FRENCH: Partial<TableLabels> = {
-  search: 'Rechercher…',
-  searchAllColumns: 'Rechercher dans toutes les colonnes',
-  searchValuesPlaceholder: 'Rechercher des valeurs…',
-  searchValues: 'Rechercher des valeurs',
-  clear: 'Effacer',
-  clearAll: 'Tout effacer',
-  apply: 'Appliquer',
-  save: 'Enregistrer',
-  cancel: 'Annuler',
-  loading: 'Chargement…',
-  noRows: 'Aucune ligne',
-  noMatchingValues: 'Aucune valeur correspondante',
-  emptyMessage: 'Aucune ligne ne correspond aux filtres actuels.',
-  selectAllOnPage: 'Sélectionner toutes les lignes de cette page',
-  selectAllValues: 'Tout sélectionner',
-  selectAllRow: '(Tout sélectionner)',
-  blanksCheckbox: 'Vides',
-  blanksFacet: '(Vides)',
-  pagination: 'Pagination',
-  firstPage: 'Première page',
-  previousPage: 'Page précédente',
-  nextPage: 'Page suivante',
-  lastPage: 'Dernière page',
-  rowsPerPage: 'Lignes par page',
-  groupBy: 'Grouper par',
-  columns: 'Colonnes',
-  showAll: 'Tout afficher',
-  resetLayout: 'Réinitialiser la disposition',
-  filter: 'Filtrer',
-  filterValuesTab: 'Valeurs',
-  filterConditionsTab: 'Conditions',
-  blankGroup: '(Vide)',
-  // The interpolating keys are functions, which is the whole reason they are:
-  // French puts `sur` between the two halves and German would not.
-  rowRange: (first, last, total) => `${first}–${last} sur ${total}`,
-  pageSizeOption: (size) => `${size} / page`,
-  selectedCount: (count) => `${count} sélectionnée(s)`,
-  valueCount: (count) => `${count} valeurs`,
-  sortByColumn: (columnLabel) => `Trier par ${columnLabel}`,
-  filterColumn: (columnLabel) => `Filtrer ${columnLabel}`,
-  clearFilterOn: (columnLabel) => `Effacer le filtre sur ${columnLabel}`,
-}
+const SHIPPED = { ru, es, ja, zhCN }
 
-/** German, deliberately thinner still — three keys and the fallback for the rest. */
+/**
+ * And a hand-written partial beside them, deliberately six keys long: what a
+ * consumer writes when their language is not shipped, or when they only want to
+ * reword a few labels. Flip to Deutsch and most of the table is still English —
+ * that is the fallback working, not a bug, and it is the difference between a
+ * `Partial` and a shipped locale.
+ */
 const GERMAN: Partial<TableLabels> = {
   search: 'Suchen…',
   searchAllColumns: 'Alle Spalten durchsuchen',
   noRows: 'Keine Zeilen',
   rowsPerPage: 'Zeilen pro Seite',
+  // Functions, because German puts `von` where English puts `of` and a
+  // template with placeholders in it could not move the parts.
   rowRange: (first, last, total) => `${first}–${last} von ${total}`,
   pageSizeOption: (size) => `${size} / Seite`,
 }
 
 const locales = [
-  { id: 'en', label: 'English (defaults)', labels: undefined },
-  { id: 'fr', label: 'Français', labels: FRENCH },
-  { id: 'de', label: 'Deutsch (partial)', labels: GERMAN },
+  { id: 'en', label: 'English (built-in default)', labels: undefined },
+  { id: 'ru', label: 'Русский (shipped)', labels: SHIPPED.ru },
+  { id: 'es', label: 'Español (shipped)', labels: SHIPPED.es },
+  { id: 'ja', label: '日本語 (shipped)', labels: SHIPPED.ja },
+  { id: 'zh', label: '简体中文 (shipped)', labels: SHIPPED.zhCN },
+  { id: 'de', label: 'Deutsch (hand-written partial)', labels: GERMAN },
 ] as const
 
 const locale = ref<(typeof locales)[number]['id']>('en')
@@ -144,6 +115,7 @@ const sampled = computed(() => [
            it, the accessible names, and the validation messages the core writes."
     :api="[
       'TableLabels',
+      '@brillliand/vue-table-chad/locales',
       'DEFAULT_LABELS',
       'mergeLabels',
       'provideTableLabels',
@@ -164,9 +136,10 @@ const sampled = computed(() => [
           </select>
         </label>
         <span class="hint">
-          Français covers the keys this view shows; Deutsch covers six. What is missing falls back
-          to <code>DEFAULT_LABELS</code> rather than rendering blank — open the Conditions tab of a
-          column filter to see the seam.
+          The four shipped locales are complete records, so nothing falls back — open the
+          Conditions tab of a column filter and the operator names are translated too. Deutsch is a
+          six-key <code>Partial</code> for contrast: what it leaves out falls back to
+          <code>DEFAULT_LABELS</code> rather than rendering blank.
         </span>
       </div>
     </template>
@@ -214,8 +187,9 @@ const sampled = computed(() => [
         </table>
         <p class="hint">
           <code>operators</code> and <code>parse</code> are merged one level deeper than the rest,
-          so overriding one operator keeps the other fifteen. Untouched here, so it still reads
-          <code>{{ DEFAULT_LABELS.operators.contains }}</code>.
+          so a `Partial` overriding one operator keeps the other fifteen — English
+          <code>{{ DEFAULT_LABELS.operators.contains }}</code> under Deutsch, translated under any
+          of the shipped four.
         </p>
       </div>
     </section>

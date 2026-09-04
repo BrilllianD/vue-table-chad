@@ -24,6 +24,7 @@
     "baseUrl": ".",
     "paths": {
       "@brillliand/vue-table-chad": ["./src/index.ts"],
+      "@brillliand/vue-table-chad/locales": ["./src/locales/index.ts"],
       "@/*": ["./src/*"],
       "@fixtures": ["./bench/fixtures.ts"],
       "@docs": ["./docs/nav.ts"]

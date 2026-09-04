@@ -33,6 +33,43 @@ const fr: Partial<TableLabels> = {
 That is the whole surface for the preset. The prop is a `Partial`, it is
 reactive, and swapping it re-renders in place — no remount, no key trick.
 
+## Shipped locales
+
+Four languages ship complete, behind their own entry point:
+
+```ts
+import { es, ja, ru, zhCN } from '@brillliand/vue-table-chad/locales'
+```
+
+| Export | Language |
+| --- | --- |
+| `ru` | Russian |
+| `es` | Spanish |
+| `ja` | Japanese |
+| `zhCN` | Simplified Chinese |
+
+Each is a whole `TableLabels`, not a `Partial`, so there is nothing to merge and
+nothing left in English — the filter operators and the cell-editor parse messages
+the core owns are translated too:
+
+```vue
+<DataTable :columns="columns" :source="source" :state="state" :labels="ru" />
+```
+
+They are a separate entry point on purpose. The locales import no runtime value
+from the library, so a consumer who imports none downloads none — `pnpm size`
+budgets `dist/locales.js` on its own line, and adding a language is visible
+there rather than hidden in the main bundle.
+
+Completeness is enforced rather than intended. The type fails to compile when a
+flat key is missing, and `tests/locales.spec.ts` covers what the type cannot see:
+the nested `operators` and `parse` maps, a label function that drops an argument
+it was handed, and the pin sides `pinState` interpolates. A locale covering nine
+tenths of the record would render the last tenth in English with nothing saying
+which tenth, which is worse than no locale at all.
+
+Your language is not there? Write the `Partial` below — it is the same prop.
+
 ## Why some keys are functions
 
 Any label that interpolates is a function rather than a string with `{}`

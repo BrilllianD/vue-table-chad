@@ -37,12 +37,17 @@
     "dist"
   ],
   "module": "./dist/vue-table-chad.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/vue-table-chad.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/vue-table-chad.d.ts",
       "import": "./dist/vue-table-chad.js",
       "default": "./dist/vue-table-chad.js"
+    },
+    "./locales": {
+      "types": "./dist/locales.d.ts",
+      "import": "./dist/locales.js",
+      "default": "./dist/locales.js"
     },
     "./style.css": "./dist/vue-table-chad.css",
     "./package.json": "./package.json"
