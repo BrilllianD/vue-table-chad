@@ -56,6 +56,7 @@ const showSearch = ref(true)
 const showColumnsMenu = ref(true)
 const showPagination = ref(true)
 const showFooter = ref(false)
+const showExport = ref(true)
 const stickyHeader = ref(true)
 const customToolbar = ref(false)
 const onlyActiveSelectable = ref(false)
@@ -113,6 +114,9 @@ function forgetLayout(): void {
       'cell:* slots',
       'ColumnDef.aggregate',
       'DataTable showFooter',
+      'DataTable showExport',
+      'exportRows',
+      'downloadText',
       'DataTable storageKey',
       'DataTable rowClickSelect',
       'ColumnDef.flex',
@@ -142,6 +146,10 @@ function forgetLayout(): void {
         <label><input v-model="showColumnsMenu" type="checkbox" /> showColumnsMenu</label>
         <label><input v-model="showPagination" type="checkbox" /> showPagination</label>
         <label><input v-model="showFooter" type="checkbox" /> showFooter</label>
+        <label>
+          <input v-model="showExport" type="checkbox" /> showExport
+          <span class="hint">writes every filtered row, not the page</span>
+        </label>
         <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
         <label><input v-model="customToolbar" type="checkbox" /> custom #toolbar slot</label>
         <label>
@@ -177,6 +185,8 @@ function forgetLayout(): void {
       :show-columns-menu="showColumnsMenu"
       :show-pagination="showPagination"
       :show-footer="showFooter"
+      :show-export="showExport"
+      export-filename="employees.csv"
       :sticky-header="stickyHeader"
       empty-message="Nothing matches those filters — try clearing one."
       @update:query="lastQuery = $event"

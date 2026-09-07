@@ -94,6 +94,44 @@ the list you actually have:
 
 <<< @/.vitepress/examples/infinite.vue
 
+## Exporting the result set
+
+```ts
+import { exportRows, toDelimited } from '@brillliand/vue-table-chad'
+```
+
+```vue
+<DataTable show-export export-filename="employees.csv" :source="source" :columns="columns" />
+```
+
+The button writes **every filtered row, in sort order** — not the page, and not the selection. A
+page is a viewport; a file that held only what was on screen would be a bug report waiting to
+happen.
+
+- **`toDelimited(rows, columns, options)`** is the pure half: rows in, delimited text out, RFC 4180
+  quoted. `delimiter` (`','` by default, `'\t'` for a TSV), `header`, `formatted` and `columnIds`.
+  It writes what the cells *show*, `format` included, so the file matches the screen — pass
+  `formatted: false` when the file is going to a machine instead.
+- **`exportRows(source, columns, options)`** is the same thing over a data source. A local source
+  already holds the whole filtered, sorted set in `filteredRows`, so it needs nothing else.
+- **A server or infinite source needs `exportFetchAll`.** Only you know how to ask your server for
+  the whole result set rather than a page; without it the export holds the current page and says so
+  in the console. On `DataTable` that is a prop, on `exportRows` an option called `fetchAll`.
+
+The `export` event fires before the download and can replace it:
+
+```vue
+<DataTable
+  show-export
+  @export="(payload) => { payload.preventDefault(); upload(payload.text) }"
+/>
+```
+
+Leave `preventDefault` uncalled and the browser downloads the file, so the button works with nothing
+wired. The download itself is `downloadText(filename, text)`, exported for the same reason — it is
+the preset's, because it touches the DOM, and `toDelimited` stays callable from a worker or a Node
+script.
+
 ---
 
 Live: the **Server data** tab of `pnpm demo` (`#server`), and **Infinite scroll** (`#infinite`). Back to the [docs index](/).

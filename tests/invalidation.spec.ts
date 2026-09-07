@@ -455,6 +455,52 @@ describe('what the clipboard is allowed to recompute', () => {
   })
 })
 
+describe('what the export is allowed to recompute', () => {
+  it('exporting reaches the pipeline not at all', async () => {
+    const data = shallowRef<Employee[]>([...rows])
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Employee>(data, employeeColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, {
+            columns: employeeColumns,
+            source,
+            state,
+            showExport: true,
+            // The download is the DOM's business and jsdom has no `Blob` URL to
+            // give; cancelling it leaves the part under test — the serialisation
+            // — and nothing else.
+            onExport: (payload: { preventDefault: () => void }) => payload.preventDefault(),
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
+    reset()
+
+    /*
+     * The export reads `filteredRows`, which the pipeline has already produced.
+     * Nothing about writing a file changes which rows exist or what order they
+     * are in, so a click here must move none of the five counters — the same
+     * rule the clipboard follows above, and the one that keeps a 10k-row export
+     * from re-running the filter and the sort to serialise what is already
+     * sitting in a computed.
+     */
+    const button = wrapper.get('.vt-toolbar .vt-btn')
+    await button.trigger('click')
+    await nextTick()
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    wrapper.unmount()
+  })
+})
+
 describe('what an interaction is allowed to recompute', () => {
   /*
    * `it.fails` rather than a skip, and rather than asserting today's numbers.

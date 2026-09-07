@@ -28,6 +28,7 @@ import type { UseRowEditing } from './useRowEditing'
 import { usePagination } from './usePagination'
 import type { LocalDataSource } from './useLocalDataSource'
 import { readValue } from './sorting'
+import { cellText } from './export'
 import { isEmptyFilter } from './filters/model'
 
 /** Everything `useTable` accepts. See `useTable` for what is read when. */
@@ -759,11 +760,14 @@ export function useTable<TRow>(
     return readValue(row, column)
   }
 
+  /*
+   * Delegated to `cellText` rather than spelled out here, so the text a cell
+   * renders and the text `toDelimited` writes into an exported file are one
+   * definition. Two copies of these four lines would agree today and diverge
+   * the first time either grows a case.
+   */
   function getCellText(row: TRow, column: ColumnDef<TRow>): string {
-    const value = getCellValue(row, column)
-    if (column.format) return column.format(value, row)
-    if (value === null || value === undefined) return ''
-    return String(value)
+    return cellText(row, column)
   }
 
   return {

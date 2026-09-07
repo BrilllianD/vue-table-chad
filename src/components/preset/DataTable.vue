@@ -32,6 +32,7 @@ import {
   type CellPosition,
 } from '../../core/cellCursor'
 import { columnGroupPath, foldTargetFor } from '../../core/columnGroups'
+import { exportRows } from '../../core/export'
 import type { UsePagination } from '../../core/usePagination'
 import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
@@ -52,6 +53,7 @@ import DataTableHeader from './DataTableHeader.vue'
 import DataTableBody from './DataTableBody.vue'
 import DataTableFooter from './DataTableFooter.vue'
 import { useAutoColumnWidth } from './useAutoColumnWidth'
+import { downloadText, type TableExportPayload } from './tableExport'
 
 // The preset owns the preset theme, so `DataTable` is styled out of the box
 // while the primitives stay CSS-free.
@@ -196,6 +198,29 @@ const props = withDefaults(
     showColumnsMenu?: boolean
     showGroupMenu?: boolean
     showPagination?: boolean
+    /**
+     * Renders the toolbar's export button.
+     *
+     * Off by default, unlike the other `show*` props: every one of those turns
+     * on a read-only control, while this one writes a file to the reader's
+     * disk. That is a thing to opt into rather than something a table starts
+     * doing because it was rendered.
+     */
+    showExport?: boolean
+    /**
+     * Name for the downloaded file, extension included. Defaults to
+     * `'table.csv'`.
+     */
+    exportFilename?: string
+    /**
+     * Fetches every row for the export, for a server or infinite source.
+     *
+     * Only the consumer knows how to ask their server for the whole result set
+     * rather than a page; without it a remote table's export holds the current
+     * page and says so through a dev warning. Ignored on a local source, which
+     * already has every row.
+     */
+    exportFetchAll?: () => Promise<readonly TRow[]>
     stickyHeader?: boolean
     /**
      * Which palette to paint, instead of following `prefers-color-scheme`.
@@ -280,6 +305,9 @@ const props = withDefaults(
     showColumnsMenu: true,
     showGroupMenu: true,
     showPagination: true,
+    showExport: false,
+    exportFilename: 'table.csv',
+    exportFetchAll: undefined,
     stickyHeader: true,
     theme: 'system',
     emptyMessage: undefined,
@@ -328,6 +356,16 @@ const emit = defineEmits<{
    * for the same reason.
    */
   endReached: []
+  /**
+   * The export was asked for, carrying the serialised text.
+   *
+   * Fires *before* the download, and `preventDefault()` cancels it — so a
+   * consumer who wants to POST the text, name the file from the query, or hand
+   * it to a save dialog replaces the default rather than racing it. Listening
+   * without calling it leaves the download in place, which is what makes the
+   * button work with nothing wired.
+   */
+  export: [payload: TableExportPayload]
 }>()
 
 /**
@@ -370,6 +408,34 @@ const words = computed(() => mergeLabels(props.labels))
   where it is given: a caller who passed `emptyMessage` before this existed must
   keep seeing it, whatever the record says.
 */
+/**
+ * Serialises the result set and hands it over — to the listener first, to the
+ * browser's download second.
+ *
+ * Takes the rendered columns rather than `props.columns`, so a hidden column
+ * stays out of the file and a reordered one lands where the reader put it: the
+ * export is of the table as it stands, which is the same rule cell copy
+ * follows. The selection column and the row-actions column are not in this
+ * list, since neither is a `ColumnDef`.
+ *
+ * Awaited before either, because a remote `fetchAll` has not answered yet. A
+ * rejection is left to propagate: the consumer's own `fetchAll` failed, and
+ * swallowing it here would leave a button that does nothing and says nothing.
+ */
+async function onExport(cols: ResolvedColumn<TRow>[]): Promise<void> {
+  const text = await exportRows(props.source, cols, { fetchAll: props.exportFetchAll })
+  let prevented = false
+  const payload: TableExportPayload = {
+    text,
+    filename: props.exportFilename,
+    preventDefault: () => {
+      prevented = true
+    },
+  }
+  emit('export', payload)
+  if (!prevented) downloadText(payload.filename, payload.text)
+}
+
 const footerText = computed(() => props.footerLabel ?? words.value.footerLabel)
 const emptyText = computed(() => props.emptyMessage ?? words.value.emptyMessage)
 const loadingText = computed(() => props.loadingMessage ?? words.value.loading)
@@ -1017,6 +1083,15 @@ function onPaste(
           <span class="vt-toolbar-spacer" />
           <RowGroupMenu v-if="showGroupMenu" />
           <ColumnVisibilityMenu v-if="showColumnsMenu" />
+          <button
+            v-if="showExport"
+            type="button"
+            class="vt-btn"
+            :aria-label="words.exportRowsDescription"
+            @click="onExport(cols)"
+          >
+            {{ words.exportRows }}
+          </button>
         </slot>
       </div>
 

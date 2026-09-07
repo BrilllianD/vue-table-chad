@@ -74,6 +74,9 @@ export const ja: TableLabels = Object.freeze({
   moveDown: '下へ',
   rowActions: '行の操作',
 
+  exportRows: 'エクスポート',
+  exportRowsDescription: 'フィルター後のすべての行を CSV でエクスポート',
+
   filter: 'フィルター',
   filterApplied: 'フィルター適用中 — クリックして編集',
   filterValuesTab: '値',

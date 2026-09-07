@@ -78,6 +78,9 @@ export const ru: TableLabels = Object.freeze({
   moveDown: 'Вниз',
   rowActions: 'Действия со строкой',
 
+  exportRows: 'Экспорт',
+  exportRowsDescription: 'Экспортировать все отфильтрованные строки в CSV',
+
   filter: 'Фильтр',
   filterApplied: 'Фильтр применён — нажмите, чтобы изменить',
   filterValuesTab: 'Значения',

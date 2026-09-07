@@ -74,6 +74,9 @@ export const zhCN: TableLabels = Object.freeze({
   moveDown: '下移',
   rowActions: '行操作',
 
+  exportRows: '导出',
+  exportRowsDescription: '将所有筛选后的行导出为 CSV',
+
   filter: '筛选',
   filterApplied: '已应用筛选 — 点击可修改',
   filterValuesTab: '值',

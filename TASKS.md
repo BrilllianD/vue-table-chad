@@ -70,19 +70,6 @@ ignore the pipeline.
 
 Agreed and next up, in the order they are meant to land.
 
-### `[ ]` F4 — Export the result set (CSV / TSV)
-
-A pure `src/core/export.ts`: `toDelimited(rows, columns, { delimiter, header, formatted,
-columnIds })` reads cells through `readValue` and each column's `format`, so the file matches what
-the user sees, with RFC 4180 quoting. `exportRows(source, columns, opts)` reads `filteredRows` on a
-local source (`useLocalDataSource.ts` already exposes the sorted, filtered, unpaged set) and takes
-a `fetchAll` callback for a remote one, since only the consumer knows how to ask a server for
-everything. The Blob download lives in the preset only — it touches the DOM, which `core/` may not.
-`DataTable` gains `showExport` and an `export` emit.
-
-**Done when:** `HeadlessView` calls `toDelimited`, `OverviewView` shows the button, a spec covers
-quoting and `formatted: false`, and the README's CSV line is gone.
-
 ### `[ ]` F6 — Expandable detail rows
 
 Core `useRowExpansion({ getRowId, initial })` returning `expanded`, `isExpanded`, `toggle`,

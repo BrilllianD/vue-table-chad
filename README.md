@@ -154,9 +154,9 @@ turned out not to be worth it, [`TASKS.md`](TASKS.md) for what is planned and wh
 ## Not included
 
 Tree rows (parent/child hierarchies, as opposed to the value-based grouping in
-[Grouping rows](docs/grouping.md)), expandable detail rows, pinned rows, pivoting, and CSV export
-(cell-level clipboard copy and paste *is* in — see
-[Keyboard navigation](docs/keyboard.md)). Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer.
+[Grouping rows](docs/grouping.md)), expandable detail rows, pinned rows, and pivoting. Cell-level
+clipboard copy and paste *is* in — see [Keyboard navigation](docs/keyboard.md) — and so is CSV/TSV
+export of the whole result set, see [Local, server and infinite data](docs/data-sources.md). Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer.
 
 Row virtualization has since landed — see [Virtual rows](docs/virtualization.md). Rows are taken
 to be one height unless `measure-rows` is on, which measures each rendered row at the cost of a

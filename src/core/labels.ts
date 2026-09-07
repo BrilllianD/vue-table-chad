@@ -118,6 +118,12 @@ export interface TableLabels {
   /** Hidden header for the trailing row-actions column. */
   rowActions: string
 
+  // — export —
+  /** Caption for the toolbar's export button. */
+  exportRows: string
+  /** Accessible name for it, naming what gets written rather than the gesture. */
+  exportRowsDescription: string
+
   // — filters —
   /** Accessible name and title for a filter trigger with nothing set. */
   filter: string
@@ -288,6 +294,9 @@ export const DEFAULT_LABELS: TableLabels = Object.freeze({
   moveUp: 'Move up',
   moveDown: 'Move down',
   rowActions: 'Row actions',
+
+  exportRows: 'Export',
+  exportRowsDescription: 'Export every filtered row as CSV',
 
   filter: 'Filter',
   filterApplied: 'Filter applied — click to edit',

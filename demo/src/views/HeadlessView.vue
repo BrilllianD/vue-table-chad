@@ -10,6 +10,7 @@
 import { computed, ref } from 'vue'
 import {
   applySortRule,
+  cellText,
   compareBoolean,
   compareDate,
   compareNumber,
@@ -30,6 +31,7 @@ import {
   startOfDay,
   toBoolean,
   toFilterValue,
+  toDelimited,
   toIsoDate,
   toNumber,
   toTime,
@@ -183,11 +185,27 @@ const utils = computed(() => {
   ]
 })
 
-const cell = (row: Employee, id: string): string => {
-  const column = columnFor(id)
-  const value = readValue(row, column)
-  return column.format ? column.format(value, row) : String(value ?? '—')
-}
+// `cellText` is the library's own answer to "what does this cell read as",
+// formatter included — the same function `DataTable` renders through and
+// `toDelimited` writes with, so the table, the file and this view cannot
+// disagree.
+const cell = (row: Employee, id: string): string => cellText(row, columnFor(id)) || '—'
+
+/* ------------------------------------------------------------------ export */
+
+const delimiter = ref(',')
+
+/**
+ * The filtered, sorted set as delimited text — every row, not the page.
+ *
+ * `toDelimited` is pure and takes the rows it is handed, so what goes in the
+ * file is entirely this view's choice. `exportRows` is the version that reads
+ * the result set off a data source; the Overview view's export button is that
+ * one.
+ */
+const delimited = computed(() =>
+  toDelimited(sorted.value, shown, { delimiter: delimiter.value }),
+)
 </script>
 
 <template>
@@ -223,6 +241,8 @@ const cell = (row: Employee, id: string): string => {
       'facetKey',
       'compileSearch',
       'sortKeyFor',
+      'toDelimited',
+      'cellText',
     ]"
   >
     <template #controls>
@@ -362,6 +382,24 @@ const cell = (row: Employee, id: string): string => {
       </div>
 
       <div class="panel">
+        <h3>Export</h3>
+        <label>
+          Delimiter
+          <select v-model="delimiter">
+            <option value=",">, — CSV</option>
+            <option value="&#9;">tab — TSV</option>
+            <option value=";">; — semicolon</option>
+          </select>
+        </label>
+        <p class="hint">
+          The whole filtered, sorted set — {{ sorted.length }} rows, not the page below. Fields are
+          RFC 4180 quoted, so a value holding the delimiter, a quote or a line break survives the
+          round trip.
+        </p>
+        <pre class="raw small export">{{ delimited.split('\r\n').slice(0, 6).join('\n') }}</pre>
+      </div>
+
+      <div class="panel">
         <h3>Value utilities</h3>
         <label>
           Input
@@ -386,6 +424,7 @@ const cell = (row: Employee, id: string): string => {
 </template>
 
 <style scoped>
+.export { overflow-x: auto; white-space: pre; font-size: 12px; margin: 0; }
 .raw { border-collapse: collapse; font-size: 13px; width: 100%; }
 .raw th, .raw td { text-align: left; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--line); }
 .raw td[data-align='right'] { text-align: right; font-variant-numeric: tabular-nums; }

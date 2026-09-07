@@ -142,6 +142,12 @@ export const apiReference: ApiEntry[] = [
   { name: 'Theme', layer: 'core', kind: 'type', summary: "A theme: any subset of the preset's tokens, camelCased." },
   { name: 'ThemeToken', layer: 'core', kind: 'type', summary: "One token's name, in the camelCase form a `Theme` uses." },
 
+  { name: 'toDelimited', layer: 'core', kind: 'function', summary: 'Serialises rows to delimited text, RFC 4180 quoted.' },
+  { name: 'exportRows', layer: 'core', kind: 'function', summary: 'The whole result set as delimited text: every filtered row, in sort order.' },
+  { name: 'cellText', layer: 'core', kind: 'function', summary: "A column's displayed text: its formatter, or the value stringified." },
+  { name: 'DelimitedOptions', layer: 'core', kind: 'type', summary: 'How `toDelimited` writes its text.' },
+  { name: 'ExportRowsOptions', layer: 'core', kind: 'type', summary: 'How `exportRows` reaches the rows to export.' },
+
   { name: 'editorFor', layer: 'core', kind: 'function', summary: 'Which control edits this column: its own `editor`, or one derived from `type` and from how its options are supplied.' },
   { name: 'isColumnEditable', layer: 'core', kind: 'function', summary: 'Whether this column accepts an edit to this row.' },
   { name: 'parseCellInput', layer: 'core', kind: 'function', summary: "Coerces what an editor produced into the column's own value: `column.parse`, or the coercion its `type` implies." },
@@ -285,6 +291,9 @@ export const apiReference: ApiEntry[] = [
 
   /* ---------------------------------------------------------------- preset */
   { name: 'DataTable', layer: 'preset', kind: 'component', summary: 'The batteries-included preset: every region a named slot, and the one component that imports the default stylesheet. Deliberately NOT a god component.' },
+
+  { name: 'downloadText', layer: 'preset', kind: 'function', summary: 'Saves text as a file the browser downloads.' },
+  { name: 'TableExportPayload', layer: 'preset', kind: 'type', summary: "What `DataTable`'s `export` event carries." },
 
   /* ----------------------------------------------------------------- types */
   { name: 'RowId', layer: 'types', kind: 'type', summary: 'Anything a row can be keyed by.' },

@@ -175,6 +175,11 @@ export {
   formatAggregate,
 } from './core/aggregation'
 
+/* ---------------------------------------------------------------- export */
+
+export { toDelimited, exportRows, cellText } from './core/export'
+export type { DelimitedOptions, ExportRowsOptions } from './core/export'
+
 /* --------------------------------------------------------------- editing */
 
 export {
@@ -268,6 +273,8 @@ export { default as SelectionCheckbox } from './components/primitives/SelectionC
  * table.)
  */
 export { default as DataTable } from './components/preset/DataTable.vue'
+export { downloadText } from './components/preset/tableExport'
+export type { TableExportPayload } from './components/preset/tableExport'
 
 /* ----------------------------------------------------------------- types */
 
