@@ -217,15 +217,17 @@
 .vt-th[data-align='center'], .vt-td[data-align='center'] { text-align: center; }
 
 /*
-  No `gap`. The only pair this ever separated is a leaf cell's control and its
-  filter trigger — a band cell puts everything inside `.vt-th-group-sticky`,
-  which carries its own gap for the caret and label — and those two are meant to
-  sit against each other. What space they need on their outward sides is their
-  own padding.
+  A hairline gap and nothing more. The only pair this ever separated is a leaf
+  cell's control and its filter trigger — a band cell puts everything inside
+  `.vt-th-group-sticky`, which carries its own gap for the caret and label —
+  and those two belong to one column, so they sit together: 2px keeps the two
+  glyphs from touching without reading as a division. What space they need on
+  their outward sides is their own padding.
 */
 .vt-th-inner {
   display: flex;
   align-items: center;
+  gap: var(--vtc-space-1);
   min-width: 0;
 }
 
