@@ -43,6 +43,33 @@
   color: var(--vtc-accent);
 }
 
+/*
+  The sorted column's header, said twice over: the label takes the accent the
+  glyph already carries, and the cell's bottom edge draws in it. An 11px arrow
+  alone is a lot to ask of the eye on a wide table, and more so with two sort
+  keys stacked.
+
+  `.vt-thead tr` is there for specificity and nothing else. `grid.css` draws
+  the lighter rule under every header row but the last —
+  `.vt-thead tr:not(:last-child) .vt-th`, (0,3,0) — and that is not a rare case
+  here: a leaf column under a header band carries a `rowspan` and so sits in
+  the *first* row, which is exactly where a sorted column may be. The bare
+  `.vt-th[data-sorted]` is (0,2,0) and would lose to it. The `tr` makes this
+  (0,3,1), a win on specificity rather than on source order — the two rules
+  live in different `@import`s, and a cross-file ordering dependency is worse
+  than the four in-file pairs `table.css` lists.
+
+  `.vt-th-label` and not only `.vt-sort-label`: a grouped column renders the
+  `.vt-th-fold` button, whose label is a `.vt-th-label`, and can still be the
+  column the rows are sorted by.
+*/
+.vt-thead tr .vt-th[data-sorted] { border-bottom-color: var(--vtc-accent); }
+
+.vt-th[data-sorted] .vt-sort-label,
+.vt-th[data-sorted] .vt-th-label {
+  color: var(--vtc-accent);
+}
+
 .vt-sort-index {
   font-size: var(--vtc-font-size-2xs);
   background: var(--vtc-accent);

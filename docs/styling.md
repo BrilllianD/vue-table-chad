@@ -19,7 +19,10 @@ Primitives ship **no CSS** — they emit class names and `data-*` attributes onl
 ```
 
 State and capability are separate attributes on purpose: `data-sorted` says a column *is* sorted,
-`data-sortable` that a click would. The preset draws `cursor: pointer` off the capability pair,
+`data-sortable` that a click would. The preset styles both: the sorted column's header label and
+its bottom edge take `--vtc-accent`, so overriding that border means matching the specificity of
+`.vt-thead tr .vt-th[data-sorted]`, which is what clears the lighter rule drawn under a band's
+header rows. The preset also draws `cursor: pointer` off the capability pair,
 and off `data-grouped` and a collapsible band's `data-collapsible`, because a header that acts on
 a click has to say so before the click. A column the rows are grouped by carries no
 `data-sortable` at all — its click folds the band instead.
