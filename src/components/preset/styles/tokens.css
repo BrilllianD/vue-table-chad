@@ -100,12 +100,14 @@
   /* Translucent, so stripes and column tints stay visible through a selection. */
   --vtc-row-selected-bg: color-mix(in srgb, var(--vtc-accent) 16%, transparent);
   /*
-    The wash over the table while a fetch is in flight. Opaque enough that the
-    pill on top of it reads against any row content; set it to `transparent` to
-    keep the pill and drop the dimming. Mixed off `--vtc-bg` rather than named as
-    a grey, so the dark block below needs no counterpart for it.
+    The wash over the table while a fetch is in flight. Only has to signal
+    "busy": the pill on top brings its own background and border, so it reads
+    against any row content on its own, and with `keepPreviousData` the rows
+    under the wash are real data worth leaving legible. Set it to `transparent`
+    to keep the pill and drop the dimming entirely. Mixed off `--vtc-bg` rather
+    than named as a grey, so the dark block below needs no counterpart for it.
   */
-  --vtc-loading-scrim: color-mix(in srgb, var(--vtc-bg) 78%, transparent);
+  --vtc-loading-scrim: color-mix(in srgb, var(--vtc-bg) 25%, transparent);
   /*
     Failure. Named here because three places now need it — a filter that could
     not load its facets, a table that could not load at all, and a cell holding
