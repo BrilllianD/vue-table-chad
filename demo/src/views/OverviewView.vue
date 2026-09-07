@@ -16,6 +16,7 @@ import {
   type QueryState,
   type RowId,
   type SelectionMode,
+  type TableExportPayload,
   type TableState,
   type TableStateOptions,
 } from '@brillliand/vue-table-chad'
@@ -54,10 +55,15 @@ const rowClickSelect = ref(false)
 const showToolbar = ref(true)
 const showSearch = ref(true)
 const showColumnsMenu = ref(true)
+const showGroupMenu = ref(true)
 const showPagination = ref(true)
 const showFooter = ref(false)
 const showExport = ref(true)
 const stickyHeader = ref(true)
+/** Drag a header onto another to move the column. Off leaves every other layout route working. */
+const reorderable = ref(true)
+/** Ticked, `@export` calls `preventDefault()` and nothing reaches the disk. */
+const interceptExport = ref(false)
 const customToolbar = ref(false)
 const onlyActiveSelectable = ref(false)
 /** Swaps in the three columns that declare no `width` — see `sizedEmployeeColumns`. */
@@ -72,6 +78,28 @@ const tableColumns = computed(() =>
 const lastQuery = ref<QueryState | null>(null)
 const selectedIds = ref<RowId[]>([])
 const lastClicked = ref<Employee | null>(null)
+const lastOrder = ref<string[] | null>(null)
+
+/**
+ * The last export, as the payload described it.
+ *
+ * `@export` fires before the download, so a handler that calls `preventDefault`
+ * replaces it rather than racing it — which is what the intercept switch does.
+ * Only the first three lines are kept: the point is the shape, and the file is
+ * every filtered row.
+ */
+const lastExport = ref<{ filename: string; rows: number; head: string } | null>(null)
+
+function onExport(payload: TableExportPayload): void {
+  const lines = payload.text.split('\n')
+  lastExport.value = {
+    filename: payload.filename,
+    // Minus the header row, and minus the trailing newline's empty last entry.
+    rows: Math.max(lines.length - 2, 0),
+    head: lines.slice(0, 3).join('\n'),
+  }
+  if (interceptExport.value) payload.preventDefault()
+}
 
 /** Rows are keyed by `id` by default; this shows the hook for anything else. */
 const getRowId = (row: Employee): RowId => row.id
@@ -115,8 +143,11 @@ function forgetLayout(): void {
       'ColumnDef.aggregate',
       'DataTable showFooter',
       'DataTable showExport',
+      'DataTable showGroupMenu',
+      'DataTable reorderable',
       'exportRows',
       'downloadText',
+      'TableExportPayload',
       'DataTable storageKey',
       'DataTable rowClickSelect',
       'ColumnDef.flex',
@@ -144,13 +175,22 @@ function forgetLayout(): void {
         <label><input v-model="showToolbar" type="checkbox" /> showToolbar</label>
         <label><input v-model="showSearch" type="checkbox" /> showSearch</label>
         <label><input v-model="showColumnsMenu" type="checkbox" /> showColumnsMenu</label>
+        <label><input v-model="showGroupMenu" type="checkbox" /> showGroupMenu</label>
         <label><input v-model="showPagination" type="checkbox" /> showPagination</label>
         <label><input v-model="showFooter" type="checkbox" /> showFooter</label>
         <label>
           <input v-model="showExport" type="checkbox" /> showExport
           <span class="hint">writes every filtered row, not the page</span>
         </label>
+        <label>
+          <input v-model="interceptExport" type="checkbox" /> intercept @export
+          <span class="hint">preventDefault() — the payload below instead of a file</span>
+        </label>
         <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
+        <label>
+          <input v-model="reorderable" type="checkbox" /> reorderable
+          <span class="hint">drag a header onto another; the Columns menu still reorders</span>
+        </label>
         <label><input v-model="customToolbar" type="checkbox" /> custom #toolbar slot</label>
         <label>
           <input v-model="onlyActiveSelectable" type="checkbox" /> isRowSelectable = row.active
@@ -183,15 +223,19 @@ function forgetLayout(): void {
       :show-toolbar="showToolbar"
       :show-search="showSearch"
       :show-columns-menu="showColumnsMenu"
+      :show-group-menu="showGroupMenu"
       :show-pagination="showPagination"
       :show-footer="showFooter"
       :show-export="showExport"
       export-filename="employees.csv"
       :sticky-header="stickyHeader"
+      :reorderable="reorderable"
       empty-message="Nothing matches those filters — try clearing one."
       @update:query="lastQuery = $event"
       @update:selection="selectedIds = $event"
+      @update:column-order="lastOrder = $event"
       @row-click="lastClicked = $event"
+      @export="onExport"
     >
       <!-- Replaces the default search + columns menu entirely. -->
       <template v-if="customToolbar" #toolbar="{ state: s }">
@@ -262,8 +306,20 @@ function forgetLayout(): void {
       is what puts the measurement back.
     </p>
 
+    <p class="hint">
+      <strong>Export</strong> writes every row the filters and the search left, in the sort order on
+      screen and with each column's own <code>format</code> applied — the file matches what you are
+      reading rather than the page you happen to be on. It is off by default on a real table:
+      <code>show-export</code> is the one <code>show*</code> prop that writes to the reader's disk.
+      Tick <strong>intercept @export</strong> and the handler calls <code>preventDefault()</code>,
+      so nothing downloads and the payload below is all that happens — that is the hook for POSTing
+      the text or naming the file from the query instead.
+    </p>
+
     <StateInspector label="QueryState emitted by @update:query" :value="lastQuery" />
     <StateInspector label="Selected ids from @update:selection" :value="selectedIds" />
+    <StateInspector label="Column order from @update:columnOrder" :value="lastOrder" />
+    <StateInspector label="TableExportPayload from @export" :value="lastExport" />
 
     <p class="hint note">
       Tick <strong>custom #toolbar slot</strong> above to replace the default toolbar — including
