@@ -35,7 +35,7 @@ pnpm build:docs  # the demo, folded into one self-contained page
 make pack        # build + size check + npm pack -> the installable tarball
 ```
 
-`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 19 views, every export, one
+`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 20 views, every export, one
 view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
 
 Released as a tarball, not published to npm: `make pack` produces

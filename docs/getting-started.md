@@ -213,11 +213,15 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `showFooter` | `boolean` | `false` | Aggregates every loaded row using the columns' `aggregate`. |
 | `footerLabel` | `string` | `'Total'` | Text in the footer's leading cell. |
 | `showToolbar` / `showSearch` / `showColumnsMenu` / `showGroupMenu` / `showPagination` | `boolean` | `true` | Regions on or off. |
+| `showExport` | `boolean` | `false` | The toolbar's export button. Off by default unlike the other `show*`: those turn on a read-only control, this one writes a file to the reader's disk. See [Local, server and infinite data](data-sources.md#exporting-the-result-set). |
+| `exportFilename` | `string` | `'table.csv'` | Name of the downloaded file, extension included. |
+| `exportFetchAll` | `() => Promise<TRow[]>` | — | Fetches every row for the export over a server or infinite source. Without it a remote export holds the current page and warns. Ignored on a local source. |
 | `columnRules` | `boolean` | unset | Vertical rules between every pair of columns. Unset emits nothing, so a stylesheet setting `--vtc-body-border-vertical-width` still governs. |
 | `bandRules` | `boolean` | unset | The rule where a band's columns end. Needs `columnGroups`; unset emits nothing and `--vtc-band-border-width` governs. |
 | `stickyHeader` | `boolean` | `true` | |
 | `theme` | `'light' \| 'dark' \| 'system'` | `'system'` | Which palette to paint. `'system'` emits nothing and follows `prefers-color-scheme`; the other two write `data-theme`, on the teleported popover and drag ghost as well. See [Styling](styling.md#picking-a-palette). |
 | `emptyMessage` / `loadingMessage` | `string` | see below | `'No rows match the current filters.'` / `'Loading…'` |
+| `labels` | `Partial<TableLabels>` | English | Wording for every string the table renders, `aria-label`s included. Four locales ship — see [Labels and i18n](labels.md). `emptyMessage`, `loadingMessage` and `footerLabel` win over it where both are given. |
 | `editing` | `UseRowEditing<TRow>` | — | A session from `useRowEditing`. Absent means read-only. |
 | `cellCursor` | `boolean` | `false` | Off means off: no `role="grid"`, no `tabindex`, no cursor attributes. |
 | `initialCursor` | `CellPosition` | first cell | |
@@ -225,9 +229,12 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 
 Events: `update:query(query)`, `update:selection(ids)`, `update:selectionState(state)`,
 `update:selectedRows(rows)`, `update:columnOrder(order)`, `rowClick(row, event)`, `rowSaved(row)`,
-`rowSaveError(row, error)`, `endReached()`.
+`rowSaveError(row, error)`, `endReached()`, `export(payload)`.
 
-Two of those are gated on being listened for. `update:selectedRows` resolves the selected rows
+`export` fires *before* the download, carrying the serialised text; `preventDefault()` on the
+payload cancels it, for a consumer who would rather POST the text or name the file from the query.
+
+Two of the others are gated on being listened for. `update:selectedRows` resolves the selected rows
 across the whole filtered set, which is a walk over the dataset, so a table that never binds it
 pays nothing. `endReached` is what a virtual table wires to an infinite source's `loadMore` — see
 [Virtual rows](virtualization.md).
@@ -492,10 +499,10 @@ you page 3.
 Tree rows, expandable detail rows, pinned rows, and pivoting. Cell-level clipboard copy and paste
 *is* in — see [Keyboard navigation](keyboard.md) — and so is CSV/TSV export, see
 [Local, server and infinite data](data-sources.md). Aggregation covers
-`sum`/`avg`/`min`/`max` with no custom reducer. There is no i18n: around
-35 English strings are hardcoded across the components, `aria-label`s included, and only
-`emptyMessage`, `loadingMessage` and `footerLabel` are props. [`TASKS.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TASKS.md) has the
-reasoning for each.
+`sum`/`avg`/`min`/`max` with no custom reducer. i18n *is* in: every string the table renders comes
+off one `labels` record, four locales ship complete, and a spec keeps new literals out — see
+[Labels and i18n](labels.md). [`TASKS.md`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/TASKS.md) has the
+reasoning for each of the rest.
 
 Row virtualization *is* included — see [Virtual rows](virtualization.md). Note what it means for a
 **server** source: `virtual` sets the page size to the size of the result set, so every request

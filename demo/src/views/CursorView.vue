@@ -29,9 +29,12 @@
  * is already editing. An arrow on a closed cell still only moves. The save log
  * below stays one line per cell, not one per key.
  *
- * **Sort by Salary while the cursor is somewhere.** The ring stays on the row
- * it was on, which has moved. The position is a row id and a column id, never a
- * pair of indices — the same reason an open draft survives a re-sort.
+ * **Sort by Salary while the cursor is somewhere.** The ring keeps the height
+ * it had — third row before, third row after. A sort sends the table back to
+ * page 1, so the row it was on is usually not on the page that comes back, and
+ * re-placing it at the offset is the same rule a page turn follows. The caret
+ * stays on the sort button, because a second Enter is how you reverse the
+ * direction it just set.
  *
  * **Hold Ctrl and press → a few times.** The page turns and the ring keeps its
  * height on the screen — third row of page 2, third row of page 3. Paging is
@@ -40,8 +43,9 @@
  *
  * **Now click the pager instead, or change the rows-per-page.** The same
  * restore, and the caret lands on the new cell: any explicit page change is a
- * page turn, whichever control asked for it. Typing in the search box is not —
- * that resets to page 1 and leaves your caret where it is.
+ * page turn, whichever control asked for it. Typing in the search box moves the
+ * ring the same way and leaves your caret in the box, because you are still
+ * typing in it.
  *
  * **Hold Shift and press → a few times.** The table scrolls sideways a column a press and the
  * ring does not move. Three meanings for one pair of keys, told apart by the modifier alone: bare
@@ -212,7 +216,11 @@ function onRowSaved(row: Employee): void {
       hands the focus to the cell. <kbd>Ctrl</kbd>+<kbd>C</kbd> copies the cell's text as it is
       shown, formatting and all — Salary copies with its currency — and <kbd>Ctrl</kbd>+<kbd>V</kbd>
       pastes into a cell and saves it in one gesture, parsed the same way typing would be. Tags is
-      read-only, so it copies but refuses a paste. Turn <em>cellCursor</em> off and the table goes back to what
+      read-only, so it copies but refuses a paste. Sort a column, search, or group, and the ring
+      keeps the height it had rather than vanishing: each of those sends the table back to page 1,
+      so the row it was on is usually gone, and the offset is what it is re-placed at — the same
+      rule a page turn follows. The caret stays in the search box or on the sort button, since you
+      are still using it. Turn <em>cellCursor</em> off and the table goes back to what
       it renders without one, edit buttons and all.
     </p>
 

@@ -55,6 +55,7 @@ demo/
 | Wide table | preset | 34 columns, zero declared widths — each measured once and clamped |
 | Hoisted state | preset | `QueryState` owned by a ref, mirrored into the URL, driven imperatively |
 | Theming | preset | The `--vtc-*` palette and the `data-*` state hooks |
+| Labels | preset | Every rendered string off one record, and the four shipped locales |
 | Virtual rows | preset | 100k rows as one continuous scroll; the page size is everything |
 | Performance | preset | The whole 10k rows, timed in the browser to the frame after the paint |
 | API reference | preset | Every export, rendered by the table they belong to |
@@ -104,11 +105,11 @@ saying why rather than by being left out.
 
 ## Coverage
 
-The **API reference** view documents all 218 exports, and `tests/apiReference.spec.ts` diffs that
+The **API reference** view documents all 233 exports, and `tests/apiReference.spec.ts` diffs that
 list against `src/index.ts` in both directions — an export cannot be added without being described,
 and a description cannot outlive its export. That check is what keeps this section honest.
 
-182 of the 218 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
+193 of the 233 names exported from `src/index.ts` are referenced somewhere in `demo/src` —
 checked by diffing the export list against the sources, not by eye. Every *value* export is among
 them; `tests/apiSurface.spec.ts` enforces that. Most are called or rendered; the rest are types
 that appear as explicit annotations (`ServerDataSourceOptions`, `UseColumnsResult`, `PageItem`,
@@ -116,9 +117,9 @@ that appear as explicit annotations (`ServerDataSourceOptions`, `UseColumnsResul
 leaning on inference.
 
 Measure it with `demo/src/data/apiReference.ts` **excluded**. That file is generated and names
-every export by construction, so a plain search of `demo/src` reports 218 of 218 and means nothing.
+every export by construction, so a plain search of `demo/src` reports 233 of 233 and means nothing.
 
-The thirty-six that are not referenced are all types, and fall into six families:
+The forty that are not referenced are all types, and fall into seven families:
 
 - **Column storage and drag-and-drop plumbing** — `ColumnLayoutField`, `ColumnStorageOptions`,
   `StorageLike`, `UseColumnDnd`, `UseColumnDndOptions`, `ColumnDropTarget`, `DropSide`. The
@@ -136,9 +137,12 @@ The thirty-six that are not referenced are all types, and fall into six families
 - **The two-step grouping API** — `GroupTree`, `GroupTreeOptions`, `GroupNode`. Splitting build
   from walk is what makes collapsing a band re-scan nothing, but `useRowGrouping` already does
   the splitting, so no view has a reason to do it by hand.
-- **The header row model** — `HeaderRow`, `HeaderCell`, `HeaderGroupCell`, `HeaderColumnCell`.
-  The Header bands view renders them through the primitives' slots, where they arrive already
-  typed.
+- **The header row model** — `HeaderRow`, `HeaderCell`, `HeaderGroupCell`, `HeaderColumnCell`,
+  `BandFold`. The Header bands view renders them through the primitives' slots, where they arrive
+  already typed.
+- **The export shapes** — `DelimitedOptions`, `ExportRowsOptions`, `TableExportPayload`. The Core
+  only view calls `toDelimited` with an inline options object and the Everything at once view
+  listens for `@export`, so both arrive inferred.
 - **The async-options shapes** — `AsyncOption`, `AsyncOptionFetcher`, `AsyncOptionSource`,
   `AsyncOptionsOptions`. The Editing view hands `useAsyncOptions` a fetcher and a column its
   result, and inference names both.
