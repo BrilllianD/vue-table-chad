@@ -37,7 +37,9 @@ function outcomeClass(outcome: string): string {
     blurb="10,000 rows behind a fake API. Debounced filtering, race-safe responses, cached and
            scoped facets, kept-alive previous page, and an error path with retry. The request log
            is the proof — type in the search box and watch keystrokes coalesce into one request,
-           then page and watch it fire instantly."
+           then page and watch it fire instantly. The pager is the #pagination slot, built on
+           usePagination — 1000 pages, so numbered links and first/last are what make the end of
+           the set reachable at all."
     :api="[
       'useServerDataSource',
       'debounceMs',
@@ -50,6 +52,8 @@ function outcomeClass(outcome: string): string {
       'refresh',
       'DataSource.remote',
       'DataTable cellCursor',
+      'usePagination',
+      'PageItem',
     ]"
   >
     <template #controls>

@@ -15,12 +15,14 @@
 import { ref } from 'vue'
 import {
   DataTable,
+  usePagination,
   useServerDataSource,
   useTableState,
   type FetchParams,
   type QueryState,
   type ServerDataSource,
   type ServerDataSourceOptions,
+  type UsePagination,
 } from '@brillliand/vue-table-chad'
 import { fetchEmployeeFacets, fetchEmployees } from '../data/fakeApi'
 import type { Employee } from '../data/dataset'
@@ -67,6 +69,26 @@ const source: ServerDataSource<Employee> = useServerDataSource<Employee>(
   state.query,
   sourceOptions,
 )
+
+/**
+ * The page arithmetic for the custom `#pagination` slot below.
+ *
+ * Spelling it out by hand — `Math.ceil(total / pageSize)` at every use site —
+ * is what this replaces: `go` clamps, so a page beyond the end of a result set
+ * that just shrank cannot be asked for, and `items` gives the numbered links
+ * with their ellipsis gaps already worked out. At 1000 pages that is the
+ * difference between reachable and not: a first/prev/next pager can only walk.
+ *
+ * It reads `state` and `source.total` rather than the slot's props, because a
+ * composable belongs in setup. The slot's `state` and `total` are the same two
+ * values — the slot is what a consumer with no setup of their own would use.
+ */
+const pagination: UsePagination = usePagination(
+  state.page,
+  state.pageSize,
+  source.total,
+  { onChange: (page) => state.setPage(page) },
+)
 </script>
 
 <template>
@@ -105,38 +127,74 @@ const source: ServerDataSource<Employee> = useServerDataSource<Employee>(
       </template>
 
       <!-- The pagination slot replaces the default pager entirely. -->
-      <template #pagination="{ state: s, total }">
+      <template #pagination="{ total }">
         <div class="pager">
-          <button type="button" class="vt-btn" :disabled="s.page.value <= 1" @click="s.setPage(1)">
-            ⏮ first
+          <button
+            type="button"
+            class="vt-btn"
+            :disabled="!pagination.canPrev.value"
+            @click="pagination.first()"
+          >
+            « first
           </button>
           <button
             type="button"
             class="vt-btn"
-            :disabled="s.page.value <= 1"
-            @click="s.setPage(s.page.value - 1)"
+            :disabled="!pagination.canPrev.value"
+            @click="pagination.prev()"
           >
-            ← prev
+            ‹ prev
           </button>
-          <span class="hint">
-            page {{ s.page.value }} of {{ Math.max(1, Math.ceil(total / s.pageSize.value)) }}
-          </span>
+
+          <!-- `items` is `PageItem[]`: page numbers with 'ellipsis' where the
+               run is broken, so the markup is a v-for and no arithmetic. -->
+          <template v-for="(item, index) in pagination.items.value">
+            <span v-if="item === 'ellipsis'" :key="`gap-${index}`" class="gap">…</span>
+            <button
+              v-else
+              :key="item"
+              type="button"
+              class="vt-btn"
+              :class="{ current: item === pagination.page.value }"
+              :aria-current="item === pagination.page.value ? 'page' : undefined"
+              @click="pagination.go(item)"
+            >
+              {{ item }}
+            </button>
+          </template>
+
           <button
             type="button"
             class="vt-btn"
-            :disabled="s.page.value >= Math.ceil(total / s.pageSize.value)"
-            @click="s.setPage(s.page.value + 1)"
+            :disabled="!pagination.canNext.value"
+            @click="pagination.next()"
           >
-            next →
+            next ›
           </button>
+          <button
+            type="button"
+            class="vt-btn"
+            :disabled="!pagination.canNext.value"
+            @click="pagination.last()"
+          >
+            last »
+          </button>
+
           <select
-            :value="s.pageSize.value"
-            @change="s.setPageSize(Number(($event.target as HTMLSelectElement).value))"
+            :value="state.pageSize.value"
+            aria-label="Rows per page"
+            @change="state.setPageSize(Number(($event.target as HTMLSelectElement).value))"
           >
             <option v-for="size in [10, 25, 50]" :key="size" :value="size">{{ size }} / page</option>
           </select>
+
+          <span class="hint">
+            {{ pagination.firstRow.value }}–{{ pagination.lastRow.value }} of {{ total }} ·
+            page {{ pagination.page.value }} of {{ pagination.pageCount.value }}
+          </span>
         </div>
       </template>
+
     </DataTable>
 
     <StateInspector label="Query sent to the server" :value="lastQuery" />
@@ -147,4 +205,6 @@ const source: ServerDataSource<Employee> = useServerDataSource<Employee>(
 .server-table { display: flex; flex-direction: column; gap: 10px; }
 .server-table > .hint { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pager { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pager .current { font-weight: 700; border-color: var(--accent); color: var(--accent); }
+.pager .gap { opacity: 0.5; padding: 0 2px; }
 </style>
