@@ -13,7 +13,10 @@
   gap: var(--vtc-space-3);
   background: none;
   border: 0;
-  padding: var(--vtc-space-2);
+  /* Nothing on the inline-end edge: the glyph is meant to sit against the
+     filter trigger that follows it, and padding there is invisible space the
+     button reserves without ever being clicked through it. */
+  padding: var(--vtc-space-2) 0 var(--vtc-space-2) var(--vtc-space-2);
   margin: 0;
   font: inherit;
   font-weight: inherit;
