@@ -46,6 +46,15 @@ would let a bare CSS import there be tree-shaken away, silently shipping an unst
   attributes silently — a `:style` on `<DataTable>` had no effect at all, which is the binding
   `defineTheme` exists to produce. `.vt-datatable` is also the only element they could usefully
   reach, since that is where every token is declared.
+- **The truncation marker is Firefox-only, and that was the choice.** `--vtc-truncation-marker`
+  defaults to `'..'`, applied behind `@supports (text-overflow: '..')` — Chrome and Safari reject the
+  string form and keep the `…` the `ellipsis` keyword paints. The guard cannot be dropped for a
+  second declaration: a `var()` substituting to a rejected value is invalid at computed-value time,
+  which resets the property to `clip` rather than falling back. Getting `..` in Chrome means leaving
+  `text-overflow` behind entirely — a `::after` marker revealed by a scroll-driven overflow test, or
+  JavaScript measuring and slicing each cell. Both were considered and declined: the first needs a
+  background matching the composed `--_vtc-layer-*` stack, the second is per-cell layout reads on
+  every render. Reopen only with the browser support changed.
 - **Dark is reached two ways and the blocks cannot be shared.** The media query excludes
   `[data-theme='light']`; the attribute form sits outside it, and after it. The attribute is read on
   the element itself, never on an ancestor — CSS cannot say "and nothing above said light", so an
