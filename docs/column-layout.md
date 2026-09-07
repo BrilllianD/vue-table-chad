@@ -43,7 +43,10 @@ columns.setWidth('city', 300)     // a resize outranks all three
 
 A column declaring no `width` is measured once from the rendered table and
 clamped into `[minWidth ?? 60, maxWidth ?? 160]` — so an id column narrows to its
-digits while a free-text one stops at the cap and ellipsises. The ceiling is
+digits while a free-text one stops at the cap and truncates. What the clipped
+text ends with is `--vtc-truncation-marker`, two dots by default — Firefox is
+the only engine that implements a custom `text-overflow` string, so the rest
+draw the usual `…` there. The ceiling is
 `useColumns`' `defaultWidth`, which is also the width a column falls back to
 where nothing can be measured: a server render, a test, the frame before the
 first layout.

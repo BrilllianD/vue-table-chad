@@ -122,6 +122,69 @@ describe('preset stylesheet', () => {
   })
 
   /**
+   * The truncation marker reaches every rule the `ellipsis` keyword does, and
+   * only from behind the support test.
+   *
+   * `text-overflow: <string>` is Firefox-only, so the marker is applied as a
+   * second rule rather than in place of the keyword. The guard is not
+   * optional: a `var()` that substitutes to a value the browser rejects is
+   * invalid at computed-value time, which resets the property to `clip`
+   * instead of falling back to the keyword — an unguarded rule would cut text
+   * mid-glyph in Chrome with no marker at all. Neither half is visible to
+   * jsdom, and a browser that shows the bug is not the one most people run.
+   */
+  it('applies the truncation marker to every ellipsis rule, behind @supports', () => {
+    const selectorsOf = (r: Rule) => r.selector.split(',').map((s) => s.trim())
+
+    const keyword = new Set(
+      rules()
+        .filter((r) => /text-overflow:\s*ellipsis/.test(r.body))
+        .flatMap(selectorsOf),
+    )
+    const marker = new Set(
+      rules()
+        .filter((r) => /text-overflow:\s*var\(--vtc-truncation-marker\)/.test(r.body))
+        .flatMap(selectorsOf),
+    )
+
+    expect(
+      [...keyword].filter((s) => !marker.has(s)).sort(),
+      'selectors that truncate with the ellipsis keyword and never get the theme\'s marker',
+    ).toEqual([])
+    expect(
+      [...marker].filter((s) => !keyword.has(s)).sort(),
+      'selectors given the marker without the keyword fallback underneath, which is nothing at all in Chrome and Safari',
+    ).toEqual([])
+
+    const unguarded: string[] = []
+    for (const file of readdirSync(STYLES).filter((n) => n.endsWith('.css'))) {
+      const css = readFileSync(resolve(STYLES, file), 'utf8')
+      // Deliberately not a CSS parser either: blank out each `@supports` body
+      // by walking its braces, then any marker still standing is outside one.
+      let stripped = css
+      for (;;) {
+        const at = stripped.indexOf("@supports (text-overflow: '..')")
+        if (at === -1) break
+        let i = stripped.indexOf('{', at)
+        let depth = 0
+        for (; i < stripped.length; i++) {
+          if (stripped[i] === '{') depth++
+          else if (stripped[i] === '}' && --depth === 0) break
+        }
+        stripped = stripped.slice(0, at) + stripped.slice(i + 1)
+      }
+      // `var(…)` and not the bare name: `tokens.css` declares the token, and
+      // a declaration is not a use.
+      if (stripped.includes('var(--vtc-truncation-marker)')) unguarded.push(file)
+    }
+
+    expect(
+      unguarded,
+      'a partition reads --vtc-truncation-marker outside @supports, which resets text-overflow to clip wherever the string form is unsupported',
+    ).toEqual([])
+  })
+
+  /**
    * The theme is settable from one place. A rule elsewhere that assigns a
    * public `--vtc-` token outranks whatever the consumer wrote on
    * `.vt-datatable`, so the token stops being a knob and starts being a lie —

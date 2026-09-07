@@ -215,6 +215,7 @@ export const TOKEN_CONTROLS: Record<ThemeToken, TokenControl> = {
   cellPaddingX: { group: 'Metrics', kind: 'length', unit: 'px', min: 0, max: 32, hint: 'cell padding, left and right' },
   groupIndentStep: { group: 'Metrics', kind: 'length', unit: 'px', min: 0, max: 48, hint: 'per level of grouping' },
   font: { group: 'Metrics', kind: 'text', hint: 'the whole font shorthand — size, line height and family' },
+  truncationMarker: { group: 'Metrics', kind: 'text', hint: 'what a clipped cell ends with — Firefox only, others keep the ellipsis glyph' },
 }
 
 /**

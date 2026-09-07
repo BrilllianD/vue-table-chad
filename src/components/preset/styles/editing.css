@@ -334,3 +334,14 @@
   color: var(--vtc-danger);
   font-size: var(--vtc-font-size-sm);
 }
+
+/* The truncation marker, behind the same support test `grid.css` explains. */
+@supports (text-overflow: '..') {
+  .vt-cell-trigger,
+  .vt-cell-editable,
+  .vt-row-error,
+  .vt-asyncselect-trigger,
+  .vt-asyncselect-option {
+    text-overflow: var(--vtc-truncation-marker);
+  }
+}

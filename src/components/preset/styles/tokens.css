@@ -209,6 +209,17 @@
   */
   --vtc-cell-padding-x: var(--vtc-space-5);
   --vtc-font: var(--vtc-font-size-md) / 1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  /*
+    What a clipped cell ends with. Two dots read narrower than the single `…`
+    glyph the `ellipsis` keyword paints, and which of the two is wanted is a
+    taste call, so it is a token rather than a literal.
+
+    The quotes are part of the value: `text-overflow` takes a CSS string here,
+    not an identifier. Only Firefox implements `text-overflow: <string>`, so
+    every rule that reads this token sits behind an `@supports` guard and the
+    rest keep the keyword — `grid.css` carries the why.
+  */
+  --vtc-truncation-marker: '..';
 }
 
 /*

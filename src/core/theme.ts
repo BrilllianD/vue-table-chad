@@ -122,6 +122,7 @@ const THEME_TOKENS = [
   'cellPaddingX',
   'groupIndentStep',
   'font',
+  'truncationMarker',
 ] as const
 
 /** One token's name, in the camelCase form a `Theme` uses. */

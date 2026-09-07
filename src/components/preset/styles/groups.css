@@ -124,3 +124,10 @@
 
 /* A pinned column's footer cell has to clear its unpinned neighbours. */
 .vt-tfoot .vt-td[data-pinned] { z-index: var(--vtc-z-sticky-pinned); }
+
+/* The truncation marker, behind the same support test `grid.css` explains. */
+@supports (text-overflow: '..') {
+  .vt-group-label {
+    text-overflow: var(--vtc-truncation-marker);
+  }
+}

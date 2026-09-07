@@ -128,3 +128,12 @@
   margin-bottom: var(--vtc-space-2);
   padding-bottom: var(--vtc-space-2);
 }
+
+/* The truncation marker, behind the same support test `grid.css` explains. */
+@supports (text-overflow: '..') {
+  .vt-group-level-label,
+  .vt-group-option-label,
+  .vt-columns-label {
+    text-overflow: var(--vtc-truncation-marker);
+  }
+}

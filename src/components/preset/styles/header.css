@@ -217,3 +217,10 @@
   opacity: 1;
   background: var(--vtc-accent);
 }
+
+/* The truncation marker, behind the same support test `grid.css` explains. */
+@supports (text-overflow: '..') {
+  .vt-sort-label {
+    text-overflow: var(--vtc-truncation-marker);
+  }
+}

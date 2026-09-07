@@ -515,3 +515,24 @@
   text-align: center;
   color: var(--vtc-text-muted);
 }
+
+/*
+  The truncation marker itself, behind a support test.
+
+  `text-overflow: <string>` is Firefox-only. The test cannot be skipped by
+  writing the token straight after the keyword: a `var()` that substitutes to a
+  value the browser rejects is invalid at computed-value time, and that does
+  *not* fall back to the declaration above it — the property resets to its
+  initial `clip`, so Chrome would cut text mid-glyph with no marker at all.
+  `@supports` is decided on the literal, before any substitution, so a browser
+  that cannot do this never enters the block and keeps the `…` it already drew.
+
+  Last in the file on purpose: same selectors, same specificity as the rules
+  above, so source order is what lets these win.
+*/
+@supports (text-overflow: '..') {
+  .vt-td,
+  .vt-th-label {
+    text-overflow: var(--vtc-truncation-marker);
+  }
+}
