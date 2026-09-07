@@ -51,8 +51,13 @@
     indices, the header's uppercased band labels. Named `font-size` rather than
     `text` on purpose: `--vtc-text` is the foreground colour, and a scale that
     read `--vtc-text-sm` next to it would be a trap.
+
+    `3xs` sharing a value with `xs` is deliberate, not a leftover: it is the
+    sort glyph's size and nothing else's, and 9px rendered ▲/▼/⇅ as a hairline
+    beside a 14px bold header label. Keeping the name means the glyph stays
+    tunable on its own, without the rest of the secondary text following it.
   */
-  --vtc-font-size-3xs: 9px;
+  --vtc-font-size-3xs: 11px;
   --vtc-font-size-2xs: 10px;
   --vtc-font-size-xs: 11px;
   --vtc-font-size-sm: 12px;

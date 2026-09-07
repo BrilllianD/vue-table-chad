@@ -10,10 +10,10 @@
 .vt-sort {
   display: inline-flex;
   align-items: center;
-  gap: var(--vtc-space-2);
+  gap: var(--vtc-space-3);
   background: none;
   border: 0;
-  padding: var(--vtc-space-2) var(--vtc-space-1);
+  padding: var(--vtc-space-2);
   margin: 0;
   font: inherit;
   font-weight: inherit;
@@ -30,6 +30,9 @@
 
 .vt-sort-icon {
   font-size: var(--vtc-font-size-3xs);
+  /* The glyph is taller than the 9px it used to be; without this its line box
+     grows the button and pushes the header past `--vtc-row-height`. */
+  line-height: 1;
   opacity: var(--vtc-opacity-muted);
   flex: none;
 }
@@ -45,7 +48,7 @@
   background: var(--vtc-accent);
   color: var(--vtc-accent-contrast);
   border-radius: var(--vtc-radius-lg);
-  padding: 0 5px;
+  padding: 0 var(--vtc-space-3);
   flex: none;
 }
 

@@ -219,7 +219,7 @@
 .vt-th-inner {
   display: flex;
   align-items: center;
-  gap: var(--vtc-space-1);
+  gap: var(--vtc-space-2);
   min-width: 0;
 }
 
