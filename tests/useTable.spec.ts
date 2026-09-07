@@ -4,6 +4,7 @@ import { useTable, type UseTableOptions } from '../src/core/useTable'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useServerDataSource } from '../src/core/useServerDataSource'
 import { useTableState } from '../src/core/useTableState'
+import { valuesFilter } from '../src/core/filters/model'
 import { people, personColumns, personColumnGroups, groupedPersonColumns, type Person } from './fixtures'
 
 /**
@@ -352,5 +353,171 @@ describe('useTable over a server source, turning the page', () => {
 
     expect(table.cellCursor.focusRequests.value).toBe(requests)
     dispose()
+  })
+
+  it('holds the ring on the page it can see when the sort changes', async () => {
+    const { state, table, land, dispose } = setupServer()
+    await land(0, 3)
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'salary' })
+    await nextTick()
+    const requests = table.cellCursor.focusRequests.value
+
+    state.setSort('name', 'asc')
+    await nextTick()
+
+    // Mid-flight, and the outgoing page is what is still rendered. Moving the
+    // ring to the second row of *that* would put it on a row about to leave.
+    expect(table.cellCursor.position.value).toEqual({ rowId: 2, columnId: 'salary' })
+
+    await land(3, 6)
+    // Second row of the page that landed, same column — and still no focus
+    // asked for, because the sort was a header click that keeps the caret.
+    expect(table.cellCursor.position.value).toEqual({ rowId: 5, columnId: 'salary' })
+    expect(table.cellCursor.focusRequests.value).toBe(requests)
+    dispose()
+  })
+})
+
+/**
+ * The cursor across a change to the query's *shape*.
+ *
+ * A sort, a filter, a search and a delegated grouping all reset the table to
+ * page 1, so between them they are how the cursor's row leaves the screen
+ * without anybody turning a page. The rule is the one a page turn already
+ * follows — same offset down the rendered rows, same column — and the rest of
+ * these are about what it must *not* do while following it.
+ */
+describe('useTable across a query-shape change', () => {
+  function setupCursor(pageSize = 3) {
+    const state = useTableState({ pageSize })
+    const { table, dispose } = setup({ state, cellCursor: () => true })
+    return { state, table, dispose }
+  }
+
+  /** Ids of the rows the cursor is walking, for a test that wants the order. */
+  const walked = (table: ReturnType<typeof setupCursor>['table']) => [...table.cellCursor.rowIds.value]
+
+  it('keeps the cursor at the same offset when the sort changes', async () => {
+    const { state, table, dispose } = setupCursor()
+    await nextTick()
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'salary' })
+    await nextTick()
+    const requests = table.cellCursor.focusRequests.value
+
+    state.setSort('name', 'asc')
+    await nextTick()
+
+    // Ada, Alan, Barbara: the second row of the new order, not the row that
+    // was second before it.
+    expect(walked(table)).toEqual([1, 3, 7])
+    expect(table.cellCursor.position.value).toEqual({ rowId: 3, columnId: 'salary' })
+    // Silent. The sort came from a header button that must keep the caret, and
+    // `TableGrid` moves the focus itself when it was already on a cell.
+    expect(table.cellCursor.focusRequests.value).toBe(requests)
+    dispose()
+  })
+
+  it('clamps to the last row when the result set is shorter than the offset', async () => {
+    const { state, table, dispose } = setupCursor()
+    await nextTick()
+
+    table.cellCursor.moveTo({ rowId: 3, columnId: 'name' })
+    await nextTick()
+
+    state.setSearch('Item')
+    await nextTick()
+
+    // Two rows match, and the cursor was on the third. The nearest row it can
+    // have is the last one.
+    expect(walked(table)).toEqual([5, 6])
+    expect(table.cellCursor.position.value).toEqual({ rowId: 6, columnId: 'name' })
+    dispose()
+  })
+
+  it('follows a filter the same way it follows a sort', async () => {
+    const { state, table, dispose } = setupCursor()
+    await nextTick()
+
+    table.cellCursor.moveTo({ rowId: 1, columnId: 'department' })
+    await nextTick()
+
+    state.setFilter('department', valuesFilter(['Research']))
+    await nextTick()
+
+    expect(table.cellCursor.position.value).toEqual({ rowId: 3, columnId: 'department' })
+    dispose()
+  })
+
+  it('follows a grouping that only reorders the page', async () => {
+    const { state, table, dispose } = setupCursor(4)
+    await nextTick()
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'name' })
+    await nextTick()
+
+    // Grouping bands the same four rows into a different order rather than
+    // fetching different ones, and the cursor keeps the place on the screen
+    // rather than the row that used to be there.
+    state.setGroupBy(['active'])
+    await nextTick()
+
+    expect(walked(table)).toEqual([3, 1, 2, 4])
+    expect(table.cellCursor.position.value).toEqual({ rowId: 1, columnId: 'name' })
+    dispose()
+  })
+
+  it('falls back to the first column when the named one has gone', async () => {
+    const { state, table, dispose } = setupCursor()
+    await nextTick()
+
+    table.cellCursor.moveTo({ rowId: 2, columnId: 'salary' })
+    await nextTick()
+
+    table.columns.toggleVisibility('salary', false)
+    state.setSort('name', 'asc')
+    await nextTick()
+
+    expect(table.cellCursor.position.value).toEqual({ rowId: 3, columnId: 'name' })
+    dispose()
+  })
+
+  it('leaves a cursor nobody has placed unplaced', async () => {
+    const state = useTableState({ pageSize: 3 })
+    const cellCursor = shallowRef(false)
+    const { table, dispose } = setup({ state, cellCursor: () => cellCursor.value })
+    await nextTick()
+
+    state.setSort('name', 'asc')
+    await nextTick()
+
+    // The seeding `anchorAt(0)` waits on the option, so a table with the cursor
+    // off has no position — and a sort must not hand it one.
+    expect(table.cellCursor.position.value).toBeNull()
+    dispose()
+  })
+
+  it('asks no identity of rows a table with the cursor off never promised', async () => {
+    const scope = effectScope()
+    const rows = shallowRef([{ name: 'Ada' }, { name: 'Grace' }])
+    const columns = () => [{ id: 'name', header: 'Name' }]
+    const result = scope.run(() => {
+      const state = useTableState({ pageSize: 3 })
+      const source = useLocalDataSource(rows, columns(), state.query, { debounceMs: 0 })
+      const table = useTable({ columns, source: () => source, state })
+      return { state, table }
+    })!
+    await nextTick()
+
+    // `defaultRowId` throws on a row carrying no `id`. Recording where the
+    // cursor sits reads every rendered row's identity, so the recorder has to
+    // stay out of a table that never asked for a cursor.
+    expect(() => {
+      result.state.setSort('name', 'asc')
+    }).not.toThrow()
+    await nextTick()
+    expect(result.table.rows.value.map((row) => row.name)).toEqual(['Ada', 'Grace'])
+    scope.stop()
   })
 })

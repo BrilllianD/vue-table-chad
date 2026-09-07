@@ -38,9 +38,12 @@ function mountTable(
   const saves: RowChange<Person>[] = []
   const saved: Person[] = []
 
+  /** Assigned by the host's setup, so a test can drive the query directly. */
+  let state!: ReturnType<typeof useTableState>
+
   const Host = defineComponent({
     setup() {
-      const state = useTableState({ pageSize: options.pageSize ?? 25 })
+      state = useTableState({ pageSize: options.pageSize ?? 25 })
       const source = useLocalDataSource<Person>(rows, columns, state.query, { debounceMs: 0 })
       const session = useRowEditing<Person>(source, columns, {
         save: async (change) => {
@@ -65,7 +68,8 @@ function mountTable(
     },
   })
 
-  return { wrapper: mount(Host, { attachTo: document.body }), rows, saves, saved }
+  const wrapper = mount(Host, { attachTo: document.body })
+  return { wrapper, rows, saves, saved, state }
 }
 
 type Wrapper = ReturnType<typeof mountTable>['wrapper']
@@ -995,6 +999,51 @@ describe('a page turn on a server source', () => {
     // promise the local page turn keeps.
     expect(ringAt(wrapper)).toBe('5:salary')
     expect(document.activeElement).toBe(cell(wrapper, 5, 'salary').element)
+    wrapper.unmount()
+  })
+})
+
+/**
+ * Sorting under a set cursor, and where the caret is left afterwards.
+ *
+ * The ring keeps the place on the screen, which `tests/useTable.spec.ts` proves
+ * on its own. What needs a DOM is the other half: a sort is a click on a button
+ * inside the same `<table>`, and that button has to keep the focus, or a second
+ * Enter cannot reverse the direction it just set.
+ */
+describe('a cursor across a sort', () => {
+  it('keeps the ring at its offset and leaves the caret on the sort button', async () => {
+    const { wrapper } = mountTable({ pageSize: 3 })
+    await cell(wrapper, 2, 'salary').trigger('focusin')
+    await nextTick()
+    expect(ringAt(wrapper)).toBe('2:salary')
+
+    const sort = wrapper.get('thead th[data-column="name"] button.vt-sort')
+    ;(sort.element as HTMLElement).focus()
+    await sort.trigger('click')
+    await nextTick()
+
+    // Ada, Alan, Barbara — and the ring on the second of them, where it was.
+    expect(pageIds(wrapper)).toEqual(['1', '3', '7'])
+    expect(ringAt(wrapper)).toBe('3:salary')
+    expect(document.activeElement).toBe(sort.element)
+    wrapper.unmount()
+  })
+
+  it('carries the caret when it was already on a cell', async () => {
+    const { wrapper, state } = mountTable({ pageSize: 3 })
+    const focused = cell(wrapper, 2, 'salary')
+    ;(focused.element as HTMLElement).focus()
+    await focused.trigger('focusin')
+    await nextTick()
+
+    // Sorted from somewhere that is not the header — a toolbar, a saved view —
+    // so the caret is on the cell and has nowhere else to be.
+    state.setSort('name', 'asc')
+    await nextTick()
+
+    expect(ringAt(wrapper)).toBe('3:salary')
+    expect(document.activeElement).toBe(cell(wrapper, 3, 'salary').element)
     wrapper.unmount()
   })
 })

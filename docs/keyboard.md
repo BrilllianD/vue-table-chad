@@ -120,9 +120,15 @@ rendered: a keyboard route that only exists when a control is on screen is not a
 **Every** page change does this, not only the keyboard one. A click on the pager, a new page size,
 and a `setPage` from your own code all restore the cursor the same way, and the focus follows it
 onto the new cell — the cell the caret was on has left the document, and leaving the focus behind
-strands a keyboard user on `<body>`. Only the *implicit* resets are left alone: a new filter, sort
-or search sends the table back to page 1 without moving the cursor, because pulling the caret out of
-the search box you are typing in is not a page turn.
+strands a keyboard user on `<body>`.
+
+A new **sort, filter, search or grouping** keeps the offset too, and for the same reason: each of
+them sends the table back to page 1, so the row the cursor was on is usually not on the page that
+comes back. What differs is the caret. These are typed into a search box and clicked on a header
+button, and both have to keep it — the box because you are still typing in it, the sort button
+because a second Enter is how you reverse the direction it just set. So the ring moves and the
+caret does not, unless it was already on a body cell, which is the keyboard user who wants to be
+carried along. `Tab` reaches the ring wherever it went: it is the grid's one tab stop.
 
 Over a **server** source the page does not arrive in the tick it was asked for, so the ring waits
 with you: it stays on the row you were reading — that page is still what is rendered — and moves to
@@ -211,10 +217,14 @@ A position is a **row id and a column id**, never a pair of indices:
 interface CellPosition { rowId: RowId; columnId: string }
 ```
 
-An index is meaningless the moment the table is re-sorted, re-filtered or paged. An id survives all
-three, so the cursor stays on the row you put it on while that row moves under it — the same reason
-[an open draft](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/README.md) survives a re-sort. Sort by a column with the cursor set and watch the
-ring travel with its row.
+An index is meaningless the moment the rows move underneath it. An id is not, so the cursor stays on
+the row you put it on while that row travels — the same reason
+[an open draft](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/README.md) survives a re-sort. Everything that reads a position — the ring, the row
+cross, an editor, a copy — reads it as the pair of ids.
+
+Where the *table* puts the cursor is a separate question, and it has a different answer: a page turn
+and a query-shape change both re-place it at the offset it had, as above. The identity is what makes
+the cursor survive being moved about; the offset is what decides where it is moved to.
 
 The cursor walks the rows **as rendered**, which matters as soon as anything is grouped: the source
 returns a page in one order and the screen shows it banded in another. Arrow down through a band
@@ -279,8 +289,9 @@ were reading until the new page lands, and then appears at the same height on it
 
 `cancelAnchor()` drops an anchor that is still waiting. A page whose fetch never arrives leaves one
 armed, and the next rows to land need not be that page's — a new search produces rows too, and
-resolving there would move the ring for a page turn you had already given up on. `DataTable` calls it
-for you whenever the query's shape changes.
+resolving there would move the ring for a page turn you had already given up on. `DataTable` handles
+this for you on a query-shape change: with a cursor to keep it arms a fresh anchor, which replaces
+the stale one, and with none it cancels.
 
 The pure half is exported too, for a key map of your own:
 

@@ -628,15 +628,77 @@ export function useTable<TRow>(
     cellCursor.anchorAt(offset, columnId, { focus: true, replacing })
   }
 
+  /**
+   * Where the cursor sat on the screen at the end of the last render, or
+   * `undefined` when it sat nowhere a person could see.
+   *
+   * A position is an identity everywhere else in the table; this is the one
+   * place that also needs the *offset*, and needs it from before the change
+   * that is about to read it. The watcher below runs before the render, so by
+   * the time it asks, `rowOffset` and `rowIds` have already been recomputed
+   * against the new query — the rows the user was looking at are gone from
+   * every reactive read. Recording them as they leave the screen is what makes
+   * "the same place on the screen" answerable at all.
+   *
+   * `flush: 'post'` is the whole point: post is "what is on screen now".
+   *
+   * `watchEffect` rather than a watcher over the rows, because the offset moves
+   * for two different reasons — the rows changed under the cursor, or the person
+   * moved the cursor — and only an effect tracks both without listing them. It
+   * also records the first render, which a watcher without `immediate` misses
+   * and one with it runs too early.
+   *
+   * It returns before reading anything when there is no cursor. A table with the
+   * cursor switched off must never be made to ask `getRowId` for identities its
+   * rows may not carry — the same rule the `anchorAt(0)` seeding above obeys,
+   * and here it matters more, because an effect is eager where that one waits to
+   * be asked.
+   */
+  let rendered: { offset: number; columnId: string; rowIds: readonly RowId[] } | undefined
+  watchEffect(
+    () => {
+      if (!cursorEnabled() || cellCursor.position.value === null) return
+      const offset = cellCursor.rowOffset.value
+      const columnId = cellCursor.columnId.value
+      // Not "no rows" but "the cursor is on none of them": it names a row this
+      // page does not hold, mid-anchor or after a filter took it away. There is
+      // no visible place to keep, and overwriting the last one that *was*
+      // visible with a `-1` would lose the offset the next change wants.
+      if (offset < 0 || columnId === undefined) return
+      rendered = { offset, columnId, rowIds: cellCursor.rowIds.value }
+    },
+    { flush: 'post' },
+  )
+
   /*
-   * An anchor outlives the page turn that armed it when the page never arrives
-   * — a rejected fetch leaves the rows exactly as they were. The next rows to
-   * land then need not be that page's at all: a new search or filter produces
-   * rows too, and it reaches the pipeline by assigning the field rather than
-   * through `turnPage`, precisely so the caret is left alone. Letting the stale
-   * anchor resolve there would move the ring for a page turn the user has
-   * already given up on and pull the caret out of the box they are typing in —
-   * the very thing wrapping the writers instead of watching `page` avoids.
+   * A change to the query's *shape* keeps the cursor where it is on the screen:
+   * same offset down the rendered rows, same column.
+   *
+   * Every one of these four resets the table to page 1 — a sort and a filter
+   * because page 7 of a 3-page result is empty, a search because it is a filter
+   * by another name. So the row the cursor names is routinely not on the page
+   * that comes back, and left alone the ring vanishes, `tabStop` falls back to
+   * the first cell, and the focused cell leaves the document. That is the same
+   * failure `turnPage` exists to prevent, arrived at by a different route, and
+   * it gets the same answer.
+   *
+   * Silent — no `focus` flag — and that is not a hedge, it is the rule. These
+   * changes are typed into a search box and clicked on a header button, both of
+   * which must keep the caret: a focus request here would take it out of the box
+   * on every keystroke, and off the sort button before a second Enter could
+   * reverse the direction. `TableGrid` then focuses the new cell only if the
+   * caret was already on one, which is exactly the keyboard user who wants to be
+   * carried along.
+   *
+   * `rendered` is read rather than the cursor, because this runs before the
+   * render and the cursor already answers about the new rows — see above.
+   *
+   * With nothing to keep, the old behaviour: drop an anchor still waiting. A
+   * page whose fetch never arrives leaves one armed, and the next rows to land
+   * need not be that page's — a new search produces rows too, and letting the
+   * stale anchor resolve there would move the ring for a page turn the user has
+   * already given up on. Where there *is* something to keep, `anchorAt` cancels
+   * that anchor by replacing it.
    *
    * The four fields are the ones `shapeKey` reads, watched as fields rather
    * than as `state.query`, which is what keeps `page` and `pageSize` out of it:
@@ -649,7 +711,17 @@ export function useTable<TRow>(
       () => state.globalSearch.value,
       () => state.groupBy.value,
     ],
-    () => cellCursor.cancelAnchor(),
+    () => {
+      const keep = cursorEnabled() && cellCursor.position.value !== null ? rendered : undefined
+      if (!keep) {
+        cellCursor.cancelAnchor()
+        return
+      }
+      // `replacing` for the reason `turnPage` names it: a server source goes on
+      // rendering the outgoing rows for the whole fetch, and they are not an
+      // answer to where the cursor belongs in the result that has not landed.
+      cellCursor.anchorAt(keep.offset, keep.columnId, { replacing: keep.rowIds })
+    },
     { deep: true },
   )
 

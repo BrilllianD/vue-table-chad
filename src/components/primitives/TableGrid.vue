@@ -374,6 +374,10 @@ function onFocusIn(event: FocusEvent): void {
   const cell = (event.target as HTMLElement | null)?.closest?.('.vt-td[data-column]')
   const columnId = cell?.getAttribute('data-column')
   const key = cell?.closest('.vt-tr')?.getAttribute('data-row-id')
+  // Recorded before the early returns, and false for anything that is not a
+  // body cell: a header's sort button and a filter menu bubble through here
+  // too, and they are precisely the callers that must keep the caret.
+  caretInBody = Boolean(columnId) && key !== null && key !== undefined
   if (!columnId || key === null || key === undefined) return
   const rowId = cursor.rowIdFor(key)
   if (rowId === undefined) return
@@ -381,6 +385,31 @@ function onFocusIn(event: FocusEvent): void {
   // No focus request: focus is already where it belongs, and asking for it
   // again from inside a focus handler is how you build a loop.
   cursor.moveTo({ rowId, columnId })
+}
+
+/**
+ * Whether the caret was last put in a body cell.
+ *
+ * Plain, not reactive: nothing renders from it, and the one reader is the
+ * watcher below.
+ *
+ * `document.activeElement` cannot answer this by the time that watcher runs. A
+ * re-sort replaces the rows, and the focused cell going out of the document
+ * takes the caret to `<body>` before anything else gets a say — so the table
+ * that *did* hold the caret and the page that never did look identical there.
+ * This remembers the difference.
+ */
+let caretInBody = false
+
+/**
+ * Focus leaving for somewhere else on the page. A `relatedTarget` of `null` is
+ * not that: it is the cell being unmounted under a caret that wants to come
+ * back, which is the whole case this exists for.
+ */
+function onFocusOut(event: FocusEvent): void {
+  const next = event.relatedTarget as HTMLElement | null
+  if (!next) return
+  caretInBody = Boolean(next.closest?.('.vt-td[data-column]'))
 }
 
 /**
@@ -448,6 +477,7 @@ const cursorHandlers = computed(() =>
     ? {
         keydown: onKeydown,
         focusin: onFocusIn,
+        focusout: onFocusOut,
         click: onClick,
         copy: onCopy,
         paste: onPaste,
@@ -461,8 +491,15 @@ const cursorHandlers = computed(() =>
  * `focusRequests` changing means a person asked to be somewhere, so focus
  * follows unconditionally. The position changing on its own means the data
  * moved underneath the cursor — a re-sort, a filter — and focus follows only
- * if it was already inside the table, because pulling the caret out of the
- * search box the user is typing in is exactly what nobody wants.
+ * if it was already on a body cell, because pulling the caret out of the search
+ * box the user is typing in is exactly what nobody wants. A header's own sort
+ * button counts as somewhere else for the same reason: it has to survive the
+ * sort it just asked for, or a second Enter cannot reverse the direction.
+ *
+ * `caretInBody` and not `contains(activeElement)`, because the caret is often
+ * on `<body>` by then — see the note there. The activeElement half of the test
+ * is only what stops a click on some other page element from being overruled
+ * by a cell that used to have the caret.
  *
  * `flush: 'post'`, so the roving tabindex has been patched before anything is
  * focused: rewriting `tabindex` under an already-focused element makes Firefox
@@ -472,8 +509,9 @@ watch(
   [() => props.cursor?.focusRequests.value, () => props.cursor?.position.value],
   ([requests], [previousRequests]) => {
     const asked = requests !== previousRequests
-    const root = table.value
-    if (!asked && !(root && root.contains(document.activeElement))) return
+    const active = document.activeElement
+    const elsewhere = active !== null && active !== document.body && !table.value?.contains(active)
+    if (!asked && (!caretInBody || elsewhere)) return
     focusCursorCell()
   },
   { flush: 'post' },
