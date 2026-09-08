@@ -105,6 +105,15 @@ const recipes: Recipe[] = [
           state, sorting, filtering and selection drive whatever you build, table or not.`,
     file: 'recipe-6.vue',
   },
+  {
+    id: 'app-locale',
+    title: 'One language for the whole app',
+    why: `\`app.use(createTableLabels(ru))\` in \`main.ts\` and every table renders Russian with no
+          \`labels\` prop anywhere — the preset, the primitives under it, and a bare pager with no
+          table above it. A prop still wins where one is given, and wins per key, because it is
+          merged over the app's record rather than over English.`,
+    file: 'recipe-7.vue',
+  },
 ]
 </script>
 

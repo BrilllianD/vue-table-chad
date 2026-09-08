@@ -31,6 +31,7 @@ import recipe3 from '../../docs/.vitepress/examples/recipe-3.vue?highlight'
 import recipe4 from '../../docs/.vitepress/examples/recipe-4.vue?highlight'
 import recipe5 from '../../docs/.vitepress/examples/recipe-5.vue?highlight'
 import recipe6 from '../../docs/.vitepress/examples/recipe-6.vue?highlight'
+import recipe7 from '../../docs/.vitepress/examples/recipe-7.vue?highlight'
 import selection from '../../docs/.vitepress/examples/selection.vue?highlight'
 import sortingAndPagination from '../../docs/.vitepress/examples/sorting-and-pagination.vue?highlight'
 import styling from '../../docs/.vitepress/examples/styling.vue?highlight'
@@ -67,6 +68,7 @@ export const exampleFiles: Record<string, HighlightedFile> = {
   'recipe-4.vue': recipe4,
   'recipe-5.vue': recipe5,
   'recipe-6.vue': recipe6,
+  'recipe-7.vue': recipe7,
   'selection.vue': selection,
   'sorting-and-pagination.vue': sortingAndPagination,
   'styling.vue': styling,
@@ -88,11 +90,19 @@ export interface TabExamples {
  * Tab id in `App.vue` to the example that answers it.
  *
  * The `recipes` entry is rendered by `RecipesView` itself, which interleaves
- * the six with its own prose; `App.vue` skips it for that reason.
+ * them with its own prose; `App.vue` skips it for that reason.
  */
 export const examplesByTab: Record<string, TabExamples> = {
   recipes: {
-    files: ['recipe-1.vue', 'recipe-2.vue', 'recipe-3.vue', 'recipe-4.vue', 'recipe-5.vue', 'recipe-6.vue'],
+    files: [
+      'recipe-1.vue',
+      'recipe-2.vue',
+      'recipe-3.vue',
+      'recipe-4.vue',
+      'recipe-5.vue',
+      'recipe-6.vue',
+      'recipe-7.vue',
+    ],
   },
   overview: { files: ['getting-started.vue', 'sorting-and-pagination.vue'] },
   server: { files: ['data-sources.vue'] },

@@ -7,6 +7,7 @@ import Recipe3 from './.vitepress/examples/recipe-3.vue'
 import Recipe4 from './.vitepress/examples/recipe-4.vue'
 import Recipe5 from './.vitepress/examples/recipe-5.vue'
 import Recipe6 from './.vitepress/examples/recipe-6.vue'
+import Recipe7 from './.vitepress/examples/recipe-7.vue'
 </script>
 
 What to type. Every other page is a live table you can poke; this one is the code that gets you
@@ -76,5 +77,17 @@ filtering and selection drive whatever you build, table or not — see
 <Demo :is="Recipe6" />
 
 <<< @/.vitepress/examples/recipe-6.vue
+
+## One language for the whole app
+
+`app.use(createTableLabels(ru))` in `main.ts` and every table in the app renders Russian with no
+`labels` prop anywhere — the preset, the primitives underneath it, and a bare `<TablePagination>`
+with no table above it. Hand the plugin a ref or a getter instead of a record and a language switch
+re-renders them all in place. A `labels` prop still wins where one is given, and wins per key: it is
+merged over the app's record rather than over English — see [Labels and i18n](labels.md).
+
+<Demo :is="Recipe7" />
+
+<<< @/.vitepress/examples/recipe-7.vue
 
 Live: the **Recipes** tab of `pnpm demo` (`#recipes`). Back to the [docs index](/).
