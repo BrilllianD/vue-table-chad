@@ -32,18 +32,21 @@
   /*
     Header labels, a step back from body text: the column names are structure
     rather than content, and at full strength they compete with the data for
-    the eye. This was a 70/30 mix with `--vtc-text-muted` first, and in the
-    browser the step was too small to read as deliberate — it looked like the
-    body colour rendered badly rather than a header holding back. The muted
-    role outright is the one that separates, at 4.6:1 over the light header
-    background and 6.3:1 over the dark, both above the 4.5:1 floor and helped
-    by the labels being bold. It does put the labels on the same colour as the
-    counts and sort glyphs beside them; the weight is what tells those apart.
+    the eye. `--vtc-text-muted` was the first value that read as deliberate
+    rather than as the body colour rendering badly; this takes it a further 10%
+    toward the header's own background.
+
+    **That last step costs the light palette its AA margin**: #747f8b on
+    #f6f7f9 is 3.8:1, under the 4.5:1 floor, and bold 13px labels are not large
+    text (that exemption starts at 18.66px bold). Dark lands at 5.4:1 and is
+    fine. It is a deliberate default, not an oversight — a consumer who needs
+    AA sets `--vtc-header-text: var(--vtc-text-muted)` and is back over the
+    line, which is the value this token shipped with.
 
     Not a literal, so there is no dark-mode entry, for the same reason the
-    hover colours have none: the role it points at is already swapped there.
+    hover colours have none: both roles it mixes are already swapped there.
   */
-  --vtc-header-text: var(--vtc-text-muted);
+  --vtc-header-text: color-mix(in srgb, var(--vtc-text-muted) 90%, var(--vtc-header-bg));
   /*
     Hover as a brightness delta rather than a colour: a wash of the text colour
     over whatever is underneath, so it darkens a light theme and lightens a dark

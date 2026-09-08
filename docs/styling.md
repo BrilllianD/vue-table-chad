@@ -236,20 +236,21 @@ Two tokens, the fill and the foreground:
 }
 ```
 
-`--vtc-header-text` is **not** `--vtc-text`. It ships as `--vtc-text-muted`, because column names
-are structure rather than content and at the body colour's full strength they compete with the data
-underneath them:
+`--vtc-header-text` is **not** `--vtc-text`. Column names are structure rather than content, and at
+the body colour's full strength they compete with the data underneath them, so the default is
+`--vtc-text-muted` taken a further 10% toward the header's own background:
 
 ```css
---vtc-header-text: var(--vtc-text-muted);  /* the default */
+--vtc-header-text: color-mix(in srgb, var(--vtc-text-muted) 90%, var(--vtc-header-bg));  /* the default */
 ```
 
-That is 4.6:1 over the default light header background and 6.3:1 over the dark one — above the
-4.5:1 floor, and the labels are bold on top of it. For a flatter header, point it back at the body
-colour:
+**Check this one against your palette.** Over the shipped backgrounds it is 3.8:1 on light and
+5.4:1 on dark, so the light default is under WCAG AA's 4.5:1 for body-sized text — the labels are
+bold, but bold only earns the 3:1 large-text threshold from 18.66px up. Two ways back:
 
 ```css
-.vt-datatable { --vtc-header-text: var(--vtc-text); }
+.vt-datatable { --vtc-header-text: var(--vtc-text-muted); }  /* 4.6:1 light, 6.3:1 dark */
+.vt-datatable { --vtc-header-text: var(--vtc-text); }        /* a flat header, same as the body */
 ```
 
 Either way you have moved the header labels and nothing else — where moving `--vtc-text` would take
