@@ -1178,6 +1178,18 @@ describe('DataTable loading state', () => {
     expect(wrapper.find('.vt-row-message').text()).toContain('No Data')
     wrapper.unmount()
   })
+
+  it('puts the message in a sticky inner box, so a wide table cannot hide it', async () => {
+    // The cell spans every column, so the message centred on the cell is
+    // centred on the *table* — off screen on anything wider than its box.
+    // jsdom applies no stylesheet, so what is assertable here is the element
+    // `.vt-row-message-inner` in grid.css needs to exist to stick at all.
+    const { wrapper, loading } = mountLoading({}, {}, [])
+    loading.value = false
+    await nextTick()
+    expect(wrapper.find('.vt-row-message td > .vt-row-message-inner').text()).toContain('No Data')
+    wrapper.unmount()
+  })
 })
 
 describe('row-click selection', () => {

@@ -527,22 +527,31 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
     :colspan="columns.length + extraColumns"
   >
     <template #default="{ items, start }">
+      <!--
+        The inner `<div>` in both message rows is what keeps the message on
+        screen: the cell spans every column, so on a table wider than its box
+        the centre of the cell is off to one side. The div is `position: sticky`
+        and as wide as the scrollport, so it centres on what is visible instead.
+        A cell cannot do that job itself — it is the wide box.
+      -->
       <tr v-if="error" class="vt-row-message">
         <td :colspan="columns.length + extraColumns">
-          <slot name="error" :error="error" :refresh="source.refresh">
-            <span class="vt-error">
-              {{ labels.loadFailed }}
-              <button type="button" class="vt-btn vt-btn-link" @click="source.refresh()">
-                {{ labels.retry }}
-              </button>
-            </span>
-          </slot>
+          <div class="vt-row-message-inner">
+            <slot name="error" :error="error" :refresh="source.refresh">
+              <span class="vt-error">
+                {{ labels.loadFailed }}
+                <button type="button" class="vt-btn vt-btn-link" @click="source.refresh()">
+                  {{ labels.retry }}
+                </button>
+              </span>
+            </slot>
+          </div>
         </td>
       </tr>
 
       <tr v-else-if="rows.length === 0 && !loading" class="vt-row-message">
         <td :colspan="columns.length + extraColumns">
-          <slot name="empty">{{ emptyMessage }}</slot>
+          <div class="vt-row-message-inner"><slot name="empty">{{ emptyMessage }}</slot></div>
         </td>
       </tr>
 

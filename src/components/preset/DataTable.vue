@@ -9,7 +9,7 @@
  * `<TableRoot>` and assemble the same pieces differently (see
  * `playground/src/examples/ComposedCustom.vue`).
  */
-import { computed, getCurrentInstance, ref, shallowRef, useSlots } from 'vue'
+import { computed, getCurrentInstance, onScopeDispose, ref, shallowRef, useSlots, watch } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -573,6 +573,51 @@ function bandFold(fold: BandFold, cursor: UseCellCursor<TRow> | undefined): void
  * performing it.
  */
 const scrollBox = ref<HTMLElement | null>(null)
+
+/*
+ * The scrollport's own width, written onto `.vt-scroll` as
+ * `--vtc-scrollport-width` so the empty/error message can be centred on what
+ * is *visible* rather than on the table.
+ *
+ * The message row spans every column, so on a table wider than its box the
+ * centre of that cell is somewhere off to the side and the message scrolls out
+ * of sight — the one row whose whole job is to be read. The stylesheet cannot
+ * work the number out for itself: percentages inside the cell resolve against
+ * the cell, and a container query would need `container-type` on an ancestor,
+ * which is size containment imposed on every consumer's layout for the sake of
+ * one row.
+ *
+ * `clientWidth` rather than a rect, because it is the padding box: border and
+ * scrollbar excluded, which is exactly the strip a sticky child can occupy.
+ *
+ * Written straight to the element's style rather than through reactive state.
+ * Nothing here may reach the pipeline, and a resize is not a data change —
+ * `tests/invalidation.spec.ts` is the standing version of that rule.
+ */
+let detachScrollportWidth: (() => void) | undefined
+
+watch(
+  scrollBox,
+  (box) => {
+    detachScrollportWidth?.()
+    detachScrollportWidth = undefined
+    if (!box) return
+
+    const write = () => box.style.setProperty('--vtc-scrollport-width', `${box.clientWidth}px`)
+    write()
+
+    // Guarded like `VirtualBody`'s: happy-dom ships a ResizeObserver that never
+    // fires, and a caller may have none at all. The CSS fallback of `100%` is
+    // the way out for both — the message stays centred on the table, which is
+    // where it was before this existed.
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(write)
+    observer?.observe(box)
+    detachScrollportWidth = () => observer?.disconnect()
+  },
+  { immediate: true },
+)
+
+onScopeDispose(() => detachScrollportWidth?.())
 
 /**
  * The column the pointer is in, or `undefined` while it is outside the table.

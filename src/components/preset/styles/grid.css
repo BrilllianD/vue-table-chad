@@ -511,7 +511,34 @@
   scroll-margin-top: calc(var(--vtc-row-height) * var(--vtc-header-rows, 1));
 }
 
-.vt-row-message td {
+/*
+  The empty and error rows, centred on the scrollport rather than on the table.
+
+  The cell spans every column, so on a table wider than its box `text-align:
+  center` centres the message on the *table* and it sits off screen until you
+  scroll sideways to find it — the one row that exists to be read. The padding
+  moves onto the inner box for the same reason: it belongs to the strip that is
+  visible, not to the cell.
+
+  `--vtc-scrollport-width` is the box's `clientWidth`, written by the preset;
+  `100%` is the fallback for a caller with no `ResizeObserver`, and it is the
+  table-centred behaviour this replaces rather than a broken one. `left: 0`
+  parks the strip against the visible edge; sticky never moves a box outside
+  its containing block, so on a table no wider than its port it does not move
+  at all.
+
+  `box-sizing` is written out for the reason the editor cells write it: the
+  library ships no reset, and with the default `content-box` the padding would
+  be added to a width that is already the whole scrollport, widening the
+  content and inventing a horizontal scrollbar on a table that had none.
+*/
+.vt-row-message td { padding: 0; }
+
+.vt-row-message-inner {
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  width: var(--vtc-scrollport-width, 100%);
   padding: var(--vtc-space-8) var(--vtc-space-6);
   text-align: center;
   color: var(--vtc-text-muted);
