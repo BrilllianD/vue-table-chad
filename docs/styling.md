@@ -236,10 +236,21 @@ Two tokens, the fill and the foreground:
 }
 ```
 
-`--vtc-header-text` defaults to `--vtc-text`, so a table that never sets it looks exactly as it
-always did. Set it and you have moved the header labels and nothing else — where moving `--vtc-text`
-would take the body text with it, plus every hover and cursor wash, which are mixed out of that same
-colour.
+`--vtc-header-text` is **not** `--vtc-text`. It ships as 70% of it mixed with `--vtc-text-muted`,
+because column names are structure rather than content and at full strength they compete with the
+data underneath them:
+
+```css
+--vtc-header-text: color-mix(in srgb, var(--vtc-text) 70%, var(--vtc-text-muted));  /* the default */
+```
+
+Set it to `var(--vtc-text)` for the older, flatter look, or to `var(--vtc-text-muted)` to go all the
+way — that last one puts the labels on the same colour as the counts and hints beside them, and at
+4.6:1 over the default light header it is near the 4.5:1 contrast floor, where the shipped mix holds
+about 10:1 in both palettes.
+
+Either way you have moved the header labels and nothing else — where moving `--vtc-text` would take
+the body text with it, plus every hover and cursor wash, which are mixed out of that same colour.
 
 Header labels are bold by default, at `--vtc-weight-bold` (600). That one is a *scale*: it is the
 same weight the group headers, the chosen option in a select and the drag ghost use, so overriding

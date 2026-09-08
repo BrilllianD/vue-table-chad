@@ -30,13 +30,19 @@
   --vtc-bg: #ffffff;
   --vtc-header-bg: #f6f7f9;
   /*
-    Header labels, apart from body text. Defaults to it, so a table that never
-    sets this looks the way it always did — and no dark-mode entry, for the
-    same reason the hover colours have none: the value it derives from is
-    already swapped there, and a literal here would be a second one to keep in
-    sync.
+    Header labels, a step back from body text: the column names are structure
+    rather than content, and at full strength they compete with the data for
+    the eye. Mixed rather than set to `--vtc-text-muted` outright, which is the
+    colour the counts, hints and sort glyphs in the same header already use —
+    labels landing on it too would flatten the two into one, and 4.6:1 on the
+    light header background is closer to the 4.5:1 floor than a table's primary
+    column names should sit. The mix holds ~10:1 in both palettes.
+
+    Derived, so there is no dark-mode entry, for the same reason the hover
+    colours have none: both ends are already swapped there, and a literal here
+    would be a second one to keep in sync.
   */
-  --vtc-header-text: var(--vtc-text);
+  --vtc-header-text: color-mix(in srgb, var(--vtc-text) 70%, var(--vtc-text-muted));
   /*
     Hover as a brightness delta rather than a colour: a wash of the text colour
     over whatever is underneath, so it darkens a light theme and lightens a dark
