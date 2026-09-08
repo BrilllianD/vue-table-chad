@@ -1,6 +1,6 @@
 {
   "name": "@brillliand/vue-table-chad",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Composable headless table primitives for Vue 3",
   "keywords": [
     "vue",
