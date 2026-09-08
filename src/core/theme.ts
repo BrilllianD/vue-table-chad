@@ -72,6 +72,7 @@ const THEME_TOKENS = [
 
   // Surfaces.
   'headerBg',
+  'headerText',
   'footerBg',
   'groupBg',
   'rowOddBg',

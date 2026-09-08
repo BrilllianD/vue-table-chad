@@ -56,8 +56,8 @@ the z-index ladder, elevation, motion, opacity. Set one and everything built on 
 }
 ```
 
-**Tokens** are the roles built out of those — `--vtc-header-bg`, `--vtc-cursor-border-color`,
-`--vtc-band-border-width`. Set one and you have changed exactly one thing. Both tiers live on
+**Tokens** are the roles built out of those — `--vtc-header-bg`, `--vtc-header-text`,
+`--vtc-cursor-border-color`, `--vtc-band-border-width`. Set one and you have changed exactly one thing. Both tiers live on
 `.vt-datatable, .vt-portal`, so an override on `.vt-datatable` reaches either.
 
 Token names read **subject first, property last**: `--vtc-row-hover-bg` is the background of a
@@ -224,6 +224,34 @@ Row striping is off by default — both stripes inherit `--vtc-bg`, so setting o
   --vtc-row-even-bg: #f4f6f9;   /* zebra: odd rows keep --vtc-bg */
 }
 ```
+
+## The header
+
+Two tokens, the fill and the foreground:
+
+```css
+.vt-datatable {
+  --vtc-header-bg: #eef2f7;   /* header cells, and the group bands above them */
+  --vtc-header-text: #0f172a; /* their labels, and the ghost shown while dragging a column */
+}
+```
+
+`--vtc-header-text` defaults to `--vtc-text`, so a table that never sets it looks exactly as it
+always did. Set it and you have moved the header labels and nothing else — where moving `--vtc-text`
+would take the body text with it, plus every hover and cursor wash, which are mixed out of that same
+colour.
+
+Header labels are bold by default, at `--vtc-weight-bold` (600). That one is a *scale*: it is the
+same weight the group headers, the chosen option in a select and the drag ghost use, so overriding
+it moves all of them. To change the header alone, style the class:
+
+```css
+.vt-datatable .vt-th { font-weight: var(--vtc-weight-normal); }
+```
+
+The header's underline is `--vtc-header-border-width` / `--vtc-header-border-color`, kept separate
+from the body rules — see [Rules and row striping](#rules-and-row-striping) — and the lighter rule
+between band rows is `--vtc-header-group-border-*`.
 
 ## Hover, selection, and how cell backgrounds stack
 

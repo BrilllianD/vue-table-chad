@@ -208,6 +208,7 @@
 .vt-th {
   position: relative;
   background-color: var(--vtc-header-bg);
+  color: var(--vtc-header-text);
   font-weight: var(--vtc-weight-bold);
   border-bottom: var(--vtc-header-border-width) solid var(--vtc-header-border-color);
   user-select: none;

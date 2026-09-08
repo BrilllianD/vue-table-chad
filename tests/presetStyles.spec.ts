@@ -185,6 +185,26 @@ describe('preset stylesheet', () => {
   })
 
   /**
+   * Header labels are painted through `--vtc-header-text`, not through the
+   * palette's `--vtc-text`.
+   *
+   * The two are the same colour by default, so this cannot be seen — and the
+   * theme spec only proves the token exists and is reachable from TypeScript,
+   * never that anything reads it. A rule that goes back to `--vtc-text` would
+   * leave `defineTheme({ headerText })` silently doing nothing.
+   */
+  it('paints header cells and the drag ghost through the header text token', () => {
+    const colourOf = (file: string, selector: string) => {
+      const rule = rules().find((r) => r.file === file && r.selector === selector)
+      expect(rule, `${file}: ${selector}`).toBeDefined()
+      return rule!.body.match(/(?:^|[;\s])color:\s*([^;]+)/)?.[1]?.trim()
+    }
+
+    expect(colourOf('grid.css', '.vt-th')).toBe('var(--vtc-header-text)')
+    expect(colourOf('header.css', '.vt-drag-ghost')).toBe('var(--vtc-header-text)')
+  })
+
+  /**
    * The theme is settable from one place. A rule elsewhere that assigns a
    * public `--vtc-` token outranks whatever the consumer wrote on
    * `.vt-datatable`, so the token stops being a knob and starts being a lie —

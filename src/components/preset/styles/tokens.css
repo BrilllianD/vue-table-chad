@@ -30,6 +30,14 @@
   --vtc-bg: #ffffff;
   --vtc-header-bg: #f6f7f9;
   /*
+    Header labels, apart from body text. Defaults to it, so a table that never
+    sets this looks the way it always did — and no dark-mode entry, for the
+    same reason the hover colours have none: the value it derives from is
+    already swapped there, and a literal here would be a second one to keep in
+    sync.
+  */
+  --vtc-header-text: var(--vtc-text);
+  /*
     Hover as a brightness delta rather than a colour: a wash of the text colour
     over whatever is underneath, so it darkens a light theme and lightens a dark
     one from one number, and it survives restyling the row beneath it. Set

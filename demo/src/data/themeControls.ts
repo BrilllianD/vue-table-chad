@@ -164,6 +164,7 @@ export const TOKEN_CONTROLS: Record<ThemeToken, TokenControl> = {
 
   /* ----------------------------------------------------------- surfaces */
   headerBg: colour('Surfaces', 'the header row'),
+  headerText: colour('Surfaces', 'header labels and the drag ghost — defaults to --vtc-text'),
   footerBg: colour('Surfaces', 'the aggregate row'),
   groupBg: colour('Surfaces', 'a group header row'),
   rowOddBg: colour('Surfaces', 'odd rows — equal to --vtc-bg means no stripes'),
@@ -229,6 +230,7 @@ export const FEATURED_TOKENS: readonly ThemeToken[] = [
   'accent',
   'bg',
   'headerBg',
+  'headerText',
   'rowSelectedBg',
   'rowOddBg',
   'rowEvenBg',

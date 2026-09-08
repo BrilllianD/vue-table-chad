@@ -180,7 +180,9 @@
   border: var(--vtc-stroke-1) solid var(--vtc-border-strong);
   border-radius: var(--vtc-radius);
   background: var(--vtc-header-bg);
-  color: var(--vtc-text);
+  /* The same pair the cell it was dragged from uses, or a themed header sheds
+     its colour for as long as the drag lasts. */
+  color: var(--vtc-header-text);
   font: var(--vtc-font);
   font-weight: var(--vtc-weight-bold);
   white-space: nowrap;
