@@ -37,7 +37,7 @@ export const ja: TableLabels = Object.freeze({
   noRows: '行がありません',
   noMatchingValues: '一致する値がありません',
   noMatchingOptions: '一致する選択肢がありません',
-  emptyMessage: '現在のフィルターに一致する行はありません。',
+  emptyMessage: 'データがありません',
   loadFailed: 'データを読み込めませんでした。',
   facetsFailed: 'フィルターの値を読み込めませんでした。',
   optionsFailed: '選択肢を読み込めませんでした。',

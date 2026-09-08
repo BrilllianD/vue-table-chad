@@ -37,7 +37,7 @@ export const zhCN: TableLabels = Object.freeze({
   noRows: '没有数据',
   noMatchingValues: '没有匹配的值',
   noMatchingOptions: '没有匹配的选项',
-  emptyMessage: '没有符合当前筛选条件的行。',
+  emptyMessage: '暂无数据',
   loadFailed: '数据加载失败。',
   facetsFailed: '无法加载筛选值。',
   optionsFailed: '无法加载选项。',

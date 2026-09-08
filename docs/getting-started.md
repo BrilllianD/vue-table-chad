@@ -220,7 +220,7 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `bandRules` | `boolean` | unset | The rule where a band's columns end. Needs `columnGroups`; unset emits nothing and `--vtc-band-border-width` governs. |
 | `stickyHeader` | `boolean` | `true` | |
 | `theme` | `'light' \| 'dark' \| 'system'` | `'system'` | Which palette to paint. `'system'` emits nothing and follows `prefers-color-scheme`; the other two write `data-theme`, on the teleported popover and drag ghost as well. See [Styling](styling.md#picking-a-palette). |
-| `emptyMessage` / `loadingMessage` | `string` | see below | `'No rows match the current filters.'` / `'Loading…'` |
+| `emptyMessage` / `loadingMessage` | `string` | see below | `'No Data'` / `'Loading…'` |
 | `labels` | `Partial<TableLabels>` | English | Wording for every string the table renders, `aria-label`s included. Four locales ship — see [Labels and i18n](labels.md). `emptyMessage`, `loadingMessage` and `footerLabel` win over it where both are given. |
 | `editing` | `UseRowEditing<TRow>` | — | A session from `useRowEditing`. Absent means read-only. |
 | `cellCursor` | `boolean` | `false` | Off means off: no `role="grid"`, no `tabindex`, no cursor attributes. |

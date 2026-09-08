@@ -258,7 +258,7 @@ export const DEFAULT_LABELS: TableLabels = Object.freeze({
   noRows: 'No rows',
   noMatchingValues: 'No matching values',
   noMatchingOptions: 'No matching options',
-  emptyMessage: 'No rows match the current filters.',
+  emptyMessage: 'No Data',
   loadFailed: 'Failed to load data.',
   facetsFailed: 'Could not load filter values.',
   optionsFailed: 'Could not load options.',

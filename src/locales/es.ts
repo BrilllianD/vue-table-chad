@@ -32,7 +32,7 @@ export const es: TableLabels = Object.freeze({
   noRows: 'Sin filas',
   noMatchingValues: 'Ningún valor coincide',
   noMatchingOptions: 'Ninguna opción coincide',
-  emptyMessage: 'Ninguna fila coincide con los filtros actuales.',
+  emptyMessage: 'Sin datos',
   loadFailed: 'No se pudieron cargar los datos.',
   facetsFailed: 'No se pudieron cargar los valores del filtro.',
   optionsFailed: 'No se pudieron cargar las opciones.',

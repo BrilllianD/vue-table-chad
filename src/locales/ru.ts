@@ -41,7 +41,7 @@ export const ru: TableLabels = Object.freeze({
   noRows: 'Нет строк',
   noMatchingValues: 'Подходящих значений нет',
   noMatchingOptions: 'Подходящих вариантов нет',
-  emptyMessage: 'Нет строк, соответствующих текущим фильтрам.',
+  emptyMessage: 'Нет данных',
   loadFailed: 'Не удалось загрузить данные.',
   facetsFailed: 'Не удалось загрузить значения фильтра.',
   optionsFailed: 'Не удалось загрузить варианты.',

@@ -226,7 +226,7 @@ describe('DataTable rendering', () => {
     const wrapper = mountTable()
     await wrapper.find('input.vt-search').setValue('zzzz-nothing')
     await nextTick()
-    expect(wrapper.text()).toContain('No rows match the current filters.')
+    expect(wrapper.text()).toContain('No Data')
     wrapper.unmount()
   })
 
@@ -894,7 +894,7 @@ describe('body slots survive the forwarding', () => {
     const wrapper = mount(Host, { attachTo: document.body })
     await nextTick()
     expect(wrapper.find('.mine').text()).toBe('none at all')
-    expect(wrapper.text()).not.toContain('No rows match the current filters.')
+    expect(wrapper.text()).not.toContain('No Data')
     wrapper.unmount()
   })
 
@@ -1175,7 +1175,7 @@ describe('DataTable loading state', () => {
 
     loading.value = false
     await nextTick()
-    expect(wrapper.find('.vt-row-message').text()).toContain('No rows match')
+    expect(wrapper.find('.vt-row-message').text()).toContain('No Data')
     wrapper.unmount()
   })
 })
