@@ -38,10 +38,10 @@ interface Palette {
   bg: string
   bgHeader: string
   /**
-   * Header labels. The preset derives this from `text` and `textMuted` — 70% of
-   * the first — so every palette here carries that mix rather than a colour
-   * picked on its own: a header foreground chosen independently of the two it
-   * sits between is the same white-on-white trap the file warns about above.
+   * Header labels. The preset defaults this to `textMuted`, so every palette
+   * here repeats its own muted colour rather than picking a header foreground
+   * on its own — one chosen independently of the palette around it is the same
+   * white-on-white trap the file warns about above.
    */
   textHeader: string
   bgSelected: string
@@ -73,7 +73,7 @@ interface Palette {
 /** The two palettes the preset itself ships, copied verbatim from styles/tokens.css. */
 const LIGHT: Palette = {
   accent: '#2563eb', accentContrast: '#ffffff',
-  bg: '#ffffff', bgHeader: '#f6f7f9', textHeader: '#343f4a',
+  bg: '#ffffff', bgHeader: '#f6f7f9', textHeader: '#66727f',
   bgSelected: '#e6f0fd', selectedAlpha: 16,
   hoverDelta: 6, cellHoverDelta: 0,
   bgRowOdd: '#ffffff', bgRowEven: '#ffffff',
@@ -85,7 +85,7 @@ const LIGHT: Palette = {
 
 const DARK: Palette = {
   accent: '#5b93f7', accentContrast: '#0d1117',
-  bg: '#16191d', bgHeader: '#1e2228', textHeader: '#cfd4d9',
+  bg: '#16191d', bgHeader: '#1e2228', textHeader: '#9aa4b0',
   bgSelected: '#1d2c47', selectedAlpha: 18,
   hoverDelta: 8, cellHoverDelta: 0,
   bgRowOdd: '#16191d', bgRowEven: '#16191d',
@@ -102,7 +102,7 @@ const presets: Array<{ label: string; palette: Palette }> = [
     label: 'Compact',
     palette: {
       accent: '#0f766e', accentContrast: '#ffffff',
-      bg: '#ffffff', bgHeader: '#f1f5f9', textHeader: '#283347',
+      bg: '#ffffff', bgHeader: '#f1f5f9', textHeader: '#64748b',
       bgSelected: '#ccfbf1', selectedAlpha: 18,
       hoverDelta: 7, cellHoverDelta: 0,
       bgRowOdd: '#ffffff', bgRowEven: '#ffffff',
@@ -116,7 +116,7 @@ const presets: Array<{ label: string; palette: Palette }> = [
     label: 'Roomy',
     palette: {
       accent: '#7c3aed', accentContrast: '#ffffff',
-      bg: '#ffffff', bgHeader: '#faf5ff', textHeader: '#462b75',
+      bg: '#ffffff', bgHeader: '#faf5ff', textHeader: '#7e6b9a',
       bgSelected: '#f3e8ff', selectedAlpha: 16,
       hoverDelta: 6, cellHoverDelta: 0,
       bgRowOdd: '#ffffff', bgRowEven: '#ffffff',
@@ -131,7 +131,7 @@ const presets: Array<{ label: string; palette: Palette }> = [
     label: 'Zebra, no rules',
     palette: {
       accent: '#2563eb', accentContrast: '#ffffff',
-      bg: '#ffffff', bgHeader: '#eef2f7', textHeader: '#343f4a',
+      bg: '#ffffff', bgHeader: '#eef2f7', textHeader: '#66727f',
       bgSelected: '#d7e6ff', selectedAlpha: 14,
       hoverDelta: 5, cellHoverDelta: 4,
       bgRowOdd: '#ffffff', bgRowEven: '#f4f6f9',
@@ -146,7 +146,7 @@ const presets: Array<{ label: string; palette: Palette }> = [
     label: 'Spreadsheet',
     palette: {
       accent: '#15803d', accentContrast: '#ffffff',
-      bg: '#ffffff', bgHeader: '#e8ece9', textHeader: '#29362e',
+      bg: '#ffffff', bgHeader: '#e8ece9', textHeader: '#5b6b62',
       bgSelected: '#d7f0dd', selectedAlpha: 16,
       hoverDelta: 6, cellHoverDelta: 6,
       bgRowOdd: '#ffffff', bgRowEven: '#ffffff',
@@ -174,7 +174,7 @@ const presets: Array<{ label: string; palette: Palette }> = [
     label: 'Midnight',
     palette: {
       accent: '#f472b6', accentContrast: '#1a1120',
-      bg: '#14101c', bgHeader: '#1d1729', textHeader: '#dbcfeb',
+      bg: '#14101c', bgHeader: '#1d1729', textHeader: '#a396bd',
       bgSelected: '#3b2545', selectedAlpha: 22,
       hoverDelta: 9, cellHoverDelta: 0,
       bgRowOdd: '#14101c', bgRowEven: '#1a1526',

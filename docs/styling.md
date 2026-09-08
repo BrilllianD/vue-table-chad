@@ -236,18 +236,21 @@ Two tokens, the fill and the foreground:
 }
 ```
 
-`--vtc-header-text` is **not** `--vtc-text`. It ships as 70% of it mixed with `--vtc-text-muted`,
-because column names are structure rather than content and at full strength they compete with the
-data underneath them:
+`--vtc-header-text` is **not** `--vtc-text`. It ships as `--vtc-text-muted`, because column names
+are structure rather than content and at the body colour's full strength they compete with the data
+underneath them:
 
 ```css
---vtc-header-text: color-mix(in srgb, var(--vtc-text) 70%, var(--vtc-text-muted));  /* the default */
+--vtc-header-text: var(--vtc-text-muted);  /* the default */
 ```
 
-Set it to `var(--vtc-text)` for the older, flatter look, or to `var(--vtc-text-muted)` to go all the
-way — that last one puts the labels on the same colour as the counts and hints beside them, and at
-4.6:1 over the default light header it is near the 4.5:1 contrast floor, where the shipped mix holds
-about 10:1 in both palettes.
+That is 4.6:1 over the default light header background and 6.3:1 over the dark one — above the
+4.5:1 floor, and the labels are bold on top of it. For a flatter header, point it back at the body
+colour:
+
+```css
+.vt-datatable { --vtc-header-text: var(--vtc-text); }
+```
 
 Either way you have moved the header labels and nothing else — where moving `--vtc-text` would take
 the body text with it, plus every hover and cursor wash, which are mixed out of that same colour.

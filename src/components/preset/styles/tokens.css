@@ -32,17 +32,18 @@
   /*
     Header labels, a step back from body text: the column names are structure
     rather than content, and at full strength they compete with the data for
-    the eye. Mixed rather than set to `--vtc-text-muted` outright, which is the
-    colour the counts, hints and sort glyphs in the same header already use —
-    labels landing on it too would flatten the two into one, and 4.6:1 on the
-    light header background is closer to the 4.5:1 floor than a table's primary
-    column names should sit. The mix holds ~10:1 in both palettes.
+    the eye. This was a 70/30 mix with `--vtc-text-muted` first, and in the
+    browser the step was too small to read as deliberate — it looked like the
+    body colour rendered badly rather than a header holding back. The muted
+    role outright is the one that separates, at 4.6:1 over the light header
+    background and 6.3:1 over the dark, both above the 4.5:1 floor and helped
+    by the labels being bold. It does put the labels on the same colour as the
+    counts and sort glyphs beside them; the weight is what tells those apart.
 
-    Derived, so there is no dark-mode entry, for the same reason the hover
-    colours have none: both ends are already swapped there, and a literal here
-    would be a second one to keep in sync.
+    Not a literal, so there is no dark-mode entry, for the same reason the
+    hover colours have none: the role it points at is already swapped there.
   */
-  --vtc-header-text: color-mix(in srgb, var(--vtc-text) 70%, var(--vtc-text-muted));
+  --vtc-header-text: var(--vtc-text-muted);
   /*
     Hover as a brightness delta rather than a colour: a wash of the text colour
     over whatever is underneath, so it darkens a light theme and lightens a dark
