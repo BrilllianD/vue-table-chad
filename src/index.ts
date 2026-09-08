@@ -94,11 +94,14 @@ export {
   TableContextKey,
   provideTableLabels,
   useTableLabels,
+  TableLabelsKey,
 } from './core/context'
 export type { TableContext, TableTheme } from './core/context'
 
 export { DEFAULT_LABELS, mergeLabels } from './core/labels'
 export type { TableLabels } from './core/labels'
+
+export { createTableLabels } from './core/plugin'
 
 export { defineTheme } from './core/theme'
 export type { Theme, ThemeToken } from './core/theme'

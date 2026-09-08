@@ -1,11 +1,13 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, nextTick, shallowRef } from 'vue'
 import { describe, expect, it } from 'vitest'
 import DataTable from '../src/components/preset/DataTable.vue'
 import TablePagination from '../src/components/primitives/TablePagination.vue'
 import { DEFAULT_LABELS, mergeLabels, type TableLabels } from '../src/core/labels'
+import { createTableLabels } from '../src/core/plugin'
+import { es, ru } from '../src/locales'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { people, personColumns, type Person } from './fixtures'
@@ -276,7 +278,89 @@ describe('label overrides', () => {
   })
 })
 
+describe('createTableLabels', () => {
+  /**
+   * The app-wide locale. `app.use(createTableLabels(ru))` provides above every
+   * table, so what is asserted here is inheritance with nothing passed down —
+   * the case that would otherwise be a `:labels` on every `<DataTable>` in the
+   * app, one of which is eventually forgotten.
+   */
+  function mountWithPlugin(
+    labels: Parameters<typeof createTableLabels>[0],
+    props?: Partial<TableLabels>,
+  ) {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, personColumns, state.query)
+        return () =>
+          h(DataTable as never, {
+            columns: personColumns,
+            source,
+            state,
+            selectable: true,
+            labels: props,
+          })
+      },
+    })
+    return mount(Host, {
+      attachTo: document.body,
+      global: { plugins: [createTableLabels(labels)] },
+    })
+  }
+
+  it('translates a table that was passed no labels prop', () => {
+    const wrapper = mountWithPlugin(ru)
+
+    // The preset renders this one itself; the primitives below read the record
+    // out of the injection, so both halves have to move.
+    expect(wrapper.get('input.vt-search').attributes('placeholder')).toBe(ru.search)
+    expect(wrapper.get('.vt-th-selection input').attributes('aria-label')).toBe(ru.selectAllOnPage)
+    wrapper.unmount()
+  })
+
+  it('lets a labels prop win per key, over the app record rather than over English', () => {
+    const wrapper = mountWithPlugin(ru, { search: 'Искать сотрудника' })
+
+    expect(wrapper.get('input.vt-search').attributes('placeholder')).toBe('Искать сотрудника')
+    // Not English: the key the prop left out falls back to the app-wide locale,
+    // which is the whole difference between merging over `ru` and replacing it.
+    expect(wrapper.get('.vt-th-selection input').attributes('aria-label')).toBe(ru.selectAllOnPage)
+    wrapper.unmount()
+  })
+
+  it('re-renders in place when the ref it was handed changes', async () => {
+    const locale = shallowRef<Partial<TableLabels>>(ru)
+    const wrapper = mountWithPlugin(locale)
+    expect(wrapper.get('input.vt-search').attributes('placeholder')).toBe(ru.search)
+
+    locale.value = es
+    await nextTick()
+
+    expect(wrapper.get('input.vt-search').attributes('placeholder')).toBe(es.search)
+    wrapper.unmount()
+  })
+
+  it('reaches a bare primitive with no table above it', () => {
+    const wrapper = mount(TablePagination, {
+      props: { page: 1, pageSize: 10, total: 0 },
+      global: { plugins: [createTableLabels(ru)] },
+    })
+
+    expect(wrapper.get('nav').attributes('aria-label')).toBe(ru.pagination)
+    wrapper.unmount()
+  })
+})
+
 describe('mergeLabels', () => {
+  it('lays an override over the base it was given, not over English', () => {
+    const merged = mergeLabels({ search: 'Искать' }, ru)
+
+    expect(merged.search).toBe('Искать')
+    expect(merged.noRows).toBe(ru.noRows)
+    expect(merged.operators.between).toBe(ru.operators.between)
+  })
+
   it('keeps the fifteen operators an override did not name', () => {
     const merged = mergeLabels({ operators: { contains: 'contient' } as never })
 

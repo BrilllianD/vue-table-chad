@@ -121,7 +121,7 @@ export const docPages: DocPage[] = [
     file: 'labels.md',
     title: 'Labels and i18n',
     blurb:
-      'The four shipped locales, overriding every string the table renders, and the spec that keeps new literals out.',
+      'The four shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out.',
     demoTabs: ['labels'],
     section: 'Presentation',
   },

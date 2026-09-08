@@ -22,8 +22,8 @@ import type {
   SelectionMode,
   SelectionState,
 } from '../../core/types'
-import { provideTableContext, provideTableLabels } from '../../core/context'
-import type { TableLabels } from '../../core/labels'
+import { provideTableContext, provideTableLabels, useTableLabels } from '../../core/context'
+import { mergeLabels, type TableLabels } from '../../core/labels'
 import { useTable } from '../../core/useTable'
 import type { TableState } from '../../core/useTableState'
 import type { ColumnLayoutState } from '../../core/useColumns'
@@ -128,6 +128,17 @@ const emit = defineEmits<{
  * reads once. Which is which is documented on `UseTableOptions`, not decided
  * here.
  */
+/*
+  The app-wide record from `createTableLabels`, or English with no plugin
+  installed. Read *before* the `provideTableLabels` below, so it resolves in
+  the parent chain and this component's own publish cannot feed itself.
+
+  The prop is merged over it rather than replacing it, which is what makes a
+  per-table override partial against the app's locale instead of against
+  English.
+*/
+const inheritedLabels = useTableLabels()
+
 const table = useTable<TRow>({
   columns: () => props.columns,
   source: () => props.source,
@@ -148,7 +159,7 @@ const table = useTable<TRow>({
   groupMode: () => props.groupMode,
   groupsCollapsed: props.groupsCollapsed,
   blankGroupLabel: props.blankGroupLabel,
-  labels: () => props.labels,
+  labels: () => mergeLabels(props.labels, inheritedLabels.value),
   editing: () => props.editing,
   cellCursor: () => props.cellCursor,
   initialCursor: props.initialCursor,

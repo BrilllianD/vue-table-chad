@@ -70,6 +70,77 @@ which tenth, which is worse than no locale at all.
 
 Your language is not there? Write the `Partial` below — it is the same prop.
 
+## Setting the language once, for the whole app
+
+Handing `:labels` to every table is the same locale written out once per table,
+and one of them is eventually forgotten. Install it at the app root instead:
+
+```ts
+// main.ts
+import { createApp } from 'vue'
+import { createTableLabels } from '@brillliand/vue-table-chad'
+import { ru } from '@brillliand/vue-table-chad/locales'
+import App from './App.vue'
+
+createApp(App).use(createTableLabels(ru)).mount('#app')
+```
+
+Every `<DataTable>`, every `<TableRoot>` and every bare primitive in the app now
+renders Russian with nothing passed down:
+
+```vue
+<DataTable :columns="columns" :source="source" :state="state" />
+```
+
+A `labels` prop still wins, and wins **per key** — it is merged over the
+inherited record rather than over English, so a table that rewords one string
+keeps the rest of the app's locale:
+
+```vue
+<!-- this table's search box only; the other ~120 strings stay Russian -->
+<DataTable :labels="{ search: 'Искать сотрудника' }" … />
+```
+
+The plugin takes a ref or a getter as readily as a plain record, so a runtime
+language switch re-renders every table in place:
+
+```ts
+// locale.ts
+import { shallowRef } from 'vue'
+import { ru } from '@brillliand/vue-table-chad/locales'
+import type { TableLabels } from '@brillliand/vue-table-chad'
+
+export const locale = shallowRef<Partial<TableLabels>>(ru)
+
+// main.ts
+createApp(App).use(createTableLabels(locale)).mount('#app')
+
+// anywhere later
+locale.value = es
+```
+
+Driving it off an existing i18n setup is the same shape — the plugin re-reads
+whatever the getter returns:
+
+```ts
+app.use(createTableLabels(() => (i18n.global.locale.value === 'ru' ? ru : DEFAULT_LABELS)))
+```
+
+Building a table out of `useTable` rather than the preset? That composable takes
+its wording as an option and does not inherit on its own, so pass the app record
+through explicitly:
+
+```ts
+const inherited = useTableLabels()
+const table = useTable({ columns, source, state, labels: () => inherited.value })
+```
+
+`TableLabelsKey` is exported for the same reason `TableContextKey` is: the
+plugin publishes on it, so a consumer with a reason to provide the record
+themselves — a micro-frontend with no root it owns, a Storybook decorator — can
+`app.provide(TableLabelsKey, shallowRef(mergeLabels(ru)))` and get the identical
+result.
+
 ## Why some keys are functions
 
 Any label that interpolates is a function rather than a string with `{}`
@@ -110,6 +181,12 @@ const table = useTable({ columns, source, state, labels: () => fr })
 
 A getter, matching `columns` and `source`, so a locale switch is reactive at
 every layer.
+
+`DataTable` and `TableRoot` merge that prop over whatever `createTableLabels`
+installed, rather than over English — the app-wide record is the base, the prop
+is the override. `useTable` does not: it is a composable, its wording arrives as
+an option, and injecting behind the caller's back would make the option and the
+plugin disagree with no way to see which won.
 
 Primitives read the record out of an injection rather than a prop, on a key of
 their own — `provideTableLabels` / `useTableLabels` — for the reason the theme

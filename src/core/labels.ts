@@ -388,13 +388,23 @@ export const DEFAULT_LABELS: TableLabels = Object.freeze({
  * flat everywhere else by design, so a generic deep merge would be machinery
  * with nothing to walk. Overriding one operator therefore keeps the other
  * fifteen, which is the only behaviour that makes a partial override useful.
+ *
+ * `base` is what an override falls back to, and it is the whole reason an
+ * app-wide locale works: a table with `app.use(createTableLabels(ru))` above it
+ * passes the inherited Russian record here, so a `labels` prop naming three
+ * keys replaces those three and leaves the rest Russian rather than snapping
+ * them back to English. Left out, it is `DEFAULT_LABELS` and the merge is the
+ * one it always was.
  */
-export function mergeLabels(overrides: Partial<TableLabels> | undefined): TableLabels {
-  if (!overrides) return DEFAULT_LABELS
+export function mergeLabels(
+  overrides: Partial<TableLabels> | undefined,
+  base: TableLabels = DEFAULT_LABELS,
+): TableLabels {
+  if (!overrides) return base
   return {
-    ...DEFAULT_LABELS,
+    ...base,
     ...overrides,
-    operators: { ...DEFAULT_LABELS.operators, ...overrides.operators },
-    parse: { ...DEFAULT_LABELS.parse, ...overrides.parse },
+    operators: { ...base.operators, ...overrides.operators },
+    parse: { ...base.parse, ...overrides.parse },
   }
 }

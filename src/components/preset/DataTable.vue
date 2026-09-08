@@ -40,6 +40,7 @@ import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import { provideTableTheme, type TableTheme } from '../../core/context'
 import { mergeLabels, type TableLabels } from '../../core/labels'
+import { useTableLabels } from '../../core/context'
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseColumnsResult } from '../../core/useColumns'
 import TableRoot from '../primitives/TableRoot.vue'
@@ -394,14 +395,21 @@ provideTableTheme(computed(() => props.theme))
 /*
   The same record `<TableRoot>` publishes below, merged a second time here.
 
-  Not injected: this component is `TableRoot`'s *parent*, so it sits above the
-  `provide` and could never see it. The toolbar, the select-all banner and the
-  three message props are rendered by this component rather than by a primitive,
-  so they read the merge directly. `mergeLabels` is pure, and both calls are
-  computeds over the same prop, so the second costs one object per change of
-  wording rather than one per render.
+  Not inherited from `TableRoot`: this component is its *parent*, so it sits
+  above that `provide` and could never see it. The toolbar, the select-all
+  banner and the three message props are rendered by this component rather than
+  by a primitive, so they read the merge directly. `mergeLabels` is pure, and
+  both calls are computeds over the same prop, so the second costs one object
+  per change of wording rather than one per render.
+
+  What it *does* inherit is the app-wide record `createTableLabels` publishes at
+  the app root — above this component, not below it — with the prop merged over
+  it per key. The full record then goes down to `<TableRoot>` as its `labels`
+  prop, so the primitives are handed the same wording this component resolved
+  rather than resolving it a third time from a partial.
 */
-const words = computed(() => mergeLabels(props.labels))
+const inheritedLabels = useTableLabels()
+const words = computed(() => mergeLabels(props.labels, inheritedLabels.value))
 
 /*
   The three message props, resolved against the record. Each prop still wins
@@ -1079,7 +1087,7 @@ function onPaste(
     :group-mode="groupMode"
     :groups-collapsed="groupsCollapsed"
     :blank-group-label="blankGroupLabel"
-    :labels="labels"
+    :labels="words"
     :editing="editing"
     :cell-cursor="cellCursor"
     :initial-cursor="initialCursor"

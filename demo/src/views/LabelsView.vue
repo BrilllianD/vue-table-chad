@@ -15,11 +15,12 @@
  * `DEFAULT_LABELS` by `mergeLabels`, so what it leaves out renders in English
  * rather than as `undefined`.
  */
-import { computed, ref, shallowRef } from 'vue'
+import { computed, createApp, h, onBeforeUnmount, onMounted, ref, shallowRef, type App } from 'vue'
 import {
   DEFAULT_LABELS,
   DataTable,
   TablePagination,
+  createTableLabels,
   mergeLabels,
   provideTableLabels,
   useLocalDataSource,
@@ -93,6 +94,34 @@ provideTableLabels(merged)
 /** And back out again — what a primitive sees when it asks. */
 const injected = useTableLabels()
 
+/**
+ * The app-wide route, shown by running it: a second Vue app, mounted into the
+ * panel below, whose only configuration is
+ * `app.use(createTableLabels(ja))`. Its pager is handed no `labels` and has no
+ * `<DataTable>` above it, so every string it renders arrives from the plugin —
+ * which is what a consumer gets by writing that one line in `main.ts`.
+ *
+ * It is a separate app on purpose. This view is a locale *switcher*, so the
+ * demo itself must not install one app-wide; a real consumer picks a language
+ * once and installs it once.
+ */
+const isolatedHost = ref<HTMLElement | null>(null)
+let isolated: App | null = null
+
+onMounted(() => {
+  if (!isolatedHost.value) return
+  isolated = createApp({
+    render: () => h(TablePagination, { page: 2, pageSize: 25, total: 137 }),
+  })
+  isolated.use(createTableLabels(ja))
+  isolated.mount(isolatedHost.value)
+})
+
+onBeforeUnmount(() => {
+  isolated?.unmount()
+  isolated = null
+})
+
 const standaloneTotal = 137
 const standalonePage = ref(1)
 
@@ -120,6 +149,8 @@ const sampled = computed(() => [
       'mergeLabels',
       'provideTableLabels',
       'useTableLabels',
+      'createTableLabels',
+      'TableLabelsKey',
       'DataTable.labels',
       'TableRoot.labels',
       'useTable labels option',
@@ -172,6 +203,23 @@ const sampled = computed(() => [
         <p class="hint">
           <code>useTableLabels().value.pagination</code> is
           <code>{{ injected.pagination }}</code>
+        </p>
+      </div>
+
+      <div class="panel">
+        <h4>One line in <code>main.ts</code></h4>
+        <p class="hint">
+          A second Vue app mounted here, configured with
+          <code>app.use(createTableLabels(ja))</code> and nothing else. Its
+          <code>&lt;TablePagination&gt;</code> is handed no <code>labels</code> and has no table
+          above it, so its Japanese comes from the plugin alone — the app-wide route, as opposed to
+          the per-table prop the switcher above drives.
+        </p>
+        <div ref="isolatedHost"></div>
+        <p class="hint">
+          A <code>labels</code> prop still wins over it, and wins per key: the inherited record is
+          what the prop is merged over, so overriding one string in one table leaves the rest of the
+          app's locale in place.
         </p>
       </div>
 
