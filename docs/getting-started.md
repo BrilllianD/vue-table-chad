@@ -25,12 +25,12 @@ gitignored, so a git dependency would install an empty package. Build the tarbal
 # in this repo
 nvm use            # Node 24
 pnpm install
-make pack          # build + size check + npm pack -> brillliand-vue-table-chad-0.3.3.tgz
+make pack          # build + size check + npm pack -> brillliand-vue-table-chad-0.4.0.tgz
 ```
 
 ```bash
 # in your project
-pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.3.3.tgz
+pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.4.0.tgz
 ```
 
 `files: ["dist"]` means the tarball is `dist/` plus `README.md` and `LICENSE` — eight files, no
