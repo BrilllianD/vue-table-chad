@@ -145,6 +145,9 @@ export const apiReference: ApiEntry[] = [
   { name: 'Theme', layer: 'core', kind: 'type', summary: "A theme: any subset of the preset's tokens, camelCased." },
   { name: 'ThemeToken', layer: 'core', kind: 'type', summary: "One token's name, in the camelCase form a `Theme` uses." },
 
+  { name: 'themePresets', layer: 'core', kind: 'constant', summary: 'Every palette shipped under `@brillliand/vue-table-chad/themes/`.' },
+  { name: 'ThemePreset', layer: 'core', kind: 'type', summary: "One shipped palette's name — the file's basename, and the attribute value." },
+
   { name: 'toDelimited', layer: 'core', kind: 'function', summary: 'Serialises rows to delimited text, RFC 4180 quoted.' },
   { name: 'exportRows', layer: 'core', kind: 'function', summary: 'The whole result set as delimited text: every filtered row, in sort order.' },
   { name: 'cellText', layer: 'core', kind: 'function', summary: "A column's displayed text: its formatter, or the value stringified." },

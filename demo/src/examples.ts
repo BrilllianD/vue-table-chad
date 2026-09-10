@@ -118,6 +118,10 @@ export const examplesByTab: Record<string, TabExamples> = {
   },
   state: { files: ['hoisted-state.vue'] },
   theming: { files: ['styling.vue'] },
+  themes: {
+    files: [],
+    why: 'No source panel here on purpose: using a preset is one CSS import and one attribute on <html>, neither of which is Vue. The picker above is demo chrome, not the API.',
+  },
   labels: { files: ['labels.vue'] },
   virtual: { files: ['virtualization.vue'] },
   perf: {

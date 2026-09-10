@@ -118,6 +118,14 @@ export const docPages: DocPage[] = [
     section: 'Presentation',
   },
   {
+    file: 'themes.md',
+    title: 'Theme presets',
+    blurb:
+      'Thirty named palettes as opt-in stylesheets, switched by one attribute — and why a palette is only nine colours.',
+    demoTabs: ['themes'],
+    section: 'Presentation',
+  },
+  {
     file: 'labels.md',
     title: 'Labels and i18n',
     blurb:

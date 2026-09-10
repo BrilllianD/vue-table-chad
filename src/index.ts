@@ -106,6 +106,9 @@ export { createTableLabels } from './core/plugin'
 export { defineTheme } from './core/theme'
 export type { Theme, ThemeToken } from './core/theme'
 
+export { themePresets } from './core/themePresets'
+export type { ThemePreset } from './core/themePresets'
+
 /* --------------------------------------------------------------- filters */
 
 export {

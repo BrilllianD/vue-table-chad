@@ -60,6 +60,20 @@ would let a bare CSS import there be tree-shaken away, silently shipping an unst
   the element itself, never on an ancestor — CSS cannot say "and nothing above said light", so an
   ancestor form costs a second copy of both palettes, and the teleported case it would have covered is
   covered by the `theme` prop reaching `.vt-portal` instead.
+- **A palette preset is nine literals, and `styles/themes/` is the third partition.** Everything else
+  colour-valued derives from `--vtc-bg`, `--vtc-header-bg`, `--vtc-text`, `--vtc-text-muted`,
+  `--vtc-border`, `--vtc-border-strong`, `--vtc-accent`, `--vtc-accent-contrast` and `--vtc-danger`,
+  so a preset that restated a derived token would pin something meant to move — the mistake the
+  demo's hand-copied palettes made. `tests/presetStyles.spec.ts` cannot see the directory;
+  `tests/themePresets.spec.ts` holds it to the nine, to both selector forms, and to contrast floors,
+  which is the check that caught five palettes whose own accent carries no foreground.
+- **`data-vtc-theme` is a separate attribute from `data-theme`, and is read from an ancestor.** The
+  prop's value space is closed and `tokens.css` is written around it, so a third value there would
+  leave the dark media query applying underneath a named palette. The ancestor form is what reaches
+  `.vt-portal` — the popovers teleport to `<body>`, so only `<html>` covers a table and its popovers
+  at once — and the attribute is repeated in the selector to clear (0,3,0), because the plain
+  ancestor form ties with the dark blocks at (0,2,0) and the winner would depend on the consumer's
+  import order.
 
 ## Column widths
 

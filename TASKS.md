@@ -26,17 +26,6 @@ and an entry moves into **Active** by flipping it to `[~]` when the work starts.
 
 ## Active
 
-### `[ ]` TH3 — Demonstrate and document the presets
-
-`themePresets` and `ThemePreset` exported from `src/index.ts`; a **Themes** demo view that switches
-palettes at runtime and stamps `data-vtc-theme` on `<html>` so the teleported popovers follow;
-`docs/themes.md` with its `docs/nav.ts` entry; a pointer from `docs/styling.md`'s "Picking a
-palette"; the reasoning in `src/components/preset/CLAUDE.md`.
-
-**Done when:** the demo tab switches every palette with its popovers and pager staying legible,
-`pnpm docs:api` and `pnpm docs:index` diff clean, and `tests/apiSurface.spec.ts` is satisfied by the
-view rather than by an exemption.
-
 ### `[ ]` T2 — P3-8: release flow
 
 changesets → CHANGELOG → publish. Releases 0.2.1 and 0.3.0 were cut by hand — `RELEASING.md`

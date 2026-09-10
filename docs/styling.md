@@ -136,6 +136,10 @@ and are no longer descendants of the table once they are open. Custom properties
 the DOM, so without that they would render in the OS's colours next to a table that is not — which
 is the same reason `.vt-portal` re-declares the whole palette in the first place.
 
+Thirty ready-made palettes — Dracula, Nord, Catppuccin, Gruvbox and the rest — ship as opt-in
+stylesheets and need none of the above: see [Theme presets](themes.md). What follows is for a
+palette of your own.
+
 Set the attribute on the table itself; an ancestor is not read. Expressing "dark unless something
 above said light" needs a descendant selector carrying both palettes, which is more CSS than the
 prop costs — and the prop is what covers the teleported case anyway.

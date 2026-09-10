@@ -133,6 +133,7 @@ pages are also a VitePress site — `pnpm docs:dev` serves it locally, `pnpm doc
 | [Column layout](docs/column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. | Column layout |
 | [Header bands](docs/column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. | Header bands |
 | [Styling](docs/styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. | Theming |
+| [Theme presets](docs/themes.md) | Thirty named palettes as opt-in stylesheets, switched by one attribute — and why a palette is only nine colours. | Themes |
 | [Labels and i18n](docs/labels.md) | The four shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out. | Labels |
 | [Virtual rows](docs/virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. | Virtual rows |
 | [Composing your own](docs/composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. | Composed, Hoisted state |

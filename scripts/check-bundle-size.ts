@@ -21,7 +21,7 @@
  *
  * Run with `pnpm size`, after `pnpm build`.
  */
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
@@ -29,7 +29,12 @@ import { gzipSync } from 'node:zlib'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 interface Budget {
-  /** Path relative to the repo root. */
+  /**
+   * Path relative to the repo root. A path ending in `/` is a directory, and
+   * the whole directory is weighed as one number — which is what a budget for
+   * thirty interchangeable files wants to say: no single palette is worth a
+   * line, and the thing worth catching is all of them together growing.
+   */
   file: string
   /** Gzipped kB the file may not exceed. */
   budgetKb: number
@@ -45,6 +50,11 @@ const BUDGETS: Budget[] = [
   // room for roughly two more languages before it wants revisiting, which is
   // the decision it exists to force.
   { file: 'dist/locales.js', budgetKb: 9, measuredKb: 5.5 },
+  // Opt-in and never in the shared stylesheet, so this is not a download
+  // budget — a consumer takes one palette, around 0.2 kB. It is a shape check:
+  // a preset is nine colour declarations, and the day one grows a `box-shadow`
+  // or a second rule, the total says so.
+  { file: 'dist/themes/', budgetKb: 15, measuredKb: 11.1 },
 ]
 
 const KB = 1024
@@ -59,7 +69,9 @@ for (const budget of BUDGETS) {
   const path = resolve(ROOT, budget.file)
   let actualKb: number
   try {
-    actualKb = gzippedKb(path)
+    actualKb = budget.file.endsWith('/')
+      ? readdirSync(path).reduce((total, name) => total + gzippedKb(resolve(path, name)), 0)
+      : gzippedKb(path)
   } catch {
     // A missing file must fail rather than pass vacuously: `files: ["dist"]`
     // over a gitignored `dist/` means "no build" is the normal state of a

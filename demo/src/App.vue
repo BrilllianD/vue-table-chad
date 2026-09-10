@@ -15,6 +15,7 @@ import ComposedView from './views/ComposedView.vue'
 import HeadlessView from './views/HeadlessView.vue'
 import StateView from './views/StateView.vue'
 import ThemingView from './views/ThemingView.vue'
+import ThemesView from './views/ThemesView.vue'
 import LabelsView from './views/LabelsView.vue'
 import VirtualView from './views/VirtualView.vue'
 import PerfView from './views/PerfView.vue'
@@ -65,6 +66,7 @@ const tabs: Tab[] = (
     { id: 'wide', label: 'Wide table', layer: 'preset', component: WideColumnsView },
     { id: 'state', label: 'Hoisted state', layer: 'preset', component: StateView },
     { id: 'theming', label: 'Theming', layer: 'preset', component: ThemingView },
+    { id: 'themes', label: 'Themes', layer: 'preset', component: ThemesView },
     { id: 'labels', label: 'Labels', layer: 'preset', component: LabelsView },
     { id: 'virtual', label: 'Virtual rows', layer: 'preset', component: VirtualView },
     { id: 'perf', label: 'Performance', layer: 'preset', component: PerfView },
