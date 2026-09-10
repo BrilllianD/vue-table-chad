@@ -1,0 +1,26 @@
+/*
+ * Nord. https://www.nordtheme.com/docs/colors-and-palette — Polar Night
+ * (nord0–nord3), Snow Storm (nord4–nord6), Frost (nord8), Aurora (nord11).
+ *
+ * nord0 is the surface and nord1 the header, which is the one place this
+ * inverts the palette's own guidance: Nord names nord1 "elevated", but here
+ * the header is the elevated thing and the rows are the page.
+ *
+ * The muted role is nord3 lightened toward nord4 until it clears 3:1 on nord0
+ * — nord3 itself is 1.7:1 there, which is a divider colour, not a text one.
+ */
+[data-vtc-theme='nord'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='nord'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='nord'][data-vtc-theme],
+.vt-portal[data-vtc-theme='nord'][data-vtc-theme] {
+  --vtc-bg: #2e3440;
+  --vtc-header-bg: #3b4252;
+  --vtc-text: #eceff4;
+  --vtc-text-muted: #8b98ae;
+  --vtc-border: #434c5e;
+  --vtc-border-strong: #4c566a;
+  --vtc-accent: #88c0d0;
+  /* Inked to nord0: white on Frost is 2.2:1, nord0 on it is 6.2:1. */
+  --vtc-accent-contrast: #2e3440;
+  --vtc-danger: #bf616a;
+}

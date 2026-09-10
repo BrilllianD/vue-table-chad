@@ -1,0 +1,27 @@
+/*
+ * Dracula. https://draculatheme.com/contribute — Background, Current Line,
+ * Foreground, Comment, Purple, Red.
+ *
+ * `--vtc-header-bg` is Dracula's darker background (the ANSI black the theme
+ * uses for its own side panels) rather than Current Line: the header sits
+ * *behind* the rows, and lifting it would put the lighter surface on top.
+ *
+ * Comment is the muted role at 3.03:1 on Background — it is the palette's own
+ * secondary text colour, and anything darker stops being readable rather than
+ * becoming more faithful.
+ */
+[data-vtc-theme='dracula'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='dracula'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='dracula'][data-vtc-theme],
+.vt-portal[data-vtc-theme='dracula'][data-vtc-theme] {
+  --vtc-bg: #282a36;
+  --vtc-header-bg: #21222c;
+  --vtc-text: #f8f8f2;
+  --vtc-text-muted: #6272a4;
+  --vtc-border: #44475a;
+  --vtc-border-strong: #6272a4;
+  --vtc-accent: #bd93f9;
+  /* Inked to Background: white on Purple is 2.6:1, Background on it is 5.9:1. */
+  --vtc-accent-contrast: #282a36;
+  --vtc-danger: #ff5555;
+}

@@ -210,6 +210,13 @@ describe('preset stylesheet', () => {
    * `.vt-datatable`, so the token stops being a knob and starts being a lie —
    * which is what the idle cursor ring did to `--vtc-cursor-border-color`
    * before it was resolved through a `--_vtc-` slot instead.
+   *
+   * The palettes under `styles/themes/` are the one sanctioned exception, and
+   * they are not an exception to the point: a preset re-states the nine
+   * literals every other token derives from and nothing else, which is the
+   * consumer's own switch rather than a rule that outranks it. They are out of
+   * reach here — `rules()` does not descend into the directory — and are held
+   * to that shape by `tests/themePresets.spec.ts` instead.
    */
   it('declares public tokens only in the two theme partitions', () => {
     const offenders: string[] = []

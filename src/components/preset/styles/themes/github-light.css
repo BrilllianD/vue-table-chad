@@ -1,0 +1,22 @@
+/*
+ * GitHub Light, from Primer's light functional roles — canvas.default,
+ * canvas.subtle, fg.default, fg.muted, border.default, border.muted's darker
+ * neighbour, accent.emphasis and danger.fg.
+ *
+ * The one palette here whose accent is dark enough to keep white on it
+ * (5.2:1), which is why `--vtc-accent-contrast` is not inked like the rest.
+ */
+[data-vtc-theme='github-light'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='github-light'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='github-light'][data-vtc-theme],
+.vt-portal[data-vtc-theme='github-light'][data-vtc-theme] {
+  --vtc-bg: #ffffff;
+  --vtc-header-bg: #f6f8fa;
+  --vtc-text: #1f2328;
+  --vtc-text-muted: #59636e;
+  --vtc-border: #d1d9e0;
+  --vtc-border-strong: #8c959f;
+  --vtc-accent: #0969da;
+  --vtc-accent-contrast: #ffffff;
+  --vtc-danger: #cf222e;
+}
