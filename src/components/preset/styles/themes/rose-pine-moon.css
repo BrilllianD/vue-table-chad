@@ -1,0 +1,19 @@
+/*
+ * Rosé Pine Moon. https://rosepinetheme.com/palette — Base and Surface,
+ * Text, Subtle for the muted step, Overlay and Highlight High for the lines,
+ * Iris as the accent and Love as the error.
+ */
+[data-vtc-theme='rose-pine-moon'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='rose-pine-moon'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='rose-pine-moon'][data-vtc-theme],
+.vt-portal[data-vtc-theme='rose-pine-moon'][data-vtc-theme] {
+  --vtc-bg: #232136;
+  --vtc-header-bg: #2a273f;
+  --vtc-text: #e0def4;
+  --vtc-text-muted: #908caa;
+  --vtc-border: #393552;
+  --vtc-border-strong: #44415a;
+  --vtc-accent: #c4a7e7;
+  --vtc-accent-contrast: #232136;
+  --vtc-danger: #eb6f92;
+}

@@ -1,0 +1,23 @@
+/*
+ * Solarized. https://ethanschoonover.com/solarized — base03 and base02 are
+ * the two dark surfaces, base2 body text, base0 the muted step. The blue is lightened for the same reason its light
+ * counterpart is darkened — #268bd2 carries no foreground either way.
+ *
+ * base0 is Solarized's body text on base03; here it takes the muted role and
+ * base2 the body, because a table needs one step above its secondary text and
+ * base01 is 2.5:1 on base03.
+ */
+[data-vtc-theme='solarized-dark'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='solarized-dark'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='solarized-dark'][data-vtc-theme],
+.vt-portal[data-vtc-theme='solarized-dark'][data-vtc-theme] {
+  --vtc-bg: #002b36;
+  --vtc-header-bg: #073642;
+  --vtc-text: #eee8d5;
+  --vtc-text-muted: #839496;
+  --vtc-border: #0b3d49;
+  --vtc-border-strong: #586e75;
+  --vtc-accent: #4fa3e3;
+  --vtc-accent-contrast: #002b36;
+  --vtc-danger: #dc322f;
+}

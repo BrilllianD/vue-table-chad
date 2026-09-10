@@ -1,0 +1,20 @@
+/*
+ * Material Theme, the Oceanic default. https://material-theme.com — the
+ * editor background and its darker chrome, the near-white foreground, a
+ * lightened blue-grey for the muted step (the theme's comment colour is
+ * 2.6:1 here), teal as the accent and its red as the error.
+ */
+[data-vtc-theme='material'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='material'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='material'][data-vtc-theme],
+.vt-portal[data-vtc-theme='material'][data-vtc-theme] {
+  --vtc-bg: #263238;
+  --vtc-header-bg: #1e272c;
+  --vtc-text: #eeffff;
+  --vtc-text-muted: #8d9aa1;
+  --vtc-border: #314549;
+  --vtc-border-strong: #40565d;
+  --vtc-accent: #80cbc4;
+  --vtc-accent-contrast: #263238;
+  --vtc-danger: #ff5370;
+}

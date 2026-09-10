@@ -1,0 +1,23 @@
+/*
+ * Rosé Pine Dawn. https://rosepinetheme.com/palette — Base and Surface,
+ * Text, Subtle for the muted step, Highlight Med and High for the lines, and
+ * Love as the error.
+ *
+ * Pine, not Iris, for the accent: Dawn's Iris is a mid-tone lilac that leaves
+ * neither Base nor white above 4.5:1 on it, and Pine is the palette's other
+ * signature hue.
+ */
+[data-vtc-theme='rose-pine-dawn'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='rose-pine-dawn'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='rose-pine-dawn'][data-vtc-theme],
+.vt-portal[data-vtc-theme='rose-pine-dawn'][data-vtc-theme] {
+  --vtc-bg: #faf4ed;
+  --vtc-header-bg: #fffaf3;
+  --vtc-text: #575279;
+  --vtc-text-muted: #797593;
+  --vtc-border: #dfdad9;
+  --vtc-border-strong: #cecacd;
+  --vtc-accent: #286983;
+  --vtc-accent-contrast: #faf4ed;
+  --vtc-danger: #b4637a;
+}

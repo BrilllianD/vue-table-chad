@@ -1,0 +1,27 @@
+/*
+ * Solarized. https://ethanschoonover.com/solarized — base3 and base2 are
+ * the two light surfaces, base01 is body text, base00 the muted step, blue and
+ * red the accents.
+ *
+ * The blue is two steps darker than Solarized's #268bd2, which carries no
+ * foreground: base3 on it is 2.9:1 and base03 4.1:1, and this token inks a
+ * filled button. Same hue, enough weight to hold a label.
+ *
+ * base1 is Solarized's own secondary text and lands at 2.0:1 on base3, which
+ * is a rule colour rather than a text one; base00 is the first step that
+ * clears 3:1 and is what the palette uses for body text on paper anyway.
+ */
+[data-vtc-theme='solarized-light'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='solarized-light'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='solarized-light'][data-vtc-theme],
+.vt-portal[data-vtc-theme='solarized-light'][data-vtc-theme] {
+  --vtc-bg: #fdf6e3;
+  --vtc-header-bg: #eee8d5;
+  --vtc-text: #586e75;
+  --vtc-text-muted: #657b83;
+  --vtc-border: #e3dcc4;
+  --vtc-border-strong: #93a1a1;
+  --vtc-accent: #1c6ea4;
+  --vtc-accent-contrast: #fdf6e3;
+  --vtc-danger: #dc322f;
+}

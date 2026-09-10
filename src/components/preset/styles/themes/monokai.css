@@ -1,0 +1,19 @@
+/*
+ * Monokai, the classic — the editor background and its darker chrome, the
+ * near-white foreground, the palette's own grey comment, cyan as the accent
+ * and magenta as the error, since Monokai's red *is* its magenta.
+ */
+[data-vtc-theme='monokai'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='monokai'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='monokai'][data-vtc-theme],
+.vt-portal[data-vtc-theme='monokai'][data-vtc-theme] {
+  --vtc-bg: #272822;
+  --vtc-header-bg: #1e1f1c;
+  --vtc-text: #f8f8f2;
+  --vtc-text-muted: #8f908a;
+  --vtc-border: #3e3d32;
+  --vtc-border-strong: #75715e;
+  --vtc-accent: #66d9ef;
+  --vtc-accent-contrast: #272822;
+  --vtc-danger: #f92672;
+}

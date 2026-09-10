@@ -1,0 +1,19 @@
+/*
+ * GitHub Dark, from Primer's dark functional roles — canvas.default and
+ * canvas.subtle, fg.default and fg.muted, border.default and its stronger
+ * neighbour, accent.emphasis and danger.fg.
+ */
+[data-vtc-theme='github-dark'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='github-dark'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='github-dark'][data-vtc-theme],
+.vt-portal[data-vtc-theme='github-dark'][data-vtc-theme] {
+  --vtc-bg: #0d1117;
+  --vtc-header-bg: #161b22;
+  --vtc-text: #e6edf3;
+  --vtc-text-muted: #8b949e;
+  --vtc-border: #30363d;
+  --vtc-border-strong: #484f58;
+  --vtc-accent: #4493f8;
+  --vtc-accent-contrast: #0d1117;
+  --vtc-danger: #f85149;
+}

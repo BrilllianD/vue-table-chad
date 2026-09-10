@@ -1,0 +1,19 @@
+/*
+ * Everforest dark, medium. https://github.com/sainnhe/everforest — bg0 and
+ * bg_dim are the surfaces, fg body text, grey1 the muted step, aqua the
+ * accent and red the error.
+ */
+[data-vtc-theme='everforest-dark'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='everforest-dark'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='everforest-dark'][data-vtc-theme],
+.vt-portal[data-vtc-theme='everforest-dark'][data-vtc-theme] {
+  --vtc-bg: #2d353b;
+  --vtc-header-bg: #272e33;
+  --vtc-text: #d3c6aa;
+  --vtc-text-muted: #9da9a0;
+  --vtc-border: #374145;
+  --vtc-border-strong: #4f585e;
+  --vtc-accent: #7fbbb3;
+  --vtc-accent-contrast: #2d353b;
+  --vtc-danger: #e67e80;
+}

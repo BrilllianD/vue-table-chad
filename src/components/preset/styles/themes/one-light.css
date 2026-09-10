@@ -1,0 +1,19 @@
+/*
+ * One Light, from Atom's syntax theme — background and its greyer chrome,
+ * the mono-1 foreground, mono-2 for the muted step, hue-2 blue, darkened a step so it can
+ * carry white, as the accent, and hue-5 red as the error.
+ */
+[data-vtc-theme='one-light'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='one-light'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='one-light'][data-vtc-theme],
+.vt-portal[data-vtc-theme='one-light'][data-vtc-theme] {
+  --vtc-bg: #fafafa;
+  --vtc-header-bg: #eaeaeb;
+  --vtc-text: #383a42;
+  --vtc-text-muted: #696c77;
+  --vtc-border: #dbdbdc;
+  --vtc-border-strong: #b8b8b9;
+  --vtc-accent: #3b6fe0;
+  --vtc-accent-contrast: #ffffff;
+  --vtc-danger: #ca1243;
+}

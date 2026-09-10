@@ -1,0 +1,19 @@
+/*
+ * Nightfox. https://github.com/EdenEast/nightfox.nvim — bg1 and bg0 are
+ * the surfaces, fg1 body text, fg3 the muted step, sel0 and sel1 the lines,
+ * blue the accent and red the error.
+ */
+[data-vtc-theme='nightfox'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='nightfox'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='nightfox'][data-vtc-theme],
+.vt-portal[data-vtc-theme='nightfox'][data-vtc-theme] {
+  --vtc-bg: #192330;
+  --vtc-header-bg: #131a24;
+  --vtc-text: #cdcecf;
+  --vtc-text-muted: #71839b;
+  --vtc-border: #2b3b51;
+  --vtc-border-strong: #39506d;
+  --vtc-accent: #719cd6;
+  --vtc-accent-contrast: #192330;
+  --vtc-danger: #c94f6d;
+}

@@ -26,16 +26,6 @@ and an entry moves into **Active** by flipping it to `[~]` when the work starts.
 
 ## Active
 
-### `[ ]` TH2 — The remaining palettes
-
-The other 27, each mapped from its upstream spec rather than eyeballed, with the roles it drew from
-named in a comment: Solarized Light/Dark, Gruvbox Light/Dark, Catppuccin Latte/Frappé/Macchiato/
-Mocha, Tokyo Night, One Dark/One Light, Monokai/Monokai Pro, Rosé Pine/Moon/Dawn, Everforest
-Light/Dark, Kanagawa Wave/Dragon/Lotus, GitHub Dark, Ayu Light/Mirage/Dark, Material, Nightfox.
-
-**Done when:** every name has a file, `themePresets` names all of them, and TH1's spec is green over
-the lot — including the contrast floors, which is where a faithfully-copied palette usually fails.
-
 ### `[ ]` TH3 — Demonstrate and document the presets
 
 `themePresets` and `ThemePreset` exported from `src/index.ts`; a **Themes** demo view that switches

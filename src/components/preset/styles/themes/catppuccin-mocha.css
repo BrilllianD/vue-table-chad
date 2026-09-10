@@ -1,0 +1,19 @@
+/*
+ * Catppuccin Mocha. https://catppuccin.com/palette — Base and Mantle are
+ * the surfaces, Text and Subtext0 the two text roles, Surface0 and Surface1
+ * the lines, Blue the accent, Red the error.
+ */
+[data-vtc-theme='catppuccin-mocha'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='catppuccin-mocha'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='catppuccin-mocha'][data-vtc-theme],
+.vt-portal[data-vtc-theme='catppuccin-mocha'][data-vtc-theme] {
+  --vtc-bg: #1e1e2e;
+  --vtc-header-bg: #181825;
+  --vtc-text: #cdd6f4;
+  --vtc-text-muted: #a6adc8;
+  --vtc-border: #313244;
+  --vtc-border-strong: #45475a;
+  --vtc-accent: #89b4fa;
+  --vtc-accent-contrast: #1e1e2e;
+  --vtc-danger: #f38ba8;
+}

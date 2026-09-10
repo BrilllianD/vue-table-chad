@@ -1,0 +1,22 @@
+/*
+ * Kanagawa Wave. https://github.com/rebelot/kanagawa.nvim — sumiInk3 and
+ * sumiInk1 are the surfaces, fujiWhite body text, springViolet1 the muted
+ * step, crystalBlue the accent.
+ *
+ * peachRed, not samuraiRed, for the error: samuraiRed is 3.0:1 on sumiInk3
+ * with nothing to spare, and peachRed is the same red one step up.
+ */
+[data-vtc-theme='kanagawa-wave'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='kanagawa-wave'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='kanagawa-wave'][data-vtc-theme],
+.vt-portal[data-vtc-theme='kanagawa-wave'][data-vtc-theme] {
+  --vtc-bg: #1f1f28;
+  --vtc-header-bg: #16161d;
+  --vtc-text: #dcd7ba;
+  --vtc-text-muted: #938aa9;
+  --vtc-border: #2a2a37;
+  --vtc-border-strong: #363646;
+  --vtc-accent: #7e9cd8;
+  --vtc-accent-contrast: #1f1f28;
+  --vtc-danger: #ff5d62;
+}

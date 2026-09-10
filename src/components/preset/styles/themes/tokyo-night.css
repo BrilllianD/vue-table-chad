@@ -1,0 +1,22 @@
+/*
+ * Tokyo Night. https://github.com/folke/tokyonight.nvim — bg and bg_dark
+ * are the surfaces, fg body text, blue the accent, red the error.
+ *
+ * The comment colour #565f89 is 2.6:1 on bg, so the muted role is the storm
+ * variant's lighter comment instead — the palette's own hue, taken to a step
+ * that can be read.
+ */
+[data-vtc-theme='tokyo-night'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='tokyo-night'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='tokyo-night'][data-vtc-theme],
+.vt-portal[data-vtc-theme='tokyo-night'][data-vtc-theme] {
+  --vtc-bg: #1a1b26;
+  --vtc-header-bg: #16161e;
+  --vtc-text: #c0caf5;
+  --vtc-text-muted: #787c99;
+  --vtc-border: #292e42;
+  --vtc-border-strong: #3b4261;
+  --vtc-accent: #7aa2f7;
+  --vtc-accent-contrast: #1a1b26;
+  --vtc-danger: #f7768e;
+}

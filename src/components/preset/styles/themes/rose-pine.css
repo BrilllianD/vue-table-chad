@@ -1,0 +1,19 @@
+/*
+ * Rosé Pine. https://rosepinetheme.com/palette — Base and Surface, Text,
+ * Subtle for the muted step, Overlay and Highlight High for the lines, Iris
+ * as the accent and Love as the error.
+ */
+[data-vtc-theme='rose-pine'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='rose-pine'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='rose-pine'][data-vtc-theme],
+.vt-portal[data-vtc-theme='rose-pine'][data-vtc-theme] {
+  --vtc-bg: #191724;
+  --vtc-header-bg: #1f1d2e;
+  --vtc-text: #e0def4;
+  --vtc-text-muted: #908caa;
+  --vtc-border: #26233a;
+  --vtc-border-strong: #403d52;
+  --vtc-accent: #c4a7e7;
+  --vtc-accent-contrast: #191724;
+  --vtc-danger: #eb6f92;
+}

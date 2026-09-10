@@ -1,0 +1,19 @@
+/*
+ * Catppuccin Macchiato. https://catppuccin.com/palette — Base and Mantle
+ * are the surfaces, Text and Subtext0 the two text roles, Surface0 and
+ * Surface1 the lines, Blue the accent, Red the error.
+ */
+[data-vtc-theme='catppuccin-macchiato'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='catppuccin-macchiato'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='catppuccin-macchiato'][data-vtc-theme],
+.vt-portal[data-vtc-theme='catppuccin-macchiato'][data-vtc-theme] {
+  --vtc-bg: #24273a;
+  --vtc-header-bg: #1e2030;
+  --vtc-text: #cad3f5;
+  --vtc-text-muted: #a5adcb;
+  --vtc-border: #363a4f;
+  --vtc-border-strong: #494d64;
+  --vtc-accent: #8aadf4;
+  --vtc-accent-contrast: #24273a;
+  --vtc-danger: #ed8796;
+}

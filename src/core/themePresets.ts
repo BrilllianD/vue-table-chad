@@ -23,7 +23,38 @@
  * teleport to `<body>` as well. `tests/themePresets.spec.ts` fails if this list
  * and the directory disagree, so importing a name from here cannot 404.
  */
-export const themePresets = ['dracula', 'github-light', 'nord'] as const
+export const themePresets = [
+  'ayu-dark',
+  'ayu-light',
+  'ayu-mirage',
+  'catppuccin-frappe',
+  'catppuccin-latte',
+  'catppuccin-macchiato',
+  'catppuccin-mocha',
+  'dracula',
+  'everforest-dark',
+  'everforest-light',
+  'github-dark',
+  'github-light',
+  'gruvbox-dark',
+  'gruvbox-light',
+  'kanagawa-dragon',
+  'kanagawa-lotus',
+  'kanagawa-wave',
+  'material',
+  'monokai',
+  'monokai-pro',
+  'nightfox',
+  'nord',
+  'one-dark',
+  'one-light',
+  'rose-pine',
+  'rose-pine-dawn',
+  'rose-pine-moon',
+  'solarized-dark',
+  'solarized-light',
+  'tokyo-night',
+] as const
 
 /** One shipped palette's name — the file's basename, and the attribute value. */
 export type ThemePreset = (typeof themePresets)[number]

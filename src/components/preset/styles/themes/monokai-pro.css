@@ -1,0 +1,19 @@
+/*
+ * Monokai Pro. https://monokai.pro — the base and its darker chrome, base8
+ * as text, base5 as the muted step, base2 and base3 as the lines, blue as the
+ * accent and red as the error.
+ */
+[data-vtc-theme='monokai-pro'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='monokai-pro'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='monokai-pro'][data-vtc-theme],
+.vt-portal[data-vtc-theme='monokai-pro'][data-vtc-theme] {
+  --vtc-bg: #2d2a2e;
+  --vtc-header-bg: #221f22;
+  --vtc-text: #fcfcfa;
+  --vtc-text-muted: #939293;
+  --vtc-border: #403e41;
+  --vtc-border-strong: #5b595c;
+  --vtc-accent: #78dce8;
+  --vtc-accent-contrast: #2d2a2e;
+  --vtc-danger: #ff6188;
+}

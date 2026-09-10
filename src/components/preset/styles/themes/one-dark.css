@@ -1,0 +1,19 @@
+/*
+ * One Dark, from Atom's syntax theme — background and its darker chrome,
+ * the mono-1 foreground, mono-2 for the muted step, hue-2 blue as the accent
+ * and hue-5 red as the error.
+ */
+[data-vtc-theme='one-dark'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='one-dark'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='one-dark'][data-vtc-theme],
+.vt-portal[data-vtc-theme='one-dark'][data-vtc-theme] {
+  --vtc-bg: #282c34;
+  --vtc-header-bg: #21252b;
+  --vtc-text: #abb2bf;
+  --vtc-text-muted: #828997;
+  --vtc-border: #3e4451;
+  --vtc-border-strong: #4b5263;
+  --vtc-accent: #61afef;
+  --vtc-accent-contrast: #282c34;
+  --vtc-danger: #e06c75;
+}

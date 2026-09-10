@@ -1,0 +1,22 @@
+/*
+ * Ayu Light. https://github.com/ayu-theme/ayu-colors — bg and its panel
+ * step, the common fg, the ui fg for the muted step, and the orange accent
+ * Ayu is known for.
+ *
+ * The accent is inked to the foreground rather than to white: Ayu's orange is
+ * a light hue, and white on it is 2.1:1.
+ */
+[data-vtc-theme='ayu-light'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='ayu-light'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='ayu-light'][data-vtc-theme],
+.vt-portal[data-vtc-theme='ayu-light'][data-vtc-theme] {
+  --vtc-bg: #fcfcfc;
+  --vtc-header-bg: #f3f4f5;
+  --vtc-text: #5c6166;
+  --vtc-text-muted: #787f85;
+  --vtc-border: #e7e8e9;
+  --vtc-border-strong: #c9ccce;
+  --vtc-accent: #f2ae49;
+  --vtc-accent-contrast: #3b3f42;
+  --vtc-danger: #e65050;
+}

@@ -1,0 +1,19 @@
+/*
+ * Kanagawa Dragon. https://github.com/rebelot/kanagawa.nvim — dragonBlack3
+ * and dragonBlack0 are the surfaces, dragonWhite body text, dragonGray the
+ * muted step, dragonBlue2 the accent and dragonRed the error.
+ */
+[data-vtc-theme='kanagawa-dragon'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='kanagawa-dragon'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='kanagawa-dragon'][data-vtc-theme],
+.vt-portal[data-vtc-theme='kanagawa-dragon'][data-vtc-theme] {
+  --vtc-bg: #181616;
+  --vtc-header-bg: #12120f;
+  --vtc-text: #c5c9c5;
+  --vtc-text-muted: #a6a69c;
+  --vtc-border: #282727;
+  --vtc-border-strong: #393836;
+  --vtc-accent: #8ba4b0;
+  --vtc-accent-contrast: #181616;
+  --vtc-danger: #c4746e;
+}

@@ -1,0 +1,19 @@
+/*
+ * Ayu Dark. https://github.com/ayu-theme/ayu-colors — bg and its panel
+ * step, the common fg, a lightened ui fg for the muted step, the yellow
+ * accent and the red error.
+ */
+[data-vtc-theme='ayu-dark'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='ayu-dark'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='ayu-dark'][data-vtc-theme],
+.vt-portal[data-vtc-theme='ayu-dark'][data-vtc-theme] {
+  --vtc-bg: #0b0e14;
+  --vtc-header-bg: #11151c;
+  --vtc-text: #bfbdb6;
+  --vtc-text-muted: #7b8593;
+  --vtc-border: #131721;
+  --vtc-border-strong: #2d3640;
+  --vtc-accent: #e6b450;
+  --vtc-accent-contrast: #0b0e14;
+  --vtc-danger: #f07178;
+}

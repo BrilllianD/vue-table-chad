@@ -1,0 +1,19 @@
+/*
+ * Gruvbox dark, medium. https://github.com/morhetz/gruvbox — bg0 and bg0_s
+ * are the surfaces, fg1 body text, gray the muted step, and the bright blue
+ * and red, which are the variants meant to sit on a dark bg.
+ */
+[data-vtc-theme='gruvbox-dark'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='gruvbox-dark'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='gruvbox-dark'][data-vtc-theme],
+.vt-portal[data-vtc-theme='gruvbox-dark'][data-vtc-theme] {
+  --vtc-bg: #282828;
+  --vtc-header-bg: #32302f;
+  --vtc-text: #ebdbb2;
+  --vtc-text-muted: #a89984;
+  --vtc-border: #3c3836;
+  --vtc-border-strong: #504945;
+  --vtc-accent: #83a598;
+  --vtc-accent-contrast: #282828;
+  --vtc-danger: #fb4934;
+}

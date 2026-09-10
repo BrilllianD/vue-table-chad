@@ -1,0 +1,19 @@
+/*
+ * Ayu Mirage. https://github.com/ayu-theme/ayu-colors — bg and its panel
+ * step, the common fg, a lightened ui fg for the muted step (Ayu's own is
+ * 2.4:1 on this bg), the yellow accent and the red error.
+ */
+[data-vtc-theme='ayu-mirage'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='ayu-mirage'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='ayu-mirage'][data-vtc-theme],
+.vt-portal[data-vtc-theme='ayu-mirage'][data-vtc-theme] {
+  --vtc-bg: #1f2430;
+  --vtc-header-bg: #1a1f29;
+  --vtc-text: #cccac2;
+  --vtc-text-muted: #8a9199;
+  --vtc-border: #242936;
+  --vtc-border-strong: #3d4351;
+  --vtc-accent: #ffcc66;
+  --vtc-accent-contrast: #1f2430;
+  --vtc-danger: #ff6666;
+}

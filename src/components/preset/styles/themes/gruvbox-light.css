@@ -1,0 +1,19 @@
+/*
+ * Gruvbox light, hard-to-medium. https://github.com/morhetz/gruvbox — bg0
+ * and bg1 are the surfaces, fg1 body text, fg3 the muted step, blue and red
+ * the neutral (dark) variants, which are the ones meant for a light bg.
+ */
+[data-vtc-theme='gruvbox-light'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='gruvbox-light'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='gruvbox-light'][data-vtc-theme],
+.vt-portal[data-vtc-theme='gruvbox-light'][data-vtc-theme] {
+  --vtc-bg: #fbf1c7;
+  --vtc-header-bg: #ebdbb2;
+  --vtc-text: #3c3836;
+  --vtc-text-muted: #7c6f64;
+  --vtc-border: #e0d3ac;
+  --vtc-border-strong: #bdae93;
+  --vtc-accent: #076678;
+  --vtc-accent-contrast: #fbf1c7;
+  --vtc-danger: #9d0006;
+}

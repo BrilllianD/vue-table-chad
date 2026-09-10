@@ -1,0 +1,19 @@
+/*
+ * Kanagawa Lotus. https://github.com/rebelot/kanagawa.nvim — lotusWhite3
+ * and lotusWhite5 are the surfaces, lotusInk1 body text, lotusInk2 the muted
+ * step, lotusBlue4 the accent and lotusRed the error.
+ */
+[data-vtc-theme='kanagawa-lotus'][data-vtc-theme] .vt-datatable,
+[data-vtc-theme='kanagawa-lotus'][data-vtc-theme] .vt-portal,
+.vt-datatable[data-vtc-theme='kanagawa-lotus'][data-vtc-theme],
+.vt-portal[data-vtc-theme='kanagawa-lotus'][data-vtc-theme] {
+  --vtc-bg: #f2ecbc;
+  --vtc-header-bg: #e7dba0;
+  --vtc-text: #545464;
+  --vtc-text-muted: #716e61;
+  --vtc-border: #e5ddb0;
+  --vtc-border-strong: #cec99f;
+  --vtc-accent: #4d699b;
+  --vtc-accent-contrast: #f2ecbc;
+  --vtc-danger: #c84053;
+}
