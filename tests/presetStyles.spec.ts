@@ -205,6 +205,76 @@ describe('preset stylesheet', () => {
   })
 
   /**
+   * Every box the preset lets scroll gets the preset's scrollbar.
+   *
+   * A scroller that misses `scrollbars.css` renders one browser-default bar in
+   * the middle of a themed table — most visibly a light one down the side of a
+   * dark table under a light OS, which is the case the tokens exist for. jsdom
+   * paints no scrollbar and the demo only shows the OS the reader happens to
+   * run, so nothing else here would notice.
+   *
+   * The check is over selectors rather than elements because that is what the
+   * source can be read for: any rule that turns overflow into a scroller has
+   * to name a selector `scrollbars.css` also names.
+   */
+  it('styles the scrollbar of every container it lets scroll', () => {
+    const selectorsOf = (r: Rule) => r.selector.split(',').map((s) => s.trim())
+
+    const scrollers = new Set(
+      rules()
+        .filter((r) => r.file !== 'scrollbars.css')
+        .filter((r) => /(^|[;\s])overflow(-[xy])?\s*:\s*(auto|scroll)/.test(r.body))
+        .flatMap(selectorsOf),
+    )
+
+    const styled = new Set(
+      rules()
+        .filter((r) => r.file === 'scrollbars.css')
+        .filter((r) => /scrollbar-color\s*:/.test(r.body))
+        .flatMap(selectorsOf),
+    )
+
+    expect(
+      [...scrollers].filter((s) => !styled.has(s)).sort(),
+      'containers that scroll and keep the browser default scrollbar; add them to scrollbars.css',
+    ).toEqual([])
+    expect(
+      [...styled].filter((s) => !scrollers.has(s)).sort(),
+      'selectors given a themed scrollbar that no partition lets scroll',
+    ).toEqual([])
+  })
+
+  /**
+   * The WebKit fallback covers the same set as the standard properties.
+   *
+   * The two paths never both paint — Chromium ignores `::-webkit-scrollbar`
+   * once `scrollbar-color` is set — so a container in one list and not the
+   * other is themed in some browsers and not others, which is the failure this
+   * file exists to catch by reading.
+   */
+  it('gives the WebKit fallback the same containers', () => {
+    const containers = (predicate: (body: string) => boolean) =>
+      new Set(
+        rules()
+          .filter((r) => r.file === 'scrollbars.css' && predicate(r.body))
+          .flatMap((r) => r.selector.split(',').map((s) => s.trim().replace(/(::?[\w-]+)+$/, '')))
+          .filter((s) => s !== ''),
+      )
+
+    const standard = containers((body) => /scrollbar-color\s*:/.test(body))
+    const webkit = containers((body) => !/scrollbar-color\s*:/.test(body))
+
+    expect(
+      [...standard].filter((s) => !webkit.has(s)).sort(),
+      'containers styled only through the standard properties, so Safari keeps the default bar',
+    ).toEqual([])
+    expect(
+      [...webkit].filter((s) => !standard.has(s)).sort(),
+      'containers styled only through ::-webkit-scrollbar, so Firefox keeps the default bar',
+    ).toEqual([])
+  })
+
+  /**
    * The theme is settable from one place. A rule elsewhere that assigns a
    * public `--vtc-` token outranks whatever the consumer wrote on
    * `.vt-datatable`, so the token stops being a knob and starts being a lie —

@@ -240,6 +240,34 @@
     rest keep the keyword — `grid.css` carries the why.
   */
   --vtc-truncation-marker: '..';
+  /*
+    Scrollbars — the scroll box and the three popover lists that scroll.
+
+    Described twice on purpose, because no single mechanism reaches every
+    engine. `scrollbar-width` / `scrollbar-color` is the standard pair, read by
+    Firefox and by current Chromium; `::-webkit-scrollbar` is what Safari and
+    older Chromium read. The two never both paint: Chromium ignores the
+    pseudo-elements entirely once `scrollbar-color` is anything but `auto`, so
+    the pseudo-element rules are the fallback rather than a second coat.
+
+    That split is why there are two size tokens. `--vtc-scrollbar-width` is the
+    standard property's value and takes the keywords `auto | thin | none` only
+    — a length there is invalid, and an invalid value resets it to `auto`.
+    `--vtc-scrollbar-size` is the length, and only the WebKit path can honour
+    it, so on Firefox and current Chromium it does nothing. Set both.
+
+    The thumb is a wash of `--vtc-text` for the reason the hover deltas are: it
+    darkens a light theme and lightens a dark one from one number, so the dark
+    block below needs no counterpart and neither does any palette preset —
+    which is the whole of what makes 30 palettes get a matching scrollbar for
+    free. Name a colour outright to opt out.
+  */
+  --vtc-scrollbar-width: thin;
+  --vtc-scrollbar-size: var(--vtc-space-5);
+  --vtc-scrollbar-track: transparent;
+  --vtc-scrollbar-thumb: color-mix(in srgb, var(--vtc-text) 25%, transparent);
+  --vtc-scrollbar-thumb-hover: color-mix(in srgb, var(--vtc-text) 45%, transparent);
+  --vtc-scrollbar-radius: var(--vtc-radius-pill);
 }
 
 /*

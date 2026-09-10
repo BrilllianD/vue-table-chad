@@ -1,0 +1,93 @@
+/*
+ * Scrollbars, for every box the preset lets scroll.
+ *
+ * A slice of the preset theme. Imported by `../table.css`; unlike the other
+ * partitions its position in that list is free, because nothing else in the
+ * preset styles a scrollbar and none of these selectors matches a cell.
+ *
+ * Two mechanisms, one look. The standard `scrollbar-width` / `scrollbar-color`
+ * pair is what Firefox and current Chromium read; the `::-webkit-scrollbar`
+ * pseudo-elements are what Safari and older Chromium read. They do not stack:
+ * Chromium drops the pseudo-elements as soon as `scrollbar-color` is not
+ * `auto`, which is exactly when the standard path has taken over. So the
+ * pseudo-element block below is a fallback, and the two are kept saying the
+ * same thing by reading the same tokens — see `./tokens.css` for why the size
+ * needs one token per mechanism.
+ *
+ * The list of selectors is the set of containers the other partitions give
+ * `overflow: auto` or `overflow-y: auto`, and `tests/presetStyles.spec.ts`
+ * holds it to that: a partition that adds a scroller and forgets this file
+ * would ship one browser-default scrollbar in the middle of a themed table.
+ */
+
+.vt-scroll,
+.vt-filter-panel,
+.vt-valuelist-items,
+.vt-asyncselect-list {
+  scrollbar-width: var(--vtc-scrollbar-width);
+  scrollbar-color: var(--vtc-scrollbar-thumb) var(--vtc-scrollbar-track);
+}
+
+/*
+  The WebKit fallback. `width` is the vertical bar and `height` the horizontal
+  one, and both are set from the one token: a table wide enough to scroll both
+  ways with two different thicknesses reads as a rendering bug.
+*/
+.vt-scroll::-webkit-scrollbar,
+.vt-filter-panel::-webkit-scrollbar,
+.vt-valuelist-items::-webkit-scrollbar,
+.vt-asyncselect-list::-webkit-scrollbar {
+  width: var(--vtc-scrollbar-size);
+  height: var(--vtc-scrollbar-size);
+}
+
+.vt-scroll::-webkit-scrollbar-track,
+.vt-filter-panel::-webkit-scrollbar-track,
+.vt-valuelist-items::-webkit-scrollbar-track,
+.vt-asyncselect-list::-webkit-scrollbar-track {
+  background: var(--vtc-scrollbar-track);
+}
+
+/*
+  Where the two bars meet on a table that scrolls both ways. Left unpainted it
+  is white in every theme, which is a lit square in the corner of a dark table.
+*/
+.vt-scroll::-webkit-scrollbar-corner,
+.vt-filter-panel::-webkit-scrollbar-corner,
+.vt-valuelist-items::-webkit-scrollbar-corner,
+.vt-asyncselect-list::-webkit-scrollbar-corner {
+  background: var(--vtc-scrollbar-track);
+}
+
+/*
+  `background-clip: padding-box` with a transparent border is what insets the
+  thumb from the track — a real margin is not a thing a scrollbar part has, and
+  shrinking the bar instead would shrink the hit area with it.
+*/
+.vt-scroll::-webkit-scrollbar-thumb,
+.vt-filter-panel::-webkit-scrollbar-thumb,
+.vt-valuelist-items::-webkit-scrollbar-thumb,
+.vt-asyncselect-list::-webkit-scrollbar-thumb {
+  background: var(--vtc-scrollbar-thumb);
+  background-clip: padding-box;
+  border: var(--vtc-space-1) solid transparent;
+  border-radius: var(--vtc-scrollbar-radius);
+}
+
+/*
+  Hovering the *container*, not the thumb. `:hover` on the pseudo-element alone
+  would light up only once the pointer is on the bar itself, which is after the
+  reader has already found it; the point of the brighter thumb is to answer a
+  pointer arriving anywhere in the scroller.
+
+  The standard path has no equivalent — `scrollbar-color` is one value with no
+  hover form — so this is WebKit-only and deliberately a refinement rather than
+  the affordance itself.
+*/
+.vt-scroll:hover::-webkit-scrollbar-thumb,
+.vt-filter-panel:hover::-webkit-scrollbar-thumb,
+.vt-valuelist-items:hover::-webkit-scrollbar-thumb,
+.vt-asyncselect-list:hover::-webkit-scrollbar-thumb {
+  background: var(--vtc-scrollbar-thumb-hover);
+  background-clip: padding-box;
+}

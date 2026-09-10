@@ -217,6 +217,14 @@ export const TOKEN_CONTROLS: Record<ThemeToken, TokenControl> = {
   groupIndentStep: { group: 'Metrics', kind: 'length', unit: 'px', min: 0, max: 48, hint: 'per level of grouping' },
   font: { group: 'Metrics', kind: 'text', hint: 'the whole font shorthand — size, line height and family' },
   truncationMarker: { group: 'Metrics', kind: 'text', hint: 'what a clipped cell ends with — Firefox only, others keep the ellipsis glyph' },
+
+  /* --------------------------------------------------------- scrollbars */
+  scrollbarWidth: { group: 'Scrollbars', kind: 'text', hint: 'a keyword, not a length — auto, thin or none' },
+  scrollbarSize: { group: 'Scrollbars', kind: 'length', unit: 'px', min: 0, max: 24, hint: 'the bar\'s thickness, honoured by Safari and older Chromium only' },
+  scrollbarTrack: { group: 'Scrollbars', kind: 'text', hint: 'the groove behind the thumb — transparent by default' },
+  scrollbarThumb: { group: 'Scrollbars', kind: 'text', hint: 'the bar itself — a wash of --vtc-text, so it follows the palette' },
+  scrollbarThumbHover: { group: 'Scrollbars', kind: 'text', hint: 'and once the pointer is anywhere in the scroller — WebKit only' },
+  scrollbarRadius: { group: 'Scrollbars', kind: 'length', unit: 'px', min: 0, max: 999, hint: 'the thumb\'s corners' },
 }
 
 /**

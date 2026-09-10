@@ -445,6 +445,57 @@ column that declares no width is measured from what it holds, so a rule that
 changes `--vtc-cell-padding-x` or the font changes what gets measured on the next
 mount.
 
+## Scrollbars
+
+The scroll box and the three scrollable popovers — the filter panel, a value
+list, an async select's list — are painted from one set of tokens, and the thumb
+is a wash of `--vtc-text` rather than a colour of its own. That is what makes it
+follow the palette: a dark table gets a light bar and a light table a dark one
+from one number, with nothing to restate in the dark block or in any of the
+[palette presets](#picking-a-palette).
+
+```css
+.vt-datatable {
+  --vtc-scrollbar-width: thin;   /* auto | thin | none — a keyword, never a length */
+  --vtc-scrollbar-size: 10px;    /* the thickness; Safari and older Chromium only */
+  --vtc-scrollbar-track: transparent;
+  --vtc-scrollbar-thumb: color-mix(in srgb, var(--vtc-text) 25%, transparent);
+  --vtc-scrollbar-thumb-hover: color-mix(in srgb, var(--vtc-text) 45%, transparent);
+  --vtc-scrollbar-radius: 999px;
+}
+```
+
+Two size tokens, because no one mechanism reaches every engine and the two
+disagree about what a size is:
+
+- **`--vtc-scrollbar-width` is the standard property's value**, read by Firefox
+  and by current Chromium. It takes `auto`, `thin` or `none` and nothing else —
+  a length there is invalid, and an invalid value resets the property to `auto`
+  rather than falling back to anything you wrote.
+- **`--vtc-scrollbar-size` is the length**, and only the `::-webkit-scrollbar`
+  path can honour it. Setting it alone leaves Firefox on `auto`; setting the
+  keyword alone leaves Safari on the default thickness. Set both.
+
+The two paths never both paint: Chromium ignores `::-webkit-scrollbar` entirely
+once `scrollbar-color` is anything but `auto`, so the pseudo-element rules are a
+fallback for Safari and older Chromium rather than a second coat. One
+consequence is visible: `--vtc-scrollbar-thumb-hover` is a WebKit-only
+refinement, because `scrollbar-color` is a single value with no hover form. It
+brightens the thumb when the pointer is anywhere in the scroller, not only when
+it is on the bar — by the time the pointer is on the bar, the bar has been
+found.
+
+To opt out of the whole thing and keep the platform's own scrollbar, name the
+keyword and the colours back to `auto`:
+
+```css
+.vt-datatable { --vtc-scrollbar-width: auto; --vtc-scrollbar-thumb: auto; --vtc-scrollbar-track: auto; }
+```
+
+`scrollbar-color: auto auto` is what the shorthand's initial value resolves to,
+which hands the bar back to the browser — and, in Chromium, hands the WebKit
+rules back their say, so the `--vtc-scrollbar-size` thickness returns there.
+
 ## Height, and filling the page
 
 `.vt-scroll` caps itself at `max-height: 70vh`, and that is the only height the

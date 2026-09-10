@@ -124,6 +124,15 @@ const THEME_TOKENS = [
   'groupIndentStep',
   'font',
   'truncationMarker',
+
+  // Scrollbars. Two size tokens because two mechanisms are in play: the
+  // keyword the standard property takes, and the length only WebKit reads.
+  'scrollbarWidth',
+  'scrollbarSize',
+  'scrollbarTrack',
+  'scrollbarThumb',
+  'scrollbarThumbHover',
+  'scrollbarRadius',
 ] as const
 
 /** One token's name, in the camelCase form a `Theme` uses. */

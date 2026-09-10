@@ -55,6 +55,15 @@ would let a bare CSS import there be tree-shaken away, silently shipping an unst
   JavaScript measuring and slicing each cell. Both were considered and declined: the first needs a
   background matching the composed `--_vtc-layer-*` stack, the second is per-cell layout reads on
   every render. Reopen only with the browser support changed.
+- **The scrollbar is described twice, and the two never both paint.**
+  `styles/scrollbars.css` carries the standard `scrollbar-width` / `scrollbar-color` pair *and* the
+  `::-webkit-scrollbar` pseudo-elements, because neither reaches every engine; Chromium drops the
+  pseudo-elements as soon as `scrollbar-color` is not `auto`, so the second block is Safari's and
+  older Chromium's, not a second coat. Hence two size tokens — the standard property takes the
+  keywords `auto | thin | none` only, and the length is WebKit's alone. The partition's position in
+  `table.css`'s import list is free: nothing else styles a scrollbar and none of its selectors
+  matches a cell. `tests/presetStyles.spec.ts` holds its selector list to exactly the set of
+  containers the other partitions give `overflow: auto`, in both mechanisms.
 - **Dark is reached two ways and the blocks cannot be shared.** The media query excludes
   `[data-theme='light']`; the attribute form sits outside it, and after it. The attribute is read on
   the element itself, never on an ancestor — CSS cannot say "and nothing above said light", so an
