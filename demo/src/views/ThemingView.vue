@@ -836,6 +836,18 @@ watch([theme, themeStyle], async () => {
       near-white text — which is why every colour here is set together.
     </p>
 
+    <p class="hint">
+      The scroll bar down the side of that table — and along the bottom of it, since the columns
+      declare more width than the page has — is themed too. Its tokens are under
+      <strong>Every <code>--vtc-*</code> variable</strong>, in <strong>Scrollbars</strong>: the
+      thumb is a wash of <code>--vtc-text</code>, so it follows the palette the way the hover
+      deltas do and every preset on the <strong>Themes</strong> tab gets it without a colour of its
+      own. Two size tokens, because two mechanisms are in play:
+      <code>--vtc-scrollbar-width</code> takes the keywords <code>auto | thin | none</code> and is
+      what Firefox and current Chromium read, while <code>--vtc-scrollbar-size</code> is the length
+      and only Safari and older Chromium can honour it.
+    </p>
+
     <pre class="snippet">{{ snippet }}</pre>
 
     <div class="panel">

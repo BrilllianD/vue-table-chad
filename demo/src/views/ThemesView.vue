@@ -148,6 +148,12 @@ const snippet = computed(() =>
     <pre class="snippet"><code>{{ snippet }}</code></pre>
 
     <p class="hint">
+      The scrollbar switches with the palette and no preset says a word about it: the thumb is a
+      wash of <code>--vtc-text</code>, which is one of the nine. Tune it on the
+      <strong>Theming</strong> tab, under <strong>Scrollbars</strong>.
+    </p>
+
+    <p class="hint">
       A preset is a stylesheet, so anything inline still wins over it:
       <code>defineTheme</code> on the <strong>Theming</strong> tab overrides a palette rather than
       fighting it, which is how a brand accent goes on top of Nord.
