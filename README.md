@@ -39,7 +39,7 @@ make pack        # build + size check + npm pack -> the installable tarball
 view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
 
 Released as a tarball, not published to npm: `make pack` produces
-`brillliand-vue-table-chad-<version>.tgz` (currently 0.4.0), which other projects install directly —
+`brillliand-vue-table-chad-<version>.tgz` (currently 0.4.1), which other projects install directly —
 see [Using it in another project](docs/getting-started.md). Inside this repo,
 `@brillliand/vue-table-chad` is an alias onto `src/index.ts`. [`RELEASING.md`](RELEASING.md) holds
 the release checklist; [`TASKS.md`](TASKS.md) tracks what an npm publish still needs.
