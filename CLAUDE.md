@@ -25,6 +25,7 @@ directory-scoped file next to the code it governs, which loads when you open tha
 pnpm test          # vitest
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
+pnpm lint          # eslint — gates in CI
 pnpm bench         # vitest bench over bench/**
 pnpm build         # typecheck + vite lib build -> dist/
 pnpm size          # bundle-size budget over dist/ — gates in CI
@@ -94,7 +95,7 @@ Two habits keep the pipeline honest, both argued out with their numbers in `src/
   in a view's `:api` list or imported by one — **`tests/apiSurface.spec.ts` names the offender:
   demonstrate it, or stop exporting it.** Types are exempt; a type cannot be used in a view visibly.
 - **One task, one commit.** No batching, no work-in-progress commits spanning tasks. `pnpm test`
-  green and `pnpm typecheck` clean before each. A task whose done-when is not met does not get
+  green, `pnpm typecheck` and `pnpm lint` clean before each. A task whose done-when is not met does not get
   committed; it gets finished, or split into a smaller task that is complete. The subject names the
   task by ID, in the imperative mood the history already uses — `P1-4: Depend on query fields, not on
   the query object`, with the body saying what was wrong.
@@ -117,6 +118,15 @@ theme and column-width decisions live in `src/components/preset/CLAUDE.md`, the 
   classes are a separate public surface — ~200 assertions across 11 spec files, plus
   `docs/styling.md` teaching `.vt-th[data-sorted]` as a styling hook — so renaming them is its own
   decision and has not been taken.
+- **A lint rule that is wrong gets a disable with its reason; code that is wrong gets fixed.** The
+  distinction is the one the lint sweep turned on. Three rules fire on deliberate patterns and are suppressed in
+  place with the why beside them — `vue/no-dupe-keys` and `vue/no-mutating-props` both predate
+  `<script setup>`, and a bare `revision.value` in `useVirtualRows.ts` is the dependency, not dead
+  code — while `vue/multi-word-component-names` is off for `docs/**`, whose files are documentation
+  artefacts named to pair with the pages beside them. The one real finding, three components
+  registered but unused in a trimmed excerpt, was deleted rather than silenced. `pnpm lint` gates in
+  CI on the strength of that: a suppression nobody can read the reason for is how a check goes
+  known-red again.
 - **The theme is two tiers, plus machinery marked as machinery.** `styles/scales.css` holds the
   values, `styles/tokens.css` the roles built out of them, a leading underscore means machinery.
   `src/core/theme.ts` is the same list in TypeScript, checked against both partitions by
@@ -136,15 +146,12 @@ theme and column-width decisions live in `src/components/preset/CLAUDE.md`, the 
 
 ## Verification
 
-**Per push, by CI** — `bitbucket-pipelines.yml` is the list. Two facts it does not carry: `pnpm lint`
-is known-red on 20 errors — two `vue/no-dupe-keys` in `TableRoot.vue`, one
-`no-unused-expressions` in `useVirtualRows.ts`, one `vue/no-mutating-props` in `AsyncSelect.vue`,
-the rest `vue/multi-word-component-names` on the
-single-word docs example files (T4 in `TASKS.md` decides them) — and `pnpm bench` on a shared runner
-is a trend to read rather than a threshold to fail, so neither gates.
+**Per push, by CI** — `bitbucket-pipelines.yml` is the list, and all of it gates except one step:
+`pnpm bench` on a shared runner is a trend to read rather than a threshold to fail.
 
 **Per task, locally**
-- `pnpm test` and `pnpm typecheck` — the same two CI gates, before the commit rather than after.
+- `pnpm test`, `pnpm typecheck` and `pnpm lint` — the same CI gates, before the commit rather than
+  after.
 - `pnpm bench` — before/after against [`bench/BASELINE.md`](bench/BASELINE.md). This is the part CI
   cannot do for you.
 - `tests/invalidation.spec.ts` — the perf invariants hold. A failure there is a broken feature, not

@@ -166,6 +166,15 @@ const table = useTable<TRow>({
   autofocusCursor: props.autofocusCursor,
 })
 
+/*
+  `state` and `columns` are also prop names, which `vue/no-dupe-keys` reads as a
+  collision. It predates `<script setup>`, where a prop is reached through
+  `props.` and never as a bare binding — every read of either prop above does
+  exactly that, and the template binds nothing but `slotBindings`. So there is no
+  shadow to remove, and renaming the pair would churn a dozen call sites to
+  satisfy a rule about a syntax this file does not use.
+*/
+// eslint-disable-next-line vue/no-dupe-keys
 const { state, columns, grouping, dnd, pagination, selection, cursor, headerRows } = table
 const rows = table.rows
 

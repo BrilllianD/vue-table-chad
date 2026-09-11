@@ -80,6 +80,23 @@ export default tseslint.config(
 
   {
     /*
+     * `vue/multi-word-component-names` guards against a component shadowing an
+     * HTML element in a global registry. Nothing under `docs/` has one: the
+     * VitePress examples are single-file pages named after the doc they belong
+     * to — `filtering.vue` sits beside `filtering.md`, and renaming it would
+     * break the pairing that makes the directory readable — `theme/Demo.vue` is
+     * VitePress's own `<Demo>` wrapper, and `examples/AddressesTable.vue` keeps
+     * a real consumer's `name: "Addresses"` because the excerpt is that
+     * consumer's code, not ours. Documentation artefacts, not library
+     * components; the library's own components are all multi-word already and
+     * stay linted.
+     */
+    files: ['docs/**'],
+    rules: { 'vue/multi-word-component-names': 'off' },
+  },
+
+  {
+    /*
      * The layer contracts from CLAUDE.md, made machine-checkable. They were
      * prose and discipline until now; nothing failed when one was broken.
      */

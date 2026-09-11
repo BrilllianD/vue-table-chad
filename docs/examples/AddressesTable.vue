@@ -183,7 +183,7 @@ const PER_PAGE = 20
 export default {
   name: "Addresses",
   components: {
-    AddressDialog, MapModal, SearchInput, CrSelect, CrOption,
+    AddressDialog, SearchInput,
     // The three primitives that replaced ThOrdered, CrPaginator and the columns dialog.
     SortTrigger, TablePagination, ColumnVisibilityMenu,
   },

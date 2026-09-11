@@ -6,7 +6,7 @@
 # One step, run on every pushed branch. The gating half is the same ritual the
 # working agreement asks for by hand before each commit — typecheck, test,
 # build — plus the bundle budget, which is the guard row virtualization landed
-# without.
+# without, and lint. Only `pnpm bench` is non-gating.
 
 image: node:24
 
@@ -20,7 +20,7 @@ definitions:
 pipelines:
   default:
     - step:
-        name: typecheck, test, build, budget
+        name: typecheck, test, build, budget, lint
         caches:
           - pnpm-store
         script:
@@ -34,12 +34,12 @@ pipelines:
           - pnpm test
           - pnpm build
           - pnpm size
-          # Non-gating, deliberately. The known-red errors (vue/no-dupe-keys
-          # in TableRoot.vue and friends) predate this pipeline; T4 in TASKS.md
-          # decides them. Gating on a known-red check would just teach everyone
-          # to ignore the pipeline.
-          - pnpm lint || true
-          # Non-gating for a different reason: bench numbers are
+          # Gating since T4. It was `|| true` while 21 known-red errors stood,
+          # which only taught everyone to scroll past it; the errors were each
+          # decided — see CLAUDE.md's settled decisions — so a red lint is now
+          # news again.
+          - pnpm lint
+          # The one non-gating step: bench numbers are
           # machine-specific, and a shared runner's absolute milliseconds are a
           # trend to read, not a threshold to fail. Compare against
           # bench/BASELINE.md by eye; the invariants that *can* be asserted are

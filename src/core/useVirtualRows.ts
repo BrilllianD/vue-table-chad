@@ -168,6 +168,9 @@ export function useVirtualRows<TItem>(
    * and the fast one.
    */
   const offsets = computed<number[] | undefined>(() => {
+    // The dependency, on purpose: `heights` is a plain Map, so `revision` is
+    // what a measurement bumps to invalidate this. Not dead code.
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     revision.value
     if (heights.size === 0 || measuredFor !== all.value) return undefined
     const count = all.value.length

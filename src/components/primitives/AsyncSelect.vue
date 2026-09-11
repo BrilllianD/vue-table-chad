@@ -129,9 +129,16 @@ const hasMore = computed(() => props.source.hasMore.value)
   arrive. A single name would have shadowed the prop in the template.
 */
 const loadError = computed(() => props.source.error.value)
+/*
+  Two-way by design: `source.search` is a ref the source owns, and typing in the
+  field is how a caller drives it. `vue/no-mutating-props` sees `props.source.…`
+  and stops there — but the write goes *through* the prop into a ref, and the
+  prop itself is never reassigned, which is the thing the rule exists to catch.
+*/
 const search = computed({
   get: () => props.source.search.value,
   set: (term: string) => {
+    // eslint-disable-next-line vue/no-mutating-props
     props.source.search.value = term
   },
 })

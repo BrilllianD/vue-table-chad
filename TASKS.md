@@ -45,25 +45,6 @@ build from the Bitbucket remote.
 upload, and the README links to it. Drop the inlining step if a real host serving the assets makes
 it stop earning its keep.
 
-### `[?]` T4 — Decide the `vue/no-dupe-keys` lint failure
-
-`pnpm lint` is red on 20 errors. The headline pair is at
-`src/components/primitives/TableRoot.vue:154`: destructuring `useTable()` binds `state` and
-`columns`, which the component also declares as props. In `<script setup>` props are read through
-`props.`, so nothing collides — the rule predates the syntax. This is a decision to make and write
-down, not a bug to fix: rename the bindings, or disable the rule for this file with a one-line why.
-The rest need the same treatment: `vue/multi-word-component-names` fires on every single-word docs
-example file (`docs/.vitepress/examples/*.vue` are named after the docs page they belong to, which
-is the point), `docs/examples/AddressesTable.vue` registers components the excerpt no longer uses,
-`src/core/useVirtualRows.ts:171` reads a computed as a bare expression the way the tests do —
-the tests have a scoped rule-off for it, this file does not — and
-`src/components/primitives/AsyncSelect.vue:131` writes a ref reached through the `source` prop,
-which `vue/no-mutating-props` reads as mutating the prop.
-
-**Done when:** `pnpm lint` is green, the choice is recorded in `CLAUDE.md`'s settled decisions, and CI
-promotes lint from non-gating to gating — gating on a known-red check only teaches everyone to
-ignore the pipeline.
-
 ---
 
 ## To Work
