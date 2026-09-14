@@ -175,12 +175,38 @@ h2 { margin: 0; font-size: 18px; }
 input, select { font: inherit; font-size: 13px; }
 /* Scoped to the kit on purpose: a bare `input[type='search']` outranks the
    preset's own `.vt-search` and would restyle the table's toolbar. */
-.control-row :is(select, input[type='number'], input[type='search'], input[type='text']) {
+.control-row :is(input[type='number'], input[type='search'], input[type='text']) {
   padding: 4px 6px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: none;
   color: inherit;
+}
+/*
+ * The same box as the inputs above, but a real surface rather than `background:
+ * none`. Transparent is right for a text input — the page shows through — and
+ * wrong for a select: Chromium paints the option-list popup from the select's
+ * computed background-color, so a transparent one comes out light whatever
+ * `color-scheme` says. `Canvas`/`CanvasText` are the system colours `body`
+ * already paints with, so the control and its popup follow the OS scheme.
+ *
+ * Its own rule rather than a member of the `:is()` list: `:is()` takes the
+ * highest specificity of its arguments, so `input[type='number']` would lend
+ * that list an attribute selector's weight and any later `.control-row select`
+ * override would silently lose.
+ */
+.control-row select {
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background-color: Canvas;
+  color: CanvasText;
+}
+/* Firefox paints an option from its own background-color rather than
+   inheriting the select's, so the popup needs the colours restated here. */
+.control-row select option {
+  background-color: Canvas;
+  color: CanvasText;
 }
 input[type='number'] { width: 96px; }
 input[type='color'] { width: 34px; height: 22px; padding: 0; border: 1px solid var(--line); }
