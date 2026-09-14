@@ -26,6 +26,20 @@ and an entry moves into **Active** by flipping it to `[~]` when the work starts.
 
 ## Active
 
+### `[ ]` F19 — A control kit for the demo views
+
+Every view's `#controls` slot is a bare `.controls` div of native checkboxes, `<select>`s and
+range inputs with the prop name as the label and nothing else. Add `ControlGroup`,
+`ToggleControl`, `ChoiceControl` and `RangeControl` under `demo/src/components/`, a `try` list on
+`DemoSection`, and move every view onto them: related controls grouped under a legend, a switch
+per boolean, a segmented choice for enums of up to four values, a slider with a live readout, and
+a hint on any control whose effect is not obvious from its name.
+
+**Done when:** no view renders a raw `<input type="checkbox">` inside a control strip,
+`PerfView` and `VirtualView` no longer carry their own control containers, every demo tab in the
+browser shows grouped controls that still drive the table, and `pnpm test`, `pnpm typecheck` and
+`pnpm lint` are green.
+
 ### `[ ]` T2 — P3-8: release flow
 
 changesets → CHANGELOG → publish. Releases 0.2.1 and 0.3.0 were cut by hand — `RELEASING.md`

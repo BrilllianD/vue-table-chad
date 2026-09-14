@@ -172,6 +172,7 @@ const layers: Array<{ id: Tab['layer']; label: string; note: string }> = [
       :key="example.file"
       :file="example.file"
       :example="example.source"
+      :about="example.about"
     />
     <p v-if="noExampleReason" class="hint">{{ noExampleReason }}</p>
 

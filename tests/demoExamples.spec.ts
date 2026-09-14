@@ -59,6 +59,13 @@ function tabIds(): string[] {
   return [...source.matchAll(/\{\s*id:\s*'([^']+)'/g)].map((m) => m[1]!)
 }
 
+/** Filenames keyed in a `Record<string, …>` literal named `name`, in source order. */
+function keysOf(name: string): string[] {
+  const start = examplesSource.indexOf(`export const ${name}`)
+  const body = examplesSource.slice(start, examplesSource.indexOf('\n}\n', start))
+  return [...body.matchAll(/\n\s{2}'([^']+\.vue)':/g)].map((m) => m[1]!)
+}
+
 function exampleFilesOnDisk(): string[] {
   return readdirSync(EXAMPLES_DIR).filter((name) => name.endsWith('.vue'))
 }
@@ -84,6 +91,18 @@ describe('demo examples', () => {
       .filter((entry) => entry.files.length === 0 && !entry.why?.trim())
       .map((entry) => entry.tab)
     expect(silent, 'tabs opting out of a source panel with no `why` to show instead').toEqual([])
+  })
+
+  /*
+   * The note above the code is what tells a reader what to look for, so a
+   * file with none is a panel that opens onto unexplained source. Keyed
+   * lookups fail silently — `exampleNotes[file]!` would render `undefined` —
+   * which is why this is a test and not a type.
+   */
+  it('gives every example file a note', () => {
+    const noted = new Set(keysOf('exampleNotes'))
+    const silent = keysOf('exampleFiles').filter((file) => !noted.has(file))
+    expect(silent, 'files in `exampleFiles` with no entry in `exampleNotes`').toEqual([])
   })
 
   /*

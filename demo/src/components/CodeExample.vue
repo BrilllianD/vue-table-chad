@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * The source of the docs example that covers the open view, one click away.
+ * The source of the docs example that covers the open view, with a note on
+ * what to read in it.
  *
  * Every view answers "does it do X"; none of them answers "what do I type".
  * The answer already exists as a file — `docs/.vitepress/examples/*.vue`, which
@@ -8,16 +9,27 @@
  * rather than restating it. Nothing here is transcribed; the markup arrives
  * from `scripts/vite-plugin-highlight.ts` at build time.
  *
- * Collapsed by default. The views are dense and several scroll for a screen or
- * two, so the code is one click away rather than always in the way.
+ * Open by default. It used to start collapsed, on the argument that the views
+ * are dense and the code should be one click away; in practice the click was
+ * the problem — the panel sits under a view that scrolls for a screen or two,
+ * and a closed summary reading only a filename is easy to take for a footer.
+ * The code is the point of the panel, so it is on screen, and the summary
+ * still folds it for anyone who wants the table alone.
  */
 import { ref } from 'vue'
+import { segments } from '../inline'
 
 const props = defineProps<{
   /** Shown in the summary row — the example's filename, as the docs page names it. */
   file: string
   /** What `import x from './x.vue?highlight'` yields. */
   example: { html: string; code: string }
+  /**
+   * What the file sets up and what to look at in it, in a sentence or two.
+   * Rendered above the code, so a reader knows what they are scanning for
+   * before the first line.
+   */
+  about: string
 }>()
 
 const copied = ref(false)
@@ -37,7 +49,7 @@ async function copy(): Promise<void> {
 </script>
 
 <template>
-  <details class="code-example">
+  <details class="code-example" open>
     <summary>
       <span class="code-file">{{ file }}</span>
       <!-- Inside <summary>, so it needs .stop: a click here would otherwise
@@ -46,6 +58,15 @@ async function copy(): Promise<void> {
         {{ copied ? 'Copied' : 'Copy' }}
       </button>
     </summary>
+
+    <p class="code-about">
+      <component
+        :is="part.tag === 'text' ? 'span' : part.tag"
+        v-for="(part, index) in segments(about)"
+        :key="index"
+        >{{ part.text }}</component
+      >
+    </p>
 
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div
@@ -94,5 +115,13 @@ summary::before {
   opacity: 0.8;
 }
 .code-copy { font-size: 12px; }
+.code-about {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.8;
+  border-top: 1px solid var(--line);
+}
 .code-body { border-top: 1px solid var(--line); }
 </style>

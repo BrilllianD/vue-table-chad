@@ -77,6 +77,44 @@ export const exampleFiles: Record<string, HighlightedFile> = {
   'virtualization.vue': virtualization,
 }
 
+/**
+ * What each example sets up and what to read in it — the sentence above the
+ * code in every panel.
+ *
+ * Keyed by the same filenames as `exampleFiles`, and kept as its own table
+ * rather than folded into `examplesByTab`: `tests/demoExamples.spec.ts` reads
+ * that literal with a pattern that stops at the first `}`, and a nested object
+ * per file would break it. The same spec checks that every file here has a
+ * note, naming the one that does not.
+ */
+export const exampleNotes: Record<string, string> = {
+  'column-groups.vue': `Two bands over six columns. \`columnGroups\` declares the bands and each column's \`group\` says which one it sits under; \`collapseTo\` on the second band names the one column a folded band keeps, and \`initialLayout.collapsedGroups\` starts it folded — click its header to open it.`,
+  'column-layout.vue': `The three sizing rules on one column list: a fixed \`width\`, no width at all (the table measures \`city\` and \`country\` from their contents), and \`flex\` on \`role\` so it takes what is left over. \`storage-key\` on the component is the whole persistence story — resize, reorder or hide a column and reload.`,
+  'composing.vue': `No preset and no stylesheet import. \`TableRoot\` hands the slot the page's rows and the total, and the markup inside is cards rather than a \`<table>\`; \`SortTrigger\`, \`ColumnFilterPopover\` and \`TablePagination\` read the same context and need no props beyond a column id.`,
+  'contracts.vue': `No component at all. \`createQueryState\` builds the same object \`useTableState\` owns, and \`filterRows\` then \`sortRows\` over a plain array are the whole pipeline — the \`<table>\` below is only there to show the result.`,
+  'data-sources.vue': `One \`DataTable\`, two sources. \`fetchPeople\` stands in for a server and returns \`{ rows, total }\` for the query it is handed; the checkbox swaps which source is bound, and nothing else in the file changes.`,
+  'detail-rows.vue': `\`expandable\` puts the disclosure column in and lets the table own which rows are open; the \`#detail\` slot gets the row and renders whatever the panel should hold. Six rows per page so an open panel stays in view.`,
+  'editing.vue': `Row-mode editing with three layers of checks: \`required\` and \`validate\` on the columns, a cross-field \`validate\` on the whole draft, and a \`save\` that can still refuse — give two people the same city to see the rejection land on the row. \`apply\` writes the saved row back with \`replaceRowIn\`.`,
+  'filtering.vue': `Each column's \`type\` decides the operators its popover offers. Two filters are set before the source is created — a values filter with \`includeBlanks\` so blank departments get their own bucket, and a \`between\` rule on salary — so the table arrives filtered.`,
+  'getting-started.vue': `The smallest complete table: a \`type\` per column, rows in a \`shallowRef\`, \`useTableState\` for the query and \`useLocalDataSource\` to run it. The comments say why it is a \`type\` and not an \`interface\`, and a \`shallowRef\` and not a \`ref\`.`,
+  'grouping.vue': `\`initialGroupBy\` on the state bands the rows, and \`aggregate\` on a column is what fills the band totals and the \`show-footer\` row. \`aggregateFormat\` dresses a total separately, because \`format\` expects a row and a sum has none.`,
+  'hoisted-state.vue': `The query lives in the page's own ref and \`useTableState({ state })\` mirrors it both ways. The \`watch\` writes it to \`?q=\` with \`replaceState\`, \`popstate\` reads it back, and the button proves the ref is the owner by writing page 3 into it without going through the table.`,
+  'infinite.vue': `\`useInfiniteDataSource\` accumulates pages instead of replacing them, so there is no pager: \`virtual\` plus \`@end-reached\` wired to \`loadMore\` is what asks for the next one. The paragraph above the table reads \`loaded\`, \`total\`, \`loadingMore\` and \`hasMore\` straight off the source.`,
+  'keyboard.vue': `\`cell-cursor\` and \`autofocus-cursor\` on the component, and cell-mode editing behind them: arrows move, Enter or a printable character opens an \`editable\` cell, a second Enter commits and steps down. The \`save\` here is a resolved promise, so the file is about the keys, not the round trip.`,
+  'labels.vue': `The \`labels\` prop takes a shipped locale record or a hand-written \`Partial\` — the German one covers four keys and falls back to English for the rest. It is a computed, so the \`<select>\` in the toolbar re-renders the wording in place with no remount.`,
+  'recipe-1.vue': `Columns, rows in a \`shallowRef\`, \`useTableState\`, \`useLocalDataSource\`, \`DataTable\`. The one addition over the bare minimum is a \`#cell:name\` slot that turns the name into a link.`,
+  'recipe-2.vue': `The same table over \`useServerDataSource\`. \`fetchPeople\` is the contract — a query in, \`{ rows, total }\` out — and \`debounceMs\` is the one option worth setting; the columns and the component are untouched from the local version.`,
+  'recipe-3.vue': `A \`QueryState\` ref of the page's own, handed to \`useTableState({ state })\`. The table writes into it and reads from it; the line under the table prints it so the round trip is visible. Mirror that ref to a router or a store and the table is shareable.`,
+  'recipe-4.vue': `\`initialGroupBy\` bands the rows and \`aggregate\` on two columns totals each band; \`show-footer\` adds the whole-table line. \`aggregateFormat\` is there because a sum has no row for \`format\` to read.`,
+  'recipe-5.vue': `Every override is a custom property on the wrapping div, and the component never learns a theme exists. Note that the palette is set as a whole — header, text, border and both stripe colours together — so no dark-mode value leaks through a light one.`,
+  'recipe-6.vue': `\`TableRoot\` with no preset and no stylesheet: the slot receives the page's rows and renders cards. The three primitives in the toolbar need only a column id, because they read the same context the preset would.`,
+  'recipe-7.vue': `\`app.use(createTableLabels(ru))\` once, and every table in the app renders Russian with no \`labels\` prop. This file mounts a second app to show it, since the docs page runs inside one it does not own; in your own \`main.ts\` it is the single line in the comment.`,
+  'selection.vue': `\`selectable="multiple"\` adds the checkbox column; the \`#toolbar\` slot reads \`selection.count\` live. The template ref is typed as \`InstanceType<typeof DataTable>\` so \`getSelectedRows()\` is available — a function rather than a computed, because resolving it walks the filtered set.`,
+  'sorting-and-pagination.vue': `A \`comparator\` on the role column sorts by seniority instead of alphabetically, while \`type\` still decides the filter operators. \`initialSort\` on the state opens the table already sorted; shift-click a second header to sort within the first.`,
+  'styling.vue': `Three custom properties on the wrapping div — accent, even-row background, radius — and nothing on the component. The name column is pinned; scroll sideways to see its background stay opaque over the stripe.`,
+  'virtualization.vue': `100,000 rows in a \`shallowRef\` and \`virtual\` on the component, which makes the page size everything and renders only the rows in the scroll window. \`row-height\` is what lets it place the window without measuring; \`overscan\` is how many rows past the edge it keeps.`,
+}
+
 export interface TabExamples {
   /** Filenames in `exampleFiles`, in the order they should render. */
   files: string[]
@@ -141,9 +179,15 @@ export const examplesByTab: Record<string, TabExamples> = {
   core: { files: ['contracts.vue'] },
 }
 
-/** The files a tab shows, paired with their source. Empty for an opted-out tab. */
-export function examplesFor(tabId: string): Array<{ file: string; source: HighlightedFile }> {
+/** The files a tab shows, with their source and note. Empty for an opted-out tab. */
+export function examplesFor(
+  tabId: string,
+): Array<{ file: string; source: HighlightedFile; about: string }> {
   const entry = examplesByTab[tabId]
   if (!entry) return []
-  return entry.files.map((file) => ({ file, source: exampleFiles[file]! }))
+  return entry.files.map((file) => ({
+    file,
+    source: exampleFiles[file]!,
+    about: exampleNotes[file]!,
+  }))
 }
