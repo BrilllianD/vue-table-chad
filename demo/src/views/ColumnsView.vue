@@ -28,6 +28,9 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { columnFor, employeeColumns, sizedEmployeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 import StateInspector from '../components/StateInspector.vue'
 
 /**
@@ -156,6 +159,11 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
 <template>
   <DemoSection
     title="Column layout"
+    :try-it="[
+      'Hide a column in the panel, then Push layout into the table: the table takes the panel\'s layout.',
+      'Drag a header in the table onto another, reload, and it is still there — storage-key kept it.',
+      'Set flexible columns to none and narrow the window: the table stops short instead of squeezing.',
+    ]"
     blurb="Visibility, order, width and pinning — all in one serialisable object. The panel below
            drives a standalone useColumns; the table has its own, reachable through the built-in
            columns menu, the resize handles on each header edge, and dragging the headers
@@ -190,7 +198,7 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
     ]"
   >
     <template #controls>
-      <div class="controls">
+      <ControlGroup legend="useColumns mutators" hint="Each button is one call on the standalone instance driving the panel.">
         <button type="button" @click="columns.showAll()">showAll()</button>
         <button type="button" @click="columns.resetWidth('name')">resetWidth('name')</button>
         <button type="button" @click="columns.resetWidths()">resetWidths()</button>
@@ -198,20 +206,31 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
         <button type="button" @click="columns.setOrder(['active', 'name', 'salary'])">
           setOrder(['active', 'name', 'salary'])
         </button>
-        <label>
-          <input v-model="persist" type="checkbox" />
-          Persist to localStorage
-        </label>
-        <!--
-          The prop form of `--vtc-body-border-vertical-width`, which is `0px` by
-          default. Off is what the table always looked like; on is the
-          separators without reaching for the variable.
-        -->
-        <label><input v-model="columnRules" type="checkbox" /> column-rules</label>
-        <span class="hint">(the table below does the same with one prop)</span>
+      </ControlGroup>
+
+      <ControlGroup legend="Persistence">
+        <ToggleControl
+          v-model="persist"
+          label="persist to localStorage"
+          hint="the panel's layout survives a reload while this is on"
+        />
         <button type="button" @click="pushToTable()">Push layout into the table ↓</button>
         <button type="button" @click="forgetTableLayout()">Forget the table's saved layout</button>
-      </div>
+      </ControlGroup>
+
+      <!--
+        The prop form of `--vtc-body-border-vertical-width`, which is `0px` by
+        default. Off is what the table always looked like; on is the
+        separators without reaching for the variable.
+      -->
+      <ControlGroup legend="Cell rules">
+        <ToggleControl
+          v-model="columnRules"
+          label="column-rules"
+          code
+          hint="vertical separators; the table below does the same with one prop"
+        />
+      </ControlGroup>
     </template>
 
     <div class="layout-grid">
@@ -352,19 +371,17 @@ const pinned = computed(() => columns.visible.value.filter((column) => column.pi
 
     <h3 class="sizing-heading">A column that takes the leftover</h3>
 
-    <div class="controls">
-      <label>
-        Flexible columns
-        <select v-model="flexMode">
-          <option value="none">none</option>
-          <option value="one">role</option>
-          <option value="two">role + tags</option>
-        </select>
-      </label>
-      <span class="hint">
-        declared widths total 910px; the page gives the table 1240px
-      </span>
-    </div>
+    <ControlGroup legend="ColumnDef.flex" hint="Declared widths total 910px; the page gives the table 1240px.">
+      <ChoiceControl
+        v-model="flexMode"
+        label="flexible columns"
+        :options="[
+          { value: 'none', label: 'none' },
+          { value: 'one', label: 'role' },
+          { value: 'two', label: 'role + tags' },
+        ]"
+      />
+    </ControlGroup>
 
     <DataTable :columns="flexColumns" :source="flexSource" :state="flexState" />
 

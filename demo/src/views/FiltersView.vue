@@ -37,6 +37,8 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { columnFor, employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 import StateInspector from '../components/StateInspector.vue'
 
 const rows = shallowRef(employees.slice(0, 1200))
@@ -188,6 +190,11 @@ const serialized = computed(() => pruneFilters(state.filters.value))
 <template>
   <DemoSection
     title="Filters"
+    :try-it="[
+      'Click Two departments, then open the Department funnel in the header: the checklist shows the same two ticked.',
+      'In the rule builder pick between and leave the second value empty — isIncompleteRule turns true and every row stays.',
+      'Click Blanks only: the rows with no department are their own bucket, not dropped.',
+    ]"
     blurb="Excel's two halves — a checkbox list of values, and operator rules — plus the pure
            functions that decide when a filter is complete, empty, or worth serialising. Blanks
            are their own bucket, and an incomplete rule keeps every row rather than blanking the
@@ -212,8 +219,10 @@ const serialized = computed(() => pruneFilters(state.filters.value))
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <span class="hint">Apply programmatically:</span>
+      <ControlGroup
+        legend="state.setFilter, programmatically"
+        hint="Hover a button for the call it makes. Each one lands in the header funnel the same as a hand-made filter."
+      >
         <button
           v-for="preset in presets"
           :key="preset.label"
@@ -224,7 +233,7 @@ const serialized = computed(() => pruneFilters(state.filters.value))
           {{ preset.label }}
         </button>
         <button type="button" @click="state.clearAllFilters()">clearAllFilters()</button>
-      </div>
+      </ControlGroup>
     </template>
 
     <DataTable :columns="employeeColumns" :source="source" :state="state" />
@@ -243,7 +252,7 @@ const serialized = computed(() => pruneFilters(state.filters.value))
         <code>operatorsFor(column.type)</code>, which is the same call the filter popover makes.
       </p>
 
-      <div class="controls">
+      <ControlGroup legend="One rule">
         <label>
           Column
           <select v-model="builderColumnId" @change="onColumnChange()">
@@ -276,16 +285,18 @@ const serialized = computed(() => pruneFilters(state.filters.value))
           <input v-model="value2" :type="builderType === 'number' ? 'number' : 'text'" />
         </label>
 
-        <label>
-          Join
-          <select v-model="joiner">
-            <option value="and">and</option>
-            <option value="or">or</option>
-          </select>
-        </label>
+        <ChoiceControl
+          v-model="joiner"
+          label="op"
+          code
+          :options="[
+            { value: 'and', label: 'and' },
+            { value: 'or', label: 'or' },
+          ]"
+        />
 
         <button type="button" @click="applyBuilt()">Apply to the table above</button>
-      </div>
+      </ControlGroup>
 
       <div class="analysis">
         <ul>

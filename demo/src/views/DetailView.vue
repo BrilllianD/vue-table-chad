@@ -32,6 +32,9 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 import AssignmentsTable from '../components/AssignmentsTable.vue'
 
 /* ------------------------------------------------- the child entities */
@@ -152,6 +155,11 @@ const nested = ref(true)
 <template>
   <DemoSection
     title="Detail rows"
+    :try-it="[
+      'Open a row, turn the page and come back: it is still open, because expansion stores ids.',
+      'Set load failures to every 5th row and open a few — the failed panel offers a retry.',
+      'Open a panel, close it, open it again: no second load — the children were kept.',
+    ]"
     blurb="A row opens to show what hangs off it, fetched when it opens: loadDetail asks, detailFor
            reports where the answer is, and reload asks again. The panel is a row of the table
            rather than something attached to one — which is what lets a virtual body count it, and
@@ -172,28 +180,32 @@ const nested = ref(true)
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <button type="button" class="vt-btn" @click="expansion.expandAll(source.rows.value)">
-          expandAll(page)
-        </button>
-        <button type="button" class="vt-btn" @click="expansion.collapseAll()">collapseAll()</button>
-        <label>
-          <input v-model="nested" type="checkbox" />
-          Nested table in the panel
-        </label>
-        <label>
-          Failures
-          <select v-model.number="failRate">
-            <option :value="0">none</option>
-            <option :value="5">every 5th row</option>
-            <option :value="1">every row</option>
-          </select>
-        </label>
-        <span class="hint">
+      <ControlGroup legend="Expansion">
+        <button type="button" @click="expansion.expandAll(source.rows.value)">expandAll(page)</button>
+        <button type="button" @click="expansion.collapseAll()">collapseAll()</button>
+        <template #hint>
           {{ openCount }} open — ids, so they survive a page turn. Children load on the expand,
           once per row: shut a panel and reopen it and nothing is fetched again.
-        </span>
-      </div>
+        </template>
+      </ControlGroup>
+
+      <ControlGroup legend="The panel">
+        <ToggleControl
+          v-model="nested"
+          label="nested table"
+          hint="a second DataTable inside the panel, with its own state"
+        />
+        <ChoiceControl
+          v-model="failRate"
+          label="load failures"
+          :options="[
+            { value: 0, label: 'none' },
+            { value: 5, label: 'every 5th row' },
+            { value: 1, label: 'every row' },
+          ]"
+          hint="what the panel shows when its children fail to load"
+        />
+      </ControlGroup>
     </template>
 
     <DataTable
@@ -310,7 +322,6 @@ const nested = ref(true)
 </template>
 
 <style scoped>
-.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .detail-table { display: flex; flex-direction: column; gap: 8px; }
 .detail-title { font-size: 12.5px; }
 .detail-fields { display: flex; flex-wrap: wrap; gap: 14px; margin: 0; }

@@ -21,6 +21,8 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
 import StateInspector from '../components/StateInspector.vue'
 
 const rows = ref(employees.slice(0, 600))
@@ -124,6 +126,11 @@ const readouts = computed(() => ({
 <template>
   <DemoSection
     title="Hoisted state"
+    :try-it="[
+      'Sort or filter, then Copy link and open it in a new tab: the same view comes back.',
+      'Click Write the ref from outside — the table follows, because it never owned the state.',
+      'Press the browser back button: the previous query is restored from the URL.',
+    ]"
     blurb="The QueryState lives in a ref that this view owns, mirrored into the URL hash. Sort,
            filter or page the table and the address bar follows; edit the URL, or hit back, and
            the table follows. Nothing in the table knows the URL exists."
@@ -149,17 +156,19 @@ const readouts = computed(() => ({
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label><input v-model="syncUrl" type="checkbox" /> Write to the URL</label>
+      <ControlGroup legend="The hoisted ref">
+        <ToggleControl
+          v-model="syncUrl"
+          label="write to the URL"
+          hint="every change lands in the hash; off stops the mirror, not the table"
+        />
         <button type="button" @click="copyLink()">{{ copied ? 'Copied ✓' : 'Copy link' }}</button>
         <button type="button" @click="setFromOutside()">Write the ref from outside</button>
         <button type="button" @click="proveSync()">Prove the sync is synchronous</button>
-        <span v-if="roundTrip !== '—'" class="hint"><code>{{ roundTrip }}</code></span>
-      </div>
-    </template>
+        <template v-if="roundTrip !== '—'" #hint><code>{{ roundTrip }}</code></template>
+      </ControlGroup>
 
-    <div class="controls">
-      <span class="hint">Imperative API:</span>
+      <ControlGroup legend="Imperative API" hint="Each button is one TableState call; the ref and the URL follow.">
       <button type="button" @click="state.toggleSort('salary')">toggleSort('salary')</button>
       <button type="button" @click="state.toggleSort('rating', true)">
         toggleSort('rating', additive)
@@ -175,7 +184,8 @@ const readouts = computed(() => ({
       <button type="button" @click="state.setPage(4)">setPage(4)</button>
       <button type="button" @click="state.setPageSize(5)">setPageSize(5)</button>
       <button type="button" @click="state.reset()">reset()</button>
-    </div>
+      </ControlGroup>
+    </template>
 
     <DataTable :columns="employeeColumns" :source="source" :state="state" selectable />
 

@@ -9,6 +9,9 @@
  */
 import { ref } from 'vue'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import RangeControl from '../components/RangeControl.vue'
 import ServerTable from './ServerTable.vue'
 import { clearRequestLog, requestLog } from '../data/fakeApi'
 
@@ -34,6 +37,11 @@ function outcomeClass(outcome: string): string {
 <template>
   <DemoSection
     title="Server data"
+    :try-it="[
+      'Type in the search box and watch the request log: one request per pause, not per keystroke.',
+      'Page while a slow request is in flight — the earlier response is discarded, not shown late.',
+      'Turn flaky on and page until a request fails; the table keeps its rows and offers a retry.',
+    ]"
     blurb="10,000 rows behind a fake API. Debounced filtering, race-safe responses, cached and
            scoped facets, kept-alive previous page, and an error path with retry. The request log
            is the proof — type in the search box and watch keystrokes coalesce into one request,
@@ -55,30 +63,38 @@ function outcomeClass(outcome: string): string {
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label>
-          Latency {{ latencyMs }}ms
-          <input v-model.number="latencyMs" type="range" min="0" max="2000" step="50" />
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            :checked="failureRate > 0"
-            @change="failureRate = failureRate > 0 ? 0 : 0.5"
-          />
-          Flaky server (50% failures)
-        </label>
+      <ControlGroup legend="The fake server" hint="Both take effect on the next request.">
+        <RangeControl v-model="latencyMs" label="latency" :min="0" :max="2000" :step="50" unit="ms" />
+        <ToggleControl
+          :model-value="failureRate > 0"
+          label="flaky"
+          hint="half of all requests fail — the error slot and the retry show"
+          @update:model-value="failureRate = $event ? 0.5 : 0"
+        />
+      </ControlGroup>
 
-        <span class="divider" />
-
+      <ControlGroup
+        legend="useServerDataSource options"
+        hint="Options are read once, when the source is created, so Apply remounts it."
+      >
         <label>
-          debounceMs
+          <code>debounceMs</code>
           <input v-model.number="debounceMs" type="number" min="0" max="2000" step="50" />
         </label>
-        <label><input v-model="keepPreviousData" type="checkbox" /> keepPreviousData</label>
-        <label><input v-model="immediate" type="checkbox" /> immediate</label>
-        <button type="button" @click="remount()">Apply (remounts the source)</button>
-      </div>
+        <ToggleControl
+          v-model="keepPreviousData"
+          label="keepPreviousData"
+          code
+          hint="keep showing the old page while the next loads"
+        />
+        <ToggleControl
+          v-model="immediate"
+          label="immediate"
+          code
+          hint="fetch on creation, or wait for the first query change"
+        />
+        <button type="button" @click="remount()">Apply</button>
+      </ControlGroup>
     </template>
 
     <ServerTable
@@ -122,7 +138,6 @@ function outcomeClass(outcome: string): string {
 </template>
 
 <style scoped>
-.divider { width: 1px; align-self: stretch; background: var(--line); }
 
 .log { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; }
 .log-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }

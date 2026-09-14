@@ -23,6 +23,9 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns, sizedEmployeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 import StateInspector from '../components/StateInspector.vue'
 import TableStatus from '../components/TableStatus.vue'
 
@@ -129,6 +132,11 @@ function forgetLayout(): void {
 <template>
   <DemoSection
     title="Everything at once"
+    :try-it="[
+      'Switch selectable to single, then tick two rows: the second replaces the first.',
+      'Turn on @export and click Export in the toolbar: the payload lands below the table instead of a file.',
+      'Turn on reorderable and drag a header onto another; then reload — storage-key kept the order.',
+    ]"
     blurb="One DataTable over a local array: sorting (shift-click a header to stack sort keys),
            Excel-style filters, paging, selection and column layout. Every switch below is an
            actual prop or slot of the component."
@@ -157,56 +165,83 @@ function forgetLayout(): void {
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label>
-          Selection
-          <select v-model="selectable">
-            <option :value="false">off</option>
-            <option value="single">single</option>
-            <option value="multiple">multiple</option>
-          </select>
-        </label>
+      <ControlGroup legend="Selection">
+        <ChoiceControl
+          v-model="selectable"
+          label="selectable"
+          code
+          :options="[
+            { value: false, label: 'off' },
+            { value: 'single', label: 'single' },
+            { value: 'multiple', label: 'multiple' },
+          ]"
+        />
+        <ToggleControl
+          v-model="rowClickSelect"
+          label="rowClickSelect"
+          code
+          hint="click a row to select it; shift-click for a range, ctrl/cmd-click for one"
+        />
+        <ToggleControl
+          v-model="onlyActiveSelectable"
+          label="isRowSelectable"
+          code
+          hint="inactive rows get a disabled checkbox and are skipped by ranges"
+        />
+      </ControlGroup>
 
-        <label>
-          <input v-model="rowClickSelect" type="checkbox" /> rowClickSelect
-          <span class="hint">shift-click a row for a range, ctrl/cmd-click for one</span>
-        </label>
+      <ControlGroup legend="Chrome">
+        <ToggleControl v-model="showToolbar" label="showToolbar" code />
+        <ToggleControl v-model="showSearch" label="showSearch" code />
+        <ToggleControl v-model="showColumnsMenu" label="showColumnsMenu" code />
+        <ToggleControl v-model="showGroupMenu" label="showGroupMenu" code />
+        <ToggleControl v-model="showPagination" label="showPagination" code />
+        <ToggleControl v-model="showFooter" label="showFooter" code hint="the aggregate row" />
+        <ToggleControl v-model="stickyHeader" label="stickyHeader" code />
+        <ToggleControl
+          v-model="customToolbar"
+          label="#toolbar slot"
+          code
+          hint="replaces the built-in toolbar with this view's own"
+        />
+      </ControlGroup>
 
-        <label><input v-model="showToolbar" type="checkbox" /> showToolbar</label>
-        <label><input v-model="showSearch" type="checkbox" /> showSearch</label>
-        <label><input v-model="showColumnsMenu" type="checkbox" /> showColumnsMenu</label>
-        <label><input v-model="showGroupMenu" type="checkbox" /> showGroupMenu</label>
-        <label><input v-model="showPagination" type="checkbox" /> showPagination</label>
-        <label><input v-model="showFooter" type="checkbox" /> showFooter</label>
-        <label>
-          <input v-model="showExport" type="checkbox" /> showExport
-          <span class="hint">writes every filtered row, not the page</span>
-        </label>
-        <label>
-          <input v-model="interceptExport" type="checkbox" /> intercept @export
-          <span class="hint">preventDefault() — the payload below instead of a file</span>
-        </label>
-        <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
-        <label>
-          <input v-model="reorderable" type="checkbox" /> reorderable
-          <span class="hint">drag a header onto another; the Columns menu still reorders</span>
-        </label>
-        <label><input v-model="customToolbar" type="checkbox" /> custom #toolbar slot</label>
-        <label>
-          <input v-model="onlyActiveSelectable" type="checkbox" /> isRowSelectable = row.active
-        </label>
-        <label>
-          <input v-model="sizingDefaults" type="checkbox" /> width defaults
-          <span class="hint">city and country measured from what they hold, role flexible</span>
-        </label>
+      <ControlGroup legend="Export">
+        <ToggleControl
+          v-model="showExport"
+          label="showExport"
+          code
+          hint="writes every filtered row, not the page"
+        />
+        <ToggleControl
+          v-model="interceptExport"
+          label="@export"
+          code
+          hint="preventDefault() — the payload shows below instead of a file"
+        />
+      </ControlGroup>
 
-        <button type="button" @click="state.reset()">state.reset()</button>
+      <ControlGroup
+        legend="Columns"
+        hint="Column layout is saved to localStorage via storage-key — hide one, drag a header, then reload."
+      >
+        <ToggleControl
+          v-model="reorderable"
+          label="reorderable"
+          code
+          hint="drag a header onto another; the Columns menu still reorders"
+        />
+        <ToggleControl
+          v-model="sizingDefaults"
+          label="width defaults"
+          hint="city and country measured from what they hold, role flexible"
+        />
         <button type="button" @click="forgetLayout()">forget saved layout</button>
-        <span class="hint">
-          columns are saved to localStorage via <code>storage-key</code> — hide one, drag a header,
-          then reload
-        </span>
-      </div>
+      </ControlGroup>
+
+      <ControlGroup legend="State">
+        <button type="button" @click="state.reset()">state.reset()</button>
+      </ControlGroup>
     </template>
 
     <DataTable

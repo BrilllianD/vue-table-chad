@@ -79,6 +79,9 @@ import { employeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import { saveEmployee } from '../data/fakeApi'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import RangeControl from '../components/RangeControl.vue'
 
 const rows = shallowRef(employees.slice(0, 200))
 
@@ -134,6 +137,11 @@ function onRowSaved(row: Employee): void {
 <template>
   <DemoSection
     title="Cell cursor"
+    :try-it="[
+      'Click a cell, then use the arrow keys; Enter opens an editable cell and a second Enter commits and steps down.',
+      'Copy a Salary cell with Ctrl/Cmd+C and paste it into another: it lands formatted and is saved in one gesture.',
+      'Turn on group by department and arrow through a band row: Enter folds it.',
+    ]"
     blurb="A focused cell you move with the arrow keys, ringed and crossed by a tint down its
            row and its column. Enter, one left click, or simply typing opens the editor on a
            cell that has one — the character you typed becomes the value. Enter again
@@ -162,35 +170,34 @@ function onRowSaved(row: Employee): void {
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label><input v-model="cellCursor" type="checkbox" /> cellCursor</label>
-        <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
-        <label><input v-model="seeded" type="checkbox" /> initialCursor</label>
-        <label><input v-model="autofocus" type="checkbox" /> autofocusCursor</label>
+      <ControlGroup legend="DataTable props">
+        <ToggleControl v-model="cellCursor" label="cellCursor" code hint="off: the arrows do nothing" />
+        <ToggleControl v-model="stickyHeader" label="stickyHeader" code />
+        <ToggleControl
+          v-model="seeded"
+          label="initialCursor"
+          code
+          hint="start on a given cell instead of none"
+        />
+        <ToggleControl
+          v-model="autofocus"
+          label="autofocusCursor"
+          code
+          hint="focus the grid on mount, so the keys work without a click"
+        />
+        <ToggleControl
+          :model-value="groupBy.length > 0"
+          label="group by department"
+          hint="the cursor skips band rows; Enter on one folds it"
+          @update:model-value="groupBy = $event ? ['department'] : []"
+        />
+      </ControlGroup>
 
-        <span class="divider" />
-
-        <label>
-          <input
-            type="checkbox"
-            :checked="groupBy.length > 0"
-            @change="groupBy = groupBy.length > 0 ? [] : ['department']"
-          />
-          group by department
-        </label>
-
-        <span class="divider" />
-
-        <label>ring {{ ringWidth }}px
-          <input v-model.number="ringWidth" type="range" min="0" max="4" />
-        </label>
-        <label>row {{ rowDelta }}%
-          <input v-model.number="rowDelta" type="range" min="0" max="16" />
-        </label>
-        <label>column {{ columnDelta }}%
-          <input v-model.number="columnDelta" type="range" min="0" max="16" />
-        </label>
-      </div>
+      <ControlGroup legend="Cursor theme tokens">
+        <RangeControl v-model="ringWidth" label="--vtc-cursor-border-width" code :min="0" :max="4" unit="px" />
+        <RangeControl v-model="rowDelta" label="--vtc-cursor-row-delta" code :min="0" :max="16" unit="%" />
+        <RangeControl v-model="columnDelta" label="--vtc-cursor-column-delta" code :min="0" :max="16" unit="%" />
+      </ControlGroup>
     </template>
 
     <p class="note">
@@ -255,7 +262,6 @@ function onRowSaved(row: Employee): void {
 </template>
 
 <style scoped>
-.divider { width: 1px; align-self: stretch; background: var(--line); }
 .note { border-left: 2px solid var(--line); padding-left: 10px; }
 
 kbd {

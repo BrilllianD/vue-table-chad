@@ -16,6 +16,8 @@ import { computed, nextTick, onMounted, ref, shallowRef, useTemplateRef } from '
 import { DataTable, useLocalDataSource, useTableState, type ColumnDef } from '@brillliand/vue-table-chad'
 import { makeProducts, wideProductColumns, type Product } from '../data/wideProducts'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 
 /**
  * The same 34 with `notes` taking the slack instead of being capped — the only
@@ -69,6 +71,10 @@ onMounted(readWidths)
 <template>
   <DemoSection
     title="Wide table"
+    :try-it="[
+      'Scroll sideways: not one of the 34 widths is declared — each was measured once from what it holds.',
+      'Switch to flex and widen the window — Notes takes what the others leave.',
+    ]"
     blurb="34 columns, not one declared width. Each is measured once from what it holds and clamped
       into [minWidth, maxWidth ?? 160] — minWidth is 40 here, below the default floor of 60, so the
       widths below are measurements rather than the clamp. Nothing is measured again on a page turn
@@ -76,15 +82,18 @@ onMounted(readWidths)
     :api="['DataTable', 'useLocalDataSource', 'useTableState', 'ColumnDef.flex', 'ColumnDef.minWidth']"
   >
     <template #controls>
-      <div class="controls">
-        <button type="button" :data-active="variant === 'measured' || undefined" @click="show('measured')">
-          All measured
-        </button>
-        <button type="button" :data-active="variant === 'flex' || undefined" @click="show('flex')">
-          Notes takes the slack (flex)
-        </button>
+      <ControlGroup legend="Sizing">
+        <ChoiceControl
+          :model-value="variant"
+          label="columns"
+          :options="[
+            { value: 'measured', label: 'all measured' },
+            { value: 'flex', label: 'Notes takes the slack (flex)' },
+          ]"
+          @update:model-value="show"
+        />
         <button type="button" @click="readWidths()">Re-read widths</button>
-      </div>
+      </ControlGroup>
     </template>
 
     <p v-if="variant === 'flex'" class="hint">
@@ -109,9 +118,6 @@ onMounted(readWidths)
 </template>
 
 <style scoped>
-/* `.controls` itself is the shared strip in styles.css; only the active state
-   of a segmented button is local. */
-.controls button[data-active] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .widths h3 { margin: 0; font-size: 13px; font-weight: 600; }
 .widths ol {
   list-style: none;

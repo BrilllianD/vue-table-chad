@@ -33,6 +33,7 @@ import { es, ja, ru, zhCN } from '@brillliand/vue-table-chad/locales'
 import { employeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
 
 const rows = shallowRef(employees.slice(0, 240))
 const state: TableState = useTableState({ pageSize: 10 })
@@ -139,6 +140,10 @@ const sampled = computed(() => [
 <template>
   <DemoSection
     title="Labels"
+    :try-it="[
+      'Switch to Русский and open a column filter: the operator names and the parse messages changed too.',
+      'Switch to Deutsch: the pager is German, the search placeholder is German, and the rest fell back to English.',
+    ]"
     blurb="Nothing in the library renders a string it did not read off the label record. Pass a
            partial of it and every layer follows — the preset's toolbar, the primitives underneath
            it, the accessible names, and the validation messages the core writes."
@@ -157,22 +162,22 @@ const sampled = computed(() => [
     ]"
   >
     <template #controls>
-      <div class="controls">
+      <ControlGroup legend="labels prop">
         <label>
-          locale
+          <code>labels</code>
           <select v-model="locale">
             <option v-for="entry in locales" :key="entry.id" :value="entry.id">
               {{ entry.label }}
             </option>
           </select>
         </label>
-        <span class="hint">
+        <template #hint>
           The four shipped locales are complete records, so nothing falls back — open the
           Conditions tab of a column filter and the operator names are translated too. Deutsch is a
           six-key <code>Partial</code> for contrast: what it leaves out falls back to
           <code>DEFAULT_LABELS</code> rather than rendering blank.
-        </span>
-      </div>
+        </template>
+      </ControlGroup>
     </template>
 
     <DataTable
@@ -245,7 +250,6 @@ const sampled = computed(() => [
 </template>
 
 <style scoped>
-.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .panel { display: flex; flex-direction: column; gap: 8px; }
 .panel h4 { margin: 0; }

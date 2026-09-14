@@ -27,6 +27,8 @@ import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import { TOKEN_CONTROLS, TOKEN_GROUPS } from '../data/themeControls'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 
 const rows = ref(employees.slice(0, 120))
 const state = useTableState({ pageSize: 10 })
@@ -589,6 +591,11 @@ watch([theme, themeStyle], async () => {
 <template>
   <DemoSection
     title="Theming"
+    :try-it="[
+      'Drag the accent colour: the sort caret, the focus ring and the selected row all follow it.',
+      'Set theme to dark on a light page — the table and its filter popover flip, the page does not.',
+      'Click a palette, then read the stylesheet snippet at the bottom: that is the CSS to paste.',
+    ]"
     blurb="The preset stylesheet is variables and data-attributes all the way down. Nothing below
            touches a component or overrides a rule — it only sets custom properties on the table
            element, which is also all a consumer ever has to do."
@@ -603,26 +610,31 @@ watch([theme, themeStyle], async () => {
     ]"
   >
     <template #controls>
-      <div class="controls">
+      <ControlGroup legend="Palettes" hint="Each one writes every token below at once.">
         <button v-for="preset in presets" :key="preset.label" type="button" @click="apply(preset.palette)">
           {{ preset.label }}
         </button>
-        <label class="theme-picker">
-          theme
-          <select v-model="theme">
-            <option value="system">system</option>
-            <option value="light">light</option>
-            <option value="dark">dark</option>
-          </select>
-        </label>
-        <span class="hint">
+      </ControlGroup>
+
+      <ControlGroup legend="DataTable theme">
+        <ChoiceControl
+          v-model="theme"
+          label="theme"
+          code
+          :options="[
+            { value: 'system', label: 'system' },
+            { value: 'light', label: 'light' },
+            { value: 'dark', label: 'dark' },
+          ]"
+        />
+        <template #hint>
           This browser prefers <strong>{{ prefersDark ? 'dark' : 'light' }}</strong>, so the
           controls started on the preset's {{ prefersDark ? 'dark' : 'light' }} palette.
           <code>theme</code> overrules it: the table gets <code>data-theme</code>, the controls
           move to the matching palette, and the teleported filter panel follows the table rather
           than the browser.
-        </span>
-      </div>
+        </template>
+      </ControlGroup>
     </template>
 
     <div class="theme-groups">
@@ -938,7 +950,6 @@ watch([theme, themeStyle], async () => {
   text-align: right;
 }
 
-.theme-picker { display: inline-flex; align-items: center; gap: 6px; }
 
 /* Closed by default: ninety controls open on arrival would bury the table. */
 .all-vars > summary {

@@ -33,6 +33,9 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { columnFor, employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 
 const rows = shallowRef(employees.slice(0, 800))
 
@@ -157,6 +160,11 @@ function bandLabel(group: RowGroup<Employee>): string {
 <template>
   <DemoSection
     title="Grouping"
+    :try-it="[
+      'Switch groupMode to server and turn the page: the band totals stop changing, because they describe the whole group.',
+      'Set Salary to avg and Rating to max — the band rows and the footer update in place.',
+      'Use the group menu in the toolbar to add Role under Department: bands nest.',
+    ]"
     blurb="Rows banded by one column or nested under several, with each band showing what its
            rows add up to. The groupMode switch is the whole story: client bands the rows the
            table already has, server puts the grouping in the query and lets the data source
@@ -185,24 +193,31 @@ function bandLabel(group: RowGroup<Employee>): string {
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label>
-          groupMode
-          <select v-model="groupMode">
-            <option value="client">client</option>
-            <option value="server">server</option>
-          </select>
-        </label>
+      <ControlGroup legend="DataTable props">
+        <ChoiceControl
+          v-model="groupMode"
+          label="groupMode"
+          code
+          :options="[
+            { value: 'client', label: 'client', title: 'band the rows on this page' },
+            { value: 'server', label: 'server', title: 'put the grouping in the query' },
+          ]"
+          hint="client bands the page; server asks the source, so a band spans pages"
+        />
+        <ToggleControl v-model="showFooter" label="showFooter" code hint="the whole-table totals row" />
+        <ToggleControl
+          v-model="groupsCollapsed"
+          label="groupsCollapsed"
+          code
+          hint="every band starts folded"
+        />
+      </ControlGroup>
 
-        <label><input v-model="showFooter" type="checkbox" /> showFooter</label>
-        <label><input v-model="groupsCollapsed" type="checkbox" /> groupsCollapsed</label>
-
-        <span class="divider" />
-
-        <!--
-          Editing `aggregate` at runtime, which is the point: it is a column
-          field like any other, not a construction-time decision.
-        -->
+      <!--
+        Editing `aggregate` at runtime, which is the point: it is a column
+        field like any other, not a construction-time decision.
+      -->
+      <ControlGroup legend="ColumnDef.aggregate" hint="Per column, changed live: an aggregate is a column field, not a construction-time decision.">
         <label v-for="id in PICKABLE" :key="id">
           {{ columnFor(id).header }}
           <select v-model="picks[id]">
@@ -210,7 +225,7 @@ function bandLabel(group: RowGroup<Employee>): string {
             <option v-for="fn in FUNCTIONS" :key="fn" :value="fn">{{ fn }}</option>
           </select>
         </label>
-      </div>
+      </ControlGroup>
     </template>
 
     <DataTable
@@ -291,7 +306,6 @@ function bandLabel(group: RowGroup<Employee>): string {
 
 <style scoped>
 .spacer { flex: 1; }
-.divider { width: 1px; align-self: stretch; background: var(--line); }
 .note { border-left: 2px solid var(--line); padding-left: 10px; }
 
 .panel {

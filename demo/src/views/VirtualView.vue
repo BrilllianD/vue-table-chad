@@ -56,6 +56,10 @@ import {
 import { makeRows, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
+import RangeControl from '../components/RangeControl.vue'
 
 const count = ref(100_000)
 const rows = shallowRef<Employee[]>(makeRows(count.value))
@@ -105,6 +109,11 @@ const windowSize = computed(() => `${OVERSCAN_ROWS} beyond each edge`)
 <template>
   <DemoSection
     title="Virtual rows"
+    :try-it="[
+      'Scroll fast and watch the rows-in-the-document count under the controls stay flat.',
+      'Turn on group by department + role and collapse a band — the window reflows without a dataset pass.',
+      'Switch to 100k rows, then type in the search box.',
+    ]"
     blurb="A hundred thousand rows as one continuous scroll. The page size becomes the whole result
            set and the tbody renders only what the box can show — two spacer rows stand in for the
            height of everything else, so the scrollbar is honest and the DOM is not."
@@ -119,43 +128,50 @@ const windowSize = computed(() => `${OVERSCAN_ROWS} beyond each edge`)
     ]"
   >
     <template #controls>
-      <div class="virtual-controls">
-        <label>
-          <input v-model="virtual" type="checkbox" />
-          Virtual
-        </label>
-        <label>
-          <input v-model="cursor" type="checkbox" />
-          Cell cursor
-        </label>
-        <label>
-          <input v-model="selectable" type="checkbox" />
-          Selectable
-        </label>
-        <label>
-          <input v-model="grouped" type="checkbox" @change="toggleGrouping" />
-          Group by department + role
-        </label>
-        <label>
-          Row height
-          <input v-model.number="rowHeight" type="number" min="24" max="80" step="2" />
-        </label>
-        <label>
-          <input v-model="measureRows" type="checkbox" />
-          measureRows
-        </label>
-        <span class="virtual-group">
-          <button
-            v-for="size in [10_000, 100_000]"
-            :key="size"
-            type="button"
-            :data-current="size === count || undefined"
-            @click="setCount(size)"
-          >
-            {{ (size / 1000).toFixed(0) }}k rows
-          </button>
-        </span>
-      </div>
+      <ControlGroup legend="Window">
+        <ToggleControl
+          v-model="virtual"
+          label="virtual"
+          code
+          hint="off is the same table paginated, for comparison"
+        />
+        <RangeControl
+          v-model="rowHeight"
+          label="rowHeight"
+          code
+          :min="24"
+          :max="80"
+          :step="2"
+          unit="px"
+          hint="what the window is placed with"
+        />
+        <ToggleControl
+          v-model="measureRows"
+          label="measureRows"
+          code
+          hint="measure real heights instead of trusting rowHeight"
+        />
+        <ChoiceControl
+          :model-value="count"
+          label="rows"
+          :options="[
+            { value: 10_000, label: '10k' },
+            { value: 100_000, label: '100k' },
+          ]"
+          @update:model-value="setCount"
+        />
+      </ControlGroup>
+
+      <ControlGroup legend="Combined with">
+        <ToggleControl v-model="cursor" label="cellCursor" code />
+        <ToggleControl v-model="selectable" label="selectable" code />
+        <ToggleControl
+          :model-value="grouped"
+          label="group by department + role"
+          hint="bands in a virtual window, collapsible"
+          @update:model-value="toggleGrouping"
+        />
+      </ControlGroup>
 
       <p class="hint">
         <strong>{{ rendered }}</strong> rows in the document, out of
@@ -180,14 +196,4 @@ const windowSize = computed(() => `${OVERSCAN_ROWS} beyond each edge`)
 </template>
 
 <style scoped>
-.virtual-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-}
-.virtual-controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
-.virtual-controls input[type='number'] { width: 62px; }
-.virtual-group { display: inline-flex; gap: 6px; }
-.virtual-group button[data-current] { outline: 2px solid var(--vtc-accent, #2563eb); }
 </style>

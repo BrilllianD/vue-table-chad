@@ -25,6 +25,7 @@ import {
 import { employeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
 
 /**
  * Every palette, pulled in at once because this view exists to compare them.
@@ -107,25 +108,30 @@ const snippet = computed(() =>
 <template>
   <DemoSection
     title="Themes"
-    blurb="Thirty palettes, each one nine colours. Everything else in the theme derives from them."
+    blurb="Thirty palettes, each one nine colours. Everything else in the theme derives from them:
+           a preset is one CSS file and one attribute on the root element, and the swatches under the
+           table show the nine values it sets."
+    :try-it="[
+      'Pick a palette, then open a column filter: the popover follows, because the attribute is on <html>.',
+      'Pick None and switch the OS between light and dark — the table follows the OS instead.',
+    ]"
     :api="['themePresets', 'ThemePreset', 'data-vtc-theme', '--vtc-* custom properties']"
   >
     <template #controls>
-      <div class="controls">
+      <ControlGroup legend="Preset">
         <label>
-          Palette
+          <code>data-vtc-theme</code>
           <select v-model="preset">
             <option value="">None — follow the OS</option>
             <option v-for="name in themePresets" :key="name" :value="name">{{ name }}</option>
           </select>
         </label>
-
-        <p class="hint">
+        <template #hint>
           The attribute is set on <code>&lt;html&gt;</code>, which is what reaches the filter
           popover — it teleports to <code>&lt;body&gt;</code> and would otherwise open in the
           default palette. Open one and switch.
-        </p>
-      </div>
+        </template>
+      </ControlGroup>
     </template>
 
     <div class="swatches">
@@ -162,7 +168,6 @@ const snippet = computed(() =>
 </template>
 
 <style scoped>
-.controls { display: flex; flex-direction: column; gap: 6px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
 .swatch { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .chip {

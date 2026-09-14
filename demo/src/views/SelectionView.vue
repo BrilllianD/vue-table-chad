@@ -27,6 +27,9 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 import StateInspector from '../components/StateInspector.vue'
 
 const rows = shallowRef(employees.slice(0, 400))
@@ -74,6 +77,11 @@ const shown = employeeColumns.filter((column) =>
 <template>
   <DemoSection
     title="Selection"
+    :try-it="[
+      'Tick one row, then shift-click a row further down: everything between is selected.',
+      'Tick a row on page 1, turn the page, and tick another: the header checkbox counts both.',
+      'Click the header checkbox with a filter on: the count matches every filtered row, not the page.',
+    ]"
     blurb="Single or multiple, a tri-state header checkbox, selection that survives paging,
            unselectable rows, and 'select all matching' as a predicate rather than an id list.
            Shift-click a row for a range, Ctrl/Cmd-click for one — on the checkbox or on the
@@ -93,20 +101,27 @@ const shown = employeeColumns.filter((column) =>
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label>
-          Mode
-          <select v-model="mode">
-            <option value="multiple">multiple</option>
-            <option value="single">single</option>
-          </select>
-        </label>
-        <label>
-          <input v-model="onlyActiveSelectable" type="checkbox" />
-          Only active rows selectable
-        </label>
-        <span class="hint">Shift-click a checkbox — or a row — to select a range; ctrl/cmd-click for one.</span>
-      </div>
+      <ControlGroup
+        legend="useRowSelection"
+        hint="Shift-click a checkbox — or a row — to select a range; ctrl/cmd-click for one."
+      >
+        <ChoiceControl
+          v-model="mode"
+          label="mode"
+          code
+          :options="[
+            { value: 'multiple', label: 'multiple' },
+            { value: 'single', label: 'single' },
+          ]"
+          hint="single replaces the selection on every click"
+        />
+        <ToggleControl
+          v-model="onlyActiveSelectable"
+          label="isRowSelectable"
+          code
+          hint="inactive rows get a disabled checkbox; ranges and the header checkbox skip them"
+        />
+      </ControlGroup>
     </template>
 
     <!-- No `:key` remount needed: `selectable` is reactive all the way down. -->

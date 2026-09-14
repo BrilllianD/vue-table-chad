@@ -60,6 +60,10 @@ import {
   saveEmployee,
 } from '../data/fakeApi'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
+import RangeControl from '../components/RangeControl.vue'
 import StateInspector from '../components/StateInspector.vue'
 
 /**
@@ -178,6 +182,11 @@ const editableColumns = computed(() =>
 <template>
   <DemoSection
     title="Editing"
+    :try-it="[
+      'Click a salary and type a negative number: the column validator refuses it before any save.',
+      'Give a row an email another row already has — that is the server refusing, after the latency.',
+      'Switch mode to row, change two cells, then press Escape: the whole draft is cancelled, not just the cell.',
+    ]"
     blurb="Click any cell with a value to edit it. Every column is opt-in — Tags stays read-only
            because a list needs an editor of its own. Watch the request log: a save is one request,
            and in row mode it is one request for the whole row however many fields changed.
@@ -206,41 +215,45 @@ const editableColumns = computed(() =>
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label>
-          Mode
-          <select v-model="mode">
-            <option value="cell">cell — commit each field</option>
-            <option value="row">row — one Save for the lot</option>
-          </select>
-        </label>
-        <label>
-          <input v-model="optimistic" type="checkbox" />
-          Optimistic
-        </label>
-        <label>
-          Latency {{ latencyMs }}ms
-          <input v-model.number="latencyMs" type="range" min="0" max="2000" step="50" />
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            :checked="failureRate > 0"
-            @change="failureRate = failureRate > 0 ? 0 : 0.5"
-          />
-          Flaky server (50% failures)
-        </label>
-        <label>
-          <input v-model="allowInactive" type="checkbox" />
-          Inactive rows editable
-        </label>
-        <span class="hint">
-          Editable: {{ editableColumns.join(', ') }}.
-          Try a negative salary, a blank name, or an email another row already has.
-          Copy and paste are on the <strong>Cell cursor</strong> tab: they belong to a focused
-          cell, and this table renders none.
-        </span>
-      </div>
+      <ControlGroup legend="useRowEditing">
+        <ChoiceControl
+          v-model="mode"
+          label="mode"
+          code
+          :options="[
+            { value: 'cell', label: 'cell', title: 'commit each field on its own' },
+            { value: 'row', label: 'row', title: 'one Save for the whole row' },
+          ]"
+          hint="cell commits each field; row keeps a draft until Save"
+        />
+        <ToggleControl
+          v-model="optimistic"
+          label="optimistic"
+          code
+          hint="show the new value before the save resolves, revert if it fails"
+        />
+        <ToggleControl
+          v-model="allowInactive"
+          label="isEditable"
+          code
+          hint="off: inactive rows refuse to open a cell"
+        />
+        <template #hint>
+          Editable: {{ editableColumns.join(', ') }}. Copy and paste are on the
+          <strong>Cell cursor</strong> tab: they belong to a focused cell, and this table renders
+          none.
+        </template>
+      </ControlGroup>
+
+      <ControlGroup legend="The fake server">
+        <RangeControl v-model="latencyMs" label="latency" :min="0" :max="2000" :step="50" unit="ms" />
+        <ToggleControl
+          :model-value="failureRate > 0"
+          label="flaky"
+          hint="half of all saves are rejected — the cell shows the error and keeps the draft"
+          @update:model-value="failureRate = $event ? 0.5 : 0"
+        />
+      </ControlGroup>
     </template>
 
     <DataTable

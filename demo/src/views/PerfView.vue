@@ -30,6 +30,8 @@ import { DataTable, useLocalDataSource, useTableState, valuesFilter } from '@bri
 import { makeRows, type Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 
 /** The whole 10k, not a slice — every other view trims, this one must not. */
 const rows = shallowRef<Employee[]>(makeRows(10_000))
@@ -193,68 +195,60 @@ function reset(): void {
 <template>
   <DemoSection
     title="Performance"
+    :try-it="[
+      'Foreground this tab first — a hidden tab refuses to measure.',
+      'Click Next page, then Sort: paging should be far under sorting, because it redoes nothing.',
+      'Push pageSize to 5000 with virtual off, then turn virtual on and try again.',
+    ]"
     blurb="The whole 10 000 rows, timed in the browser rather than in a benchmark. Each button runs
            its interaction several times and reports the median with the worst case beside it —
            measured to the frame after the paint, not to the tick after the patch."
     :api="['useLocalDataSource', 'debounceMs', 'DataTable pageSize', 'useTableState']"
   >
     <template #controls>
-      <div class="perf-controls">
-        <div class="perf-group">
-          <span class="perf-legend">Interactions</span>
-          <button type="button" :disabled="running" @click="measurePaging">Next page</button>
-          <button type="button" :disabled="running" @click="measureSearch">Search keystroke</button>
-          <button type="button" :disabled="running" @click="measureSort">Sort</button>
-          <button type="button" :disabled="running" @click="toggleGrouping">
-            {{ grouped ? 'Ungroup' : 'Group by department + role' }}
-          </button>
-          <button type="button" :disabled="running" @click="measureScroll()">Scroll 2000 rows</button>
-        </div>
+      <ControlGroup legend="Interactions" hint="Each one runs several times and adds a row to the table below.">
+        <button type="button" :disabled="running" @click="measurePaging">Next page</button>
+        <button type="button" :disabled="running" @click="measureSearch">Search keystroke</button>
+        <button type="button" :disabled="running" @click="measureSort">Sort</button>
+        <button type="button" :disabled="running" @click="toggleGrouping">
+          {{ grouped ? 'Ungroup' : 'Group by department + role' }}
+        </button>
+        <button type="button" :disabled="running" @click="measureScroll()">Scroll 2000 rows</button>
+        <button type="button" :disabled="running" @click="reset">Clear results</button>
+      </ControlGroup>
 
-        <div class="perf-group">
-          <span class="perf-legend">Virtual</span>
-          <button
-            type="button"
-            :disabled="running"
-            :data-current="virtual || undefined"
-            @click="toggleVirtual"
-          >
-            {{ virtual ? 'On — one page, windowed' : 'Off — paginated' }}
-          </button>
-        </div>
-
-        <div class="perf-group">
-          <span class="perf-legend">Dataset</span>
-          <button
-            v-for="count in [10_000, 100_000]"
-            :key="count"
-            type="button"
-            :disabled="running"
-            :data-current="count === rows.length || undefined"
-            @click="setRowCount(count)"
-          >
-            {{ (count / 1000).toFixed(0) }}k
-          </button>
-        </div>
-
-        <div class="perf-group">
-          <span class="perf-legend">Rows on screen</span>
-          <button
-            v-for="size in [25, 100, 500, 1000, 5000]"
-            :key="size"
-            type="button"
-            :disabled="running"
-            :data-current="size === pageSize || undefined"
-            @click="measurePageSize(size)"
-          >
-            {{ size }}
-          </button>
-        </div>
-
-        <div class="perf-group">
-          <button type="button" :disabled="running" @click="reset">Clear</button>
-        </div>
-      </div>
+      <ControlGroup legend="Shape">
+        <ChoiceControl
+          :model-value="virtual"
+          label="virtual"
+          code
+          :disabled="running"
+          :options="[
+            { value: false, label: 'off — paginated' },
+            { value: true, label: 'on — one page, windowed' },
+          ]"
+          @update:model-value="toggleVirtual"
+        />
+        <ChoiceControl
+          :model-value="rows.length"
+          label="rows"
+          :disabled="running"
+          :options="[
+            { value: 10_000, label: '10k' },
+            { value: 100_000, label: '100k' },
+          ]"
+          @update:model-value="setRowCount"
+        />
+        <ChoiceControl
+          :model-value="pageSize"
+          label="pageSize"
+          code
+          :disabled="running"
+          hint="picking one is itself measured: the render of that many rows"
+          :options="[25, 100, 500, 1000, 5000].map((size) => ({ value: size, label: String(size) }))"
+          @update:model-value="measurePageSize"
+        />
+      </ControlGroup>
 
       <p v-if="blocked" class="perf-blocked">{{ blocked }}</p>
 
@@ -300,10 +294,6 @@ function reset(): void {
 </template>
 
 <style scoped>
-.perf-controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; }
-.perf-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.perf-legend { font-size: 12px; opacity: 0.65; margin-right: 2px; }
-.perf-group button[data-current] { outline: 2px solid var(--vtc-accent, #2563eb); }
 
 .perf-blocked { font-size: 13px; margin: 0; opacity: 0.8; }
 

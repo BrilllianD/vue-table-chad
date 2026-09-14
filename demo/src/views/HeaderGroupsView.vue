@@ -26,6 +26,9 @@ import {
 import { employeeColumnGroups, groupedEmployeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
+import ChoiceControl from '../components/ChoiceControl.vue'
 
 const rows = shallowRef(employees.slice(0, 400))
 
@@ -121,6 +124,11 @@ function toggle(band: ColumnGroupDef): void {
 <template>
   <DemoSection
     title="Header bands"
+    :try-it="[
+      'Click the caret on a band in the table header: it folds to its collapseTo column.',
+      'Fold the same band from the switches here — the two are the one layout state.',
+      'Set band-rules to false with the token at 3px: the prop wins over the variable.',
+    ]"
     blurb="Columns banded under a shared header, nested as deep as you like, each band with a
            control that folds it down to one column. Folding is a subtraction from the visible
            column list — the same list the header, the colgroup, the rows and the footer all
@@ -145,48 +153,49 @@ function toggle(band: ColumnGroupDef): void {
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label><input v-model="selectable" type="checkbox" /> selectable</label>
-        <label><input v-model="stickyHeader" type="checkbox" /> stickyHeader</label>
-        <label>
-          --vtc-band-border-width
-          <select v-model="bandRule">
-            <option value="0px">0px</option>
-            <option value="1px">1px</option>
-            <option value="3px">3px</option>
-          </select>
-        </label>
-        <label>
-          band-rules
-          <select v-model="bandRulesProp">
-            <option value="unset">(unset)</option>
-            <option value="on">true</option>
-            <option value="off">false</option>
-          </select>
-        </label>
-        <label><input v-model="styledBand" type="checkbox" /> style one band</label>
+      <ControlGroup legend="DataTable props">
+        <ToggleControl v-model="selectable" label="selectable" code hint="the checkbox column spans every band row" />
+        <ToggleControl v-model="stickyHeader" label="stickyHeader" code hint="both header rows stick" />
+        <ChoiceControl
+          v-model="bandRulesProp"
+          label="band-rules"
+          code
+          :options="[
+            { value: 'unset', label: 'unset' },
+            { value: 'on', label: 'true' },
+            { value: 'off', label: 'false' },
+          ]"
+          hint="the prop form of the border token beside it"
+        />
+        <ChoiceControl
+          v-model="bandRule"
+          label="--vtc-band-border-width"
+          code
+          :options="[
+            { value: '0px', label: '0px' },
+            { value: '1px', label: '1px' },
+            { value: '3px', label: '3px' },
+          ]"
+        />
+        <ToggleControl v-model="styledBand" label="style one band" hint="a background and border on one band, through ColumnGroupDef" />
+      </ControlGroup>
 
-        <span class="divider" />
-
-        <!--
-          The same folds the header's own carets perform, driven from outside
-          instead — collapse state lives in the column layout, not in the cell,
-          so anything holding the composable can move it.
-        -->
-        <label v-for="band in bands" :key="band.id">
-          <input
-            type="checkbox"
-            :checked="preview.isGroupCollapsed(band.id)"
-            @change="toggle(band)"
-          />
-          {{ band.header ?? band.id }}
-        </label>
-
-        <span class="divider" />
-
+      <!--
+        The same folds the header's own carets perform, driven from outside
+        instead — collapse state lives in the column layout, not in the cell,
+        so anything holding the composable can move it.
+      -->
+      <ControlGroup legend="Fold from outside" hint="Collapsed, per band — the same state the header's own carets move.">
+        <ToggleControl
+          v-for="band in bands"
+          :key="band.id"
+          :model-value="preview.isGroupCollapsed(band.id)"
+          :label="band.header ?? band.id"
+          @update:model-value="toggle(band)"
+        />
         <button type="button" @click="preview.collapseAllGroups()">Fold all</button>
         <button type="button" @click="preview.expandAllGroups()">Unfold all</button>
-      </div>
+      </ControlGroup>
     </template>
 
     <p class="note">
@@ -278,7 +287,6 @@ function toggle(band: ColumnGroupDef): void {
 /* What `ColumnGroupDef.class` buys: a hook on the band's header cells only. */
 :deep(.band-record) { font-style: italic; letter-spacing: 0.02em; }
 
-.divider { width: 1px; align-self: stretch; background: var(--line); }
 .note { border-left: 2px solid var(--line); padding-left: 10px; }
 
 .panel {

@@ -35,6 +35,8 @@ import { clearRequestLog, fetchEmployeeFacets, fetchEmployees, requestLog } from
 import type { Employee } from '../data/dataset'
 import { employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import RangeControl from '../components/RangeControl.vue'
 
 const latencyMs = ref(350)
 const endThreshold = ref(10)
@@ -62,6 +64,11 @@ const rowRequests = computed(() => requestLog.filter((entry) => entry.kind === '
 <template>
   <DemoSection
     title="Infinite scroll"
+    :try-it="[
+      'Scroll to the bottom: the next page is fetched and appended, and the count above climbs.',
+      'Sort a column part-way down: the list resets and loads again from the top, because the order changed.',
+      'Raise endThreshold to 60 and the fetch fires well before the last row is in view.',
+    ]"
     blurb="Server rows that accumulate instead of being replaced. There is no pager: the virtual
            window reaching the end of the loaded rows is what asks for the next page, and the
            source refuses to be asked twice at once. Changing a filter starts the list again,
@@ -78,18 +85,21 @@ const rowRequests = computed(() => requestLog.filter((entry) => entry.kind === '
     ]"
   >
     <template #controls>
-      <div class="controls">
-        <label>
-          Latency {{ latencyMs }}ms
-          <input v-model.number="latencyMs" type="range" min="0" max="2000" step="50" />
-        </label>
-        <label>
-          endThreshold {{ endThreshold }} rows
-          <input v-model.number="endThreshold" type="range" min="0" max="60" step="5" />
-        </label>
+      <ControlGroup legend="Loading">
+        <RangeControl v-model="latencyMs" label="latency" :min="0" :max="2000" :step="50" unit="ms" />
+        <RangeControl
+          v-model="endThreshold"
+          label="endThreshold"
+          code
+          :min="0"
+          :max="60"
+          :step="5"
+          unit="rows"
+          hint="how far from the end the window asks for more"
+        />
         <button type="button" @click="source.refresh()">Start over</button>
         <button type="button" @click="clearRequestLog()">Clear log</button>
-      </div>
+      </ControlGroup>
 
       <p class="hint">
         <strong>{{ progress }}</strong>
@@ -118,8 +128,6 @@ const rowRequests = computed(() => requestLog.filter((entry) => entry.kind === '
 </template>
 
 <style scoped>
-.controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
-.controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .log { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 .log li {
   display: flex;

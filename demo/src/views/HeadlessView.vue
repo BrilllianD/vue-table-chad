@@ -48,6 +48,8 @@ import {
 import { employees, type Employee } from '../data/dataset'
 import { columnFor, employeeColumns } from '../columns'
 import DemoSection from '../components/DemoSection.vue'
+import ControlGroup from '../components/ControlGroup.vue'
+import ToggleControl from '../components/ToggleControl.vue'
 import StateInspector from '../components/StateInspector.vue'
 
 const all = employees.slice(0, 600)
@@ -211,6 +213,10 @@ const delimited = computed(() =>
 <template>
   <DemoSection
     title="Core only — no components"
+    :try-it="[
+      'Sort Salary descending, then flip nullsLast: the blank salaries move from the top to the bottom.',
+      'Shift-click a second header and read the sort inspector under the table — that array is all sortRows gets.',
+    ]"
     blurb="The table below is a plain <table> element. Every behaviour in it comes from a pure
            function you can call from a test, a worker, or a Node script. usePagination has no
            data in it at all; it is page arithmetic, usable for any list."
@@ -246,12 +252,16 @@ const delimited = computed(() =>
     ]"
   >
     <template #controls>
-      <div class="controls">
+      <ControlGroup legend="The query" hint="Shift-click a header to stack sort keys.">
         <label>Search <input v-model="search" type="search" placeholder="name, dept…" /></label>
         <label>Min salary <input v-model="minSalary" type="number" step="5000" /></label>
-        <label><input v-model="nullsLast" type="checkbox" /> sortRows nullsLast</label>
-        <span class="hint">Shift-click a header to stack sort keys.</span>
-      </div>
+        <ToggleControl
+          v-model="nullsLast"
+          label="nullsLast"
+          code
+          hint="sortRows option: blanks sink to the bottom whichever way the sort goes"
+        />
+      </ControlGroup>
     </template>
 
     <table class="raw">
