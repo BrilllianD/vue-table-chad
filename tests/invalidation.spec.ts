@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, effectScope, h, nextTick, shallowRef, watch } from 'vue'
+import { computed, defineComponent, effectScope, h, nextTick, shallowRef, watch } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useColumns } from '../src/core/useColumns'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useRowGrouping } from '../src/core/useRowGrouping'
+import { useRowExpansion } from '../src/core/useRowExpansion'
+import { withDetailRows } from '../src/core/expansion'
 import { useRowSelection } from '../src/core/useRowSelection'
 import { useCellCursor } from '../src/core/useCellCursor'
 import { useVirtualRows } from '../src/core/useVirtualRows'
@@ -1086,5 +1088,106 @@ describe('what whole-set figures are allowed to cost', () => {
     // Once, not once per render: the pass is a computed and the footer reads it.
     expect(counters.aggregateRow).toBe(1)
     wrapper.unmount()
+  })
+})
+
+/**
+ * The gate F6 was written against: a detail panel is rendering, not data.
+ *
+ * The composable holds no reference to the dataset — `expandAll` takes its rows
+ * as an argument — so the only thing an expand may cost is the walk in
+ * `withDetailRows` over the rows already on screen. Every dataset-wide pass has
+ * to stay at zero, the grouping tree and its flatten included: a panel opens
+ * downstream of both.
+ */
+describe('what expanding a detail row is allowed to recompute', () => {
+  function expansionHarness(groupBy: string[] = []) {
+    const base = harness(groupBy)
+    const scope = effectScope()
+    const built = scope.run(() => {
+      const expansion = useRowExpansion<Employee>({ getRowId: (row) => row.id })
+      const items = computed(() =>
+        withDetailRows(base.grouping.displayRows.value, expansion.isExpanded),
+      )
+      return { expansion, items }
+    })!
+
+    built.items.value
+    reset()
+    return {
+      ...base,
+      ...built,
+      rowsOnScreen: () =>
+        base.grouping.displayRows.value.flatMap((item) => (item.kind === 'row' ? [item.row] : [])),
+      stop: () => {
+        scope.stop()
+        base.stop()
+      },
+    }
+  }
+
+  const detailCount = (items: { kind: string }[]) =>
+    items.filter((item) => item.kind === 'detail').length
+
+  function expectNoPasses() {
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.aggregateRow).toBe(0)
+    expect(counters.flatten).toBe(0)
+    expect(counters.tree).toBe(0)
+    expect(counters.walk).toBe(0)
+  }
+
+  it('opening a panel does not reach the pipeline', () => {
+    const h = expansionHarness()
+    h.expansion.toggle(h.rowsOnScreen()[0]!)
+
+    expect(detailCount(h.items.value)).toBe(1)
+    expectNoPasses()
+    h.stop()
+  })
+
+  it('shutting one does not either', () => {
+    const h = expansionHarness()
+    const row = h.rowsOnScreen()[0]!
+    h.expansion.toggle(row)
+    h.items.value
+    reset()
+
+    h.expansion.toggle(row)
+    expect(detailCount(h.items.value)).toBe(0)
+    expectNoPasses()
+    h.stop()
+  })
+
+  it('opening every row on screen costs no pass, grouped or not', () => {
+    const h = expansionHarness(['department', 'role'])
+    const onScreen = h.rowsOnScreen()
+    h.expansion.expandAll(onScreen)
+
+    expect(detailCount(h.items.value)).toBe(onScreen.length)
+    // The grouping tree is upstream of the panel, so even folding every band's
+    // rows open must not rebuild or re-walk it.
+    expectNoPasses()
+
+    reset()
+    h.expansion.collapseAll()
+    expect(detailCount(h.items.value)).toBe(0)
+    expectNoPasses()
+    h.stop()
+  })
+
+  /*
+   * The identity half of the same invariant: with nothing open the list handed
+   * downstream is the one that came in, so a table nobody has expanded
+   * propagates nothing at all to the body it feeds.
+   */
+  it('hands its input straight back while nothing is open', () => {
+    const h = expansionHarness()
+    expect(h.items.value).toBe(h.grouping.displayRows.value)
+    expectNoPasses()
+    h.stop()
   })
 })

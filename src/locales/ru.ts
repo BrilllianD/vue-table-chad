@@ -135,6 +135,8 @@ export const ru: TableLabels = Object.freeze({
     `Развернуть все группы по столбцу «${columnLabel}»`,
   collapseColumnGroups: (columnLabel: string) =>
     `Свернуть все группы по столбцу «${columnLabel}»`,
+  expandRow: 'Показать подробности',
+  collapseRow: 'Скрыть подробности',
 
   operators: Object.freeze({
     contains: 'содержит',

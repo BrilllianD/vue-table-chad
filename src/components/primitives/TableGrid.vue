@@ -25,15 +25,17 @@ import { useTableContext } from '../../core/context'
 import {
   bandFoldFor,
   cursorMoveFor,
+  detailToggleFor,
   editSeedFor,
   pageMoveFor,
   scrollMoveFor,
   viewportMoveFor,
   type BandFold,
   type CellPosition,
+  type DetailToggle,
 } from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
-import type { ResolvedColumn } from '../../core/types'
+import type { ResolvedColumn, RowId } from '../../core/types'
 import { INTERACTIVE_SELECTOR, isPlainLeftClick } from '../interactive'
 
 const props = defineProps<{
@@ -112,6 +114,16 @@ const emit = defineEmits<{
    * needs the band declarations, which live with the layout state.
    */
   bandFold: [fold: BandFold]
+  /**
+   * The user asked to open or shut the cursor row's detail panel —
+   * `Alt` + `↓`/`↑`.
+   *
+   * Reported rather than acted on, for the reason `band-fold` is: which rows
+   * are open is state this component is not given and does not own. It carries
+   * the cursor's row id, because that is the one part of the question it *can*
+   * answer.
+   */
+  detailToggle: [rowId: RowId, toggle: DetailToggle]
   /**
    * The user asked to copy the cursor cell — `Ctrl`/`Cmd` + `C`, or any other
    * route the platform has to a `copy`.
@@ -296,6 +308,18 @@ function onKeydown(event: KeyboardEvent): void {
   if (fold) {
     event.preventDefault()
     emit('bandFold', fold)
+    return
+  }
+
+  // Before the arrow decoders, and the only one of them that *wants* Alt —
+  // every other refuses it outright, so this cannot take a press one of them
+  // would have answered.
+  const detail = detailToggleFor(event)
+  if (detail) {
+    const position = cursor.position.value ?? cursor.tabStop.value
+    if (!position) return
+    event.preventDefault()
+    emit('detailToggle', position.rowId, detail)
     return
   }
 

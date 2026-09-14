@@ -219,6 +219,10 @@ export interface TableLabels {
   expandColumnGroups: (columnLabel: string) => string
   /** Accessible name for a grouped column's header, open. */
   collapseColumnGroups: (columnLabel: string) => string
+  /** Accessible name for a shut row's detail toggle. */
+  expandRow: string
+  /** Accessible name for an open row's detail toggle. */
+  collapseRow: string
 
   // — the core modules' own strings —
   /** Human-readable names for every filter operator. */
@@ -350,6 +354,8 @@ export const DEFAULT_LABELS: TableLabels = Object.freeze({
   collapseBand: (bandLabel: string) => `Collapse ${bandLabel} columns`,
   expandColumnGroups: (columnLabel: string) => `Expand all ${columnLabel} groups`,
   collapseColumnGroups: (columnLabel: string) => `Collapse all ${columnLabel} groups`,
+  expandRow: 'Show details',
+  collapseRow: 'Hide details',
 
   operators: Object.freeze({
     contains: 'contains',

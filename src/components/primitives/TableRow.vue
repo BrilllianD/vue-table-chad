@@ -55,6 +55,15 @@ const props = withDefaults(
     /** Overrides the injected selection state. */
     selected?: boolean
     /**
+     * Whether this row's detail panel is open, as a style and test hook.
+     * Reaches the DOM as `data-expanded`.
+     *
+     * The panel itself is a separate `<tr>` the caller renders after this one —
+     * a row cannot contain another row — so all this does is say which way the
+     * disclosure points.
+     */
+    expanded?: boolean
+    /**
      * How this row stands with the server, as a style and test hook. Reaches
      * the DOM as `data-row-state`; absent means an ordinary, untouched row.
      */
@@ -88,6 +97,7 @@ const props = withDefaults(
     index: 0,
     depth: 0,
     selected: undefined,
+    expanded: false,
     columns: undefined,
     bandEdges: undefined,
     state: undefined,
@@ -218,6 +228,7 @@ function cursorFor(columnId: string): CellCursorMark | undefined {
     :data-row-id="rowId"
     :data-cursor="isCursorRow || undefined"
     :data-selected="selected || undefined"
+    :data-expanded="expanded || undefined"
     :data-row-state="state"
     :data-parity="index % 2 === 0 ? 'odd' : 'even'"
     :aria-rowindex="rowIndex"

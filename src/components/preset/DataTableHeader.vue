@@ -26,7 +26,12 @@ import type { UseRowGrouping } from '../../core/useRowGrouping'
 
 defineProps<{
   headerRows: HeaderRow<TRow>[]
-  /** Whether to render the leading selection cell at all. */
+  /**
+   * Whether the leading narrow cell exists at all. Selection brings it, and so
+   * does an expandable table — they share the column.
+   */
+  leadingColumn: boolean
+  /** Whether that cell carries the select-all checkbox. */
   selectable: boolean
   /**
    * The selection *mode*, untouched. Kept apart from `selectable` because
@@ -71,13 +76,13 @@ const labels = useTableLabels()
       :aria-rowindex="numbered ? headerLevel + 1 : undefined"
     >
       <th
-        v-if="selectable && headerLevel === 0"
+        v-if="leadingColumn && headerLevel === 0"
         class="vt-th vt-th-selection"
         scope="col"
         :rowspan="headerRows.length > 1 ? headerRows.length : undefined"
       >
         <SelectionCheckbox
-          v-if="selection && selectionMode !== 'single'"
+          v-if="selectable && selection && selectionMode !== 'single'"
           :checked="selection.headerState.value === 'all'"
           :indeterminate="selection.headerState.value === 'some'"
           :label="labels.selectAllOnPage"

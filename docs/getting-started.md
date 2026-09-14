@@ -191,6 +191,8 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `source` | `DataSource<TRow>` | — | Required. Local or server, indistinguishable from here. |
 | `state` | `TableState` | builds one | Pass one to hoist the query into a URL or store. |
 | `selectable` | `boolean \| 'single' \| 'multiple'` | `false` | `true` means multiple. |
+| `expandable` | `boolean` | `false` | A disclosure column, and a detail panel under each open row. The panel's content is the `#detail` slot. Under `virtual` it needs `measureRows` — see [Expandable detail rows](detail-rows.md). |
+| `expansion` | `UseRowExpansion<TRow>` | table-owned | An expansion from `useRowExpansion`, for a caller that wants to open, read or store which rows are open. Implies `expandable`. |
 | `getRowId` | `(row) => RowId` | `row.id` | Identity for selection, drafts, cursor and render keys. |
 | `isRowSelectable` | `(row) => boolean` | all | Greys out the checkbox for rows it refuses. |
 | `rowClickSelect` | `boolean` | `false` | Shift- and Ctrl/Cmd-click on the row itself, not only on its checkbox. An unmodified click still never changes the selection, so `@row-click` keeps working. |
@@ -249,6 +251,7 @@ pays nothing. `endReached` is what a virtual table wires to an infinite source's
 | `headerGroup` | band props | A header band's cell. |
 | `group` | `group`, `columnLabel`, … | A group header row. |
 | `groupAggregate` | `text`, … | One aggregate inside a group header. |
+| `detail` | `row`, `index`, `depth` | An open row's detail panel. Needs `expandable` or `expansion`. |
 | `rowActions` | `row`, `state`, `editing` | The trailing cell in row-edit mode. |
 | `footer` | footer props | The footer row. |
 | `empty` | — | The "no rows" message. |
@@ -496,7 +499,7 @@ you page 3.
 
 ## What is not included
 
-Tree rows, expandable detail rows, pinned rows, and pivoting. Cell-level clipboard copy and paste
+Tree rows, pinned rows, and pivoting. Cell-level clipboard copy and paste
 *is* in — see [Keyboard navigation](keyboard.md) — and so is CSV/TSV export, see
 [Local, server and infinite data](data-sources.md). Aggregation covers
 `sum`/`avg`/`min`/`max` with no custom reducer. i18n *is* in: every string the table renders comes
@@ -522,6 +525,7 @@ Every page below has a matching view in `pnpm demo`, where the same thing runs a
 | [Sorting and pagination](sorting-and-pagination.md) | `usePagination`, `PageItem`, `SortOptions`, per-column comparators, and null-sorting. |
 | [Selection](selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. |
 | [Grouping rows](grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. |
+| [Expandable detail rows](detail-rows.md) | A row opens to show the entities that hang off it — `expandable`, the `#detail` slot, `useRowExpansion`, and what `virtual` needs. |
 | [Editing cells](editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. |
 | [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it. |
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |

@@ -7,6 +7,7 @@ import TablePagination from '../src/components/primitives/TablePagination.vue'
 import TableRow from '../src/components/primitives/TableRow.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
+import { useRowExpansion, type UseRowExpansion } from '../src/core/useRowExpansion'
 import { valuesFilter } from '../src/core/filters/model'
 import type { ResolvedColumn, SelectionState } from '../src/core/types'
 import {
@@ -1424,6 +1425,175 @@ describe('reading the selection from code', () => {
 
     expect(table.value!.selection!.count.value).toBe(1)
     expect(table.value!.getSelectedRows().map((row) => row.name)).toEqual(['Grace Hopper'])
+    wrapper.unmount()
+  })
+})
+
+describe('DataTable detail rows', () => {
+  function mountExpandable(props: Record<string, unknown> = {}) {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state, expandable: true, ...props },
+            {
+              detail: ({ row }: { row: Person }) => h('p', `detail for ${row.name}`),
+            },
+          )
+      },
+    })
+    return mount(Host, { attachTo: document.body })
+  }
+
+  const toggles = (wrapper: ReturnType<typeof mountExpandable>) =>
+    wrapper.findAll('tbody .vt-detail-toggle')
+
+  it('opens a panel under the row and shuts it again', async () => {
+    const wrapper = mountExpandable()
+    expect(wrapper.findAll('tbody tr')).toHaveLength(3)
+
+    await toggles(wrapper)[1]!.trigger('click')
+    await nextTick()
+
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows).toHaveLength(4)
+    // Directly under its own row, not appended at the end of the page.
+    expect(rows[2]!.classes()).toContain('vt-detail-row')
+    expect(rows[2]!.text()).toBe('detail for Grace Hopper')
+
+    await toggles(wrapper)[1]!.trigger('click')
+    await nextTick()
+    expect(wrapper.findAll('tbody tr')).toHaveLength(3)
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('marks the open row and its toggle', async () => {
+    const wrapper = mountExpandable()
+    expect(wrapper.findAll('tbody tr')[0]!.attributes('data-expanded')).toBeUndefined()
+    expect(toggles(wrapper)[0]!.attributes('aria-expanded')).toBe('false')
+    expect(toggles(wrapper)[0]!.attributes('aria-label')).toBe('Show details')
+
+    await toggles(wrapper)[0]!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.findAll('tbody tr')[0]!.attributes('data-expanded')).toBe('true')
+    expect(toggles(wrapper)[0]!.attributes('aria-expanded')).toBe('true')
+    expect(toggles(wrapper)[0]!.attributes('aria-label')).toBe('Hide details')
+    wrapper.unmount()
+  })
+
+  /*
+   * A row one cell short of its `<colgroup>` drags every column after it out of
+   * place, so the panel has to count the disclosure column too.
+   */
+  it('spans the whole row, the disclosure column included', async () => {
+    const wrapper = mountExpandable()
+    await toggles(wrapper)[0]!.trigger('click')
+    await nextTick()
+
+    const cells = wrapper.findAll('thead tr')[0]!.findAll('th').length
+    expect(wrapper.find('.vt-detail-cell').attributes('colspan')).toBe(String(cells))
+    wrapper.unmount()
+  })
+
+  it('shares the leading column with the selection checkbox', async () => {
+    const wrapper = mountExpandable({ selectable: true })
+    const leading = wrapper.findAll('tbody tr')[0]!.findAll('td')[0]!
+
+    expect(leading.find('input[type="checkbox"]').exists()).toBe(true)
+    expect(leading.find('.vt-detail-toggle').exists()).toBe(true)
+
+    // Ticking the row must not also open it: the two controls share a cell, not
+    // a gesture.
+    await leading.find('input[type="checkbox"]').trigger('click')
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('renders no disclosure column when neither expandable nor handed one', () => {
+    const wrapper = mountTable()
+    expect(wrapper.find('.vt-detail-toggle').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  /*
+   * Ids, not row objects: paging replaces the rendered rows, and a panel the
+   * user opened has to still be open when the page comes back.
+   */
+  it('keeps a panel open across a page turn', async () => {
+    const wrapper = mountExpandable()
+    await toggles(wrapper)[0]!.trigger('click')
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(true)
+
+    await wrapper.find('button[aria-label="Next page"]').trigger('click')
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(false)
+
+    await wrapper.find('button[aria-label="Previous page"]').trigger('click')
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').text()).toBe('detail for Ada Lovelace')
+    wrapper.unmount()
+  })
+
+  it('toggles the cursor row with Alt+Down and Alt+Up', async () => {
+    const wrapper = mountExpandable({ cellCursor: true })
+    const cell = wrapper.get('tbody tr[data-row-id="1"] td[data-column="name"]')
+    await cell.trigger('click')
+    await nextTick()
+
+    await cell.trigger('keydown', { key: 'ArrowDown', altKey: true })
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').text()).toBe('detail for Ada Lovelace')
+
+    // Idempotent by direction, so a held key does not flap the panel.
+    await cell.trigger('keydown', { key: 'ArrowDown', altKey: true })
+    await nextTick()
+    expect(wrapper.findAll('.vt-detail-row')).toHaveLength(1)
+
+    await cell.trigger('keydown', { key: 'ArrowUp', altKey: true })
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('takes an expansion composable from outside and exposes its own', async () => {
+    const outside = useRowExpansion<Person>({ initial: [2] })
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state, expansion: outside },
+            { detail: ({ row }: { row: Person }) => h('p', `detail for ${row.name}`) },
+          )
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    // Seeded before the first render, so the panel arrives already open.
+    expect(wrapper.find('.vt-detail-row').text()).toBe('detail for Grace Hopper')
+
+    outside.collapseAll()
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('exposes the expansion on a template ref', async () => {
+    const table = ref<{ expansion?: UseRowExpansion<Person> } | null>(null)
+    const wrapper = mountExpandable({ ref: table })
+
+    table.value!.expansion!.expandAll(people.slice(0, 2))
+    await nextTick()
+    expect(wrapper.findAll('.vt-detail-row')).toHaveLength(2)
     wrapper.unmount()
   })
 })

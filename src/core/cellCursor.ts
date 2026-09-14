@@ -107,6 +107,7 @@ function isPrimaryModifier(gesture: CursorKeyGesture): boolean {
  * Alt is excluded throughout: `Alt` + `←`/`→` is already the keyboard reorder
  * gesture on a header (`TableHeaderCell`), and in the body most browsers spend
  * it on history navigation. Claiming it here would break one or the other.
+ * `Alt` + `↑`/`↓` is neither, and `detailToggleFor` claims that pair.
  */
 export function cursorMoveFor(gesture: CursorKeyGesture): CursorMove | undefined {
   if (gesture.altKey) return undefined
@@ -260,6 +261,33 @@ export function bandFoldFor(gesture: CursorKeyGesture): BandFold | undefined {
   if (gesture.altKey || isPrimaryModifier(gesture)) return undefined
   if (gesture.key !== '=' && gesture.key !== '+') return undefined
   return gesture.key === '+' ? { kind: 'expandAll' } : { kind: 'toggle' }
+}
+
+/** Which way a detail gesture asked the cursor's row to go. */
+export type DetailToggle = 'expand' | 'collapse'
+
+/**
+ * Whether a key press asked to open or shut the cursor row's detail panel.
+ *
+ * `Alt` + `↓` opens and `Alt` + `↑` shuts, which is the disclosure direction
+ * every tree control uses and reads the same way round as the caret.
+ *
+ * The vertical pair specifically. `Alt` + `←`/`→` is the header's keyboard
+ * reorder and, in the body, most browsers' history navigation — which is why
+ * every other decoder in this file refuses Alt outright. Nothing spends
+ * `Alt` + `↑`/`↓`, and the bare and modified arrows are all accounted for:
+ * bare moves a cell, the primary modifier turns the page or scrolls a
+ * screenful, `Shift`+`←`/`→` scrolls sideways and `Shift`+`↑`/`↓` is held for
+ * range selection.
+ *
+ * Directional rather than a toggle so a held key is idempotent: `Alt`+`↓` on an
+ * already-open row leaves it open instead of flapping it shut.
+ */
+export function detailToggleFor(gesture: CursorKeyGesture): DetailToggle | undefined {
+  if (!gesture.altKey || isPrimaryModifier(gesture) || gesture.shiftKey) return undefined
+  if (gesture.key === 'ArrowDown') return 'expand'
+  if (gesture.key === 'ArrowUp') return 'collapse'
+  return undefined
 }
 
 /**

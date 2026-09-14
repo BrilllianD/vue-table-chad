@@ -9,7 +9,7 @@
  * `<TableRoot>` and assemble the same pieces differently (see
  * `playground/src/examples/ComposedCustom.vue`).
  */
-import { computed, getCurrentInstance, onScopeDispose, ref, shallowRef, useSlots, watch } from 'vue'
+import { computed, getCurrentInstance, onScopeDispose, ref, shallowRef, useSlots, watch, watchEffect } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -30,6 +30,7 @@ import {
   nextScrollTop,
   type BandFold,
   type CellPosition,
+  type DetailToggle,
 } from '../../core/cellCursor'
 import { columnGroupPath, foldTargetFor } from '../../core/columnGroups'
 import { exportRows } from '../../core/export'
@@ -42,6 +43,8 @@ import { provideTableTheme, type TableTheme } from '../../core/context'
 import { mergeLabels, type TableLabels } from '../../core/labels'
 import { useTableLabels } from '../../core/context'
 import type { UseRowSelection } from '../../core/useRowSelection'
+import { useRowExpansion, type UseRowExpansion } from '../../core/useRowExpansion'
+import { devChecksEnabled, devWarn } from '../../core/devWarn'
 import type { UseColumnsResult } from '../../core/useColumns'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
@@ -282,6 +285,27 @@ const props = withDefaults(
      * has none at mount — and never again.
      */
     autofocusCursor?: boolean
+    /**
+     * A disclosure toggle on every row, opening a detail panel under it — what
+     * the `#detail` slot renders into.
+     *
+     * The toggle shares the leading narrow column with the selection checkbox,
+     * so turning it on adds no column of its own.
+     *
+     * Under `virtual` it requires `measureRows`: an open panel makes its row
+     * taller than `rowHeight`, and windowing that trusts the declared height
+     * would leave a gap the size of every panel above the viewport.
+     */
+    expandable?: boolean
+    /**
+     * A `useRowExpansion` of your own, for hoisting the open set — into a URL,
+     * a store, or a composable that loads the panel's contents.
+     *
+     * Given one, `expandable` is implied. The same arrangement `editing` and
+     * `selectionState` use: the flag is the easy way in, the instance is the
+     * way to own the state.
+     */
+    expansion?: UseRowExpansion<TRow>
   }>(),
   {
     // Vue casts an absent boolean prop to `false`, which would make "not
@@ -294,6 +318,7 @@ const props = withDefaults(
     rowClickSelect: false,
     cellCursor: false,
     autofocusCursor: false,
+    expandable: false,
     reorderable: true,
     virtual: false,
     rowHeight: 38,
@@ -375,6 +400,46 @@ const emit = defineEmits<{
  * `selectable="single"` into multi-select.
  */
 const selectable = computed(() => props.selectable !== false)
+
+/**
+ * The open set, and `undefined` when detail rows are off entirely.
+ *
+ * A composable created unconditionally and then withheld, rather than created
+ * conditionally: `useRowExpansion` allocates one ref and registers nothing, and
+ * a conditional call would have to sit behind a `watch` to survive the prop
+ * being flipped at runtime. Withholding it is what makes "off means off" —
+ * `DataTableBody` renders no toggle and no panel without one.
+ */
+const ownExpansion = useRowExpansion<TRow>({ getRowId: props.getRowId })
+const expansion = computed<UseRowExpansion<TRow> | undefined>(() =>
+  props.expansion ?? (props.expandable ? ownExpansion : undefined),
+)
+
+/**
+ * Whether the leading narrow column exists. Either feature brings it, and both
+ * share it — see `DataTableBody`.
+ */
+const leadingColumn = computed(() => selectable.value || expansion.value !== undefined)
+
+/*
+ * An open panel makes its row taller than `rowHeight`, and a window that trusts
+ * the declared height would put the spacers a panel short per open row above
+ * the viewport — a gap that grows as you scroll. `measureRows` is the answer the
+ * component already has; this says so rather than rendering something wrong.
+ *
+ * Inside a `watchEffect` rather than checked once at setup, because all three
+ * are props and a table may grow any of them after mount.
+ */
+watchEffect(() => {
+  if (!devChecksEnabled()) return
+  if (props.virtual && expansion.value && !props.measureRows) {
+    devWarn(
+      'A `virtual` table with `expandable` needs `measureRows`. An open detail row is taller ' +
+        'than `rowHeight`, so without it the spacers under-count by one panel per open row and ' +
+        'the rows drift out from under the scrollbar.',
+    )
+  }
+})
 
 /**
  * `'system'` becomes no attribute at all rather than `data-theme="system"`.
@@ -499,7 +564,7 @@ function ariaRowCount(headerRows: unknown[], displayRows: unknown[], total: numb
 }
 
 /** Extra leading and trailing cells, for the rows that have to span them all. */
-const extraColumns = computed(() => (selectable.value ? 1 : 0) + (actionsColumn.value ? 1 : 0))
+const extraColumns = computed(() => (leadingColumn.value ? 1 : 0) + (actionsColumn.value ? 1 : 0))
 
 /**
  * `Ctrl`/`Cmd` + `←`/`→`: turn the page, and take the cursor along.
@@ -571,6 +636,22 @@ function bandFold(fold: BandFold, cursor: UseCellCursor<TRow> | undefined): void
   )
   if (!survivor) return
   cursor?.moveTo({ rowId, columnId: survivor.id }, { focus: true })
+}
+
+/**
+ * `Alt`+`↓`/`↑`: open or shut the cursor row's detail panel.
+ *
+ * The grid reports the row *id*, since that is all it holds; the row itself has
+ * to be found among the rendered ones, which is what `rows` is. A press on a
+ * row the window has evicted therefore does nothing, and correctly — the cursor
+ * cannot be on one.
+ */
+function detailToggle(rowId: RowId, toggle: DetailToggle, rows: TRow[]): void {
+  const api = expansion.value
+  if (!api) return
+  const row = rows.find((entry) => api.getRowId(entry) === rowId)
+  if (!row) return
+  api.toggle(row, toggle === 'expand')
 }
 
 /**
@@ -902,6 +983,12 @@ defineExpose({
   selection: selectionApi,
   getSelectedRows,
   /**
+   * The open detail rows, for a caller that wants to drive them from outside
+   * without owning the composable. `undefined` when the table is neither
+   * `expandable` nor handed an `expansion`.
+   */
+  expansion,
+  /**
    * Measure the undeclared column widths again, for a caller that swapped the
    * dataset for one whose cells are a different size. Widths a user dragged are
    * untouched, as they are by everything else here.
@@ -1209,7 +1296,7 @@ function onPaste(
           <TableGrid
             :columns="cols"
             :row-count="ariaRowCount(headerRows, displayRows, total)"
-            :selection-column="selectable"
+            :selection-column="leadingColumn"
             :actions-column="actionsColumn"
             :cursor="cursor"
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
@@ -1218,6 +1305,7 @@ function onPaste(
               (position, text, event) => onPaste(position, text, event, rows, cols, cursor)
             "
             @band-fold="(fold) => bandFold(fold, cursor)"
+            @detail-toggle="(rowId, toggle) => detailToggle(rowId, toggle, rows)"
             @page-move="(pages) => pageMove(pages, pagination)"
             @scroll-move="scrollColumns"
             @viewport-move="scrollViewport"
@@ -1236,6 +1324,7 @@ function onPaste(
               :group-by="tableState.groupBy.value"
               :grouping="grouping"
               :header-rows="headerRows"
+              :leading-column="leadingColumn"
               :selectable="selectable"
               :selection-mode="props.selectable"
               :selection="selection"
@@ -1260,6 +1349,7 @@ function onPaste(
               :overscan="overscan"
               :scroll-parent="scrollBox"
               :display-rows="displayRows"
+              :expansion="expansion"
               @update:rendered-row-ids="renderedRowIds = $event"
               :source="src"
               :loading="loading"

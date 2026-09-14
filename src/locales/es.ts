@@ -125,6 +125,8 @@ export const es: TableLabels = Object.freeze({
   collapseBand: (bandLabel: string) => `Contraer las columnas de ${bandLabel}`,
   expandColumnGroups: (columnLabel: string) => `Expandir todos los grupos de ${columnLabel}`,
   collapseColumnGroups: (columnLabel: string) => `Contraer todos los grupos de ${columnLabel}`,
+  expandRow: 'Mostrar detalles',
+  collapseRow: 'Ocultar detalles',
 
   operators: Object.freeze({
     contains: 'contiene',

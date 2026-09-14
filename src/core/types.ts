@@ -511,8 +511,15 @@ export interface RowGroup<TRow = Record<string, unknown>> {
 }
 
 /**
- * A rendered line: either a group header or an actual row. Flattening the tree
- * into one list is what lets the table stay a plain `<tbody>` of `<tr>`s.
+ * A rendered line: a group header, an actual row, or a row's open detail panel.
+ * Flattening the tree into one list is what lets the table stay a plain
+ * `<tbody>` of `<tr>`s.
+ *
+ * A `detail` line is a *line*, not a decoration on the row above it, precisely
+ * so that windowing can count it: `VirtualBody` measures the rendered rows
+ * against the items it handed out and gives up when the two disagree, so a
+ * detail `<tr>` smuggled in beside its row would silently switch measurement
+ * off and leave gaps. `withDetailRows` is what inserts them.
  */
 export type DisplayRow<TRow = Record<string, unknown>> =
   | { kind: 'group'; group: RowGroup<TRow> }
@@ -522,6 +529,15 @@ export type DisplayRow<TRow = Record<string, unknown>> =
       /** Position in the array that was grouped — survives regrouping, so it is a stable stripe parity. */
       index: number
       /** How many group levels sit above this row; 0 when grouping is off. */
+      depth: number
+    }
+  | {
+      kind: 'detail'
+      /** The row this panel belongs to — the line directly above it. */
+      row: TRow
+      /** The parent row's `index`, so the pair stripes as one. */
+      index: number
+      /** The parent row's `depth`, so the panel indents with its band. */
       depth: number
     }
 

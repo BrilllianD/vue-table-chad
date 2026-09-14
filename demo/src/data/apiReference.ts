@@ -81,6 +81,12 @@ export const apiReference: ApiEntry[] = [
   { name: 'UseRowGrouping', layer: 'core', kind: 'type', summary: 'displayRows, groups, overall aggregates and the collapse controls.' },
   { name: 'UseRowGroupingOptions', layer: 'core', kind: 'type', summary: 'What to group by, whole-set totals and aggregates, and the initial collapse state.' },
 
+  { name: 'useRowExpansion', layer: 'core', kind: 'composable', summary: 'Which rows have their detail panel open, and nothing else.' },
+  { name: 'UseRowExpansion', layer: 'core', kind: 'type', summary: 'The open set, its predicate and its mutators.' },
+  { name: 'UseRowExpansionOptions', layer: 'core', kind: 'type', summary: 'Row identity and the rows that start open.' },
+
+  { name: 'withDetailRows', layer: 'core', kind: 'function', summary: 'Interleaves a `detail` line after every expanded row of a flattened display list.' },
+
   { name: 'useLocalDataSource', layer: 'core', kind: 'composable', summary: 'Client-side pipeline: filter → sort → slice, each stage its own computed so paging does not redo the filter and sorting does not redo the search.' },
   { name: 'LocalDataSource', layer: 'core', kind: 'type', summary: 'A DataSource plus filteredRows, synchronous facets, and whole-set group counts.' },
   { name: 'LocalDataSourceOptions', layer: 'core', kind: 'type', summary: 'nullsLast, and debounceMs to coalesce the global search.' },
@@ -174,6 +180,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'scrollMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Shift` + `←`/`→` asked to scroll the table sideways — `-1` left, `1` right — or `undefined` for any other key.' },
   { name: 'viewportMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `↑`/`↓` asked to scroll the table — `-1` up, `1` down, one screenful a press — or `undefined` for any other key.' },
   { name: 'bandFoldFor', layer: 'core', kind: 'function', summary: 'Whether a key press asked to fold a header band, and which of the two ways.' },
+  { name: 'detailToggleFor', layer: 'core', kind: 'function', summary: "Whether a key press asked to open or shut the cursor row's detail panel." },
   { name: 'nextPosition', layer: 'core', kind: 'function', summary: 'Where `move` lands, given the cells currently on screen — or `undefined` when it lands nowhere new.' },
   { name: 'nextScrollLeft', layer: 'core', kind: 'function', summary: 'Where a sideways scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `scrollMoveFor`, with the DOM read out of it.' },
   { name: 'nextScrollTop', layer: 'core', kind: 'function', summary: 'Where a vertical scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `viewportMoveFor`, with the DOM read out of it.' },
@@ -183,6 +190,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'CursorMove', layer: 'core', kind: 'type', summary: 'What a key press asked for, before anything knows whether it is possible.' },
   { name: 'CursorKeyGesture', layer: 'core', kind: 'type', summary: 'The parts of a key press this module reads.' },
   { name: 'BandFold', layer: 'core', kind: 'type', summary: "What a fold gesture asked for: `toggle` acts on the band over the cursor's column, `expandAll` opens every band on the table." },
+  { name: 'DetailToggle', layer: 'core', kind: 'type', summary: "Which way a detail gesture asked the cursor's row to go." },
 
   /* --------------------------------------------------------------- filters */
   { name: 'valuesFilter', layer: 'filters', kind: 'function', summary: "Excel's checkbox list: which distinct values survive." },
@@ -271,6 +279,8 @@ export const apiReference: ApiEntry[] = [
 
   { name: 'TableGroupRow', layer: 'primitives', kind: 'component', summary: "A group header row: the expand toggle and the group's label, followed by whatever the grouped rows aggregate to, under the columns those aggregates describe." },
 
+  { name: 'TableDetailRow', layer: 'primitives', kind: 'component', summary: "A row's detail panel: one `<tr>` spanning every column, rendered directly under the row it belongs to." },
+
   { name: 'VirtualBody', layer: 'primitives', kind: 'component', summary: 'A `<tbody>` that renders only the rows the viewport can show, with empty space standing in for the rest.' },
 
   { name: 'SortTrigger', layer: 'primitives', kind: 'component', summary: 'The clickable header label: cycles asc → desc → unsorted, and shift-click stacks sort keys.' },
@@ -324,7 +334,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'HeaderColumnCell', layer: 'types', kind: 'type', summary: "One column's `<th>`, spanning down to the body from wherever its band left it." },
   { name: 'HeaderRow', layer: 'types', kind: 'type', summary: 'One `<tr>` of the header, as cells in display order.' },
   { name: 'RowGroup', layer: 'types', kind: 'type', summary: 'One bucket of rows sharing the same value on a grouped column.' },
-  { name: 'DisplayRow', layer: 'types', kind: 'type', summary: 'A rendered line: either a group header or an actual row. Flattening the tree into one list is what lets the table stay a plain `<tbody>` of `<tr>`s.' },
+  { name: 'DisplayRow', layer: 'types', kind: 'type', summary: "A rendered line: a group header, an actual row, or a row's open detail panel. Flattening the tree into one list is what lets the table stay a plain `<tbody>` of `<tr>`s." },
   { name: 'GroupMode', layer: 'types', kind: 'type', summary: "Who performs the grouping: `'client'` bands the rows already loaded, `'server'` delegates it and keeps bands whole across pages." },
   { name: 'AggregateFn', layer: 'types', kind: 'type', summary: 'The aggregations a column can declare: `sum` | `avg` | `min` | `max`.' },
   { name: 'AggregateResult', layer: 'types', kind: 'type', summary: 'One computed aggregate, ready to render.' },

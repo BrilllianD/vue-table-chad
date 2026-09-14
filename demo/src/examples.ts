@@ -17,6 +17,7 @@ import columnLayout from '../../docs/.vitepress/examples/column-layout.vue?highl
 import composing from '../../docs/.vitepress/examples/composing.vue?highlight'
 import contracts from '../../docs/.vitepress/examples/contracts.vue?highlight'
 import dataSources from '../../docs/.vitepress/examples/data-sources.vue?highlight'
+import detailRows from '../../docs/.vitepress/examples/detail-rows.vue?highlight'
 import editing from '../../docs/.vitepress/examples/editing.vue?highlight'
 import filtering from '../../docs/.vitepress/examples/filtering.vue?highlight'
 import gettingStarted from '../../docs/.vitepress/examples/getting-started.vue?highlight'
@@ -54,6 +55,7 @@ export const exampleFiles: Record<string, HighlightedFile> = {
   'composing.vue': composing,
   'contracts.vue': contracts,
   'data-sources.vue': dataSources,
+  'detail-rows.vue': detailRows,
   'editing.vue': editing,
   'filtering.vue': filtering,
   'getting-started.vue': gettingStarted,
@@ -109,6 +111,7 @@ export const examplesByTab: Record<string, TabExamples> = {
   infinite: { files: ['infinite.vue'] },
   filters: { files: ['filtering.vue'] },
   grouping: { files: ['grouping.vue'] },
+  detail: { files: ['detail-rows.vue'] },
   editing: { files: ['editing.vue'] },
   cursor: { files: ['keyboard.vue'] },
   'header-groups': { files: ['column-groups.vue'] },

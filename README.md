@@ -128,6 +128,7 @@ pages are also a VitePress site — `pnpm docs:dev` serves it locally, `pnpm doc
 | [Sorting and pagination](docs/sorting-and-pagination.md) | `usePagination`, `PageItem`, `SortOptions`, per-column comparators, and null-sorting. | Everything at once |
 | [Selection](docs/selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. | Selection |
 | [Grouping rows](docs/grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. | Grouping |
+| [Expandable detail rows](docs/detail-rows.md) | A row opens to show the entities that hang off it — `expandable`, the `#detail` slot, `useRowExpansion`, and what `virtual` needs. | Detail rows |
 | [Editing cells](docs/editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. | Editing |
 | [Keyboard navigation](docs/keyboard.md) | The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it. | Cell cursor |
 | [Column layout](docs/column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. | Column layout |
@@ -155,7 +156,7 @@ turned out not to be worth it, [`TASKS.md`](TASKS.md) for what is planned and wh
 ## Not included
 
 Tree rows (parent/child hierarchies, as opposed to the value-based grouping in
-[Grouping rows](docs/grouping.md)), expandable detail rows, pinned rows, and pivoting. Cell-level
+[Grouping rows](docs/grouping.md)), pinned rows, and pivoting. Cell-level
 clipboard copy and paste *is* in — see [Keyboard navigation](docs/keyboard.md) — and so is CSV/TSV
 export of the whole result set, see [Local, server and infinite data](docs/data-sources.md). Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer.
 

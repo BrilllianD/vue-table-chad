@@ -1,0 +1,68 @@
+/*
+ * Detail rows: the disclosure toggle in the leading column, and the panel row
+ * it opens under a row.
+ *
+ * A slice of the preset theme. Imported by `../table.css` in source order —
+ * see the note there about why the order is not arbitrary.
+ */
+
+/* ---------------------------------------------------------------- panel */
+
+.vt-detail-row .vt-detail-cell {
+  /* Not `.vt-td`, so none of the hover, stripe or pin layering applies here —
+     the same reason `.vt-group-cell` is not one. */
+  padding: 0;
+  background-color: var(--vtc-bg);
+  border-bottom: var(--vtc-body-border-width) solid var(--vtc-body-border-color);
+}
+
+/*
+  The part that stays on screen. The cell is as wide as every column, so on a
+  table wider than its scroll box the middle of the panel is off to one side;
+  only a sticky child as wide as the scrollport is readable there. The same
+  device `.vt-group-sticky` and the preset's message rows use.
+*/
+.vt-detail-inner {
+  position: sticky;
+  left: 0;
+  /* Indent lives here rather than on the cell, so a panel inside nested bands
+     lines up with the rows it belongs to. */
+  padding: var(--vtc-space-4) var(--vtc-space-6) var(--vtc-space-4)
+    calc(var(--vtc-space-6) + var(--vtc-group-depth, 0) * var(--vtc-group-indent-step));
+}
+
+/* ---------------------------------------------------------------- toggle */
+
+.vt-detail-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* A literal, not a scale entry: nothing else in the theme is this size, and
+     a scale nobody else reaches for is a scale that drifts. */
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vt-detail-toggle:focus-visible {
+  outline: var(--vtc-focus-width) solid var(--vtc-focus-color);
+  outline-offset: -2px;
+  border-radius: var(--vtc-radius-sm);
+}
+
+.vt-detail-caret {
+  /* Fixed box, so the rotation cannot nudge the checkbox beside it. */
+  width: 12px;
+  font-size: var(--vtc-font-size-md);
+  line-height: 1;
+  text-align: center;
+  color: var(--vtc-text-muted);
+  transition: transform var(--vtc-duration-fast) ease;
+}
+
+.vt-detail-toggle[aria-expanded='true'] .vt-detail-caret { transform: rotate(90deg); }

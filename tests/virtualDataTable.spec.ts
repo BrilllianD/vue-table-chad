@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { useRowEditing } from '../src/core/useRowEditing'
+import { resetDevWarnings } from '../src/core/devWarn'
 import type { ColumnDef } from '../src/core/types'
 
 /**
@@ -381,5 +382,108 @@ describe('DataTable in virtual mode', () => {
       expect(bodyRows(wrapper)[0]!.attributes('aria-rowindex')).toBeUndefined()
       wrapper.unmount()
     })
+  })
+})
+
+describe('detail rows in virtual mode', () => {
+  function mountExpandable(props: Record<string, unknown> = {}) {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 10 })
+        const source = useLocalDataSource<Row>(makeRows(), columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(
+            DataTable as never,
+            {
+              columns,
+              source,
+              state,
+              getRowId: (row: Row) => row.id,
+              virtual: true,
+              measureRows: true,
+              expandable: true,
+              ...props,
+            },
+            { detail: ({ row }: { row: Row }) => h('p', `detail for ${row.name}`) },
+          )
+      },
+    })
+    return mount(Host, { attachTo: document.body })
+  }
+
+  /*
+   * The panel is an item in the display list, so the window hands out one slot
+   * for it and one `<tr>` comes back. A panel smuggled in beside its row would
+   * leave the rendered count one ahead of the window's and switch measurement
+   * off without saying so.
+   */
+  it('spends a window slot on the panel, so the rendered rows still match', async () => {
+    const wrapper = mountExpandable()
+    const before = wrapper.findAll('tbody tr').length
+
+    await wrapper.findAll('tbody .vt-detail-toggle')[0]!.trigger('click')
+    await nextTick()
+
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows.filter((row) => row.classes('vt-detail-row'))).toHaveLength(1)
+    // The window is a fixed number of lines, so the panel pushes the last row
+    // out rather than adding to the count.
+    expect(rows).toHaveLength(before)
+    // And it is the last one that left, not the panel's own row.
+    expect(firstBodyName(wrapper)).toContain('Person 001')
+    wrapper.unmount()
+  })
+
+  it('numbers the panel as a row, since a screen reader counts it as one', async () => {
+    const wrapper = mountExpandable()
+    await wrapper.findAll('tbody .vt-detail-toggle')[2]!.trigger('click')
+    await nextTick()
+
+    const indices = wrapper
+      .findAll('tbody tr')
+      .filter((row) => !row.classes('vt-virtual-spacer'))
+      .map((row) => Number(row.attributes('aria-rowindex')))
+    expect(indices).toEqual(indices.map((_, offset) => indices[0]! + offset))
+    wrapper.unmount()
+  })
+
+  it('grows the space below the window by the line it added', async () => {
+    const wrapper = mountExpandable()
+    const spacerHeight = () =>
+      wrapper.findAll('.vt-virtual-spacer').at(-1)!.find('td').attributes('style')
+
+    const before = spacerHeight()
+    await wrapper.findAll('tbody .vt-detail-toggle')[0]!.trigger('click')
+    await nextTick()
+    expect(spacerHeight()).not.toBe(before)
+    wrapper.unmount()
+  })
+
+  /*
+   * A panel is taller than the rows around it, so a window that assumes one
+   * height for everything puts the rows below it in the wrong place — a gap
+   * that grows as you scroll. The warning is the only thing standing between a
+   * caller and that, since nothing about it fails.
+   */
+  it('refuses virtual + expandable without measureRows, in dev', () => {
+    resetDevWarnings()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const wrapper = mountExpandable({ measureRows: false })
+    expect(warn.mock.calls.map((call) => String(call[0])).join('\n')).toContain('measureRows')
+
+    wrapper.unmount()
+    warn.mockRestore()
+  })
+
+  it('says nothing when measureRows is on', () => {
+    resetDevWarnings()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const wrapper = mountExpandable()
+    expect(warn).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+    warn.mockRestore()
   })
 })

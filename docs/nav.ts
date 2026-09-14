@@ -81,6 +81,14 @@ export const docPages: DocPage[] = [
     section: 'Features',
   },
   {
+    file: 'detail-rows.md',
+    title: 'Expandable detail rows',
+    blurb:
+      'A row opens to show the entities that hang off it — `expandable`, the `#detail` slot, `useRowExpansion`, and what `virtual` needs.',
+    demoTabs: ['detail'],
+    section: 'Features',
+  },
+  {
     file: 'editing.md',
     title: 'Editing cells',
     blurb: 'A draft per row, cell and row mode, validation, and a save the server can refuse.',

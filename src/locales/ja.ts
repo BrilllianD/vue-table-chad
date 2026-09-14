@@ -131,6 +131,8 @@ export const ja: TableLabels = Object.freeze({
   expandColumnGroups: (columnLabel: string) => `${columnLabel}のすべてのグループを展開`,
   collapseColumnGroups: (columnLabel: string) =>
     `${columnLabel}のすべてのグループを折りたたむ`,
+  expandRow: '詳細を表示',
+  collapseRow: '詳細を隠す',
 
   operators: Object.freeze({
     contains: '含む',

@@ -129,6 +129,8 @@ export const zhCN: TableLabels = Object.freeze({
   collapseBand: (bandLabel: string) => `折叠“${bandLabel}”的列`,
   expandColumnGroups: (columnLabel: string) => `展开“${columnLabel}”的所有分组`,
   collapseColumnGroups: (columnLabel: string) => `折叠“${columnLabel}”的所有分组`,
+  expandRow: '显示详情',
+  collapseRow: '隐藏详情',
 
   operators: Object.freeze({
     contains: '包含',

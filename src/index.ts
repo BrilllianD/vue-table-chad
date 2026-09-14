@@ -47,6 +47,10 @@ export type {
 export { useRowGrouping } from './core/useRowGrouping'
 export type { UseRowGrouping, UseRowGroupingOptions } from './core/useRowGrouping'
 
+export { useRowExpansion } from './core/useRowExpansion'
+export type { UseRowExpansion, UseRowExpansionOptions } from './core/useRowExpansion'
+export { withDetailRows } from './core/expansion'
+
 export { useLocalDataSource } from './core/useLocalDataSource'
 export type { LocalDataSource, LocalDataSourceOptions } from './core/useLocalDataSource'
 
@@ -212,6 +216,7 @@ export {
   scrollMoveFor,
   viewportMoveFor,
   bandFoldFor,
+  detailToggleFor,
   nextPosition,
   nextScrollLeft,
   nextScrollTop,
@@ -223,6 +228,7 @@ export type {
   CursorMove,
   CursorKeyGesture,
   BandFold,
+  DetailToggle,
 } from './core/cellCursor'
 
 /* ----------------------------------------------------------------- utils */
@@ -249,6 +255,7 @@ export { default as TableRow } from './components/primitives/TableRow.vue'
 export { default as CellEditor } from './components/primitives/CellEditor.vue'
 export { default as AsyncSelect } from './components/primitives/AsyncSelect.vue'
 export { default as TableGroupRow } from './components/primitives/TableGroupRow.vue'
+export { default as TableDetailRow } from './components/primitives/TableDetailRow.vue'
 export { default as VirtualBody } from './components/primitives/VirtualBody.vue'
 export { default as SortTrigger } from './components/primitives/SortTrigger.vue'
 export { default as ColumnFilterPopover } from './components/primitives/ColumnFilterPopover.vue'

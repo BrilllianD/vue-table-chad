@@ -360,6 +360,7 @@ thing runs against real data.
 | [Sorting and pagination](sorting-and-pagination.md) | `usePagination`, `PageItem`, `SortOptions`, per-column comparators, and null-sorting. |
 | [Selection](selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. |
 | [Grouping rows](grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. |
+| [Expandable detail rows](detail-rows.md) | A row opens to show the entities that hang off it — `expandable`, the `#detail` slot, `useRowExpansion`, and what `virtual` needs. |
 | [Editing cells](editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. |
 | [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it. |
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |

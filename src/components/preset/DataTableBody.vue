@@ -23,6 +23,7 @@ import CellEditor from '../primitives/CellEditor.vue'
 import VirtualBody from '../primitives/VirtualBody.vue'
 import TableRow from '../primitives/TableRow.vue'
 import TableGroupRow from '../primitives/TableGroupRow.vue'
+import TableDetailRow from '../primitives/TableDetailRow.vue'
 import SelectionCheckbox from '../primitives/SelectionCheckbox.vue'
 import { INTERACTIVE_SELECTOR, isPlainLeftClick } from '../interactive'
 import { useTableLabels } from '../../core/context'
@@ -36,14 +37,22 @@ import type {
 import type { UseRowSelection } from '../../core/useRowSelection'
 import type { UseRowEditing } from '../../core/useRowEditing'
 import type { UseCellCursor } from '../../core/useCellCursor'
+import type { UseRowExpansion } from '../../core/useRowExpansion'
+import { withDetailRows } from '../../core/expansion'
 import type { CellPosition, CursorMove } from '../../core/cellCursor'
 
 const props = defineProps<{
   columns: ResolvedColumn<TRow>[]
   /** The source's page, for the "nothing matched" test. */
   rows: TRow[]
-  /** The same rows with group headers folded in — what actually renders. */
+  /**
+   * The same rows with group headers folded in. The detail panels are folded in
+   * here rather than upstream, so the grouping composable stays ignorant of
+   * which rows are open.
+   */
   displayRows: DisplayRow<TRow>[]
+  /** Which rows have a detail panel open, or `undefined` when none can. */
+  expansion: UseRowExpansion<TRow> | undefined
   source: DataSource<TRow>
   loading: boolean
   error: unknown
@@ -133,15 +142,48 @@ interface VirtualBodyView {
 const body = ref<VirtualBodyView | null>(null)
 
 /**
+ * The display list with a `detail` line after every open row.
+ *
+ * Everything downstream counts *this* list: the window, the spacers, the
+ * row-index map and the `v-for`. Handing `VirtualBody` a list that did not
+ * include the panels while the `v-for` rendered them anyway is exactly what
+ * makes `measureRows` give up — it compares the rows it finds against the items
+ * it handed out.
+ *
+ * `withDetailRows` returns its input by reference when nothing is open, so a
+ * table with every panel shut re-renders nothing through this.
+ */
+/**
+ * Whether the leading narrow column exists at all.
+ *
+ * One column for both features rather than one each: the checkbox and the
+ * disclosure toggle are both "this row, not its data", and a second narrow
+ * column would cost every table that turns both on a column of whitespace.
+ */
+const leadingColumn = computed(() => props.selectable || props.expansion !== undefined)
+
+const items = computed<DisplayRow<TRow>[]>(() => {
+  const expansion = props.expansion
+  if (!expansion) return props.displayRows
+  return withDetailRows(props.displayRows, expansion.isExpanded)
+})
+
+/**
  * A display row's identity — the same string the `v-for` below keys on.
  *
  * `VirtualBody` uses it to keep the scroll offset pointing at the row it
  * pointed at before the list changed, which is what makes collapsing a band
  * while scrolled deep land somewhere the user recognises: the band's own header
  * row, since every row it was holding has just left the list.
+ *
+ * A panel is keyed apart from the row it belongs to. Sharing a key would make
+ * the scroll anchor unable to tell the pair apart, and would let Vue patch one
+ * into the other.
  */
 function displayRowKey(item: DisplayRow<TRow>, _index: number): unknown {
-  return item.kind === 'group' ? `group:${item.group.key}` : props.rowKey(item.row, item.index)
+  if (item.kind === 'group') return `group:${item.group.key}`
+  const key = props.rowKey(item.row, item.index)
+  return item.kind === 'detail' ? `detail:${key}` : key
 }
 
 /**
@@ -160,7 +202,7 @@ watch(
   () => {
     const view = body.value
     if (!props.cursor || !view) return undefined
-    return [view.start, view.end, props.displayRows] as const
+    return [view.start, view.end, items.value] as const
   },
   (window) => {
     const cursor = props.cursor
@@ -192,7 +234,7 @@ const rowIndexById = computed(() => {
   const map = new Map<RowId, number>()
   const cursor = props.cursor
   if (!props.virtual || !cursor) return map
-  const rows = props.displayRows
+  const rows = items.value
   for (let index = 0; index < rows.length; index += 1) {
     const item = rows[index]!
     if (item.kind === 'row') map.set(cursor.getRowId(item.row), index)
@@ -515,7 +557,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
   -->
   <VirtualBody
     ref="body"
-    :items="displayRows"
+    :items="items"
     :row-height="rowHeight"
     :overscan="overscan"
     :scroll-parent="scrollParent"
@@ -572,7 +614,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           :row-index="headerRowCount === undefined ? undefined : headerRowCount + start + offset + 1"
           :group="item.group"
           :columns="columns"
-          :leading="selectable ? 1 : 0"
+          :leading="leadingColumn ? 1 : 0"
           :trailing-cells="actionsColumn ? 1 : 0"
         >
           <template #default="slotProps">
@@ -587,6 +629,28 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           </template>
         </TableGroupRow>
 
+        <!--
+          The panel for the row above, when one is open. A branch of the same
+          loop rather than a sibling rendered inside the row's own branch: the
+          window handed out one item for it, so exactly one `<tr>` has to come
+          back, or `measureRows` stops trusting what it measures.
+        -->
+        <TableDetailRow
+          v-else-if="item.kind === 'detail'"
+          :key="`detail:${rowKey(item.row, item.index)}`"
+          :row-index="headerRowCount === undefined ? undefined : headerRowCount + start + offset + 1"
+          :row="item.row"
+          :columns="columns"
+          :index="item.index"
+          :depth="item.depth"
+          :leading="leadingColumn ? 1 : 0"
+          :trailing-cells="actionsColumn ? 1 : 0"
+        >
+          <template #default="slotProps">
+            <slot name="detail" v-bind="slotProps" />
+          </template>
+        </TableDetailRow>
+
         <TableRow
           v-else
           :key="rowKey(item.row, item.index)"
@@ -596,15 +660,16 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           :index="item.index"
           :depth="item.depth"
           :selected="selection ? selection.isSelected(item.row) : false"
+          :expanded="expansion ? expansion.isExpanded(item.row) : false"
           :state="rowState(item.row)"
           :cursor="cursor"
           :hover-column-id="hoverColumnId"
           @click="onRowClick(item.row, $event)"
           @mousedown="onRowMouseDown"
         >
-          <template v-if="selectable" #leading>
+          <template v-if="leadingColumn" #leading>
             <SelectionCheckbox
-              v-if="selection"
+              v-if="selectable && selection"
               :checked="selection.isSelected(item.row)"
               :disabled="!selection.isSelectable(item.row)"
               label="Select row"
@@ -615,6 +680,23 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
                     : selection?.toggle(item.row)
               "
             />
+            <!--
+              A real button, so the panel is reachable by Tab and announces its
+              state, the way the group row's toggle is. `aria-expanded` on the
+              button rather than on the row: the panel is a sibling `<tr>`, and
+              `aria-controls` cannot name an element that does not exist while
+              the panel is shut.
+            -->
+            <button
+              v-if="expansion"
+              type="button"
+              class="vt-detail-toggle"
+              :aria-expanded="expansion.isExpanded(item.row)"
+              :aria-label="expansion.isExpanded(item.row) ? labels.collapseRow : labels.expandRow"
+              @click.stop="expansion.toggle(item.row)"
+            >
+              <span class="vt-detail-caret" aria-hidden="true">▸</span>
+            </button>
           </template>
 
           <!--

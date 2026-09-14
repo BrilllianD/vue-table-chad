@@ -50,6 +50,7 @@
 @import './styles/header.css';
 @import './styles/filters.css';
 @import './styles/groups.css';
+@import './styles/detail.css';
 @import './styles/menus.css';
 @import './styles/pagination.css';
 @import './styles/editing.css';
