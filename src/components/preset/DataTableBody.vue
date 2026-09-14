@@ -647,7 +647,18 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           :trailing-cells="actionsColumn ? 1 : 0"
         >
           <template #default="slotProps">
-            <slot name="detail" v-bind="slotProps" />
+            <!--
+              `detail` is what `loadDetail` fetched for this row, so a panel can
+              render its pending and failed states from the slot props alone.
+              Always present: with no `loadDetail` it reads `ready` with no
+              data, which is the same branch a synchronous panel takes.
+            -->
+            <slot
+              name="detail"
+              v-bind="slotProps"
+              :detail="expansion ? expansion.detailFor(item.row) : undefined"
+              :reload="() => expansion?.reload(item.row)"
+            />
           </template>
         </TableDetailRow>
 

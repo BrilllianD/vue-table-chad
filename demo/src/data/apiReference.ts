@@ -82,8 +82,10 @@ export const apiReference: ApiEntry[] = [
   { name: 'UseRowGroupingOptions', layer: 'core', kind: 'type', summary: 'What to group by, whole-set totals and aggregates, and the initial collapse state.' },
 
   { name: 'useRowExpansion', layer: 'core', kind: 'composable', summary: 'Which rows have their detail panel open, and nothing else.' },
-  { name: 'UseRowExpansion', layer: 'core', kind: 'type', summary: 'The open set, its predicate and its mutators.' },
-  { name: 'UseRowExpansionOptions', layer: 'core', kind: 'type', summary: 'Row identity and the rows that start open.' },
+  { name: 'DetailState', layer: 'core', kind: 'type', summary: "A row's detail data and how it got there." },
+  { name: 'DetailStatus', layer: 'core', kind: 'type', summary: "Where a row's detail data stands." },
+  { name: 'UseRowExpansion', layer: 'core', kind: 'type', summary: 'The open set, its predicate, its mutators and the detail each row loaded.' },
+  { name: 'UseRowExpansionOptions', layer: 'core', kind: 'type', summary: 'Row identity, the rows that start open, and where their children come from.' },
 
   { name: 'withDetailRows', layer: 'core', kind: 'function', summary: 'Interleaves a `detail` line after every expanded row of a flattened display list.' },
 

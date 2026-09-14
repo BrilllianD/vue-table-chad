@@ -48,7 +48,12 @@ export { useRowGrouping } from './core/useRowGrouping'
 export type { UseRowGrouping, UseRowGroupingOptions } from './core/useRowGrouping'
 
 export { useRowExpansion } from './core/useRowExpansion'
-export type { UseRowExpansion, UseRowExpansionOptions } from './core/useRowExpansion'
+export type {
+  DetailState,
+  DetailStatus,
+  UseRowExpansion,
+  UseRowExpansionOptions,
+} from './core/useRowExpansion'
 export { withDetailRows } from './core/expansion'
 
 export { useLocalDataSource } from './core/useLocalDataSource'

@@ -1587,6 +1587,59 @@ describe('DataTable detail rows', () => {
     wrapper.unmount()
   })
 
+  it('hands the detail slot its load state and a way to retry', async () => {
+    let fail = true
+    let settle!: () => void
+    const expansion = useRowExpansion<Person, string>({
+      loadDetail: () =>
+        new Promise<string>((resolve, reject) => {
+          settle = () => (fail ? reject(new Error('nope')) : resolve('two projects'))
+        }),
+    })
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state, expansion },
+            {
+              detail: ({
+                detail,
+                reload,
+              }: {
+                detail: { status: string }
+                reload: () => void
+              }) =>
+                detail.status === 'error'
+                  ? h('button', { class: 'retry', onClick: reload }, 'Retry')
+                  : h('p', detail.status === 'ready' ? 'two projects' : 'loading…'),
+            },
+          )
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    await wrapper.findAll('tbody .vt-detail-toggle')[0]!.trigger('click')
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').text()).toBe('loading…')
+
+    settle()
+    await nextTick()
+    await nextTick()
+    expect(wrapper.find('.retry').exists()).toBe(true)
+
+    // The panel offers a way back rather than staying broken.
+    fail = false
+    await wrapper.find('.retry').trigger('click')
+    settle()
+    await nextTick()
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').text()).toBe('two projects')
+    wrapper.unmount()
+  })
+
   it('exposes the expansion on a template ref', async () => {
     const table = ref<{ expansion?: UseRowExpansion<Person> } | null>(null)
     const wrapper = mountExpandable({ ref: table })

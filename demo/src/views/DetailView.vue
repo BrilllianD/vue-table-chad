@@ -50,9 +50,6 @@ const PROJECTS = ['Atlas', 'Beacon', 'Cinder', 'Delta', 'Ember', 'Fathom']
  * A deterministic child list per employee, derived rather than stored: the
  * point of the view is the panel, and a row whose children changed on every
  * render would make it impossible to tell a re-render from a refetch.
- *
- * Synchronous here. Loading these when the row opens is `loadDetail`, which the
- * docs page covers.
  */
 function assignmentsFor(row: Employee): Assignment[] {
   const count = row.id % 4
@@ -72,6 +69,31 @@ const assignmentColumns: ColumnDef<Assignment>[] = [
   { id: 'since', header: 'Since', type: 'date', width: 120 },
 ]
 
+/**
+ * The same list behind a delay and a failure rate, which is what `loadDetail`
+ * is for: the children are rarely in the row already, and a panel that has to
+ * ask for them has three states to render rather than one.
+ *
+ * Every fifth row fails, so the error branch and its Retry are reachable rather
+ * than theoretical.
+ */
+const failRate = ref(5)
+
+function fetchAssignments(row: Employee): Promise<Assignment[]> {
+  return new Promise((resolve, reject) => {
+    setTimeout(
+      () => {
+        if (failRate.value > 0 && row.id % failRate.value === 0) {
+          reject(new Error(`Could not load assignments for ${row.name}`))
+          return
+        }
+        resolve(assignmentsFor(row))
+      },
+      400 + (row.id % 5) * 200,
+    )
+  })
+}
+
 /* --------------------------------------------- a table inside a table */
 
 const rows = shallowRef(employees.slice(0, 200))
@@ -83,7 +105,7 @@ const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
  * and the open ids are visible. `expandable` alone is the short form and makes
  * the table own one of these internally.
  */
-const expansion = useRowExpansion<Employee>()
+const expansion = useRowExpansion<Employee, Assignment[]>({ loadDetail: fetchAssignments })
 
 const shown = employeeColumns.filter((column) =>
   ['name', 'department', 'role', 'hiredAt'].includes(column.id),
@@ -130,14 +152,18 @@ const nested = ref(true)
 <template>
   <DemoSection
     title="Detail rows"
-    blurb="A row opens to show what hangs off it: a nested table of child entities, or a panel of
-           the row's own fields. The panel is a row of the table rather than something attached to
-           one — which is what lets a virtual body count it, and why virtual needs measureRows
-           here. Click a caret, or press Alt+Down and Alt+Up on a focused row."
+    blurb="A row opens to show what hangs off it, fetched when it opens: loadDetail asks, detailFor
+           reports where the answer is, and reload asks again. The panel is a row of the table
+           rather than something attached to one — which is what lets a virtual body count it, and
+           why virtual needs measureRows here. Click a caret, or press Alt+Down and Alt+Up on a
+           focused row."
     :api="[
       'DataTable expansion',
       'DataTable #detail',
       'useRowExpansion',
+      'loadDetail',
+      'detailFor',
+      'reload',
       'withDetailRows',
       'TableDetailRow',
       'detailToggleFor',
@@ -155,7 +181,18 @@ const nested = ref(true)
           <input v-model="nested" type="checkbox" />
           Nested table in the panel
         </label>
-        <span class="hint">{{ openCount }} open — ids, so they survive a page turn</span>
+        <label>
+          Failures
+          <select v-model.number="failRate">
+            <option :value="0">none</option>
+            <option :value="5">every 5th row</option>
+            <option :value="1">every row</option>
+          </select>
+        </label>
+        <span class="hint">
+          {{ openCount }} open — ids, so they survive a page turn. Children load on the expand,
+          once per row: shut a panel and reopen it and nothing is fetched again.
+        </span>
       </div>
     </template>
 
@@ -166,26 +203,30 @@ const nested = ref(true)
       :expansion="expansion"
       cell-cursor
     >
-      <template #detail="{ row }">
-        <!-- A table inside a table: its own columns, its own empty state. -->
-        <div v-if="nested" class="detail-table">
+      <template #detail="{ row, detail, reload }">
+        <!-- Three states, and the pending one is not a spinner over nothing:
+             the panel is already a row, so it holds its height while it waits. -->
+        <p v-if="detail.status === 'loading'" class="hint">Loading {{ row.name }}'s assignments…</p>
+
+        <p v-else-if="detail.status === 'error'" class="detail-error">
+          {{ (detail.error as Error).message }}
+          <button type="button" class="vt-btn" @click="reload()">Retry</button>
+        </p>
+
+        <p v-else-if="!detail.data || detail.data.length === 0" class="hint">No assignments.</p>
+
+        <!-- A table inside a table: its own columns, its own sorting. -->
+        <div v-else-if="nested" class="detail-table">
           <strong class="detail-title">{{ row.name }} — assignments</strong>
-          <p v-if="assignmentsFor(row).length === 0" class="hint">No assignments.</p>
-          <AssignmentsTable
-            v-else
-            :key="row.id"
-            :columns="assignmentColumns"
-            :rows="assignmentsFor(row)"
-          />
+          <AssignmentsTable :key="row.id" :columns="assignmentColumns" :rows="detail.data" />
         </div>
 
         <!-- The same data, laid out rather than tabulated. -->
         <dl v-else class="detail-fields">
-          <div v-for="assignment in assignmentsFor(row)" :key="assignment.id">
+          <div v-for="assignment in detail.data" :key="assignment.id">
             <dt>{{ assignment.project }}</dt>
             <dd>{{ assignment.share }}% since {{ assignment.since }}</dd>
           </div>
-          <p v-if="assignmentsFor(row).length === 0" class="hint">No assignments.</p>
         </dl>
       </template>
     </DataTable>
@@ -276,4 +317,5 @@ const nested = ref(true)
 .detail-fields dt { font-weight: 600; font-size: 12px; }
 .detail-fields dd { margin: 0; font-size: 12px; }
 .panel { margin: 0; font-size: 12.5px; }
+.detail-error { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 12.5px; }
 </style>

@@ -251,7 +251,7 @@ pays nothing. `endReached` is what a virtual table wires to an infinite source's
 | `headerGroup` | band props | A header band's cell. |
 | `group` | `group`, `columnLabel`, … | A group header row. |
 | `groupAggregate` | `text`, … | One aggregate inside a group header. |
-| `detail` | `row`, `index`, `depth` | An open row's detail panel. Needs `expandable` or `expansion`. |
+| `detail` | `row`, `index`, `depth`, `detail`, `reload` | An open row's detail panel. Needs `expandable` or `expansion`. `detail` is the load state when the children are fetched by `loadDetail`. |
 | `rowActions` | `row`, `state`, `editing` | The trailing cell in row-edit mode. |
 | `footer` | footer props | The footer row. |
 | `empty` | — | The "no rows" message. |

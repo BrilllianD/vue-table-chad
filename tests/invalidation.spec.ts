@@ -1180,6 +1180,41 @@ describe('what expanding a detail row is allowed to recompute', () => {
   })
 
   /*
+   * The fetch a panel triggers is the consumer's request, not the table's: it
+   * writes one entry in the detail cache and nothing that any pipeline stage
+   * reads. An expand that calls `source.refresh()` instead would show up here
+   * as a filter pass and a sort pass.
+   */
+  it('loading a panel’s children costs no pass, on the way out or back', async () => {
+    let settle!: (value: string) => void
+    const h = expansionHarness()
+    const scope = effectScope()
+    const expansion = scope.run(() =>
+      useRowExpansion<Employee, string>({
+        getRowId: (row) => row.id,
+        loadDetail: () =>
+          new Promise<string>((resolve) => {
+            settle = resolve
+          }),
+      }),
+    )!
+    const row = h.rowsOnScreen()[0]!
+    reset()
+
+    expansion.toggle(row)
+    expect(expansion.detailFor(row).status).toBe('loading')
+    expectNoPasses()
+
+    settle('two assignments')
+    await nextTick()
+    expect(expansion.detailFor(row).data).toBe('two assignments')
+    expectNoPasses()
+
+    scope.stop()
+    h.stop()
+  })
+
+  /*
    * The identity half of the same invariant: with nothing open the list handed
    * downstream is the one that came in, so a table nobody has expanded
    * propagates nothing at all to the body it feeds.

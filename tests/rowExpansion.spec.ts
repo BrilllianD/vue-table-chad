@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { effectScope, watch } from 'vue'
+import { effectScope, nextTick, watch } from 'vue'
 import { useRowExpansion } from '../src/core/useRowExpansion'
 import { withDetailRows } from '../src/core/expansion'
-import type { DisplayRow, RowGroup } from '../src/core/types'
+import type { DisplayRow, RowGroup, RowId } from '../src/core/types'
 import { people, type Person } from './fixtures'
 
 function setup(options = {}) {
@@ -113,6 +113,151 @@ describe('useRowExpansion', () => {
     const { expansion, dispose } = setup({ getRowId: (row: Person) => row.name })
     expansion.toggle(people[0]!)
     expect(expansion.expanded.value).toEqual(['Ada Lovelace'])
+    dispose()
+  })
+})
+
+describe('useRowExpansion with loadDetail', () => {
+  interface Assignment {
+    project: string
+  }
+
+  /** A load whose settling each case controls, so a race can be written down. */
+  function deferred() {
+    const pending = new Map<RowId, { resolve: (value: Assignment[]) => void; reject: (error: unknown) => void }>()
+    const calls: RowId[] = []
+    const loadDetail = (row: Person) =>
+      new Promise<Assignment[]>((resolve, reject) => {
+        calls.push(row.id)
+        pending.set(row.id, { resolve, reject })
+      })
+    return { pending, calls, loadDetail }
+  }
+
+  function setupAsync(loadDetail: (row: Person) => Promise<Assignment[]>) {
+    const scope = effectScope()
+    const expansion = scope.run(() => useRowExpansion<Person, Assignment[]>({ loadDetail }))!
+    return { expansion, dispose: () => scope.stop() }
+  }
+
+  it('fetches on the expand transition and reports each state in turn', async () => {
+    const { pending, loadDetail } = deferred()
+    const { expansion, dispose } = setupAsync(loadDetail)
+
+    expect(expansion.detailFor(people[0]!).status).toBe('idle')
+
+    expansion.toggle(people[0]!)
+    expect(expansion.detailFor(people[0]!).status).toBe('loading')
+
+    pending.get(1)!.resolve([{ project: 'Atlas' }])
+    await nextTick()
+
+    const state = expansion.detailFor(people[0]!)
+    expect(state.status).toBe('ready')
+    expect(state.data).toEqual([{ project: 'Atlas' }])
+    dispose()
+  })
+
+  it('reports a rejection rather than dropping it', async () => {
+    const { pending, loadDetail } = deferred()
+    const { expansion, dispose } = setupAsync(loadDetail)
+
+    expansion.toggle(people[0]!)
+    pending.get(1)!.reject(new Error('nope'))
+    await nextTick()
+
+    const state = expansion.detailFor(people[0]!)
+    expect(state.status).toBe('error')
+    expect((state.error as Error).message).toBe('nope')
+    dispose()
+  })
+
+  /*
+   * Once per id, and the cache outlives a collapse: reopening a panel the user
+   * already looked at is what a second request here would cost.
+   */
+  it('fetches once per row, collapse and reopen included', async () => {
+    const { pending, calls, loadDetail } = deferred()
+    const { expansion, dispose } = setupAsync(loadDetail)
+
+    expansion.toggle(people[0]!)
+    pending.get(1)!.resolve([])
+    await nextTick()
+
+    expansion.toggle(people[0]!, false)
+    expansion.toggle(people[0]!, true)
+    // And an explicit expand on an already-open row is not a transition either.
+    expansion.toggle(people[0]!, true)
+
+    expect(calls).toEqual([1])
+    expect(expansion.detailFor(people[0]!).status).toBe('ready')
+    dispose()
+  })
+
+  it('asks again on reload, and keeps the newer answer', async () => {
+    const { pending, calls, loadDetail } = deferred()
+    const { expansion, dispose } = setupAsync(loadDetail)
+
+    expansion.toggle(people[0]!)
+    const first = pending.get(1)!
+    expansion.reload(people[0]!)
+    const second = pending.get(1)!
+
+    // Out of order: the superseded request settles last and must be discarded,
+    // or the panel ends up showing what it asked for two answers ago.
+    second.resolve([{ project: 'Beacon' }])
+    await nextTick()
+    first.resolve([{ project: 'Atlas' }])
+    await nextTick()
+
+    expect(calls).toEqual([1, 1])
+    expect(expansion.detailFor(people[0]!).data).toEqual([{ project: 'Beacon' }])
+    dispose()
+  })
+
+  it('discards a failure that lost the same race', async () => {
+    const { pending, loadDetail } = deferred()
+    const { expansion, dispose } = setupAsync(loadDetail)
+
+    expansion.toggle(people[0]!)
+    const first = pending.get(1)!
+    expansion.reload(people[0]!)
+    pending.get(1)!.resolve([{ project: 'Beacon' }])
+    await nextTick()
+
+    first.reject(new Error('too late'))
+    await nextTick()
+
+    expect(expansion.detailFor(people[0]!).status).toBe('ready')
+    dispose()
+  })
+
+  it('opens every row it is handed and asks for each one once', async () => {
+    const { pending, calls, loadDetail } = deferred()
+    const { expansion, dispose } = setupAsync(loadDetail)
+    const rows = people.slice(0, 3)
+
+    expansion.expandAll(rows)
+    expect(calls).toEqual([1, 2, 3])
+    for (const row of rows) pending.get(row.id)!.resolve([])
+    await nextTick()
+
+    expansion.collapseAll()
+    expansion.expandAll(rows)
+    expect(calls).toEqual([1, 2, 3])
+    dispose()
+  })
+
+  /*
+   * The synchronous path from F6 has to stay one code path, so a panel that
+   * needs no fetch reads `ready` rather than a fourth branch for "there is
+   * nothing to load".
+   */
+  it('reports ready with no data when nothing loads', () => {
+    const { expansion, dispose } = setup()
+    expect(expansion.detailFor(people[0]!)).toEqual({ status: 'ready' })
+    expansion.toggle(people[0]!)
+    expect(expansion.detailFor(people[0]!).status).toBe('ready')
     dispose()
   })
 })

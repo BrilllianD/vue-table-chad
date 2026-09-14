@@ -51,22 +51,6 @@ it stop earning its keep.
 
 Agreed and next up, in the order they are meant to land.
 
-### `[ ]` F17 — Detail rows that load their children
-
-`useRowExpansion` grows `loadDetail?: (row) => Promise<TDetail>`, `detailFor(row)` returning
-`{ status: 'idle' | 'loading' | 'ready' | 'error'; data?; error? }`, and `reload(row)`. The cache is
-a `shallowRef<Map<RowId, DetailState>>` replaced rather than mutated, so one row's arrival
-re-renders that panel and not the table. The fetch fires on the expand transition only, once per id;
-collapse keeps the cache, so reopening is instant. Out-of-order responses are discarded by a per-id
-request token — the pattern `useAsyncOptions.ts` already uses, reused rather than reinvented. With
-no `loadDetail`, `detailFor` reports `ready` with no data, so the synchronous path F6 shipped stays
-one code path.
-
-**Done when:** the demo's detail view loads its child entities on expand and shows the pending and
-error states, `invalidation.spec.ts` asserts zero dataset passes for both the expand that starts a
-load and the response that settles it, a spec covers the stale-response discard, and
-`docs/detail-rows.md` documents `loadDetail`, `detailFor` and `reload`.
-
 ### `[ ]` F8 — Context menu primitive
 
 `TableContextMenu`, built on `useMenuDismiss` and `usePopoverPosition` (both already in

@@ -19,7 +19,8 @@ more room than a cell has. Two props and one slot:
 
 `expandable` adds the disclosure column and lets the table own which rows are open. The panel is
 rendered by the `#detail` slot, which is handed the row it belongs to, that row's `index` in the
-page, and its `depth` when the table is grouped.
+page, its `depth` when the table is grouped, and — when the children are fetched rather than read
+off the row — the `detail` state and a `reload` for it.
 
 ## The panel is a row
 
@@ -54,7 +55,8 @@ const expansion = useRowExpansion<Employee>({
 ```
 
 It carries `expanded` (a writable `Ref<RowId[]>`, so the open set can be saved and restored),
-`isExpanded(row)`, `toggle(row, next?)`, `expandAll(rows)` and `collapseAll()`. `expandAll` takes
+`isExpanded(row)`, `toggle(row, next?)`, `expandAll(rows)`, `collapseAll()`, and — for the async
+case below — `detailFor(row)` and `reload(row)`. `expandAll` takes
 its rows as an argument rather than reading a dataset of its own — the composable holds no
 reference to your data at all, which is what keeps opening a panel out of the filter, sort and
 group passes entirely.
@@ -81,6 +83,51 @@ uses `Alt`, which is why that pair is the one this spends.
 The disclosure button is a real button, reachable by <kbd>Tab</kbd> and announcing its state
 through `aria-expanded`. Its accessible name comes from the `expandRow` / `collapseRow`
 [labels](./labels.md), so it translates with everything else.
+
+## Children fetched when the row opens
+
+The children usually are not in the row. `loadDetail` is where they come from:
+
+```ts
+const expansion = useRowExpansion<Employee, Assignment[]>({
+  loadDetail: (row) => fetch(`/api/employees/${row.id}/assignments`).then((r) => r.json()),
+})
+```
+
+```vue
+<DataTable :columns="columns" :source="source" :expansion="expansion">
+  <template #detail="{ row, detail, reload }">
+    <p v-if="detail.status === 'loading'">Loading…</p>
+    <p v-else-if="detail.status === 'error'">
+      {{ detail.error.message }}
+      <button @click="reload()">Retry</button>
+    </p>
+    <AssignmentsTable v-else :key="row.id" :rows="detail.data" :columns="assignmentColumns" />
+  </template>
+</DataTable>
+```
+
+`detail` is `{ status, data?, error? }` with `status` one of `idle`, `loading`, `ready` or
+`error`. With no `loadDetail` at all it reads `ready` with no `data`, so a panel built from the row
+itself takes the same branch and there is one code path rather than two.
+
+What the rules are:
+
+- **The fetch is on the expand transition, once per row id.** Shutting a panel keeps what arrived,
+  so reopening one is instant, and an explicit `toggle(row, true)` on an already-open row is not a
+  transition.
+- **`reload(row)` asks again**, cache or no cache. That is the Retry button above, and it is also
+  what to call when the children changed underneath an open panel.
+- **An overtaken response is discarded.** Each request carries a token per row id, and one that is
+  no longer the current token for its row never reaches the cache — so a slow first answer cannot
+  land on top of the retry that replaced it.
+- **`expandAll(rows)` fetches for each row it opens** that has nothing cached. Every panel it opens
+  is on screen, so every one of them needs its children; opening thousands of rows is asking for
+  thousands of requests.
+- **None of it touches the table's own data.** The fetch is yours, the cache is a `Map` keyed by row
+  id held in a `shallowRef` and replaced rather than mutated, so one row's arrival re-renders that
+  panel and not the table. `tests/invalidation.spec.ts` asserts zero filter, sort, group and
+  aggregate passes for both the expand that starts a load and the response that settles it.
 
 ## A subtable of child entities
 
