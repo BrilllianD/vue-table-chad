@@ -34,6 +34,21 @@ function editor(column: ColumnDef<Row>, props: Record<string, unknown> = {}) {
   })
 }
 
+/**
+ * The option labels a select is offering, panel opened.
+ *
+ * Read off `document` rather than the wrapper because the panel is teleported
+ * to `<body>` — which is the point of it, since a `<td>`'s `overflow` would
+ * otherwise clip the list.
+ */
+async function optionsOf(wrapper: ReturnType<typeof editor>): Promise<string[]> {
+  await wrapper.get('.vt-select-trigger').trigger('click')
+  await nextTick()
+  return Array.from(document.querySelectorAll('.vt-select-panel .vt-select-option')).map(
+    (node) => node.textContent?.trim() ?? '',
+  )
+}
+
 const text: ColumnDef<Row> = { id: 'name', header: 'Name', type: 'text' }
 const number: ColumnDef<Row> = { id: 'salary', header: 'Salary', type: 'number' }
 const date: ColumnDef<Row> = { id: 'hiredAt', header: 'Hired', type: 'date' }
@@ -68,7 +83,7 @@ describe('the control it picks', () => {
     expect(editor(number).find('input').attributes('type')).toBe('text')
     expect(editor(date).find('input').attributes('type')).toBe('date')
     expect(editor(boolean).find('input').attributes('type')).toBe('checkbox')
-    expect(editor(enumeration).find('select').exists()).toBe(true)
+    expect(editor(enumeration).find('.vt-select-trigger').exists()).toBe(true)
   })
 
   it('asks for a numeric keyboard without asking for a number input', () => {
@@ -85,16 +100,16 @@ describe('the control it picks', () => {
     expect(editor(date).find('input').attributes('step')).toBeUndefined()
   })
 
-  it('offers every option, plus a way back to blank', () => {
-    const options = editor(enumeration).findAll('option')
-    expect(options).toHaveLength(3)
-    expect(options[0]!.attributes('value')).toBe('')
-    expect(options.map((option) => option.text())).toEqual(['', 'Design', 'Sales'])
+  it('offers every option, plus a way back to blank', async () => {
+    const wrapper = editor(enumeration, { autofocus: false })
+    expect(await optionsOf(wrapper)).toEqual(['', 'Design', 'Sales'])
+    wrapper.unmount()
   })
 
-  it('drops the blank option when the column is required', () => {
-    const options = editor({ ...enumeration, required: true }).findAll('option')
-    expect(options.map((option) => option.text())).toEqual(['Design', 'Sales'])
+  it('drops the blank option when the column is required', async () => {
+    const wrapper = editor({ ...enumeration, required: true }, { autofocus: false })
+    expect(await optionsOf(wrapper)).toEqual(['Design', 'Sales'])
+    wrapper.unmount()
   })
 
   it('renders a blank rather than the word "null"', () => {
@@ -109,7 +124,7 @@ describe('the control it picks', () => {
     const wrapper = editor(column, { autofocus: false })
     // Whatever its `type`: the list is the reason for the control, and a
     // column of ids is as often typed `number` as `enum`.
-    expect(wrapper.find('.vt-asyncselect-trigger').exists()).toBe(true)
+    expect(wrapper.find('.vt-select-trigger').exists()).toBe(true)
     expect(wrapper.find('.vt-cell-editor').attributes('data-kind')).toBe('async-select')
     wrapper.unmount()
     dispose()
@@ -245,7 +260,7 @@ describe('what it emits', () => {
 
   it('leaves the arrows to a select and a textarea even when asked', async () => {
     const list = editor(enumeration, { arrowMove: true })
-    await list.find('select').trigger('keydown', { key: 'ArrowDown' })
+    await list.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown' })
     // The arrows are how a select is changed at all, and how a caret crosses a
     // line in a textarea. Claiming them takes the control's own operation away.
     expect(list.emitted('commit')).toBeUndefined()
@@ -260,7 +275,7 @@ describe('what it emits', () => {
     const wrapper = editor(column, { arrowMove: true, autofocus: false })
     // Same reason as the select: the arrows are how the listbox is walked, so
     // claiming them would take the control's own operation away.
-    await wrapper.find('.vt-asyncselect-trigger').trigger('keydown', { key: 'ArrowDown' })
+    await wrapper.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown' })
     expect(wrapper.emitted('commit')).toBeUndefined()
     wrapper.unmount()
     dispose()
@@ -269,7 +284,7 @@ describe('what it emits', () => {
   it('hears Enter from the dropdown only once its panel is closed', async () => {
     const { column, dispose } = asyncColumn()
     const wrapper = editor(column, { autofocus: false })
-    const trigger = wrapper.find('.vt-asyncselect-trigger')
+    const trigger = wrapper.find('.vt-select-trigger')
 
     // Closed, Enter is the commit it always was.
     await trigger.trigger('keydown', { key: 'Enter' })
@@ -277,12 +292,12 @@ describe('what it emits', () => {
 
     await trigger.trigger('click')
     await vi.waitFor(() =>
-      expect(document.querySelector('.vt-asyncselect-panel')).not.toBeNull(),
+      expect(document.querySelector('.vt-select-panel')).not.toBeNull(),
     )
     // Open, Enter is the choice — and the panel is teleported, so it never
     // reaches this component at all.
     document
-      .querySelector('.vt-asyncselect-panel')!
+      .querySelector('.vt-select-panel')!
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     await nextTick()
     expect(wrapper.emitted('commit')).toHaveLength(1)
@@ -395,7 +410,11 @@ describe('focus and substitution', () => {
 
     const chosen = editor(enumeration, { value: 'Design' })
     await nextTick()
-    expect(document.activeElement).toBe(chosen.find('select').element)
+    await nextTick()
+    // The dropdown manages its own focus, trigger then panel. What is asserted
+    // here is only that `setSelectionRange` stayed away from a control with no
+    // text to select — it throws on a date input and means nothing on a list.
+    expect(document.activeElement?.closest('.vt-select, .vt-select-panel')).not.toBeNull()
     chosen.unmount()
 
     const checked = editor(boolean, { value: true })

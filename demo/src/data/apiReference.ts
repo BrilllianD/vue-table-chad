@@ -105,6 +105,9 @@ export const apiReference: ApiEntry[] = [
   { name: 'useAsyncOptions', layer: 'core', kind: 'composable', summary: 'Options for a dropdown, fetched a portion at a time as something scrolls.' },
   { name: 'AsyncOptionsOptions', layer: 'core', kind: 'type', summary: 'debounceMs, immediate and onError.' },
 
+  { name: 'useStaticOptions', layer: 'core', kind: 'composable', summary: 'Wraps a fixed option list in the `AsyncOptionSource` a dropdown consumes.' },
+  { name: 'StaticOptionsOptions', layer: 'core', kind: 'type', summary: 'How to name each value, and whether the search box filters the list.' },
+
   { name: 'useRowSelection', layer: 'core', kind: 'composable', summary: 'Selection that survives paging, and that can represent "everything matching the filters" without materialising an id per row.' },
   { name: 'RowClickGesture', layer: 'core', kind: 'type', summary: 'The modifiers a click carries, and nothing else about it.' },
   { name: 'UseRowSelection', layer: 'core', kind: 'type', summary: 'Selection state, predicates and mutators.' },
@@ -280,6 +283,8 @@ export const apiReference: ApiEntry[] = [
   { name: 'CellEditor', layer: 'primitives', kind: 'component', summary: 'The control that edits one cell, and the keyboard contract around it.' },
 
   { name: 'AsyncSelect', layer: 'primitives', kind: 'component', summary: 'A dropdown whose options arrive a portion at a time, asked for as the list is scrolled.' },
+
+  { name: 'StaticSelect', layer: 'primitives', kind: 'component', summary: 'A dropdown over a fixed list of options.' },
 
   { name: 'TableGroupRow', layer: 'primitives', kind: 'component', summary: "A group header row: the expand toggle and the group's label, followed by whatever the grouped rows aggregate to, under the columns those aggregates describe." },
 

@@ -51,6 +51,7 @@ import {
 import { commitMoveFor, editorMoveFor, type CursorMove } from '../../core/cellCursor'
 import type { ColumnDef } from '../../core/types'
 import AsyncSelect from './AsyncSelect.vue'
+import StaticSelect from './StaticSelect.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -130,7 +131,7 @@ const emit = defineEmits<{
   blur: []
 }>()
 
-const control = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null)
+const control = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 const kind = computed(() => editorFor(props.column))
 const label = computed(() => props.label ?? props.column.header ?? props.column.id)
 
@@ -309,29 +310,28 @@ function onKeydown(event: KeyboardEvent): void {
         @keydown="onKeydown"
       />
 
-      <select
+      <!--
+        The same panel `AsyncSelect` renders, over a list that is already here.
+        A native `<select>` used to be here and is not a loss: its option list
+        is drawn by the operating system, so it ignored every `--vtc-` token,
+        could not be typeahead-matched against a label the column supplied, and
+        reported no open state for the cursor to read. The blank choice is the
+        control's own, behind the same `required` rule it always was.
+      -->
+      <StaticSelect
         v-else-if="kind === 'select'"
-        ref="control"
-        class="vt-cell-input"
-        :value="text"
+        :options="column.options ?? []"
+        :option-label="(option) => optionLabelFor(column, option)"
+        :value="value"
         :disabled="disabled"
-        :aria-label="label"
-        :aria-invalid="error ? 'true' : undefined"
-        :aria-errormessage="errorId"
-        :title="error ?? undefined"
-        @change="onInput"
-        @keydown="onKeydown"
+        :error="error"
+        :label="label"
+        :required="column.required"
+        :autofocus="autofocus"
+        @update:value="emit('update:value', $event)"
         @blur="emit('blur')"
-      >
-        <!--
-          An empty choice unless the column refuses one: a select with no way
-          back to blank makes a nullable column one-way.
-        -->
-        <option v-if="!column.required" value="" />
-        <option v-for="option in column.options ?? []" :key="String(option)" :value="String(option)">
-          {{ optionLabelFor(column, option) }}
-        </option>
-      </select>
+        @keydown="onKeydown"
+      />
 
       <input
         v-else-if="kind === 'checkbox'"

@@ -69,6 +69,8 @@ export type {
 
 export { useAsyncOptions } from './core/useAsyncOptions'
 export type { AsyncOptionsOptions } from './core/useAsyncOptions'
+export { useStaticOptions } from './core/useStaticOptions'
+export type { StaticOptionsOptions } from './core/useStaticOptions'
 
 export { useRowSelection } from './core/useRowSelection'
 export type {
@@ -261,6 +263,7 @@ export { default as TableCell } from './components/primitives/TableCell.vue'
 export { default as TableRow } from './components/primitives/TableRow.vue'
 export { default as CellEditor } from './components/primitives/CellEditor.vue'
 export { default as AsyncSelect } from './components/primitives/AsyncSelect.vue'
+export { default as StaticSelect } from './components/primitives/StaticSelect.vue'
 export { default as TableGroupRow } from './components/primitives/TableGroupRow.vue'
 export { default as TableDetailRow } from './components/primitives/TableDetailRow.vue'
 export { default as VirtualBody } from './components/primitives/VirtualBody.vue'

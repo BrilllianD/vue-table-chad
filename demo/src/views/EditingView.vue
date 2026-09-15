@@ -200,6 +200,8 @@ const editableColumns = computed(() =>
       'CellEditor',
       'useAsyncOptions',
       'AsyncSelect',
+      'useStaticOptions',
+      'StaticSelect',
       'replaceRowIn',
       'applyPatch',
       'validateDraft',

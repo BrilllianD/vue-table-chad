@@ -100,6 +100,23 @@ That also costs the native spinner, which is no loss — nothing in `ColumnDef` 
 so it stepped by a `1` no column chose, and over a cell cursor Up and Down already mean
 commit-and-move. A column that wants something else supplies `CellEditor`'s default slot.
 
+## The dropdown
+
+A `select` cell does **not** edit in a native `<select>`. It renders the same panel the paged
+dropdown below uses — one control, two sources — and the reasons are all things an `<option>` list
+cannot do: it is drawn by the operating system, so it ignores every `--vtc-` token; it cannot be
+matched against a label the column supplied; and it reports no open state, which is what the cell
+cursor reads to know whose the arrow keys are. The cost is the operating system's own picker on a
+touch device.
+
+What that buys at the keyboard is in [Keyboard navigation](keyboard.md); the short version is that
+typing walks the list, `↑`/`↓` move the active option, and the arrows belong to the cursor again the
+moment the panel closes.
+
+The same control is available on its own as the `StaticSelect` primitive, and the adapter under it as
+`useStaticOptions` — a fixed list dressed as the source a paged dropdown reads, which is the whole
+of how one panel serves both.
+
 ## A list too long to send
 
 A column of ids — a manager, an account, a product — has as many options as the table it points at

@@ -118,6 +118,12 @@ theme and column-width decisions live in `src/components/preset/CLAUDE.md`, the 
   classes are a separate public surface — ~200 assertions across 11 spec files, plus
   `docs/styling.md` teaching `.vt-th[data-sorted]` as a styling hook — so renaming them is its own
   decision and has not been taken.
+- **One dropdown, and its classes are `.vt-select-*`.** `StaticSelect` and `AsyncSelect` are the same
+  panel over two sources, so the classes name the control rather than where its options came from;
+  `.vt-asyncselect-*` was renamed rather than aliased, because two names for one thing outlive
+  whoever remembers why. That is a change to the public class surface and the exception the entry
+  above describes: it was taken because nothing outside two CSS partitions and three spec files
+  referenced those names, and no page of `docs/` taught one.
 - **A lint rule that is wrong gets a disable with its reason; code that is wrong gets fixed.** The
   distinction is the one the lint sweep turned on. Three rules fire on deliberate patterns and are suppressed in
   place with the why beside them — `vue/no-dupe-keys` and `vue/no-mutating-props` both predate

@@ -44,12 +44,12 @@ function select(props: Record<string, unknown> = {}) {
   return { ...made, wrapper }
 }
 
-const panel = () => document.querySelector('.vt-asyncselect-panel')
+const panel = () => document.querySelector('.vt-select-panel')
 const optionsOf = () =>
-  [...document.querySelectorAll('.vt-asyncselect-option')].map((node) => node.textContent?.trim())
+  [...document.querySelectorAll('.vt-select-option')].map((node) => node.textContent?.trim())
 
 async function open(wrapper: ReturnType<typeof mount>): Promise<void> {
-  await wrapper.find('.vt-asyncselect-trigger').trigger('click')
+  await wrapper.find('.vt-select-trigger').trigger('click')
   await vi.waitFor(() => expect(panel()).not.toBeNull())
   await nextTick()
 }
@@ -57,24 +57,24 @@ async function open(wrapper: ReturnType<typeof mount>): Promise<void> {
 describe('AsyncSelect', () => {
   it('renders standalone, with no table context above it', () => {
     const { wrapper, dispose } = select({ label: 'Manager' })
-    expect(wrapper.find('.vt-asyncselect-trigger').exists()).toBe(true)
-    expect(wrapper.find('.vt-asyncselect-trigger').attributes('role')).toBe('combobox')
+    expect(wrapper.find('.vt-select-trigger').exists()).toBe(true)
+    expect(wrapper.find('.vt-select-trigger').attributes('role')).toBe('combobox')
     wrapper.unmount()
     dispose()
   })
 
   it('shows the placeholder until a value has a label', async () => {
     const { wrapper, source: made, dispose } = select({ placeholder: 'Pick one' })
-    expect(wrapper.find('.vt-asyncselect-trigger').text()).toBe('Pick one')
+    expect(wrapper.find('.vt-select-trigger').text()).toBe('Pick one')
 
     await wrapper.setProps({ value: 1 })
     // A value whose portion has not loaded reads as itself rather than as a
     // blank — the library never fetches a label of its own to fill it.
-    expect(wrapper.find('.vt-asyncselect-trigger').text()).toBe('1')
+    expect(wrapper.find('.vt-select-trigger').text()).toBe('1')
 
     made.remember({ value: 1, label: 'Boris' })
     await nextTick()
-    expect(wrapper.find('.vt-asyncselect-trigger').text()).toBe('Boris')
+    expect(wrapper.find('.vt-select-trigger').text()).toBe('Boris')
     wrapper.unmount()
     dispose()
   })
@@ -95,7 +95,7 @@ describe('AsyncSelect', () => {
     await open(wrapper)
     await vi.waitFor(() => expect(calls).toEqual([0]))
 
-    const list = document.querySelector('.vt-asyncselect-list') as HTMLElement
+    const list = document.querySelector('.vt-select-list') as HTMLElement
     // happy-dom lays nothing out, so the geometry the handler reads is staged
     // here: a list scrolled to within the threshold of its own bottom.
     Object.defineProperty(list, 'scrollHeight', { value: 400, configurable: true })
@@ -113,7 +113,7 @@ describe('AsyncSelect', () => {
     await open(wrapper)
     await vi.waitFor(() => expect(calls).toEqual([0]))
 
-    const list = document.querySelector('.vt-asyncselect-list') as HTMLElement
+    const list = document.querySelector('.vt-select-list') as HTMLElement
     Object.defineProperty(list, 'scrollHeight', { value: 400, configurable: true })
     Object.defineProperty(list, 'clientHeight', { value: 200, configurable: true })
     Object.defineProperty(list, 'scrollTop', { value: 0, writable: true, configurable: true })
@@ -130,7 +130,7 @@ describe('AsyncSelect', () => {
     await open(wrapper)
     await vi.waitFor(() => expect(optionsOf()).toContain('Anna'))
 
-    const more = document.querySelector('.vt-asyncselect-more') as HTMLButtonElement
+    const more = document.querySelector('.vt-select-more') as HTMLButtonElement
     expect(more).not.toBeNull()
     more.click()
     await vi.waitFor(() => expect(calls).toEqual([0, 2]))
@@ -144,7 +144,7 @@ describe('AsyncSelect', () => {
       await open(wrapper)
       await vi.waitFor(() => expect(optionsOf()).toContain('Anna'))
 
-      const anna = [...document.querySelectorAll('.vt-asyncselect-option')].find(
+      const anna = [...document.querySelectorAll('.vt-select-option')].find(
         (node) => node.textContent?.trim() === 'Anna',
       ) as HTMLElement
       anna.click()
@@ -162,7 +162,7 @@ describe('AsyncSelect', () => {
       const { wrapper, dispose } = select()
       await open(wrapper)
       await vi.waitFor(() => expect(optionsOf()).toContain('Anna'))
-      expect(document.querySelectorAll('.vt-asyncselect-option')[0]?.textContent?.trim()).toBe('')
+      expect(document.querySelectorAll('.vt-select-option')[0]?.textContent?.trim()).toBe('')
       wrapper.unmount()
       dispose()
 
@@ -215,7 +215,7 @@ describe('AsyncSelect', () => {
 
     it('opens on an arrow, and leaves every other key to the editor above', async () => {
       const { wrapper, dispose } = select()
-      const trigger = wrapper.find('.vt-asyncselect-trigger')
+      const trigger = wrapper.find('.vt-select-trigger')
 
       await trigger.trigger('keydown', { key: 'Enter' })
       expect(panel()).toBeNull()
@@ -232,8 +232,8 @@ describe('AsyncSelect', () => {
       const { wrapper, dispose } = select()
       await open(wrapper)
 
-      const search = document.querySelector('.vt-asyncselect-search') as HTMLElement
-      wrapper.find('.vt-asyncselect').element.dispatchEvent(
+      const search = document.querySelector('.vt-select-search') as HTMLElement
+      wrapper.find('.vt-select').element.dispatchEvent(
         new FocusEvent('focusout', { relatedTarget: search, bubbles: true }),
       )
       await nextTick()
@@ -252,7 +252,7 @@ describe('AsyncSelect', () => {
 
       const elsewhere = document.createElement('button')
       document.body.append(elsewhere)
-      wrapper.find('.vt-asyncselect').element.dispatchEvent(
+      wrapper.find('.vt-select').element.dispatchEvent(
         new FocusEvent('focusout', { relatedTarget: elsewhere, bubbles: true }),
       )
       await nextTick()

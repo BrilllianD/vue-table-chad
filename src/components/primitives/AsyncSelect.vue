@@ -11,6 +11,7 @@
  *
  *   ArrowDown / ArrowUp   move the active option
  *   Home / End            first, last
+ *   any character         typeahead, unless a search box has the characters
  *   Enter                 choose the active option
  *   Escape                close the panel, leaving whatever was chosen
  *   Tab                   close the panel; the next one leaves the cell
@@ -143,7 +144,7 @@ const search = computed({
   },
 })
 
-const listId = computed(() => `vt-asyncselect-list-${instanceId}`)
+const listId = computed(() => `vt-select-list-${instanceId}`)
 const instanceId = Math.random().toString(36).slice(2, 8)
 
 function optionId(index: number): string {
@@ -262,6 +263,44 @@ function scrollActiveIntoView(): void {
   element?.scrollIntoView?.({ block: 'nearest' })
 }
 
+/** How long a typed prefix stays open to the next character, in ms. */
+const TYPEAHEAD_WINDOW = 700
+let typed = ''
+let typedAt = 0
+
+/**
+ * Walking the list by typing the first letters of an option.
+ *
+ * What a native select does, and the reason a fixed list needs no search box
+ * at all. Characters accumulate while they keep arriving, so `su` reaches
+ * Support past Sales; a pause starts a new word rather than extending a stale
+ * one, which is the only way out of a prefix that has stopped matching.
+ *
+ * Skipped when the panel is searchable, where the characters belong to the
+ * search box — a better answer over a list nobody can see the whole of, since
+ * a prefix can only reach what has already loaded. A key that matches nothing
+ * is left alone rather than swallowed, so it still reaches whatever is above.
+ */
+function onTypeahead(event: KeyboardEvent): void {
+  if (props.searchable) return
+  if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return
+
+  const now = Date.now()
+  typed = now - typedAt > TYPEAHEAD_WINDOW ? event.key : typed + event.key
+  typedAt = now
+
+  const needle = typed.toLowerCase()
+  const index = options.value.findIndex(
+    (option) => !option.disabled && option.label.toLowerCase().startsWith(needle),
+  )
+  if (index === -1) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  activeIndex.value = index
+  void nextTick(scrollActiveIntoView)
+}
+
 function onKeydown(event: KeyboardEvent): void {
   if (!open.value) {
     // A closed control opens on the keys that would open a native select, and
@@ -316,6 +355,7 @@ function onKeydown(event: KeyboardEvent): void {
       closePanel()
       return
     default:
+      onTypeahead(event)
   }
 }
 
@@ -355,11 +395,11 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
 </script>
 
 <template>
-  <span ref="root" class="vt-asyncselect" :data-open="open || undefined" @focusout="onFocusOut">
+  <span ref="root" class="vt-select" :data-open="open || undefined" @focusout="onFocusOut">
     <button
       ref="trigger"
       type="button"
-      class="vt-asyncselect-trigger"
+      class="vt-select-trigger"
       role="combobox"
       :disabled="disabled"
       :aria-expanded="open"
@@ -384,7 +424,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
       <div
         v-if="open"
         ref="panel"
-        class="vt-asyncselect-panel"
+        class="vt-select-panel"
         :class="{ 'vt-portal': teleported }"
         :data-theme="teleported ? themeAttribute : undefined"
         :data-inline="!teleported || undefined"
@@ -397,7 +437,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
           ref="searchBox"
           v-model="search"
           type="search"
-          class="vt-asyncselect-search"
+          class="vt-select-search"
           :placeholder="labels.search"
           :aria-label="labels.searchIn(label)"
           :aria-controls="listId"
@@ -408,7 +448,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
         <ul
           :id="listId"
           ref="list"
-          class="vt-asyncselect-list"
+          class="vt-select-list"
           role="listbox"
           :tabindex="searchable ? undefined : 0"
           :aria-label="label"
@@ -423,7 +463,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
           -->
           <li
             v-if="!required"
-            class="vt-asyncselect-option"
+            class="vt-select-option"
             role="option"
             :aria-selected="value === null || value === undefined || value === ''"
             @click="choose(null)"
@@ -435,7 +475,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             v-for="(option, index) in options"
             :id="optionId(index)"
             :key="String(option.value)"
-            class="vt-asyncselect-option"
+            class="vt-select-option"
             role="option"
             :aria-selected="isChosen(option)"
             :aria-disabled="option.disabled || undefined"
@@ -447,12 +487,12 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             {{ option.label }}
           </li>
 
-          <li v-if="initialLoading" class="vt-asyncselect-status" role="status">
+          <li v-if="initialLoading" class="vt-select-status" role="status">
             {{ labels.loading }}
           </li>
           <li
             v-else-if="options.length === 0 && !loadError"
-            class="vt-asyncselect-status"
+            class="vt-select-status"
             role="status"
           >
             {{ labels.noMatchingOptions }}
@@ -467,16 +507,16 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
         <button
           v-if="hasMore && !initialLoading"
           type="button"
-          class="vt-asyncselect-more"
+          class="vt-select-more"
           :disabled="loadingMore"
           @click="source.loadMore()"
         >
           {{ loadingMore ? labels.loading : labels.loadMore }}
         </button>
 
-        <p v-if="loadError" class="vt-asyncselect-error" role="alert">
+        <p v-if="loadError" class="vt-select-error" role="alert">
           {{ labels.optionsFailed }}
-          <button type="button" class="vt-asyncselect-retry" @click="source.loadMore()">
+          <button type="button" class="vt-select-retry" @click="source.loadMore()">
             {{ labels.retry }}
           </button>
         </p>

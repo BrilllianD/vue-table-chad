@@ -23,7 +23,7 @@
 .vt-scroll,
 .vt-filter-panel,
 .vt-valuelist-items,
-.vt-asyncselect-list,
+.vt-select-list,
 .vt-context-menu {
   scrollbar-width: var(--vtc-scrollbar-width);
   scrollbar-color: var(--vtc-scrollbar-thumb) var(--vtc-scrollbar-track);
@@ -37,7 +37,7 @@
 .vt-scroll::-webkit-scrollbar,
 .vt-filter-panel::-webkit-scrollbar,
 .vt-valuelist-items::-webkit-scrollbar,
-.vt-asyncselect-list::-webkit-scrollbar,
+.vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar {
   width: var(--vtc-scrollbar-size);
   height: var(--vtc-scrollbar-size);
@@ -46,7 +46,7 @@
 .vt-scroll::-webkit-scrollbar-track,
 .vt-filter-panel::-webkit-scrollbar-track,
 .vt-valuelist-items::-webkit-scrollbar-track,
-.vt-asyncselect-list::-webkit-scrollbar,
+.vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar-track {
   background: var(--vtc-scrollbar-track);
 }
@@ -58,7 +58,7 @@
 .vt-scroll::-webkit-scrollbar-corner,
 .vt-filter-panel::-webkit-scrollbar-corner,
 .vt-valuelist-items::-webkit-scrollbar-corner,
-.vt-asyncselect-list::-webkit-scrollbar,
+.vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar-corner {
   background: var(--vtc-scrollbar-track);
 }
@@ -71,7 +71,7 @@
 .vt-scroll::-webkit-scrollbar-thumb,
 .vt-filter-panel::-webkit-scrollbar-thumb,
 .vt-valuelist-items::-webkit-scrollbar-thumb,
-.vt-asyncselect-list::-webkit-scrollbar,
+.vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar-thumb {
   background: var(--vtc-scrollbar-thumb);
   background-clip: padding-box;
@@ -92,7 +92,7 @@
 .vt-scroll:hover::-webkit-scrollbar-thumb,
 .vt-filter-panel:hover::-webkit-scrollbar-thumb,
 .vt-valuelist-items:hover::-webkit-scrollbar-thumb,
-.vt-asyncselect-list:hover::-webkit-scrollbar-thumb {
+.vt-select-list:hover::-webkit-scrollbar-thumb {
   background: var(--vtc-scrollbar-thumb-hover);
   background-clip: padding-box;
 }

@@ -70,6 +70,15 @@ async function openEditor(
   await nextTick()
 }
 
+/** Clicks an option in whichever select panel is open. */
+function pickOption(label: string): void {
+  const option = [...document.querySelectorAll('.vt-select-panel .vt-select-option')].find(
+    (node) => node.textContent?.trim() === label,
+  )
+  if (!option) throw new Error(`no option ${label}`)
+  ;(option as HTMLElement).click()
+}
+
 describe('a table with no editing session', () => {
   it('renders each cell exactly as it always did — no wrapper, no trigger', () => {
     const Host = defineComponent({
@@ -123,9 +132,15 @@ describe('cell mode', () => {
   it('picks the control from the column type', async () => {
     const h = mountEditable()
     await openEditor(h.wrapper, 'department')
-    const select = cell(h.wrapper, 'department').find('select')
-    expect(select.exists()).toBe(true)
-    expect(select.findAll('option').map((option) => option.text())).toEqual(['', ...DEPARTMENTS])
+    await nextTick()
+    expect(cell(h.wrapper, 'department').find('.vt-select-trigger').exists()).toBe(true)
+    // The list is in the teleported panel, not in the cell: a `<td>`'s
+    // `overflow` would clip it where it stands.
+    expect(
+      [...document.querySelectorAll('.vt-select-panel .vt-select-option')].map(
+        (node) => node.textContent?.trim() ?? '',
+      ),
+    ).toEqual(['', ...DEPARTMENTS])
 
     await openEditor(h.wrapper, 'active')
     expect(cell(h.wrapper, 'active').find('input').attributes('type')).toBe('checkbox')
@@ -268,7 +283,7 @@ describe('cell mode', () => {
     await nextTick()
 
     expect(cell(h.wrapper, 'name').find('input').exists()).toBe(true)
-    expect(cell(h.wrapper, 'department').find('select').exists()).toBe(false)
+    expect(cell(h.wrapper, 'department').find('.vt-select-trigger').exists()).toBe(false)
     h.wrapper.unmount()
   })
 
@@ -302,7 +317,7 @@ describe('row mode', () => {
     await openEditor(h.wrapper, 'salary')
 
     expect(cell(h.wrapper, 'name').find('input').exists()).toBe(true)
-    expect(cell(h.wrapper, 'department').find('select').exists()).toBe(true)
+    expect(cell(h.wrapper, 'department').find('.vt-select-trigger').exists()).toBe(true)
     expect(cell(h.wrapper, 'active').find('input').exists()).toBe(true)
     expect(cell(h.wrapper, 'hiredAt').find('input').exists()).toBe(false)
 
@@ -332,7 +347,10 @@ describe('row mode', () => {
 
     await cell(h.wrapper, 'salary').find('input').setValue('77000')
     await cell(h.wrapper, 'name').find('input').setValue('Ada L.')
-    await cell(h.wrapper, 'department').find('select').setValue('Research')
+    await cell(h.wrapper, 'department').find('.vt-select-trigger').trigger('click')
+    await nextTick()
+    pickOption('Research')
+    await nextTick()
     await h.wrapper.find('.vt-row-actions .vt-btn-primary').trigger('click')
     await nextTick()
     await nextTick()
@@ -530,7 +548,7 @@ describe('a column whose options arrive in portions', () => {
     return { wrapper, rows, saves, dispose: () => scope.stop() }
   }
 
-  const panel = () => document.querySelector('.vt-asyncselect-panel')
+  const panel = () => document.querySelector('.vt-select-panel')
 
   it('shows the id until a portion carries its label, then the label', async () => {
     const table = mountAsyncColumn()
@@ -539,7 +557,7 @@ describe('a column whose options arrive in portions', () => {
     await cell(table.wrapper, 'managerId').find('.vt-cell-trigger').trigger('click')
     await vi.waitFor(() => expect(panel()).not.toBeNull())
     await vi.waitFor(() =>
-      expect(document.querySelector('.vt-asyncselect-option[data-chosen]')).not.toBeNull(),
+      expect(document.querySelector('.vt-select-option[data-chosen]')).not.toBeNull(),
     )
     await nextTick()
 
@@ -556,23 +574,23 @@ describe('a column whose options arrive in portions', () => {
     await vi.waitFor(() => expect(panel()).not.toBeNull())
 
     // The second manager is on a portion the first request did not carry.
-    ;(document.querySelector('.vt-asyncselect-more') as HTMLButtonElement).click()
+    ;(document.querySelector('.vt-select-more') as HTMLButtonElement).click()
     await vi.waitFor(() =>
       expect(
-        [...document.querySelectorAll('.vt-asyncselect-option')].some(
+        [...document.querySelectorAll('.vt-select-option')].some(
           (node) => node.textContent?.trim() === 'Alan Turing',
         ),
       ).toBe(true),
     )
 
-    const turing = [...document.querySelectorAll('.vt-asyncselect-option')].find(
+    const turing = [...document.querySelectorAll('.vt-select-option')].find(
       (node) => node.textContent?.trim() === 'Alan Turing',
     ) as HTMLElement
     turing.click()
     await nextTick()
 
     await cell(table.wrapper, 'managerId')
-      .find('.vt-asyncselect-trigger')
+      .find('.vt-select-trigger')
       .trigger('keydown', { key: 'Enter' })
     await vi.waitFor(() => expect(table.saves).toHaveLength(1))
 
@@ -589,9 +607,9 @@ describe('a column whose options arrive in portions', () => {
     await cell(table.wrapper, 'managerId').find('.vt-cell-trigger').trigger('click')
     await vi.waitFor(() => expect(panel()).not.toBeNull())
 
-    const search = document.querySelector('.vt-asyncselect-search') as HTMLElement
+    const search = document.querySelector('.vt-select-search') as HTMLElement
     cell(table.wrapper, 'managerId')
-      .find('.vt-asyncselect')
+      .find('.vt-select')
       .element.dispatchEvent(new FocusEvent('focusout', { relatedTarget: search, bubbles: true }))
     await nextTick()
 

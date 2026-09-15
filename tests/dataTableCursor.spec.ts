@@ -391,8 +391,8 @@ describe('Enter', () => {
     await cell(wrapper, 1, 'department').trigger('keydown', { key: 'r' })
     await nextTick()
 
-    const select = cell(wrapper, 1, 'department').get('select').element as HTMLSelectElement
-    expect(select.value).toBe('Research')
+    // The trigger shows what the cell now holds; the panel is teleported.
+    expect(cell(wrapper, 1, 'department').get('.vt-select-trigger').text()).toBe('Research')
     wrapper.unmount()
   })
 
@@ -408,8 +408,7 @@ describe('Enter', () => {
     // The editor opens, because the keystroke did say "edit this" — but on the
     // value the cell held. Seeding "z" was one keystroke into a draft the
     // option list does not contain and `validateCell` is waiting to reject.
-    const select = cell(wrapper, 1, 'department').get('select').element as HTMLSelectElement
-    expect(select.value).toBe('Engineering')
+    expect(cell(wrapper, 1, 'department').get('.vt-select-trigger').text()).toBe('Engineering')
     wrapper.unmount()
   })
 

@@ -140,7 +140,7 @@
 
 /* The ring, not a message: there is no room under the input for words. */
 .vt-cell-editor[data-invalid] .vt-cell-input,
-.vt-cell-editor[data-invalid] .vt-asyncselect-trigger,
+.vt-cell-editor[data-invalid] .vt-select-trigger,
 .vt-cell-editor[data-invalid] .vt-cell-checkbox {
   border-color: var(--vtc-danger);
   outline: var(--vtc-stroke-1) solid var(--vtc-danger);
@@ -197,15 +197,20 @@
   text-overflow: ellipsis;
 }
 
-/* ---------------------------------------------------------- async options */
+/* --------------------------------------------------------- the dropdowns */
 
 /*
-  The dropdown whose options arrive a portion at a time. Its trigger is a cell
-  editor like the others, so it takes `.vt-cell-input`'s sizing — the cell has
-  already dropped its padding for it. Its panel is not: that is teleported out
-  to `<body>` and is styled the way the filter panel is, for the same reason.
+  One panel for both dropdowns: `Select` over a list that is already here and
+  `AsyncSelect` over one that arrives a portion at a time. Only the last four
+  rules — search, status, more, error — belong to the second alone, and they
+  simply never render over a list that is complete.
+
+  The trigger is a cell editor like the others, so it takes `.vt-cell-input`'s
+  sizing — the cell has already dropped its padding for it. The panel is not:
+  that is teleported out to `<body>` and is styled the way the filter panel is,
+  for the same reason.
 */
-.vt-asyncselect {
+.vt-select {
   position: relative;
   display: block;
   width: 100%;
@@ -213,7 +218,7 @@
   min-width: 0;
 }
 
-.vt-asyncselect-trigger {
+.vt-select-trigger {
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -233,10 +238,10 @@
   text-overflow: ellipsis;
 }
 
-.vt-asyncselect-trigger[data-placeholder] { color: var(--vtc-text-muted); }
-.vt-asyncselect-trigger:disabled { opacity: var(--vtc-opacity-disabled); cursor: default; }
+.vt-select-trigger[data-placeholder] { color: var(--vtc-text-muted); }
+.vt-select-trigger:disabled { opacity: var(--vtc-opacity-disabled); cursor: default; }
 
-.vt-asyncselect-trigger:focus-visible {
+.vt-select-trigger:focus-visible {
   outline: var(--vtc-focus-width) solid var(--vtc-focus-color);
   outline-offset: -1px;
 }
@@ -247,13 +252,13 @@
   it. `top`/`left` come from the trigger's rect, written inline by the
   component — the same arrangement `.vt-filter-panel` has.
 */
-.vt-asyncselect-panel[data-inline] {
+.vt-select-panel[data-inline] {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
 }
 
-.vt-asyncselect-panel {
+.vt-select-panel {
   position: fixed;
   z-index: var(--vtc-z-popover);
   display: flex;
@@ -272,7 +277,7 @@
   overflow: hidden;
 }
 
-.vt-asyncselect-search {
+.vt-select-search {
   box-sizing: border-box;
   margin: var(--vtc-space-3);
   padding: 5px var(--vtc-space-4);
@@ -283,7 +288,7 @@
   font: inherit;
 }
 
-.vt-asyncselect-list {
+.vt-select-list {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -292,7 +297,7 @@
   overflow-y: auto;
 }
 
-.vt-asyncselect-option {
+.vt-select-option {
   padding: var(--vtc-space-2) var(--vtc-space-4);
   cursor: pointer;
   overflow: hidden;
@@ -300,22 +305,22 @@
   text-overflow: ellipsis;
 }
 
-.vt-asyncselect-option[data-active] { background: var(--vtc-header-bg); }
-.vt-asyncselect-option[data-chosen] { color: var(--vtc-accent); font-weight: var(--vtc-weight-bold); }
+.vt-select-option[data-active] { background: var(--vtc-header-bg); }
+.vt-select-option[data-chosen] { color: var(--vtc-accent); font-weight: var(--vtc-weight-bold); }
 
-.vt-asyncselect-option[aria-disabled] {
+.vt-select-option[aria-disabled] {
   opacity: var(--vtc-opacity-disabled);
   cursor: default;
 }
 
-.vt-asyncselect-status {
+.vt-select-status {
   padding: var(--vtc-space-2) var(--vtc-space-4);
   color: var(--vtc-text-muted);
   font-size: var(--vtc-font-size-sm);
 }
 
-.vt-asyncselect-more,
-.vt-asyncselect-retry {
+.vt-select-more,
+.vt-select-retry {
   border: 0;
   background: none;
   padding: var(--vtc-space-2) var(--vtc-space-4);
@@ -325,10 +330,10 @@
   cursor: pointer;
 }
 
-.vt-asyncselect-more { border-top: var(--vtc-stroke-1) solid var(--vtc-border); }
-.vt-asyncselect-more:disabled { color: var(--vtc-text-muted); cursor: default; }
+.vt-select-more { border-top: var(--vtc-stroke-1) solid var(--vtc-border); }
+.vt-select-more:disabled { color: var(--vtc-text-muted); cursor: default; }
 
-.vt-asyncselect-error {
+.vt-select-error {
   margin: 0;
   padding: var(--vtc-space-2) var(--vtc-space-4);
   color: var(--vtc-danger);
@@ -340,8 +345,8 @@
   .vt-cell-trigger,
   .vt-cell-editable,
   .vt-row-error,
-  .vt-asyncselect-trigger,
-  .vt-asyncselect-option {
+  .vt-select-trigger,
+  .vt-select-option {
     text-overflow: var(--vtc-truncation-marker);
   }
 }

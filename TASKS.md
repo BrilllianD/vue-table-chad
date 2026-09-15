@@ -62,19 +62,6 @@ spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
 **Done when:** the axe spec is green with no rule disabled, the announcements read correctly in the
 demo under a screen reader, and `docs/keyboard.md` has an accessibility section.
 
-### `[ ]` F22 — `Select`, one dropdown for both sources
-
-`AsyncSelect`'s panel serves a static option list too, so the two sources stop being two controls:
-`useStaticOptions` in core adapts a `FilterValue[]` to an `AsyncOptionSource`, and a thin `Select`
-primitive over it replaces the native `<select>` in `CellEditor`. That buys typeahead, theming (a
-native option list ignores `--vtc-` entirely, which is why the demo's own selects had to be painted
-with the OS scheme), no clipping, and the open/closed state F23 needs. The shared dropdown's classes
-rename `.vt-asyncselect-*` to `.vt-select-*` with it. The trade is the OS picker on a touch device.
-
-**Done when:** an `enum` column with `options` renders the custom panel, typeahead reaches an option
-by its first letters, `pnpm size` is inside both budgets, and `tests/presetStyles.spec.ts` is green
-on the renamed selectors.
-
 ### `[ ]` F23 — Openness is the discriminator, not the editor kind
 
 Depends on F22. `editorMoveFor` exempts `select`, `async-select` and `textarea` by **kind**
