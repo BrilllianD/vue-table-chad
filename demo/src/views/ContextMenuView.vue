@@ -155,7 +155,18 @@ function onProbe(event: KeyboardEvent): void {
           role="menuitem"
           @click="audit(rowId), close()"
         >
-          Show audit trail
+          <!-- The gutter is reserved by the item, so this is optional; without
+               it the label still lines up with the built-in five. -->
+          <svg class="vt-context-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path
+              d="M8 1.8a6.2 6.2 0 100 12.4A6.2 6.2 0 008 1.8z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+            />
+            <path d="M8 4.6v3.8l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          </svg>
+          <span class="vt-context-label">Show audit trail</span>
         </button>
       </template>
     </DataTable>

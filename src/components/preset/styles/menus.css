@@ -169,10 +169,21 @@
   max-height: none;
 }
 
+/*
+  The icon gutter is padding on the item and the mark is positioned into it,
+  rather than a flex row with the icon as a sibling. An item from the
+  `#contextMenu` slot is a plain `<button class="vt-context-item">` with no mark
+  in it — in a flex row its text would sit a gutter to the left of every
+  built-in item's, and the caller would have to ship an empty spacer to line up.
+  Reserved here, an unadorned item lands where the others do and one with an
+  icon costs it nothing.
+*/
 .vt-context-item {
+  position: relative;
   display: block;
   width: 100%;
   padding: var(--vtc-space-2) var(--vtc-space-3);
+  padding-inline-start: calc(var(--vtc-space-3) + 14px + var(--vtc-space-3));
   border: 0;
   border-radius: var(--vtc-radius-sm);
   background: none;
@@ -195,4 +206,20 @@
 .vt-context-item:disabled {
   color: var(--vtc-text-muted);
   cursor: default;
+}
+
+/*
+  Centred in the gutter the item reserved, and dimmed the way `.vt-sort-icon` is
+  and with the same token: the words are what is being read, the mark only says
+  which one again. Opacity rather than a colour of its own, so a disabled item's
+  mark dims along with its label instead of ending up the brighter half of a row
+  that is off.
+*/
+.vt-context-icon {
+  position: absolute;
+  inset-inline-start: var(--vtc-space-3);
+  top: 50%;
+  translate: 0 -50%;
+  opacity: var(--vtc-opacity-muted);
+  pointer-events: none;
 }

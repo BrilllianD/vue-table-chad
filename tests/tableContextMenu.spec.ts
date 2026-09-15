@@ -128,6 +128,51 @@ describe('TableContextMenu', () => {
     wrapper.unmount()
   })
 
+  /**
+   * Every item draws a mark, and none of them is readable by a screen reader.
+   *
+   * The icon repeats what the label already says, so a named one would have the
+   * menu announce each item twice. jsdom applies no stylesheet, so this can only
+   * assert the markup — the gutter that keeps a slot item lined up with these is
+   * `tests/presetStyles.spec.ts`' kind of claim, not this one's.
+   */
+  it('draws a decorative icon on every item', async () => {
+    const wrapper = mountTable()
+    await settle()
+    await rightClick(cell(0, 'department'))
+
+    const missing = items()
+      .filter((item) => !item.querySelector('svg.vt-context-icon[aria-hidden="true"]'))
+      .map((item) => item.dataset.action ?? '')
+    expect(missing, 'menu items rendered without an icon').toEqual([])
+    // The label is still the item's only text, so the arrow keys and the
+    // accessible name are what they were before the marks arrived.
+    expect(itemFor('copy').textContent?.trim()).toBe('Copy')
+    wrapper.unmount()
+  })
+
+  /**
+   * The grouping item is a toggle with two wordings, and the mark follows the
+   * words: indented rows for grouping, flat ones for undoing it. A mark that
+   * stayed put would describe the half of the toggle that is not on offer.
+   */
+  it('swaps the grouping icon with the grouping label', async () => {
+    const wrapper = mountTable()
+    await settle()
+    await rightClick(cell(0, 'department'))
+    const grouping = () => itemFor('group').querySelector('.vt-context-icon')!.innerHTML
+
+    const ungrouped = grouping()
+    itemFor('group').click()
+    await settle()
+    expect(state.groupBy.value).toEqual(['department'])
+
+    await rightClick(cell(0, 'department'))
+    expect(itemFor('group').textContent?.trim()).toBe('Stop grouping by this column')
+    expect(grouping()).not.toBe(ungrouped)
+    wrapper.unmount()
+  })
+
   it('leaves out the two items that need a cell, on a header', async () => {
     const wrapper = mountTable()
     await settle()

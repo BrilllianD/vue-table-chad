@@ -69,6 +69,27 @@ header) and a `close` function:
 `close` is handed in rather than called for you: an item that opens a dialog of its own decides when
 the menu is done.
 
+### Icons
+
+Each built-in item draws a mark in a gutter on its leading edge — the same funnel the header's filter
+button draws, arrows for the two sorts, and so on. The gutter belongs to `.vt-context-item`, not to
+the mark, so an item of yours lines up with the built-in five whether or not it has one. To give it
+one, put an `aria-hidden` `<svg class="vt-context-icon">` inside the button ahead of the label; the
+preset positions it and dims it, and `currentColor` keeps it in step with the item's own colour when
+it is hovered or disabled:
+
+```vue
+<button type="button" class="vt-context-item" role="menuitem" @click="audit(rowId), close()">
+  <svg class="vt-context-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+    <path d="M8 4.6v3.8l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.4" />
+  </svg>
+  <span class="vt-context-label">Show audit trail</span>
+</button>
+```
+
+The mark is decoration: it repeats what the label already says, so it is hidden from assistive
+technology rather than given a name of its own.
+
 ## The primitive
 
 `TableContextMenu` is what `DataTable` renders, and you can render it yourself over a table built

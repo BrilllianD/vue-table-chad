@@ -121,13 +121,62 @@ const row = computed<TRow | undefined>(() => {
 
 const state = context.state
 
-/** One menu item: what it says, whether it can be pressed, and the one call it makes. */
+/**
+ * One stroke or fill of an icon, as path data on a 16x16 grid.
+ *
+ * Paths rather than a glyph, and inline rather than an icon dependency: the
+ * sort arrows a font could supply have no funnel, no eye and no clipboard
+ * beside them, and a menu that mixed a drawn funnel with a text arrow would
+ * line up at neither the baseline nor the box. `ColumnFilterPopover` already
+ * draws its trigger this way, and the funnel below is that same path — the item
+ * that filters a column shows the mark the header's own filter button shows.
+ */
+interface IconPart {
+  d: string
+  /** Stroked instead of filled, for the shapes an outline says better. */
+  outline?: boolean
+}
+
+/** One menu item: what it says, what it draws, whether it can be pressed, and the one call it makes. */
 interface MenuItem {
   id: string
   label: string
+  icon: IconPart[]
   disabled?: boolean
   run: () => void
 }
+
+const ICON_FILTER: IconPart[] = [{ d: 'M1 2h14l-5.5 6.5V14L6.5 12V8.5L1 2z' }]
+const ICON_SORT_ASC: IconPart[] = [{ d: 'M8 2.6l3.6 3.9H9.2V13.4H6.8V6.5H4.4L8 2.6z' }]
+const ICON_SORT_DESC: IconPart[] = [{ d: 'M8 13.4l-3.6-3.9h2.4V2.6h2.4v6.9h2.4L8 13.4z' }]
+
+/*
+  The grouping pair reads as what the press would produce, not as what is on
+  screen: indented rows under a band for grouping, flat rows for ungrouping.
+  That is the same rule the label follows — one item, two wordings — so the mark
+  and the words cannot end up describing different halves of the toggle.
+*/
+const ICON_GROUP: IconPart[] = [
+  { d: 'M2 3h12v2.2H2z' },
+  { d: 'M5 6.9h9v2.2H5z' },
+  { d: 'M5 10.8h9V13H5z' },
+]
+const ICON_UNGROUP: IconPart[] = [
+  { d: 'M2 3h12v2.2H2z' },
+  { d: 'M2 6.9h12v2.2H2z' },
+  { d: 'M2 10.8h12V13H2z' },
+]
+
+const ICON_HIDE: IconPart[] = [
+  { d: 'M1.6 8S4 4.2 8 4.2 14.4 8 14.4 8 12 11.8 8 11.8 1.6 8 1.6 8z', outline: true },
+  { d: 'M8 6.4a1.6 1.6 0 100 3.2 1.6 1.6 0 000-3.2z' },
+  { d: 'M3.2 12.8L12.8 3.2', outline: true },
+]
+
+const ICON_COPY: IconPart[] = [
+  { d: 'M5.6 5.6h7.2v7.8H5.6z', outline: true },
+  { d: 'M10.4 3.4H3.2v7.8', outline: true },
+]
 
 /**
  * Narrow the column to the value under the cursor.
@@ -176,6 +225,7 @@ const items = computed<MenuItem[]>(() => {
     result.push({
       id: 'filter',
       label: labels.value.filterByValue,
+      icon: ICON_FILTER,
       disabled: target.filterable === false,
       run: filterByValue,
     })
@@ -185,12 +235,14 @@ const items = computed<MenuItem[]>(() => {
     {
       id: 'sort-asc',
       label: labels.value.sortAscending,
+      icon: ICON_SORT_ASC,
       disabled: target.sortable === false,
       run: () => state.setSort(props.columnId, 'asc'),
     },
     {
       id: 'sort-desc',
       label: labels.value.sortDescending,
+      icon: ICON_SORT_DESC,
       disabled: target.sortable === false,
       run: () => state.setSort(props.columnId, 'desc'),
     },
@@ -202,19 +254,21 @@ const items = computed<MenuItem[]>(() => {
       label: state.isGrouped(props.columnId)
         ? labels.value.stopGroupingByThisColumn
         : labels.value.groupByThisColumn,
+      icon: state.isGrouped(props.columnId) ? ICON_UNGROUP : ICON_GROUP,
       disabled: target.groupable === false,
       run: () => state.toggleGroup(props.columnId),
     },
     {
       id: 'hide',
       label: labels.value.hideColumn,
+      icon: ICON_HIDE,
       disabled: target.hideable === false,
       run: () => context.columns.toggleVisibility(props.columnId, false),
     },
   )
 
   if (row.value) {
-    result.push({ id: 'copy', label: labels.value.copyCell, run: copyCell })
+    result.push({ id: 'copy', label: labels.value.copyCell, icon: ICON_COPY, run: copyCell })
   }
 
   return result
@@ -317,7 +371,19 @@ watch(column, (current) => {
         :data-action="item.id"
         @click="activate(item)"
       >
-        {{ item.label }}
+        <svg class="vt-context-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            v-for="(part, index) in item.icon"
+            :key="index"
+            :d="part.d"
+            :fill="part.outline ? 'none' : 'currentColor'"
+            :stroke="part.outline ? 'currentColor' : 'none'"
+            stroke-width="1.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="vt-context-label">{{ item.label }}</span>
       </button>
 
       <!--
@@ -325,6 +391,10 @@ watch(column, (current) => {
         they share the dismissal, the arrow keys and the theme. `close` is given
         rather than assumed: an item that opens a dialog of its own decides for
         itself when the menu is done.
+
+        The icon gutter is reserved by `.vt-context-item` itself rather than by
+        the icon, so an item of yours with no `.vt-context-icon` in it still
+        lines its text up with the built-in five instead of hanging left.
       -->
       <slot v-bind="{ columnId, rowId, close }" />
     </div>
