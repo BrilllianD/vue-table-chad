@@ -9,7 +9,8 @@
  * component is the control over it — the trigger, the panel, the keyboard, and
  * the one call to `loadMore()` when the list runs out under the scroll.
  *
- *   ArrowDown / ArrowUp   move the active option
+ *   Alt + ArrowDown/Up    open the panel, and close it again
+ *   ArrowDown / ArrowUp   move the active option, panel up
  *   Home / End            first, last
  *   any character         typeahead, unless a search box has the characters
  *   Enter                 choose the active option
@@ -20,7 +21,9 @@
  * of this component's relationship with the cell cursor and the cell editor
  * above it: inside an open panel those keys belong to the listbox, and a second
  * Escape — with the panel already closed — reaches the editor and cancels the
- * edit. `editorMoveFor` exempts this kind for the same reason.
+ * edit. `editorMoveFor` exempts an open panel for the same reason, and only an
+ * open one: a **closed** control hands its arrows back, or the cursor would
+ * have no way out of the cell at all.
  *
  * **`blur` is not fired for focus that stays inside the control.** The panel is
  * teleported to `<body>`, so moving from the trigger into the search box is a
@@ -303,13 +306,28 @@ function onTypeahead(event: KeyboardEvent): void {
 
 function onKeydown(event: KeyboardEvent): void {
   if (!open.value) {
-    // A closed control opens on the keys that would open a native select, and
-    // leaves every other key — Enter, Tab, Escape — to the editor above it.
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    /*
+     * A closed control is a button with a label on it, and a bare arrow over
+     * one belongs to whatever is above — a cell cursor, which would otherwise
+     * have no way out of the cell this control is in. `Alt`+`↓`/`↑` opens
+     * instead: the ARIA combobox convention, and the gesture `editorMoveFor`
+     * has always rejected, so the two cannot both answer the same key. Enter,
+     * Tab and Escape go up as they always did.
+     */
+    if (event.altKey && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault()
       event.stopPropagation()
       openPanel()
     }
+    return
+  }
+
+  // Closing is the same gesture, which is what makes it a toggle rather than a
+  // one-way door — and it has to be read before the open-panel arrows below.
+  if (event.altKey && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+    event.preventDefault()
+    event.stopPropagation()
+    closePanel()
     return
   }
 

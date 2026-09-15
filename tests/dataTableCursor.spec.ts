@@ -412,6 +412,30 @@ describe('Enter', () => {
     wrapper.unmount()
   })
 
+  it('moves the cursor out of a select once its panel is closed', async () => {
+    const { wrapper } = mountTable({
+      editable: ['department', 'salary'],
+      selectOptions: DEPARTMENTS,
+    })
+    await focusCell(wrapper, 1, 'department')
+    await cell(wrapper, 1, 'department').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    await nextTick()
+
+    const trigger = cell(wrapper, 1, 'department').get('.vt-select-trigger')
+    // Escape closes the panel and leaves the edit open, which is exactly the
+    // state the arrows used to be dead in: the cell had no exit but Enter,
+    // Tab and a second Escape.
+    await trigger.trigger('keydown', { key: 'Escape' })
+    await nextTick()
+    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    await nextTick()
+    await nextTick()
+
+    expect(ringAt(wrapper)).toBe('2:department')
+    wrapper.unmount()
+  })
+
   it('opens a checkbox unchanged — a character is not a boolean', async () => {
     const { wrapper } = mountTable({ editable: ['name', 'active'] })
     await focusCell(wrapper, 1, 'active')

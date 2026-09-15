@@ -210,7 +210,8 @@ editor around it — and hands them back the moment it closes.
 
 | Key | |
 | --- | --- |
-| `↑` `↓` `Home` `End` | Move the active option. Never a cursor move: `editorMoveFor` exempts this control the way it exempts a `select`. |
+| `Alt`+`↓` `Alt`+`↑` | Open the panel, and close it again. What a closed dropdown answers instead of a bare arrow. |
+| `↑` `↓` `Home` `End` | Move the active option — while the panel is up. Closed, the arrows go back to the cursor; `editorMoveFor` reads the panel's state, not the control's kind. |
 | `Enter` | Choose the active option. With the panel closed it is the commit it always was. |
 | `Esc` | Close the panel, leaving the edit open. A second `Esc` cancels the edit. |
 | `Tab` | Close the panel and go back to the trigger. The next `Tab` leaves the cell. |

@@ -62,22 +62,6 @@ spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
 **Done when:** the axe spec is green with no rule disabled, the announcements read correctly in the
 demo under a screen reader, and `docs/keyboard.md` has an accessibility section.
 
-### `[ ]` F23 — Openness is the discriminator, not the editor kind
-
-Depends on F22. `editorMoveFor` exempts `select`, `async-select` and `textarea` by **kind**
-(`src/core/cellCursor.ts:507`), so while a select is open the cursor cannot move at all and the
-arrows are dead ends. The exemption is really "a panel is up": an open listbox owns the arrows, a
-closed dropdown has no use for them. So the exemption becomes `textarea` plus an `open` flag the
-control reports, and `Alt`+`↓`/`↑` — the ARIA combobox convention, and a gesture `editorMoveFor`
-already rejects — opens and closes the panel in place of the bare arrows.
-
-Splitting only `←`/`→` off the kind exemption was considered and dropped: it is an approximation of
-this, reachable without the custom control, and would be written and reverted once F22 lands.
-
-**Done when:** a bare arrow inside a closed select commits and moves the cursor, an arrow inside an
-open panel moves the active option and nothing else, `Alt`+`↓`/`↑` opens and closes, `textarea` is
-unchanged, and `tests/invalidation.spec.ts` still sees exactly one pipeline pass per successful
-commit.
 ---
 
 ## Backlog

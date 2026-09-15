@@ -77,6 +77,7 @@ And in an open editor:
 | `Ctrl`/`Cmd`+`Enter` | commit, and open the cell to the **right** |
 | `Ctrl`/`Cmd`+`Shift`+`Enter` | commit, and open the cell to the **left** |
 | `↑` `↓` `←` `→` | commit, and open the cell that way |
+| `Alt`+`↓` / `Alt`+`↑` | open a dropdown's panel, and close it again |
 | `Tab` | commit, and open the next editable cell |
 
 Every one of these **opens the cell it lands on**, so a column of values is typed with `Enter`
@@ -100,10 +101,19 @@ then against the value behind it — and opens the cell unchanged when it names 
 character is not a boolean, and there is nothing yet to match against. `Delete` and `Backspace`
 still clear, whatever the control.
 
-A `<select>` and a `<textarea>` keep their own arrows, since those
-are how a select is changed at all and how a caret crosses a line — `Home` and `End` still reach
-both ends of a text box. A commit the server refuses stays put — moving
-would scroll the message explaining the failure out from under you.
+A `<textarea>` keeps its own arrows, since that is how a caret crosses a line — `Home` and `End`
+still reach both ends of a text box. A commit the server refuses stays put — moving would scroll
+the message explaining the failure out from under you.
+
+A dropdown keeps them only while its **panel is up**, which is the whole rule: open, the panel is a
+listbox and the arrows walk it; closed, the control is a button with a label on it and the arrows
+belong to the cursor again. `Alt`+`↓` and `Alt`+`↑` open and close it — the ARIA combobox
+convention, and the one arrow gesture the cursor has never claimed.
+
+That used to be an exemption by control *kind*, which meant a select trapped the cursor: with every
+arrow swallowed, the only ways out of the cell were `Enter`, `Ctrl`/`Cmd`+`Enter`, `Tab` and `Esc`.
+A native `<select>` reports no open state — there is no API for it — so making openness the
+discriminator is what the custom dropdown bought.
 
 `Enter` on a cell with **no** editor still moves down. Enter always means "move on", and
 additionally opens an editor first when the cell has one. `F2` means only "edit", so a read-only
@@ -171,9 +181,10 @@ sticky header and of either pinned band rather than underneath them. Pinned cell
 acts on a cell that is only half covered, so the grid asks for the scroll itself and the preset
 tells the stylesheet how wide the bands are.
 
-`Alt` is left alone throughout. `Alt`+`←`/`→` is already the keyboard reorder gesture on a header
-(see [Column layout](column-layout.md)), and in the body most browsers spend it on history
-navigation.
+`Alt` is left alone by the cursor throughout, and that is what left `Alt`+`↓`/`↑` free for a
+dropdown to open on: the two rules can never both answer one key. `Alt`+`←`/`→` is already the
+keyboard reorder gesture on a header (see [Column layout](column-layout.md)), and in the body most
+browsers spend it on history navigation.
 
 ## One tab stop, not one per cell
 

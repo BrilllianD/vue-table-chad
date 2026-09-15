@@ -258,24 +258,40 @@ describe('what it emits', () => {
     expect(wrapper.emitted('commit')).toBeUndefined()
   })
 
-  it('leaves the arrows to a select and a textarea even when asked', async () => {
-    const list = editor(enumeration, { arrowMove: true })
-    await list.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown' })
-    // The arrows are how a select is changed at all, and how a caret crosses a
-    // line in a textarea. Claiming them takes the control's own operation away.
-    expect(list.emitted('commit')).toBeUndefined()
-
+  it('leaves the arrows to a textarea, and to a dropdown whose panel is up', async () => {
     const area = editor({ ...text, editor: 'textarea' }, { arrowMove: true })
+    // A caret crossing a line. Claiming it takes the control's own operation.
     await area.find('textarea').trigger('keydown', { key: 'ArrowDown' })
     expect(area.emitted('commit')).toBeUndefined()
+    area.unmount()
+
+    const list = editor(enumeration, { arrowMove: true })
+    await nextTick()
+    await nextTick()
+    // Opened by `autofocus`, and an open listbox is what the arrows walk.
+    await list.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown' })
+    expect(list.emitted('commit')).toBeUndefined()
+    list.unmount()
   })
 
-  it('leaves the arrows to the paged dropdown as well', async () => {
+  it('takes them back the moment the panel is closed', async () => {
+    const wrapper = editor(enumeration, { arrowMove: true, autofocus: false })
+    await wrapper.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowRight' })
+    // A closed dropdown is a button with a label on it. Exempting it by kind
+    // instead left the cursor with no way out of the cell it was in.
+    expect(wrapper.emitted('commit')).toEqual([[{ kind: 'by', rows: 0, columns: 1 }]])
+    wrapper.unmount()
+  })
+
+  it('opens a closed dropdown on Alt and an arrow rather than on a bare one', async () => {
     const { column, dispose } = asyncColumn()
     const wrapper = editor(column, { arrowMove: true, autofocus: false })
-    // Same reason as the select: the arrows are how the listbox is walked, so
-    // claiming them would take the control's own operation away.
-    await wrapper.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown' })
+    await wrapper.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown', altKey: true })
+    await nextTick()
+
+    expect(document.querySelector('.vt-select-panel')).not.toBeNull()
+    // `editorMoveFor` has always rejected `altKey`, so the two rules cannot
+    // both answer this key.
     expect(wrapper.emitted('commit')).toBeUndefined()
     wrapper.unmount()
     dispose()

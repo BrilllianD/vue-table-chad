@@ -89,8 +89,9 @@ const props = withDefaults(
      *
      * Off by default: with no cell cursor over the table there is nowhere for
      * an arrow to move to, and with a whole row open at once moving between
-     * its fields is navigation rather than a decision to save. A `select` and
-     * a `textarea` keep their arrows either way — see `editorMoveFor`.
+     * its fields is navigation rather than a decision to save. A `textarea`
+     * keeps its arrows either way, and a dropdown keeps them while its panel
+     * is up — see `editorMoveFor`.
      */
     arrowMove?: boolean
   }>(),
@@ -132,6 +133,19 @@ const emit = defineEmits<{
 }>()
 
 const control = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
+
+/**
+ * Whichever dropdown is rendered, for the one thing that has to be asked of
+ * it: whether its panel is up.
+ *
+ * That is what decides whose the arrow keys are. Open, they walk the listbox;
+ * closed, the control is a button with a label on it and the arrows belong to
+ * the cursor. Reading it here rather than guessing from the kind is the whole
+ * of the rule — and is only possible because both dropdowns are components
+ * that can be asked, which a native `<select>` was not.
+ */
+const dropdown = ref<{ open: boolean } | null>(null)
+const panelOpen = computed(() => dropdown.value?.open ?? false)
 const kind = computed(() => editorFor(props.column))
 const label = computed(() => props.label ?? props.column.header ?? props.column.id)
 
@@ -247,7 +261,7 @@ function onKeydown(event: KeyboardEvent): void {
     return
   }
   if (props.arrowMove) {
-    const move = editorMoveFor(event, kind.value)
+    const move = editorMoveFor(event, kind.value, panelOpen.value)
     if (move) {
       // The commit and the move ride on one event for the reason Enter's do:
       // a save that fails must leave the cursor where it is, and two events
@@ -298,6 +312,7 @@ function onKeydown(event: KeyboardEvent): void {
       -->
       <AsyncSelect
         v-if="kind === 'async-select' && column.asyncOptions"
+        ref="dropdown"
         :source="column.asyncOptions"
         :value="value"
         :disabled="disabled"
@@ -320,6 +335,7 @@ function onKeydown(event: KeyboardEvent): void {
       -->
       <StaticSelect
         v-else-if="kind === 'select'"
+        ref="dropdown"
         :options="column.options ?? []"
         :option-label="(option) => optionLabelFor(column, option)"
         :value="value"

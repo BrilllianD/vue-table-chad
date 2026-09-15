@@ -457,12 +457,41 @@ describe('editorMoveFor', () => {
     })
   })
 
-  it('leaves a select and a textarea their own arrows', () => {
-    // Taking these would take away the control's own operation: the arrows are
-    // how a select is changed at all, and how a caret crosses a line.
+  it('leaves a textarea its own arrows, whatever its panel state could mean', () => {
+    // A caret crossing a line, which taking the key would take away. Unlike a
+    // dropdown there is nothing here that opens or closes, so the third
+    // argument cannot change the answer.
     for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
-      expect(editorMoveFor({ key }, 'select'), key).toBeUndefined()
       expect(editorMoveFor({ key }, 'textarea'), key).toBeUndefined()
+      expect(editorMoveFor({ key }, 'textarea', true), key).toBeUndefined()
+    }
+  })
+
+  it('leaves an open dropdown its own arrows, and takes them back when it closes', () => {
+    for (const kind of ['select', 'async-select'] as const) {
+      for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+        // Up, the panel is a listbox and the arrows walk it.
+        expect(editorMoveFor({ key }, kind, true), `${kind} open ${key}`).toBeUndefined()
+        // Down, it is a button with a label on it. Exempting it by kind left
+        // the cursor with no way out of the cell but Enter, Tab and Escape.
+        expect(editorMoveFor({ key }, kind, false), `${kind} closed ${key}`).toBeDefined()
+      }
+      // The default is closed, so a caller with nothing to report gets the
+      // answer that at least moves.
+      expect(editorMoveFor({ key: 'ArrowRight' }, kind)).toEqual({
+        kind: 'by',
+        rows: 0,
+        columns: 1,
+      })
+    }
+  })
+
+  it('leaves Alt and an arrow alone, which is what opens a dropdown', () => {
+    // The gesture this has always rejected, which is exactly why it was free
+    // for `AsyncSelect` to take — the two can never both answer one key.
+    for (const key of ['ArrowUp', 'ArrowDown']) {
+      expect(editorMoveFor({ key, altKey: true }, 'select', false), key).toBeUndefined()
+      expect(editorMoveFor({ key, altKey: true }, 'select', true), key).toBeUndefined()
     }
   })
 

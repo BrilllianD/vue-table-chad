@@ -497,18 +497,28 @@ export function editSeedFor(gesture: CursorKeyGesture): string | undefined {
  * commits and moves, the same way Enter does — this is the sibling of
  * `commitMoveFor`, and takes the same `kind` for the same reason.
  *
- * `select`, `async-select` and `textarea` are exempt, and not as a courtesy:
- * the arrows are how a select is changed at all, how a listbox is walked, and
- * how a caret crosses a line in a textarea, so claiming them would take away
- * the control's own operation. A text or number box loses its caret movement
- * to this, which is the trade a spreadsheet makes too — `Home` and `End` still
- * reach both ends of the text.
+ * Two controls keep the arrows, and not as a courtesy: an **open** dropdown
+ * panel is how a listbox is walked, and a `textarea` is how a caret crosses a
+ * line, so claiming them would take the control's own operation away. A text
+ * or number box loses its caret movement to this, which is the trade a
+ * spreadsheet makes too — `Home` and `End` still reach both ends of the text.
+ *
+ * What exempts a dropdown is `panelOpen`, not its kind. A closed one is a
+ * button with a label on it: it has no use for an arrow, and exempting it by
+ * kind left the cursor with no way out of the cell at all, so the only exits
+ * were Enter, Tab and Escape. The gesture that opens it instead is
+ * `Alt`+`↓`/`↑` — the ARIA combobox convention, and a gesture this function
+ * has always rejected, so it was free to take. A native `<select>` could not
+ * have reported `panelOpen` at all; `StaticSelect` replacing it is what makes
+ * the whole rule reachable.
  */
 export function editorMoveFor(
   gesture: CursorKeyGesture,
   kind?: CellEditorKind,
+  panelOpen = false,
 ): CursorMove | undefined {
-  if (kind === 'select' || kind === 'async-select' || kind === 'textarea') return undefined
+  if (kind === 'textarea') return undefined
+  if (panelOpen && (kind === 'select' || kind === 'async-select')) return undefined
   if (gesture.altKey || gesture.shiftKey || isPrimaryModifier(gesture)) return undefined
 
   switch (gesture.key) {

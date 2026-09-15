@@ -213,15 +213,26 @@ describe('AsyncSelect', () => {
       dispose()
     })
 
-    it('opens on an arrow, and leaves every other key to the editor above', async () => {
+    it('opens on Alt and an arrow, and leaves every other key to the editor above', async () => {
       const { wrapper, dispose } = select()
       const trigger = wrapper.find('.vt-select-trigger')
 
       await trigger.trigger('keydown', { key: 'Enter' })
       expect(panel()).toBeNull()
 
+      // A bare arrow goes up now. Closed, this control is a button with a
+      // label on it and has no use for one — and swallowing it left a cell
+      // cursor above with no way out of the cell at all.
       await trigger.trigger('keydown', { key: 'ArrowDown' })
+      expect(panel()).toBeNull()
+
+      await trigger.trigger('keydown', { key: 'ArrowDown', altKey: true })
       await vi.waitFor(() => expect(panel()).not.toBeNull())
+
+      // The same gesture both ways, so it is a toggle rather than a one-way
+      // door — and Escape is still the other way out.
+      await trigger.trigger('keydown', { key: 'ArrowUp', altKey: true })
+      await vi.waitFor(() => expect(panel()).toBeNull())
       wrapper.unmount()
       dispose()
     })
