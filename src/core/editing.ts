@@ -16,7 +16,7 @@
  *     rows are handed out by reference and a caller's `shallowRef` only notices
  *     a replacement.
  */
-import type { CellEditorKind, ColumnDef, RowId } from './types'
+import type { CellEditorKind, ColumnDef, FilterValue, RowId } from './types'
 import { DEFAULT_LABELS, type TableLabels } from './labels'
 import { isBlank, toBoolean, toIsoDate, toNumber } from './utils/values'
 
@@ -69,6 +69,47 @@ export function editorFor<TRow>(column: ColumnDef<TRow>): CellEditorKind {
     default:
       return 'text'
   }
+}
+
+/**
+ * The text a column shows for one of its declared options.
+ *
+ * `groupLabel` is the *grouping* label function borrowed for a second job, and
+ * this is the one place the borrowing is written down — the dropdown that
+ * renders the list and the typeahead that searches it must agree about what an
+ * option is called, or a letter would jump to an option the reader cannot see
+ * it matching.
+ */
+export function optionLabelFor<TRow>(column: ColumnDef<TRow>, option: FilterValue): string {
+  return column.groupLabel ? column.groupLabel(option) : String(option)
+}
+
+/**
+ * The option a typed character should pick, or `undefined` when none matches.
+ *
+ * Typing over a closed cell replaces its value, which for a text box is the
+ * character itself. A select has no such value: the character is not a member
+ * of the list, so seeding it raw leaves the draft holding `"A"`, the control
+ * showing some other option, and `validateCell` waiting to reject it — one
+ * keystroke into a state whose only outcome is an error. Matching against what
+ * the reader can actually see turns the same keystroke into the pick it meant.
+ *
+ * The label is tried before the value it stands for, because the label is what
+ * is on screen; a `null` option is skipped, since the blank choice is not
+ * something a character can name.
+ */
+export function seedOptionFor<TRow>(
+  column: ColumnDef<TRow>,
+  seed: string,
+): FilterValue | undefined {
+  if (seed === '') return undefined
+  const needle = seed.toLowerCase()
+  return column.options?.find(
+    (option) =>
+      option !== null &&
+      (optionLabelFor(column, option).toLowerCase().startsWith(needle) ||
+        String(option).toLowerCase().startsWith(needle)),
+  )
 }
 
 /**

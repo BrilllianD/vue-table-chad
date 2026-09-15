@@ -62,19 +62,6 @@ spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
 **Done when:** the axe spec is green with no rule disabled, the announcements read correctly in the
 demo under a screen reader, and `docs/keyboard.md` has an accessibility section.
 
-### `[ ]` F21 — A printable key over a select can only fail
-
-Seeding is blind to the editor kind (`src/components/preset/DataTable.vue:1073`). Type `A` over a
-closed enum cell and the draft holds the raw string `"A"`; the `<select>` matches no option and
-displays the first one instead; the commit runs `parseCellInput`'s `enum` branch, finds no member,
-falls through to `String(input)`, and `validateCell` rejects it. So a single keystroke opens a
-control in a state whose only outcome is an error message. A printable key should typeahead to the
-first matching option instead, or seed nothing at all.
-
-**Done when:** typing a letter over an enum cell selects the first option starting with it, typing a
-letter that matches nothing leaves the cell unchanged, and no seeded select can produce an
-out-of-options error.
-
 ### `[ ]` F22 — `Select`, one dropdown for both sources
 
 `AsyncSelect`'s panel serves a static option list too, so the two sources stop being two controls:

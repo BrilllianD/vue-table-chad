@@ -6,8 +6,10 @@ import {
   applyPatch,
   editorFor,
   isColumnEditable,
+  optionLabelFor,
   parseCellInput,
   replaceRowIn,
+  seedOptionFor,
   validateCell,
   validateDraft,
   REQUIRED_MESSAGE,
@@ -82,6 +84,62 @@ describe('editorFor', () => {
     expect(editorFor({ id: 'notes', type: 'text', editor: 'textarea' })).toBe('textarea')
     // And override the dropdown, for a caller who wants to type the id.
     expect(editorFor({ id: 'managerId', asyncOptions, editor: 'number' })).toBe('number')
+  })
+})
+
+describe('optionLabelFor', () => {
+  it('reads the grouping label function, and falls back to the value', () => {
+    const plain: ColumnDef<Person> = { id: 'department', type: 'enum', options: ['Design'] }
+    expect(optionLabelFor(plain, 'Design')).toBe('Design')
+    expect(optionLabelFor(plain, 2)).toBe('2')
+    // The grouping label borrowed for the option list. One place for the
+    // borrowing, so the list and the typeahead over it cannot disagree.
+    const labelled: ColumnDef<Person> = {
+      ...plain,
+      groupLabel: (value) => `Dept: ${String(value)}`,
+    }
+    expect(optionLabelFor(labelled, 'Design')).toBe('Dept: Design')
+  })
+})
+
+describe('seedOptionFor', () => {
+  const departments: ColumnDef<Person> = {
+    id: 'department',
+    type: 'enum',
+    options: ['Engineering', 'Research', 'Support'],
+  }
+
+  it('picks the first option the characters name', () => {
+    expect(seedOptionFor(departments, 'r')).toBe('Research')
+    expect(seedOptionFor(departments, 'sup')).toBe('Support')
+    // The case is the reader's, not the column's.
+    expect(seedOptionFor(departments, 'ENGIN')).toBe('Engineering')
+  })
+
+  it('answers nothing rather than something wrong', () => {
+    // The whole reason this exists: a character naming no option must not
+    // become a value, since the only thing waiting for it is a rejection.
+    expect(seedOptionFor(departments, 'z')).toBeUndefined()
+    // The Delete/Backspace clear, which is not a typeahead at all.
+    expect(seedOptionFor(departments, '')).toBeUndefined()
+    expect(seedOptionFor({ id: 'department', type: 'enum' }, 'r')).toBeUndefined()
+  })
+
+  it('matches the label first, then the value it stands for', () => {
+    const priority: ColumnDef<Person> = {
+      id: 'priority',
+      type: 'enum',
+      options: [1, 2, 3],
+      groupLabel: (value) => ['', 'Low', 'Medium', 'High'][Number(value)] ?? '',
+    }
+    expect(seedOptionFor(priority, 'h')).toBe(3)
+    // Nothing is labelled "2", but an option still is one.
+    expect(seedOptionFor(priority, '2')).toBe(2)
+  })
+
+  it('skips a null option — the blank choice has no name to type', () => {
+    const nullable: ColumnDef<Person> = { id: 'department', type: 'enum', options: [null, 'None'] }
+    expect(seedOptionFor(nullable, 'n')).toBe('None')
   })
 })
 

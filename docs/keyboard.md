@@ -91,7 +91,16 @@ rather than hunting past it for the next editable cell.
 Typing is what starts an edit on a cell you land on closed: the
 character you type *replaces* the cell's value rather than being appended to it, and `Delete` or
 `Backspace` opens the cell cleared instead. The clear is a draft like any other, so `Esc` puts the
-value back and it is the commit that persists it. A `<select>` and a `<textarea>` keep their own arrows, since those
+value back and it is the commit that persists it.
+
+What "replaces the value" means depends on the control. A list has no text to type into, so a
+character over a **select** picks the first option it names — matched against the label you can see,
+then against the value behind it — and opens the cell unchanged when it names none. Over a
+**checkbox**, or over a dropdown whose options have not loaded, it opens the cell unchanged too: a
+character is not a boolean, and there is nothing yet to match against. `Delete` and `Backspace`
+still clear, whatever the control.
+
+A `<select>` and a `<textarea>` keep their own arrows, since those
 are how a select is changed at all and how a caret crosses a line — `Home` and `End` still reach
 both ends of a text box. A commit the server refuses stays put — moving
 would scroll the message explaining the failure out from under you.

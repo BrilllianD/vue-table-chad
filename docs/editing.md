@@ -85,6 +85,11 @@ the value somewhere nothing reads it back from. `applyCellValue` throws rather t
 
 `textarea` exists but is never derived; ask for it with `editor: 'textarea'`.
 
+The option labels come from `column.groupLabel` — the grouping label function, borrowed for a second
+job — and fall back to the value itself. That is also what a typed character is matched against: a
+letter over a closed `select` picks the first option whose label starts with it, so the list answers
+the keystroke rather than the draft taking a character no option carries.
+
 A `number` cell edits in `<input type="text" inputmode="decimal">`, not in a number input, and shows
 its value grouped — `1 234 000` — in whatever separators `Intl.NumberFormat` gives the runtime's
 locale. The draft still holds the bare `1234000`, so `column.parse` and `column.validate` see exactly

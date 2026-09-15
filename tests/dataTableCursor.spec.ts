@@ -20,6 +20,8 @@ import { people, personColumns, type Person } from './fixtures'
 
 type SessionOptions = Partial<Parameters<typeof useRowEditing<Person>>[2]>
 
+const DEPARTMENTS = ['Engineering', 'Research', 'Support']
+
 function mountTable(
   options: {
     cellCursor?: boolean
@@ -27,13 +29,23 @@ function mountTable(
     session?: SessionOptions
     /** Which columns take an editor. `name` and `salary` unless a test says otherwise. */
     editable?: string[]
+    /**
+     * Options for the `department` column, which is what turns it into a
+     * select — an `enum` with no list renders a text box, and several cases
+     * below want exactly that.
+     */
+    selectOptions?: string[]
     rowClickSelect?: boolean
   } = {},
 ) {
   const editable = options.editable ?? ['name', 'salary']
-  const columns: ColumnDef<Person>[] = personColumns.map((column) =>
-    editable.includes(column.id) ? { ...column, editable: true } : column,
-  )
+  const columns: ColumnDef<Person>[] = personColumns.map((column) => {
+    if (!editable.includes(column.id)) return column
+    if (column.id === 'department' && options.selectOptions) {
+      return { ...column, editable: true, options: options.selectOptions }
+    }
+    return { ...column, editable: true }
+  })
   const rows = shallowRef<Person[]>([...people])
   const saves: RowChange<Person>[] = []
   const saved: Person[] = []
@@ -367,6 +379,48 @@ describe('Enter', () => {
     // The typed character *is* the new value — the old one is gone rather than
     // appended to, which is what makes retyping a cell one gesture.
     expect((input.element as HTMLInputElement).value).toBe('A')
+    wrapper.unmount()
+  })
+
+  it('typeaheads to an option instead of seeding a select with the letter', async () => {
+    const { wrapper } = mountTable({
+      editable: ['name', 'department'],
+      selectOptions: DEPARTMENTS,
+    })
+    await focusCell(wrapper, 1, 'department')
+    await cell(wrapper, 1, 'department').trigger('keydown', { key: 'r' })
+    await nextTick()
+
+    const select = cell(wrapper, 1, 'department').get('select').element as HTMLSelectElement
+    expect(select.value).toBe('Research')
+    wrapper.unmount()
+  })
+
+  it('opens a select on the value that was there when the letter names nothing', async () => {
+    const { wrapper } = mountTable({
+      editable: ['name', 'department'],
+      selectOptions: DEPARTMENTS,
+    })
+    await focusCell(wrapper, 1, 'department')
+    await cell(wrapper, 1, 'department').trigger('keydown', { key: 'z' })
+    await nextTick()
+
+    // The editor opens, because the keystroke did say "edit this" — but on the
+    // value the cell held. Seeding "z" was one keystroke into a draft the
+    // option list does not contain and `validateCell` is waiting to reject.
+    const select = cell(wrapper, 1, 'department').get('select').element as HTMLSelectElement
+    expect(select.value).toBe('Engineering')
+    wrapper.unmount()
+  })
+
+  it('opens a checkbox unchanged — a character is not a boolean', async () => {
+    const { wrapper } = mountTable({ editable: ['name', 'active'] })
+    await focusCell(wrapper, 1, 'active')
+    await cell(wrapper, 1, 'active').trigger('keydown', { key: 'x' })
+    await nextTick()
+
+    const box = cell(wrapper, 1, 'active').get('.vt-cell-checkbox').element as HTMLInputElement
+    expect(box.checked).toBe(true)
     wrapper.unmount()
   })
 

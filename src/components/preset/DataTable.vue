@@ -34,6 +34,7 @@ import {
   type DetailToggle,
 } from '../../core/cellCursor'
 import { columnGroupPath, foldTargetFor } from '../../core/columnGroups'
+import { editorFor, seedOptionFor } from '../../core/editing'
 import { exportRows } from '../../core/export'
 import type { UsePagination } from '../../core/usePagination'
 import type { UseCellCursor } from '../../core/useCellCursor'
@@ -1045,6 +1046,37 @@ function cellAt(
  */
 const seededCell = shallowRef<CellPosition | null>(null)
 
+/**
+ * What a typed character means for this column's control, or `undefined` when
+ * it means nothing and the editor should open on the value that was there.
+ *
+ * A text, number, date or textarea box takes the character itself — the
+ * spreadsheet rule, and the whole point of opening an editor by typing. The
+ * three controls that hold no text do not:
+ *
+ *   - a `select` typeaheads to the option the character names, and opens
+ *     unchanged when it names none, rather than seeding a value the option
+ *     list does not contain and `validateCell` is waiting to reject;
+ *   - an `async-select` has nothing loaded to match against, and its panel
+ *     opens with a search box that is the right place for the character;
+ *   - a `checkbox` has no reading of one at all.
+ *
+ * An empty seed is the Delete/Backspace clear and is left alone for every
+ * kind: blanking a nullable column is a legitimate edit whatever edits it.
+ */
+function seedValueFor(column: ResolvedColumn<TRow>, seed: string): unknown {
+  if (seed === '') return seed
+  switch (editorFor(column)) {
+    case 'select':
+      return seedOptionFor(column, seed)
+    case 'async-select':
+    case 'checkbox':
+      return undefined
+    default:
+      return seed
+  }
+}
+
 function onActivate(
   position: CellPosition,
   event: Event,
@@ -1069,10 +1101,15 @@ function onActivate(
      * clear is a draft like any other, and Escape still puts the cell back.
      *
      * Enter, F2 and a click seed nothing and open the value untouched.
+     *
+     * What "what was typed" means depends on the control, which is why
+     * `seedValueFor` is consulted rather than the character being written
+     * straight in: a list has no cell to type into, only options to pick from.
      */
     const seed = 'key' in event ? editSeedFor(event as unknown as KeyboardEvent) : undefined
-    seededCell.value = seed === undefined ? null : position
-    if (seed !== undefined) session.setValue(row, column, seed)
+    const value = seed === undefined ? undefined : seedValueFor(column, seed)
+    seededCell.value = value === undefined ? null : position
+    if (value !== undefined) session.setValue(row, column, value)
     return
   }
   // A `KeyboardEvent` satisfies `CursorKeyGesture` structurally; anything else

@@ -41,7 +41,7 @@
  * needs no `<TableRoot>` above it.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { editorFor } from '../../core/editing'
+import { editorFor, optionLabelFor } from '../../core/editing'
 import {
   caretForSignificant,
   significantBefore,
@@ -329,7 +329,7 @@ function onKeydown(event: KeyboardEvent): void {
         -->
         <option v-if="!column.required" value="" />
         <option v-for="option in column.options ?? []" :key="String(option)" :value="String(option)">
-          {{ column.groupLabel ? column.groupLabel(option) : String(option) }}
+          {{ optionLabelFor(column, option) }}
         </option>
       </select>
 
