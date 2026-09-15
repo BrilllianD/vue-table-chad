@@ -3,7 +3,7 @@
  * Editing, end to end: a draft per row, validated, sent to a server that can
  * refuse it, and written back.
  *
- * Six things here are worth watching rather than reading about.
+ * Seven things here are worth watching rather than reading about.
  *
  * **`city` writes through a `setValue`.** It reads `row.location.city` via an
  * accessor, and an accessor cannot be run backwards, so the column has to say
@@ -30,6 +30,18 @@
  * number — Open drafts below shows it — which is why `parse` and `validate` see
  * exactly what they saw before, and why `-1` still fails on "A salary cannot be
  * negative".
+ *
+ * **Department, Role and Country are one panel, and so is Manager.** A
+ * `select` cell used to edit in a native `<select>`, whose option list is drawn
+ * by the operating system: it ignored every `--vtc-` token, so switching the
+ * theme left it behind, and it reported no open state for the cursor to read.
+ * Open Department and then Manager and look for the difference \u2014 there is
+ * none, because `useStaticOptions` dresses the fixed list as a source that has
+ * already finished loading and `StaticSelect` renders the same panel over it.
+ * Only the search box, the status line and the "load more" belong to the async
+ * one alone, and they simply never render over a list that is complete. Type a
+ * letter with the panel up and it typeaheads, on both. The trade is the
+ * operating system's own picker on a touch device.
  *
  * **Manager is a list nobody could send whole.** Any of 10,000 people can be
  * one, so the column declares `asyncOptions` instead of `options` and the
@@ -186,6 +198,7 @@ const editableColumns = computed(() =>
       'Click a salary and type a negative number: the column validator refuses it before any save.',
       'Give a row an email another row already has — that is the server refusing, after the latency.',
       'Switch mode to row, change two cells, then press Escape: the whole draft is cancelled, not just the cell.',
+      'Open Department, then Manager: one panel over two sources, a fixed list and a paged one.',
     ]"
     blurb="Click any cell with a value to edit it. Every column is opt-in — Tags stays read-only
            because a list needs an editor of its own. Watch the request log: a save is one request,
@@ -193,8 +206,10 @@ const editableColumns = computed(() =>
            Name is the one column that will not keep what you type verbatim: this demo's server
            trims it, and the table shows the row the server sent back. Salary edits in a masked
            text box that groups thousands while the draft keeps the bare number.
-           Manager is the other shape of column: 10,000 possible values, fetched 25 at a time as
-           the dropdown is scrolled or searched."
+           Department, Role and Country are lists, and Manager is the other shape of one: 10,000
+           possible values, fetched 25 at a time as the dropdown is scrolled or searched. Both
+           edit in the same themed panel rather than a native select, so a letter typed into
+           either typeaheads against the label on screen."
     :api="[
       'useRowEditing',
       'CellEditor',

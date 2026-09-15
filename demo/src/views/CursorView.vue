@@ -29,6 +29,21 @@
  * is already editing. An arrow on a closed cell still only moves. The save log
  * below stays one line per cell, not one per key.
  *
+ * **Type `R` on a Department cell.** A list has no cell to type into, so the
+ * character picks rather than seeds: the editor opens on Research, the option
+ * the letter names, matched against the label on screen before the value
+ * behind it. It used to open on a draft holding `"R"` — not a member of the
+ * column's options, so the only outcome that keystroke had was the validator
+ * refusing it. A character that names no option opens the cell unchanged.
+ *
+ * **Then press ↓ on that closed Department cell.** The ring moves, exactly as
+ * it does on a text column. What keeps the arrows is an *open* dropdown panel
+ * walking its own listbox, not the fact that the column is a list: a closed one
+ * is a button with a label on it, and exempting it by kind left the cell with
+ * no arrow way out at all — Enter, Tab and Escape were the only exits. `Alt`+`↓`
+ * is the gesture that opens the panel, and from there the arrows are the
+ * listbox's until it closes.
+ *
  * **Sort by Salary while the cursor is somewhere.** The ring keeps the height
  * it had — third row before, third row after. A sort sends the table back to
  * page 1, so the row it was on is usually not on the page that comes back, and
@@ -141,12 +156,15 @@ function onRowSaved(row: Employee): void {
       'Click a cell, then use the arrow keys; Enter opens an editable cell and a second Enter commits and steps down.',
       'Copy a Salary cell with Ctrl/Cmd+C and paste it into another: it lands formatted and is saved in one gesture.',
       'Turn on group by department and arrow through a band row: Enter folds it.',
+      'Type R on a Department cell: the letter picks Research rather than becoming the value, and \u2193 on that cell still moves the ring \u2014 Alt+\u2193 is what opens the list.',
     ]"
     blurb="A focused cell you move with the arrow keys, ringed and crossed by a tint down its
            row and its column. Enter, one left click, or simply typing opens the editor on a
            cell that has one — the character you typed becomes the value. Enter again
            commits and opens the cell below, Shift above, Ctrl right, Ctrl+Shift left, and an
-           arrow out of an open editor commits and opens the cell that way. Shift and a horizontal
+           arrow out of an open editor commits and opens the cell that way. On a list column
+           the character typeaheads to the option it names instead, and the arrows stay the
+           cursor's until Alt+down opens the panel. Shift and a horizontal
            arrow scrolls the box instead, leaving the ring where it is, and Ctrl with a vertical
            one scrolls it a screenful. One tab stop for the
            whole grid, and the cursor reaches the row pipeline not at all."
@@ -218,7 +236,11 @@ function onRowSaved(row: Employee): void {
       <kbd>Delete</kbd> or <kbd>Backspace</kbd> opens the cell empty. From inside an open editor
       both <kbd>Enter</kbd> and the arrows commit and open the cell they land on — so a column of
       numbers is typed straight down and a row across, with no keystroke between them. An arrow on
-      a closed cell only moves; a select and a textarea keep their own arrows.
+      a closed cell only moves \u2014 a closed dropdown included, since it is a button with a label
+      on it; <kbd>Alt</kbd>+<kbd>\u2193</kbd> opens its panel and the arrows are the listbox's for as
+      long as it is up. A textarea keeps its own throughout. On a list column the typed character
+      typeaheads to the option it names \u2014 <kbd>R</kbd> on Department opens on Research \u2014
+      rather than becoming a value the column's options do not contain.
       <kbd>Esc</kbd> puts the cell back and
       hands the focus to the cell. <kbd>Ctrl</kbd>+<kbd>C</kbd> copies the cell's text as it is
       shown, formatting and all — Salary copies with its currency — and <kbd>Ctrl</kbd>+<kbd>V</kbd>
