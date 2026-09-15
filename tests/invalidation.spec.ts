@@ -408,6 +408,9 @@ describe('what editing is allowed to recompute', () => {
     h.source.rows.value
     h.source.rows.value
 
+    // The work that was asked for, once each: a narrower row set is a new list,
+    // so the sort over it is the ordinary cost of a filter rather than the
+    // menu's.
     expect(counters.filter).toBe(1)
     expect(counters.sort).toBe(1)
     h.stop()
@@ -1224,5 +1227,157 @@ describe('what expanding a detail row is allowed to recompute', () => {
     expect(h.items.value).toBe(h.grouping.displayRows.value)
     expectNoPasses()
     h.stop()
+  })
+})
+
+/**
+ * The gate F8 was written against: a menu is a way of asking, not a second
+ * implementation of what is asked for.
+ *
+ * Opening it, walking it and dismissing it are rendering, so every dataset-wide
+ * pass stays at zero — and hiding a column from it is column layout, which the
+ * pipeline never reads. The three that *are* work must still happen, exactly
+ * once each: an invariant suite saying only "do less" is satisfied by a menu
+ * whose items do nothing at all.
+ */
+describe('what the context menu is allowed to recompute', () => {
+  function mountTable(props: Record<string, unknown> = {}) {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25 })
+        const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, {
+            columns: employeeColumns,
+            source,
+            state,
+            contextMenu: true,
+            ...props,
+          })
+      },
+    })
+    return mount(Host, { attachTo: document.body })
+  }
+
+  async function settle(): Promise<void> {
+    await nextTick()
+    await nextTick()
+    await nextTick()
+  }
+
+  /** The first body cell of a column, by right-click. */
+  async function openOn(columnId: string): Promise<void> {
+    const cell = document
+      .querySelector('.vt-tbody .vt-tr')
+      ?.querySelector<HTMLElement>(`.vt-td[data-column="${columnId}"]`)
+    cell!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    await settle()
+  }
+
+  function press(action: string): void {
+    document
+      .querySelector<HTMLButtonElement>(`.vt-context-menu [data-action="${action}"]`)!
+      .click()
+  }
+
+  function expectNoPasses(): void {
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.aggregateRow).toBe(0)
+    expect(counters.flatten).toBe(0)
+    expect(counters.tree).toBe(0)
+    expect(counters.walk).toBe(0)
+  }
+
+  it('opening and dismissing it does not reach the pipeline', async () => {
+    const wrapper = mountTable()
+    await settle()
+    reset()
+
+    await openOn('department')
+    expect(document.querySelector('.vt-context-menu')).not.toBeNull()
+    expectNoPasses()
+
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+    await settle()
+    expect(document.querySelector('.vt-context-menu')).toBeNull()
+    expectNoPasses()
+    wrapper.unmount()
+  })
+
+  it('hiding a column from it does not either', async () => {
+    const wrapper = mountTable()
+    await settle()
+    await openOn('department')
+    reset()
+
+    press('hide')
+    await settle()
+
+    expect(document.querySelector('.vt-th[data-column="department"]')).toBeNull()
+    // Column layout, which no pipeline stage reads — the same rule a hide from
+    // the columns menu follows.
+    expectNoPasses()
+    wrapper.unmount()
+  })
+
+  it('filtering from it costs one filter pass, and one sort', async () => {
+    const wrapper = mountTable()
+    await settle()
+    await openOn('department')
+    reset()
+
+    press('filter')
+    await settle()
+
+    // The work that was asked for, once. The sort runs because the surviving
+    // rows are a new list, which is the ordinary cost of a filter — not the
+    // menu's.
+    // The work that was asked for, once each: a narrower row set is a new list,
+    // so the sort over it is the ordinary cost of a filter rather than the
+    // menu's.
+    expect(counters.filter).toBe(1)
+    expect(counters.sort).toBe(1)
+    wrapper.unmount()
+  })
+
+  it('grouping from it builds the tree, without re-filtering or re-sorting', async () => {
+    const wrapper = mountTable()
+    await settle()
+    await openOn('department')
+    reset()
+
+    press('group')
+    await settle()
+
+    // Client-side grouping rearranges rows that are already in hand: the tree
+    // is built over them, and neither dataset pass upstream of it runs again.
+    // The tree over rows already in hand, and the page gathered into bands —
+    // the same single sort turning the page costs. Neither dataset pass
+    // upstream of the tree runs again: only `groupBy` moved.
+    expect(counters.tree).toBe(1)
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(1)
+    wrapper.unmount()
+  })
+
+  it('sorting from it re-sorts exactly once, and re-filters nothing', async () => {
+    const wrapper = mountTable()
+    await settle()
+    await openOn('salary')
+    reset()
+
+    press('sort-desc')
+    await settle()
+
+    expect(counters.sort).toBe(1)
+    // The row set did not change, so the filter must not run again — the stages
+    // depend on query *fields*, and only `sort` moved.
+    expect(counters.filter).toBe(0)
+    wrapper.unmount()
   })
 })

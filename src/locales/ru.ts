@@ -78,6 +78,15 @@ export const ru: TableLabels = Object.freeze({
   moveDown: 'Вниз',
   rowActions: 'Действия со строкой',
 
+  contextMenu: 'Действия с ячейкой',
+  filterByValue: 'Фильтровать по значению',
+  sortAscending: 'Сортировать по возрастанию',
+  sortDescending: 'Сортировать по убыванию',
+  groupByThisColumn: 'Группировать по этому столбцу',
+  stopGroupingByThisColumn: 'Не группировать по этому столбцу',
+  hideColumn: 'Скрыть столбец',
+  copyCell: 'Копировать',
+
   exportRows: 'Экспорт',
   exportRowsDescription: 'Экспортировать все отфильтрованные строки в CSV',
 

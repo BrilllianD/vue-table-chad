@@ -24,6 +24,7 @@ import { computed, ref, watch } from 'vue'
 import { useTableContext } from '../../core/context'
 import {
   bandFoldFor,
+  contextMenuFor,
   cursorMoveFor,
   detailToggleFor,
   editSeedFor,
@@ -32,6 +33,7 @@ import {
   viewportMoveFor,
   type BandFold,
   type CellPosition,
+  type ContextMenuTarget,
   type DetailToggle,
 } from '../../core/cellCursor'
 import type { UseCellCursor } from '../../core/useCellCursor'
@@ -63,6 +65,21 @@ const props = defineProps<{
    * source still loading its first page knows.
    */
   rowCount?: number
+  /**
+   * Report a right-click — or `Shift`+`F10` — on a cell or a header cell as
+   * `context-menu`.
+   *
+   * Off by default, and off means off: no listener is bound and the browser's
+   * own menu is what a right-click gets, which is the honest outcome for a
+   * table that has nothing to put in its place.
+   *
+   * Separate from `cursor` because the two cover different ground. A header
+   * cell is in reach of the pointer whether or not the table has a cursor at
+   * all, so the pointer half must not be gated on one; the keyboard half is,
+   * since `Shift`+`F10` means "the focused cell" and without a cursor there is
+   * no focused cell to mean.
+   */
+  contextMenu?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -148,6 +165,23 @@ const emit = defineEmits<{
    * the same reason `copy` leaves that call to the consumer.
    */
   paste: [position: CellPosition, text: string, event: ClipboardEvent]
+  /**
+   * The user asked for a context menu on a cell — a right-click, or
+   * `Shift`+`F10` on the cursor's cell.
+   *
+   * Reported rather than acted on, for the reason `activate` is: a menu needs
+   * the whole column, filter and grouping model, and a grid that assumed one
+   * could not be used without it.
+   *
+   * The anchor is the `<td>` or `<th>` the gesture landed on, passed separately
+   * because `ContextMenuTarget` lives in `core/`, which holds no DOM. It is
+   * what a panel positions against, and only this component knows it.
+   *
+   * The default **is** suppressed here, unlike `copy` — by the time this is
+   * emitted a cell has resolved, so there is a menu to put in the browser's
+   * place. A right-click landing anywhere else in the table is left alone.
+   */
+  contextMenu: [target: ContextMenuTarget, anchor: HTMLElement, event: Event]
 }>()
 
 const context = useTableContext<TRow>()
@@ -275,6 +309,21 @@ function onKeydown(event: KeyboardEvent): void {
     if (!position) return
     event.preventDefault()
     emit('activate', position, event)
+    return
+  }
+
+  // With the other activations, and before them for the same reason `Enter` is
+  // first: both keys it claims are function keys, so `editSeedFor` below never
+  // sees them and the order is free rather than load-bearing.
+  if (props.contextMenu && contextMenuFor(event)) {
+    const position = cursor.position.value ?? cursor.tabStop.value
+    const anchor = position && cellAt(position)
+    // No cell rendered for the position — a row that scrolled out of a virtual
+    // window — leaves the press to the browser rather than opening a panel
+    // anchored to nothing.
+    if (!position || !anchor) return
+    event.preventDefault()
+    emit('contextMenu', { rowId: position.rowId, columnId: position.columnId }, anchor, event)
     return
   }
 
@@ -493,6 +542,33 @@ function onClick(event: MouseEvent): void {
 }
 
 /**
+ * A right-click on a cell or a header cell, reported with the element it landed
+ * on so a panel can be hung off it.
+ *
+ * The cell is found the way `onClick` finds it — `closest`, then the row id off
+ * the enclosing `<tr>` — with the header case added, which has no row and says
+ * so by leaving `rowId` out. A click on anything else inside the table resolves
+ * to no cell, and then nothing is claimed: the browser's own menu is the right
+ * answer over the padding, the pager and the toolbar.
+ *
+ * Deliberately not gated on a cursor. The keyboard half is, because
+ * `Shift`+`F10` has no meaning without a focused cell; a pointer always knows
+ * which cell it is over.
+ */
+function onContextMenu(event: MouseEvent): void {
+  const target = event.target as HTMLElement | null
+  const cell = target?.closest?.('.vt-td[data-column], .vt-th[data-column]')
+  if (!(cell instanceof HTMLElement)) return
+  const columnId = cell.getAttribute('data-column')
+  if (!columnId) return
+  // A header cell has no row, which is exactly what `rowId: undefined` says.
+  const key = cell.closest('.vt-tr')?.getAttribute('data-row-id')
+  const rowId = key === null || key === undefined ? undefined : props.cursor?.rowIdFor(key) ?? key
+  event.preventDefault()
+  emit('contextMenu', { rowId, columnId }, cell, event)
+}
+
+/**
  * One object of listeners, empty when there is no cursor — a table that did not
  * ask for a keyboard should not pay for five listeners to find out it did not.
  */
@@ -508,6 +584,16 @@ const cursorHandlers = computed(() =>
       }
     : {},
 )
+
+/**
+ * The right-click listener, on its own for the reason the prop is: it answers
+ * with no cursor, so folding it into `cursorHandlers` would take a header's
+ * menu away from every table that never asked for a keyboard.
+ */
+const gridHandlers = computed(() => ({
+  ...cursorHandlers.value,
+  ...(props.contextMenu ? { contextmenu: onContextMenu } : {}),
+}))
 
 /*
  * Two sources, one watcher, two different rules.
@@ -553,7 +639,7 @@ defineExpose({ focusCursorCell })
     :style="minWidth ? { minWidth } : undefined"
     :role="cursor ? 'grid' : undefined"
     :aria-rowcount="rowCount"
-    v-on="cursorHandlers"
+    v-on="gridHandlers"
   >
     <colgroup>
       <col v-if="selectionColumn" class="vt-col-selection" />

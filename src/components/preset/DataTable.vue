@@ -30,6 +30,7 @@ import {
   nextScrollTop,
   type BandFold,
   type CellPosition,
+  type ContextMenuTarget,
   type DetailToggle,
 } from '../../core/cellCursor'
 import { columnGroupPath, foldTargetFor } from '../../core/columnGroups'
@@ -48,6 +49,7 @@ import { devChecksEnabled, devWarn } from '../../core/devWarn'
 import type { UseColumnsResult } from '../../core/useColumns'
 import TableRoot from '../primitives/TableRoot.vue'
 import TableGrid from '../primitives/TableGrid.vue'
+import TableContextMenu from '../primitives/TableContextMenu.vue'
 import ColumnDragGhost from '../primitives/ColumnDragGhost.vue'
 import ColumnVisibilityMenu from '../primitives/ColumnVisibilityMenu.vue'
 import RowGroupMenu from '../primitives/RowGroupMenu.vue'
@@ -285,6 +287,21 @@ const props = withDefaults(
      * has none at mount — and never again.
      */
     autofocusCursor?: boolean
+    /**
+     * A right-click menu over cells and header cells: filter by this value,
+     * sort either way, group by the column, hide it, copy the cell.
+     *
+     * Every item is a call the table already offers somewhere else — the filter
+     * panel, the sort trigger, the two dropdown menus — so nothing here can
+     * filter a column in a way the rest of the table would disagree with.
+     * `Shift`+`F10` opens the same menu from the keyboard, which needs
+     * `cellCursor` to have a cell to open on.
+     *
+     * Off by default, and off means off: no listener is bound and a right-click
+     * gets the browser's own menu. Add items of your own through the
+     * `#contextMenu` slot.
+     */
+    contextMenu?: boolean
     /**
      * A disclosure toggle on every row, opening a detail panel under it — what
      * the `#detail` slot renders into.
@@ -1065,6 +1082,18 @@ function onActivate(
 }
 
 /**
+ * Which cell the context menu is on, and what to hang it off — `null` when it
+ * is shut. Named apart from the `contextMenu` prop, which says whether the
+ * table answers a right-click at all.
+ *
+ * One menu for the whole table, moved from cell to cell, rather than one per
+ * cell: the panel is a single teleported element either way, and a menu per
+ * cell would be a component per rendered cell to answer a gesture that can only
+ * ever be in one of them at a time.
+ */
+const openMenu = shallowRef<{ target: ContextMenuTarget; anchor: HTMLElement } | null>(null)
+
+/**
  * Copy puts the cell's **displayed** text on the clipboard, not its value.
  *
  * `getCellText` is what the cell renders, `column.format` included, so a date
@@ -1299,11 +1328,13 @@ function onPaste(
             :selection-column="leadingColumn"
             :actions-column="actionsColumn"
             :cursor="cursor"
+            :context-menu="props.contextMenu"
             @activate="(position, event) => onActivate(position, event, rows, cols, cursor)"
             @copy="(position, event) => onCopy(position, event, rows, cols, cursor, cellText)"
             @paste="
               (position, text, event) => onPaste(position, text, event, rows, cols, cursor)
             "
+            @context-menu="(target, anchor) => (openMenu = { target, anchor })"
             @band-fold="(fold) => bandFold(fold, cursor)"
             @detail-toggle="(rowId, toggle) => detailToggle(rowId, toggle, rows)"
             @page-move="(pages) => pageMove(pages, pagination)"
@@ -1359,6 +1390,7 @@ function onPaste(
               :hover-column-id="hoverColumnId"
               :editing="props.editing"
               :row-key="rowKey"
+              :context-menu="props.contextMenu ?? false"
               :selectable="selectable"
               :row-click-select="rowClickSelect"
               :row-mode="rowMode"
@@ -1429,6 +1461,37 @@ function onPaste(
       </div>
 
       <ColumnDragGhost v-if="reorderable" />
+
+      <!--
+        Mounted for as long as the table wants a menu at all, rather than with
+        the menu itself: the panel binds its dismissal listeners when `open`
+        goes true, and a component born open has no such moment. The panel
+        element inside it is what appears and disappears.
+      -->
+      <TableContextMenu
+        v-if="props.contextMenu"
+        :open="openMenu !== null"
+        :anchor="openMenu?.anchor ?? null"
+        :column-id="openMenu?.target.columnId ?? ''"
+        :row-id="openMenu?.target.rowId"
+        @update:open="(open) => !open && (openMenu = null)"
+      >
+        <template v-if="$slots.contextMenu">
+          <!--
+            One `v-bind` object rather than three bindings: a slot's props are
+            passed under the names they are written with, and `:row-id` would
+            hand the consumer a `row-id` key to destructure.
+          -->
+          <slot
+            name="contextMenu"
+            v-bind="{
+              columnId: openMenu?.target.columnId,
+              rowId: openMenu?.target.rowId,
+              close: () => (openMenu = null),
+            }"
+          />
+        </template>
+      </TableContextMenu>
 
       <slot name="pagination" :state="tableState" :total="total">
         <!--

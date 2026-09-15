@@ -74,6 +74,15 @@ export const zhCN: TableLabels = Object.freeze({
   moveDown: '下移',
   rowActions: '行操作',
 
+  contextMenu: '单元格操作',
+  filterByValue: '按此值筛选',
+  sortAscending: '升序排序',
+  sortDescending: '降序排序',
+  groupByThisColumn: '按此列分组',
+  stopGroupingByThisColumn: '取消按此列分组',
+  hideColumn: '隐藏此列',
+  copyCell: '复制',
+
   exportRows: '导出',
   exportRowsDescription: '将所有筛选后的行导出为 CSV',
 

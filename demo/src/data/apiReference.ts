@@ -183,6 +183,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'viewportMoveFor', layer: 'core', kind: 'function', summary: 'Which way `Ctrl`/`Cmd` + `↑`/`↓` asked to scroll the table — `-1` up, `1` down, one screenful a press — or `undefined` for any other key.' },
   { name: 'bandFoldFor', layer: 'core', kind: 'function', summary: 'Whether a key press asked to fold a header band, and which of the two ways.' },
   { name: 'detailToggleFor', layer: 'core', kind: 'function', summary: "Whether a key press asked to open or shut the cursor row's detail panel." },
+  { name: 'contextMenuFor', layer: 'core', kind: 'function', summary: "Whether a key press asked for the context menu on the cursor's cell." },
   { name: 'nextPosition', layer: 'core', kind: 'function', summary: 'Where `move` lands, given the cells currently on screen — or `undefined` when it lands nowhere new.' },
   { name: 'nextScrollLeft', layer: 'core', kind: 'function', summary: 'Where a sideways scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `scrollMoveFor`, with the DOM read out of it.' },
   { name: 'nextScrollTop', layer: 'core', kind: 'function', summary: 'Where a vertical scroll lands the scroll box, or `undefined` when it cannot move — the arithmetic behind `viewportMoveFor`, with the DOM read out of it.' },
@@ -193,6 +194,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'CursorKeyGesture', layer: 'core', kind: 'type', summary: 'The parts of a key press this module reads.' },
   { name: 'BandFold', layer: 'core', kind: 'type', summary: "What a fold gesture asked for: `toggle` acts on the band over the cursor's column, `expandAll` opens every band on the table." },
   { name: 'DetailToggle', layer: 'core', kind: 'type', summary: "Which way a detail gesture asked the cursor's row to go." },
+  { name: 'ContextMenuTarget', layer: 'core', kind: 'type', summary: 'Which cell a context menu was asked for.' },
 
   /* --------------------------------------------------------------- filters */
   { name: 'valuesFilter', layer: 'filters', kind: 'function', summary: "Excel's checkbox list: which distinct values survive." },
@@ -300,6 +302,8 @@ export const apiReference: ApiEntry[] = [
   { name: 'ColumnVisibilityMenu', layer: 'primitives', kind: 'component', summary: 'Show/hide columns, reorder them, and pin them to either edge. Reordering is button-driven rather than drag-only so it stays keyboard-accessible.' },
 
   { name: 'RowGroupMenu', layer: 'primitives', kind: 'component', summary: 'Picks which columns rows are grouped by, and in which order.' },
+
+  { name: 'TableContextMenu', layer: 'primitives', kind: 'component', summary: 'The right-click menu over a cell or a header cell.' },
 
   { name: 'ActiveFilters', layer: 'primitives', kind: 'component', summary: 'Chips summarising what is currently filtered. Without this, a filter set on a column that later got hidden or scrolled away is invisible and unexplainable.' },
 

@@ -89,6 +89,14 @@ export const docPages: DocPage[] = [
     section: 'Features',
   },
   {
+    file: 'context-menu.md',
+    title: 'The right-click menu',
+    blurb:
+      'Five actions on the cell under the pointer, `Shift`+`F10` from the keyboard, and the `#contextMenu` slot for items of your own.',
+    demoTabs: ['context-menu'],
+    section: 'Features',
+  },
+  {
     file: 'editing.md',
     title: 'Editing cells',
     blurb: 'A draft per row, cell and row mode, validation, and a save the server can refuse.',

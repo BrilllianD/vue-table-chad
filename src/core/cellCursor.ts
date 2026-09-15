@@ -263,6 +263,41 @@ export function bandFoldFor(gesture: CursorKeyGesture): BandFold | undefined {
   return gesture.key === '+' ? { kind: 'expandAll' } : { kind: 'toggle' }
 }
 
+/**
+ * Which cell a context menu was asked for.
+ *
+ * `rowId` is absent for a header cell, which has no row — the two
+ * value-dependent items (filter by this value, copy) are what that takes away,
+ * and a header's own three actions are what is left.
+ *
+ * The element to hang the panel off is *not* here: it is an `HTMLElement`, and
+ * `core/` holds no DOM at all. `TableGrid` emits it alongside this, because the
+ * grid is the only layer that knows which element the gesture hit.
+ */
+export interface ContextMenuTarget {
+  columnId: string
+  rowId?: RowId
+}
+
+/**
+ * Whether a key press asked for the context menu on the cursor's cell.
+ *
+ * `Shift`+`F10` is the platform gesture every screen reader teaches, and the
+ * `ContextMenu` key is the dedicated one the keyboards that have it send. Both
+ * are function keys rather than characters, so `editSeedFor` never sees them
+ * and the two decoders cannot answer the same press — which is why this one is
+ * free to sit with the activation decoders rather than after them.
+ *
+ * `Shift` is required, not merely tolerated: a bare `F10` is the browser's own
+ * menu bar on Windows and Linux, and taking it would cost a keyboard user the
+ * only route to it.
+ */
+export function contextMenuFor(gesture: CursorKeyGesture): boolean {
+  if (gesture.altKey || isPrimaryModifier(gesture)) return false
+  if (gesture.key === 'ContextMenu') return !gesture.shiftKey
+  return gesture.key === 'F10' && Boolean(gesture.shiftKey)
+}
+
 /** Which way a detail gesture asked the cursor's row to go. */
 export type DetailToggle = 'expand' | 'collapse'
 

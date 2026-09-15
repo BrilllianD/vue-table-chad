@@ -1,5 +1,6 @@
 /*
- * The two dropdown panels: grouping and column visibility.
+ * The dropdown panels: grouping, column visibility, and the right-click menu
+ * over a cell.
  *
  * A slice of the preset theme. Imported by `../table.css` in source order —
  * see the note there about why the order is not arbitrary.
@@ -136,4 +137,62 @@
   .vt-columns-label {
     text-overflow: var(--vtc-truncation-marker);
   }
+}
+
+/* ---------------------------------------------------------- context menu */
+
+/*
+  Fixed, like the filter panel and for the same reason: the menu is teleported
+  out of the scroll container so nothing's `overflow` can clip it, and its
+  `top`/`left` come from the anchor cell's rect, written inline by the
+  component. Inline (`teleport: false`) it sits in the flow instead, and the
+  component binds no position at all.
+*/
+.vt-context-menu {
+  position: fixed;
+  z-index: var(--vtc-z-popover);
+  min-width: 220px;
+  /* Never taller than the viewport, so positioning always has a solution. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--vtc-space-1);
+  background: var(--vtc-bg);
+  border: var(--vtc-stroke-1) solid var(--vtc-border-strong);
+  border-radius: var(--vtc-radius);
+  box-shadow: var(--vtc-elevation-popover);
+  font-weight: var(--vtc-weight-normal);
+  white-space: normal;
+}
+
+.vt-context-menu[data-inline] {
+  position: static;
+  max-height: none;
+}
+
+.vt-context-item {
+  display: block;
+  width: 100%;
+  padding: var(--vtc-space-2) var(--vtc-space-3);
+  border: 0;
+  border-radius: var(--vtc-radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vt-context-item:hover:not(:disabled),
+.vt-context-item:focus-visible {
+  background: var(--vtc-row-hover-bg);
+}
+
+/*
+  Kept in the menu rather than dropped from it: which actions a column refuses
+  is worth reading, and a menu whose items moved about depending on the column
+  would make the one you wanted hard to aim at.
+*/
+.vt-context-item:disabled {
+  color: var(--vtc-text-muted);
+  cursor: default;
 }

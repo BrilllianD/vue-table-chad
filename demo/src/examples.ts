@@ -15,6 +15,7 @@
 import columnGroups from '../../docs/.vitepress/examples/column-groups.vue?highlight'
 import columnLayout from '../../docs/.vitepress/examples/column-layout.vue?highlight'
 import composing from '../../docs/.vitepress/examples/composing.vue?highlight'
+import contextMenu from '../../docs/.vitepress/examples/context-menu.vue?highlight'
 import contracts from '../../docs/.vitepress/examples/contracts.vue?highlight'
 import dataSources from '../../docs/.vitepress/examples/data-sources.vue?highlight'
 import detailRows from '../../docs/.vitepress/examples/detail-rows.vue?highlight'
@@ -53,6 +54,7 @@ export const exampleFiles: Record<string, HighlightedFile> = {
   'column-groups.vue': columnGroups,
   'column-layout.vue': columnLayout,
   'composing.vue': composing,
+  'context-menu.vue': contextMenu,
   'contracts.vue': contracts,
   'data-sources.vue': dataSources,
   'detail-rows.vue': detailRows,
@@ -91,6 +93,7 @@ export const exampleNotes: Record<string, string> = {
   'column-groups.vue': `Two bands over six columns. \`columnGroups\` declares the bands and each column's \`group\` says which one it sits under; \`collapseTo\` on the second band names the one column a folded band keeps, and \`initialLayout.collapsedGroups\` starts it folded — click its header to open it.`,
   'column-layout.vue': `The three sizing rules on one column list: a fixed \`width\`, no width at all (the table measures \`city\` and \`country\` from their contents), and \`flex\` on \`role\` so it takes what is left over. \`storage-key\` on the component is the whole persistence story — resize, reorder or hide a column and reload.`,
   'composing.vue': `No preset and no stylesheet import. \`TableRoot\` hands the slot the page's rows and the total, and the markup inside is cards rather than a \`<table>\`; \`SortTrigger\`, \`ColumnFilterPopover\` and \`TablePagination\` read the same context and need no props beyond a column id.`,
+  'context-menu.vue': `\`context-menu\` claims the right-click and \`cell-cursor\` gives \`Shift\`+\`F10\` a cell to open on. The \`#contextMenu\` slot is the sixth item, after the five the table brings — it gets the row id and a \`close\` to call when it is done.`,
   'contracts.vue': `No component at all. \`createQueryState\` builds the same object \`useTableState\` owns, and \`filterRows\` then \`sortRows\` over a plain array are the whole pipeline — the \`<table>\` below is only there to show the result.`,
   'data-sources.vue': `One \`DataTable\`, two sources. \`fetchPeople\` stands in for a server and returns \`{ rows, total }\` for the query it is handed; the checkbox swaps which source is bound, and nothing else in the file changes.`,
   'detail-rows.vue': `\`expandable\` puts the disclosure column in and lets the table own which rows are open; the \`#detail\` slot gets the row and renders whatever the panel should hold. Six rows per page so an open panel stays in view.`,
@@ -150,6 +153,7 @@ export const examplesByTab: Record<string, TabExamples> = {
   filters: { files: ['filtering.vue'] },
   grouping: { files: ['grouping.vue'] },
   detail: { files: ['detail-rows.vue'] },
+  'context-menu': { files: ['context-menu.vue'] },
   editing: { files: ['editing.vue'] },
   cursor: { files: ['keyboard.vue'] },
   'header-groups': { files: ['column-groups.vue'] },

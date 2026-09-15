@@ -65,6 +65,17 @@ const props = defineProps<{
   hoverColumnId: string | undefined
   editing: UseRowEditing<TRow> | undefined
   rowKey: (row: TRow, index: number) => RowId
+  /**
+   * Whether the table answers a right-click, which is what makes every row
+   * carry `data-row-id`.
+   *
+   * Without a `cursor` a row emits no id at all — the grid is the only thing
+   * that reads one, and it only reads one when it is driving a cursor. The
+   * context menu is the second reader, and it works with no cursor at all: a
+   * pointer always knows which cell it is over. So the id is written when
+   * either asks for it, and for neither otherwise.
+   */
+  contextMenu: boolean
   selectable: boolean
   /** Shift- and Ctrl/Cmd-click on the row itself, not just on its checkbox. */
   rowClickSelect: boolean
@@ -666,6 +677,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           v-else
           :key="rowKey(item.row, item.index)"
           :row-index="headerRowCount === undefined ? undefined : headerRowCount + start + offset + 1"
+          :row-id="contextMenu ? rowKey(item.row, item.index) : undefined"
           :row="item.row"
           :columns="columns"
           :index="item.index"

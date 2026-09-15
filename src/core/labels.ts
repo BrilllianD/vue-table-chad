@@ -118,6 +118,21 @@ export interface TableLabels {
   /** Hidden header for the trailing row-actions column. */
   rowActions: string
 
+  // — context menu —
+  /** Accessible name for the cell context menu. */
+  contextMenu: string
+  /** Narrows the column to the value the menu was opened on. */
+  filterByValue: string
+  sortAscending: string
+  sortDescending: string
+  /** Adds this column as a grouping level. */
+  groupByThisColumn: string
+  /** Drops it again — the same item, on an already-grouped column. */
+  stopGroupingByThisColumn: string
+  hideColumn: string
+  /** Puts the cell's displayed text on the clipboard. */
+  copyCell: string
+
   // — export —
   /** Caption for the toolbar's export button. */
   exportRows: string
@@ -298,6 +313,15 @@ export const DEFAULT_LABELS: TableLabels = Object.freeze({
   moveUp: 'Move up',
   moveDown: 'Move down',
   rowActions: 'Row actions',
+
+  contextMenu: 'Cell actions',
+  filterByValue: 'Filter by this value',
+  sortAscending: 'Sort ascending',
+  sortDescending: 'Sort descending',
+  groupByThisColumn: 'Group by this column',
+  stopGroupingByThisColumn: 'Stop grouping by this column',
+  hideColumn: 'Hide column',
+  copyCell: 'Copy',
 
   exportRows: 'Export',
   exportRowsDescription: 'Export every filtered row as CSV',

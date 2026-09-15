@@ -20,7 +20,8 @@ reported.
 ## Which side a primitive is on is declared in code
 
 `useTableContext()` returns `undefined` when there is no root, and is what an optional consumer
-calls. **`requireTableContext(name)` throws, and marks the three primitives that genuinely cannot
-work without a root** — `ColumnVisibilityMenu`, `RowGroupMenu` and `ActiveFilters`, each of which
-reads the whole column, group or filter model rather than taking it as props. Adding a fourth means
-adding a demo note saying so.
+calls. **`requireTableContext(name)` throws, and marks the four primitives that genuinely cannot
+work without a root** — `ColumnVisibilityMenu`, `RowGroupMenu`, `ActiveFilters` and
+`TableContextMenu`, each of which reads the whole column, group or filter model rather than taking
+it as props. Adding a fifth means adding a demo note saying so, the way the **Right-click menu**
+view says it for the fourth.

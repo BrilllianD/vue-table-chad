@@ -59,6 +59,7 @@ const showToolbar = ref(true)
 const showSearch = ref(true)
 const showColumnsMenu = ref(true)
 const showGroupMenu = ref(true)
+const contextMenu = ref(true)
 const showPagination = ref(true)
 const showFooter = ref(false)
 const showExport = ref(true)
@@ -152,6 +153,7 @@ function forgetLayout(): void {
       'DataTable showFooter',
       'DataTable showExport',
       'DataTable showGroupMenu',
+      'DataTable contextMenu',
       'DataTable reorderable',
       'exportRows',
       'downloadText',
@@ -195,6 +197,12 @@ function forgetLayout(): void {
         <ToggleControl v-model="showSearch" label="showSearch" code />
         <ToggleControl v-model="showColumnsMenu" label="showColumnsMenu" code />
         <ToggleControl v-model="showGroupMenu" label="showGroupMenu" code />
+        <ToggleControl
+          v-model="contextMenu"
+          label="contextMenu"
+          code
+          hint="right-click a cell, or Shift+F10"
+        />
         <ToggleControl v-model="showPagination" label="showPagination" code />
         <ToggleControl v-model="showFooter" label="showFooter" code hint="the aggregate row" />
         <ToggleControl v-model="stickyHeader" label="stickyHeader" code />
@@ -259,6 +267,7 @@ function forgetLayout(): void {
       :show-search="showSearch"
       :show-columns-menu="showColumnsMenu"
       :show-group-menu="showGroupMenu"
+      :context-menu="contextMenu"
       :show-pagination="showPagination"
       :show-footer="showFooter"
       :show-export="showExport"

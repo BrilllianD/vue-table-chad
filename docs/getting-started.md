@@ -526,6 +526,7 @@ Every page below has a matching view in `pnpm demo`, where the same thing runs a
 | [Selection](selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. |
 | [Grouping rows](grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. |
 | [Expandable detail rows](detail-rows.md) | A row opens to show the entities that hang off it — `expandable`, the `#detail` slot, `useRowExpansion`, and what `virtual` needs. |
+| [The right-click menu](context-menu.md) | Five actions on the cell under the pointer, `Shift`+`F10` from the keyboard, and the `#contextMenu` slot for items of your own. |
 | [Editing cells](editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. |
 | [Keyboard navigation](keyboard.md) | The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it. |
 | [Column layout](column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. |

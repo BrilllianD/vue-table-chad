@@ -8,6 +8,7 @@ import EditingView from './views/EditingView.vue'
 import CursorView from './views/CursorView.vue'
 import FiltersView from './views/FiltersView.vue'
 import DetailView from './views/DetailView.vue'
+import ContextMenuView from './views/ContextMenuView.vue'
 import GroupingView from './views/GroupingView.vue'
 import ColumnsView from './views/ColumnsView.vue'
 import HeaderGroupsView from './views/HeaderGroupsView.vue'
@@ -62,6 +63,7 @@ const tabs: Tab[] = (
     { id: 'filters', label: 'Filters', layer: 'preset', component: FiltersView },
     { id: 'grouping', label: 'Grouping', layer: 'preset', component: GroupingView },
     { id: 'detail', label: 'Detail rows', layer: 'preset', component: DetailView },
+    { id: 'context-menu', label: 'Right-click menu', layer: 'preset', component: ContextMenuView },
     { id: 'editing', label: 'Editing', layer: 'preset', component: EditingView },
     { id: 'cursor', label: 'Cell cursor', layer: 'preset', component: CursorView },
     { id: 'header-groups', label: 'Header bands', layer: 'preset', component: HeaderGroupsView },

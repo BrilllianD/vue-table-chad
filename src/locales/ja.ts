@@ -74,6 +74,15 @@ export const ja: TableLabels = Object.freeze({
   moveDown: '下へ',
   rowActions: '行の操作',
 
+  contextMenu: 'セルの操作',
+  filterByValue: 'この値で絞り込む',
+  sortAscending: '昇順で並べ替え',
+  sortDescending: '降順で並べ替え',
+  groupByThisColumn: 'この列でグループ化',
+  stopGroupingByThisColumn: 'この列のグループ化を解除',
+  hideColumn: '列を非表示',
+  copyCell: 'コピー',
+
   exportRows: 'エクスポート',
   exportRowsDescription: 'フィルター後のすべての行を CSV でエクスポート',
 

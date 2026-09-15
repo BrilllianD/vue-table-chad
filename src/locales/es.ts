@@ -69,6 +69,15 @@ export const es: TableLabels = Object.freeze({
   moveDown: 'Bajar',
   rowActions: 'Acciones de fila',
 
+  contextMenu: 'Acciones de celda',
+  filterByValue: 'Filtrar por este valor',
+  sortAscending: 'Ordenar ascendente',
+  sortDescending: 'Ordenar descendente',
+  groupByThisColumn: 'Agrupar por esta columna',
+  stopGroupingByThisColumn: 'Dejar de agrupar por esta columna',
+  hideColumn: 'Ocultar columna',
+  copyCell: 'Copiar',
+
   exportRows: 'Exportar',
   exportRowsDescription: 'Exportar todas las filas filtradas como CSV',
 

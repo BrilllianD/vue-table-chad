@@ -129,6 +129,7 @@ pages are also a VitePress site — `pnpm docs:dev` serves it locally, `pnpm doc
 | [Selection](docs/selection.md) | Shift-ranges, the tri-state header, and selecting more rows than are loaded. | Selection |
 | [Grouping rows](docs/grouping.md) | Bands, `groupMode`, aggregates and whole-table totals. | Grouping |
 | [Expandable detail rows](docs/detail-rows.md) | A row opens to show the entities that hang off it — `expandable`, the `#detail` slot, `useRowExpansion`, and what `virtual` needs. | Detail rows |
+| [The right-click menu](docs/context-menu.md) | Five actions on the cell under the pointer, `Shift`+`F10` from the keyboard, and the `#contextMenu` slot for items of your own. | Right-click menu |
 | [Editing cells](docs/editing.md) | A draft per row, cell and row mode, validation, and a save the server can refuse. | Editing |
 | [Keyboard navigation](docs/keyboard.md) | The cell cursor: arrow keys, Enter or any character to edit, copy and paste, and the roving tabindex behind it. | Cell cursor |
 | [Column layout](docs/column-layout.md) | Visibility, order, widths, pinning, persistence and drag-to-reorder. | Column layout |

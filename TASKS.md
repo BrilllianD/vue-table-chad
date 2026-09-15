@@ -51,18 +51,6 @@ it stop earning its keep.
 
 Agreed and next up, in the order they are meant to land.
 
-### `[ ]` F8 — Context menu primitive
-
-`TableContextMenu`, built on `useMenuDismiss` and `usePopoverPosition` (both already in
-`primitives/`), opened from a cell or header cell on `contextmenu` or `Shift`+`F10`. Five actions:
-"Filter by this value", "Sort ascending / descending", "Group by this column", "Hide column",
-"Copy". Every one is an existing `TableState` or `useColumns` mutator — the primitive composes them
-and owns no logic. `DataTable` gains `contextMenu` and a `#contextMenu` slot for a consumer's own
-items.
-
-**Done when:** the five actions work in `OverviewView`, the primitive renders standalone with
-explicit props, and a spec covers dismissal and the keyboard open.
-
 ### `[ ]` F11 — Accessibility beyond the grid
 
 Phase 2 landed only the `aria-rowcount` / `aria-rowindex` floor that virtualization required. Add

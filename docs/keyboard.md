@@ -42,6 +42,7 @@ The editing session the cursor drives — drafts, validation, and what a save do
 | `Ctrl`/`Cmd`+`C` | copy this cell's text |
 | `Ctrl`/`Cmd`+`V` | paste into this cell, and save it |
 | `Esc` | cancel the edit, and hand the focus back to the cell |
+| `Shift`+`F10` (or `ContextMenu`) | open the [right-click menu](context-menu.md) on this cell |
 
 `=` acts on the band **closest to the cursor's column**, and unfolds before it folds:
 a folded band leaves one column standing, that column is still inside the band, so the press that

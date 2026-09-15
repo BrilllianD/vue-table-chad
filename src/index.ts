@@ -222,6 +222,7 @@ export {
   viewportMoveFor,
   bandFoldFor,
   detailToggleFor,
+  contextMenuFor,
   nextPosition,
   nextScrollLeft,
   nextScrollTop,
@@ -234,6 +235,7 @@ export type {
   CursorKeyGesture,
   BandFold,
   DetailToggle,
+  ContextMenuTarget,
 } from './core/cellCursor'
 
 /* ----------------------------------------------------------------- utils */
@@ -270,6 +272,7 @@ export { default as ColumnResizeHandle } from './components/primitives/ColumnRes
 export { default as ColumnDragGhost } from './components/primitives/ColumnDragGhost.vue'
 export { default as ColumnVisibilityMenu } from './components/primitives/ColumnVisibilityMenu.vue'
 export { default as RowGroupMenu } from './components/primitives/RowGroupMenu.vue'
+export { default as TableContextMenu } from './components/primitives/TableContextMenu.vue'
 export { default as ActiveFilters } from './components/primitives/ActiveFilters.vue'
 export { default as TablePagination } from './components/primitives/TablePagination.vue'
 export { default as SelectionCheckbox } from './components/primitives/SelectionCheckbox.vue'
