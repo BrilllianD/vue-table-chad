@@ -62,6 +62,48 @@ spec runs `axe` (`vitest-axe`) over `OverviewView`'s table.
 **Done when:** the axe spec is green with no rule disabled, the announcements read correctly in the
 demo under a screen reader, and `docs/keyboard.md` has an accessibility section.
 
+### `[ ]` F21 — A printable key over a select can only fail
+
+Seeding is blind to the editor kind (`src/components/preset/DataTable.vue:1073`). Type `A` over a
+closed enum cell and the draft holds the raw string `"A"`; the `<select>` matches no option and
+displays the first one instead; the commit runs `parseCellInput`'s `enum` branch, finds no member,
+falls through to `String(input)`, and `validateCell` rejects it. So a single keystroke opens a
+control in a state whose only outcome is an error message. A printable key should typeahead to the
+first matching option instead, or seed nothing at all.
+
+**Done when:** typing a letter over an enum cell selects the first option starting with it, typing a
+letter that matches nothing leaves the cell unchanged, and no seeded select can produce an
+out-of-options error.
+
+### `[ ]` F22 — `Select`, one dropdown for both sources
+
+`AsyncSelect`'s panel serves a static option list too, so the two sources stop being two controls:
+`useStaticOptions` in core adapts a `FilterValue[]` to an `AsyncOptionSource`, and a thin `Select`
+primitive over it replaces the native `<select>` in `CellEditor`. That buys typeahead, theming (a
+native option list ignores `--vtc-` entirely, which is why the demo's own selects had to be painted
+with the OS scheme), no clipping, and the open/closed state F23 needs. The shared dropdown's classes
+rename `.vt-asyncselect-*` to `.vt-select-*` with it. The trade is the OS picker on a touch device.
+
+**Done when:** an `enum` column with `options` renders the custom panel, typeahead reaches an option
+by its first letters, `pnpm size` is inside both budgets, and `tests/presetStyles.spec.ts` is green
+on the renamed selectors.
+
+### `[ ]` F23 — Openness is the discriminator, not the editor kind
+
+Depends on F22. `editorMoveFor` exempts `select`, `async-select` and `textarea` by **kind**
+(`src/core/cellCursor.ts:507`), so while a select is open the cursor cannot move at all and the
+arrows are dead ends. The exemption is really "a panel is up": an open listbox owns the arrows, a
+closed dropdown has no use for them. So the exemption becomes `textarea` plus an `open` flag the
+control reports, and `Alt`+`↓`/`↑` — the ARIA combobox convention, and a gesture `editorMoveFor`
+already rejects — opens and closes the panel in place of the bare arrows.
+
+Splitting only `←`/`→` off the kind exemption was considered and dropped: it is an approximation of
+this, reachable without the custom control, and would be written and reverted once F22 lands.
+
+**Done when:** a bare arrow inside a closed select commits and moves the cursor, an arrow inside an
+open panel moves the active option and nothing else, `Alt`+`↓`/`↑` opens and closes, `textarea` is
+unchanged, and `tests/invalidation.spec.ts` still sees exactly one pipeline pass per successful
+commit.
 ---
 
 ## Backlog
@@ -164,6 +206,33 @@ worth a second axis of complexity. Promote only if the number says so.
 
 **Done when:** the fixture and its numbers are in `bench/BASELINE.md` with a go / no-go line.
 
+### `[ ]` F24 — Commit a select on pick
+
+A pick fires `change` and `update:value` and nothing else, so the editor stays open until Enter or
+blur; a `checkbox` is the same. In a spreadsheet the pick *is* the decision. Cell mode only — row
+mode must not save per field, which is the rule `onCellBlur`
+(`src/components/preset/DataTableBody.vue:466`) already encodes.
+
+**Done when:** a pick in cell mode saves the row once, row mode is unchanged, and
+`invalidation.spec.ts` sees exactly one pipeline pass per pick.
+
+### `[ ]` F25 — A richer option shape
+
+`options` is `FilterValue[]` and the label comes from `column.groupLabel` — the *grouping* label
+function borrowed for a second job. An `{ value, label?, disabled?, group? }` form would end the
+borrowing and give an option group. It reaches `computeFacets`' declared-order sort
+(`src/core/filters/facets.ts:123`), since `options` is what orders the filter checklist; that is the
+part to scope carefully.
+
+**Done when:** both shapes are accepted, the filter checklist still orders by declared order, and a
+grouped option list renders.
+
+### `[ ]` F26 — Multi-select enum
+
+The value becomes an array, which reaches `parse`, `validate`, `format` and the filters.
+Backlog-sized, and wants a design note first the way F12 does.
+
+**Done when:** the design note is in `docs/` and agreed. The implementation gets its own ID.
 ---
 
 ## Deferred
