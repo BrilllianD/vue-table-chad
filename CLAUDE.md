@@ -1,7 +1,7 @@
 # vue-table-chad
 
-Headless table primitives for Vue 3, released as an installable tarball (npm publish is still
-open work). The point of the project
+Headless table primitives for Vue 3, published to npm as `@brillliand/vue-table-chad` (the
+release is still cut by hand — `TASKS.md` T2 holds the automated half). The point of the project
 is a universal table with a flexible config that **renders fast, without much overhead** — so
 performance is a correctness property here, not a nice-to-have.
 

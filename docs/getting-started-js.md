@@ -20,14 +20,10 @@ Everything on this page was built and run against the packaged library — the p
 ## Install
 
 Identical to the TypeScript path; see [Install](getting-started.md#install) for the tarball,
-`link:` and bundler-alias options. In short:
+`link:` and bundler-alias options when working from a checkout. In short:
 
 ```bash
-# in this repo
-pnpm install && make pack
-
-# in your project
-pnpm add file:../vue-table-chad/brillliand-vue-table-chad-0.4.1.tgz
+pnpm add @brillliand/vue-table-chad     # or npm install / yarn add
 ```
 
 You need Vue **3.5+** and a bundler that compiles `.vue` files — the library's components arrive
