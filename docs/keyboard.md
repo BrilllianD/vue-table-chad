@@ -249,7 +249,7 @@ interface CellPosition { rowId: RowId; columnId: string }
 
 An index is meaningless the moment the rows move underneath it. An id is not, so the cursor stays on
 the row you put it on while that row travels — the same reason
-[an open draft](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/README.md) survives a re-sort. Everything that reads a position — the ring, the row
+[an open draft](https://github.com/BrilllianD/vue-table-chad/blob/main/README.md) survives a re-sort. Everything that reads a position — the ring, the row
 cross, an editor, a copy — reads it as the pair of ids.
 
 Where the *table* puts the cursor is a separate question, and it has a different answer: a page turn

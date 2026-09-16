@@ -17,7 +17,7 @@ composable, and every region is a slot. When it stops fitting, drop one layer do
 differently. Nothing is hidden behind it.
 
 Source, docs and the demo live at
-[bitbucket.org/BrilllianD/vue-table-chad](https://bitbucket.org/BrilllianD/vue-table-chad). The
+[github.com/BrilllianD/vue-table-chad](https://github.com/BrilllianD/vue-table-chad). The
 relative links below resolve there.
 
 ## Install

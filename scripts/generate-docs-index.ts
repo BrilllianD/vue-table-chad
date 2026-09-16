@@ -9,7 +9,7 @@
  *
  * Two variants:
  *   full   Page | What it covers | See it live — for README.md, read on
- *          Bitbucket, so links point at `docs/<file>`. "See it live" renders
+ *          GitHub, so links point at `docs/<file>`. "See it live" renders
  *          `demoTabs` as the matching tab labels from `demo/src/App.vue`.
  *   short  Page | For — for both getting-started pages, read inside the
  *          site, so links point at `<file>` directly. Each excludes itself.

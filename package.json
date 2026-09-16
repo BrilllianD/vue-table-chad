@@ -18,13 +18,13 @@
   ],
   "license": "MIT",
   "author": "Bronnikov Aleksandr <brullik7@gmail.com>",
-  "homepage": "https://bitbucket.org/BrilllianD/vue-table-chad#readme",
+  "homepage": "https://github.com/BrilllianD/vue-table-chad#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://bitbucket.org/BrilllianD/vue-table-chad.git"
+    "url": "git+https://github.com/BrilllianD/vue-table-chad.git"
   },
   "bugs": {
-    "url": "https://bitbucket.org/BrilllianD/vue-table-chad/issues"
+    "url": "https://github.com/BrilllianD/vue-table-chad/issues"
   },
   "engines": {
     "node": ">=24"

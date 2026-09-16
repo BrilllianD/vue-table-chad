@@ -1,6 +1,6 @@
 # Examples
 
-## [`AddressesTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/AddressesTable.vue) — porting an existing Options API table
+## [`AddressesTable.vue`](https://github.com/BrilllianD/vue-table-chad/blob/main/docs/examples/AddressesTable.vue) — porting an existing Options API table
 
 A real server-paginated table with the app's own markup, moved onto `vue-table-chad`. It keeps the
 `<table>` and every CSS class the app's stylesheet expects, and takes everything behind them from
@@ -142,7 +142,7 @@ pin a fluid column to a fixed width if you were not expecting it.
 
 ---
 
-## [`ServerPaginatedTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/ServerPaginatedTable.vue) — loading and error states
+## [`ServerPaginatedTable.vue`](https://github.com/BrilllianD/vue-table-chad/blob/main/docs/examples/ServerPaginatedTable.vue) — loading and error states
 
 `useServerDataSource` against a real fetcher, read out to the two states a local source never holds
 for more than a tick: `source.loading` while a request is in flight, and `source.error` when one
@@ -150,7 +150,7 @@ fails. The DataTable `#toolbar` slot is where the loading indicator lives; the e
 button render below the table, driven by `source.refresh()`. See
 [Local, server and infinite data](../data-sources.md) for the rest of the contract.
 
-## [`VirtualLargeTable.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/VirtualLargeTable.vue) — pinned, grouped, and 100k rows at once
+## [`VirtualLargeTable.vue`](https://github.com/BrilllianD/vue-table-chad/blob/main/docs/examples/VirtualLargeTable.vue) — pinned, grouped, and 100k rows at once
 
 The combination [P2-6's acceptance run](../performance.md#what-the-browser-measures) measured:
 `virtual` over 100k rows, two pinned columns, and a collapsed group, all at the same time. Frame
@@ -159,7 +159,7 @@ pinned or grouped — because pinning is a per-cell offset the scroll window nev
 collapsed band is simply a shorter list for the window to slice. Neither is a special case the
 window has to know about.
 
-## [`ComposedFromPrimitives.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/ComposedFromPrimitives.vue) — the standalone-primitive contract, end to end
+## [`ComposedFromPrimitives.vue`](https://github.com/BrilllianD/vue-table-chad/blob/main/docs/examples/ComposedFromPrimitives.vue) — the standalone-primitive contract, end to end
 
 No `<DataTable>`, no `<TableRoot>`, no stylesheet import. `useColumns` resolves the column list on
 its own — it is a composable, not a component, so it needs no root either — and `TableGrid`,

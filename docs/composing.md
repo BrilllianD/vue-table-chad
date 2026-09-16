@@ -35,7 +35,7 @@ Every primitive also takes explicit props that override the injected context, so
 
 The live example at the top of this page is that shape with cards; the fully standalone form — no
 `TableRoot` at all, every primitive fed by props — is
-[`docs/examples/ComposedFromPrimitives.vue`](https://bitbucket.org/BrilllianD/vue-table-chad/src/main/docs/examples/ComposedFromPrimitives.vue),
+[`docs/examples/ComposedFromPrimitives.vue`](https://github.com/BrilllianD/vue-table-chad/blob/main/docs/examples/ComposedFromPrimitives.vue),
 walked through in [Porting an existing table](examples/README.md).
 
 ## The primitives, and what each one slots

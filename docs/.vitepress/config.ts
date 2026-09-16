@@ -17,7 +17,7 @@ export default defineConfig({
         .map((p) => ({ text: p.title, link: `/${p.file.replace(/\.md$/, '')}` })),
     })),
     nav: [{ text: 'Demo', link: '/demo/' }],
-    socialLinks: [{ icon: 'bitbucket', link: 'https://bitbucket.org/BrilllianD/vue-table-chad' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/BrilllianD/vue-table-chad' }],
   },
   vite: {
     resolve: {
