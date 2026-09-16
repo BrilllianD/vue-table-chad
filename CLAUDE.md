@@ -32,6 +32,7 @@ pnpm size          # bundle-size budget over dist/ — gates in CI
 pnpm docs:api      # regenerate demo/src/data/apiReference.ts from src/ doc comments
 pnpm demo          # http://localhost:5174 — every feature one view each
 pnpm dev           # http://localhost:5173 — the smaller playground
+pnpm build:site    # docs + demo as published -> docs/.vitepress/dist/
 pnpm build:docs    # the demo, folded into one self-contained page
 make pack          # build + size + npm pack -> the installable tarball
 ```
@@ -133,6 +134,16 @@ theme and column-width decisions live in `src/components/preset/CLAUDE.md`, the 
   registered but unused in a trimmed excerpt, was deleted rather than silenced. `pnpm lint` gates in
   CI on the strength of that: a suppression nobody can read the reason for is how a check goes
   known-red again.
+- **The site is published from GitHub, the gates stay on Bitbucket.**
+  `.github/workflows/pages.yml` is the only GitHub workflow and it deploys `pnpm build:site` —
+  VitePress docs at the root, the demo under `/demo/`, both prefixed with the repo name — to
+  https://brillliand.github.io/vue-table-chad/. Manual (`workflow_dispatch`) on purpose: a push
+  trigger republishes the site for any commit that lands, and a published site is a deliberate act.
+  `bitbucket-pipelines.yml` stays the one list of gates, un-mirrored. The base prefix is passed
+  through the environment (`DOCS_BASE`, `DEMO_BASE`) rather than written into either config, because
+  `pnpm demo`, `pnpm docs:dev` and `demo/inline.mjs` all serve from `/`. **`build:docs` is kept**
+  even though a real host now exists: it targets a Claude Artifact, whose CSP blocks every external
+  request, so it inlines what Pages serves as assets. Two files, two hosts.
 - **The theme is two tiers, plus machinery marked as machinery.** `styles/scales.css` holds the
   values, `styles/tokens.css` the roles built out of them, a leading underscore means machinery.
   `src/core/theme.ts` is the same list in TypeScript, checked against both partitions by

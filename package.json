@@ -18,7 +18,7 @@
   ],
   "license": "MIT",
   "author": "Bronnikov Aleksandr <brullik7@gmail.com>",
-  "homepage": "https://github.com/BrilllianD/vue-table-chad#readme",
+  "homepage": "https://brillliand.github.io/vue-table-chad/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BrilllianD/vue-table-chad.git"
@@ -60,6 +60,7 @@
     "build:playground": "vite build --config vite.playground.config.ts",
     "build:demo": "vite build --config vite.demo.config.ts",
     "build:docs": "pnpm build:demo && node demo/inline.mjs",
+    "build:site": "node scripts/build-site.ts",
     "docs:api": "node scripts/generate-api-reference.ts",
     "docs:index": "node scripts/generate-docs-index.ts",
     "docs:dev": "vitepress dev docs",

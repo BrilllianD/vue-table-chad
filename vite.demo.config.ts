@@ -5,6 +5,14 @@ import { highlight } from './scripts/vite-plugin-highlight.ts'
 
 export default defineConfig({
   root: fileURLToPath(new URL('./demo', import.meta.url)),
+  /*
+   * `/` unless the deploy says otherwise. `pnpm demo` serves the root of its
+   * own dev server, and `demo/inline.mjs` inlines the assets into one file with
+   * no host under it at all — a prefix would be wrong for both. Only
+   * `pnpm build:site` sets this, to the subpath GitHub Pages serves the demo
+   * from.
+   */
+  base: process.env.DEMO_BASE ?? '/',
   // `highlight` declares `enforce: 'pre'` so it claims `.vue?highlight` ids
   // before the Vue plugin tries to compile them as components.
   plugins: [highlight(), vue()],

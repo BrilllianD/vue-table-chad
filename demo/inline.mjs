@@ -1,11 +1,11 @@
 /**
  * Folds the built demo into one self-contained HTML file.
  *
- * The demo is a docs site with no real host yet: the remote is Bitbucket, and
- * P3-9 is what wires up a proper host for it alongside the VitePress docs
- * site. Until then, a single file can be published as an Artifact, which
- * needs everything inlined: the Artifact CSP blocks requests to any external
- * host, script and stylesheet alike.
+ * The demo has a host of its own now — GitHub Pages, under the docs site, see
+ * `scripts/build-site.ts` — and this is still the output for the host that
+ * serves no assets at all: an Artifact, whose CSP blocks requests to any
+ * external host, script and stylesheet alike. So everything is inlined, and
+ * the base stays `/`, which is why `DEMO_BASE` is set by `build:site` alone.
  *
  *   pnpm build:demo && node demo/inline.mjs   ->  demo/dist/standalone.html
  *

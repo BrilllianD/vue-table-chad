@@ -7,6 +7,14 @@ const sections = ['Start here', 'Data', 'Features', 'Presentation', 'Going furth
 export default defineConfig({
   title: 'vue-table-chad',
   description: 'Composable headless table primitives for Vue 3',
+  /*
+   * `/` unless the deploy says otherwise, so `pnpm docs:dev` and
+   * `pnpm docs:preview` keep working unprefixed. `pnpm build:site` sets it to
+   * `/vue-table-chad/`, the subpath a GitHub project site is served from;
+   * VitePress rewrites every internal link and asset URL with it, which is why
+   * the `](/)` footers on the pages need no edit.
+   */
+  base: process.env.DOCS_BASE ?? '/',
   srcExclude: ['.vitepress/examples/*.vue'],
   themeConfig: {
     search: { provider: 'local' },
@@ -16,7 +24,15 @@ export default defineConfig({
         .filter((p) => p.section === text)
         .map((p) => ({ text: p.title, link: `/${p.file.replace(/\.md$/, '')}` })),
     })),
-    nav: [{ text: 'Demo', link: '/demo/' }],
+    /*
+     * `target` on purpose, and `_self` rather than `_blank`: the demo is a
+     * separate Vite build sitting under the docs, not a VitePress page, and
+     * VitePress's router intercepts same-origin clicks and renders its own 404
+     * for any href it has no page for. Its click handler bails on any link
+     * carrying a `target` attribute, which is what turns this back into an
+     * ordinary navigation — in the same tab, as before.
+     */
+    nav: [{ text: 'Demo', link: '/demo/', target: '_self' }],
     socialLinks: [{ icon: 'github', link: 'https://github.com/BrilllianD/vue-table-chad' }],
   },
   vite: {

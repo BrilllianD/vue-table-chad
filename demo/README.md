@@ -5,12 +5,19 @@ Every feature the library has, one view at a time.
 ```bash
 pnpm demo          # http://localhost:5174
 pnpm build:demo    # -> demo/dist
+pnpm build:site    # -> docs/.vitepress/dist, docs + demo as published
 pnpm build:docs    # -> demo/dist/standalone.html, the whole site in one file
 ```
 
-`build:docs` inlines the bundle into a single self-contained page. It predates the Bitbucket remote
-having a real host for it: one file could be published anywhere in the meantime. T3 in `TASKS.md`
-gives the demo a proper host alongside the VitePress docs site, and removes this step once it does.
+Published at
+**[brillliand.github.io/vue-table-chad/demo/](https://brillliand.github.io/vue-table-chad/demo/)**,
+under the docs site — `pnpm build:site` builds that tree, and
+`.github/workflows/pages.yml` deploys it by hand.
+
+`build:docs` is the other output, and is kept: it inlines the bundle into a single self-contained
+page for a host that serves no assets — a Claude Artifact, whose CSP blocks every external request.
+Pages serves the assets, so it does not replace that; the two are different files for different
+hosts.
 
 The playground (`pnpm dev`, port 5173) is four small examples. This is the exhaustive one, and
 the two run side by side.

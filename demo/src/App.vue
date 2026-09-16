@@ -41,11 +41,22 @@ interface Tab {
  * claims it. Built once from `docs/nav.ts` rather than hand-kept in step with
  * it, which is what closes the loop `tests/docsIndex.spec.ts` case 5 checks
  * from the other direction: every `demoTabs` entry names a real tab here.
+ *
+ * `../` rather than a leading `/`, because the published site puts the demo one
+ * level under the docs — `/vue-table-chad/demo/` beside `/vue-table-chad/` — and
+ * a root-absolute link would leave the site entirely. Relative is the only form
+ * that needs no build-time base threaded in: it resolves against wherever the
+ * demo is actually served from, and a browser clamps `../` at the root, so an
+ * unprefixed build lands on the same path it did before.
+ *
+ * `.html` because that is the file VitePress emits; it defaults to `cleanUrls:
+ * false`, and a bare `../filtering` only resolves on a host that guesses the
+ * extension. Naming the file asks nothing of the host.
  */
 const docsByTab = new Map<string, string>()
 for (const page of docPages) {
   for (const tabId of page.demoTabs) {
-    docsByTab.set(tabId, `/${page.file.replace(/\.md$/, '')}`)
+    docsByTab.set(tabId, `../${page.file.replace(/\.md$/, '.html')}`)
   }
 }
 

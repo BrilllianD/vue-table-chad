@@ -1,7 +1,10 @@
 # CI for @brillliand/vue-table-chad.
 #
-# Bitbucket, not GitHub: the remote is git@bitbucket.org:BrilllianD/vue-table-chad.git,
-# so there is no .github/workflows/ci.yml and no Pages to publish the demo to.
+# Bitbucket gates, GitHub publishes. This is the CI that has to be green:
+# the remote it runs on is git@bitbucket.org:BrilllianD/vue-table-chad.git.
+# .github/workflows/pages.yml is the only workflow on the GitHub mirror, it
+# deploys the docs site and the demo to Pages by hand, and it checks nothing —
+# one list of gates, in one place.
 #
 # One step, run on every pushed branch. The gating half is the same ritual the
 # working agreement asks for by hand before each commit — typecheck, test,

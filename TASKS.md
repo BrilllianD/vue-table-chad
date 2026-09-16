@@ -35,16 +35,6 @@ automated half: a changeset config, a CHANGELOG, and an actual `npm publish` ins
 **Done when:** a changeset config is committed, the first CHANGELOG entry exists, and cutting a
 version is `make release-check` plus a changesets command rather than hand-edited version fields.
 
-### `[ ]` T3 — P3-9: publish the docs site
-
-`pnpm build:docs` already produces one self-contained page. Bitbucket has no Pages equivalent, so
-this needs a static host pointed at `demo/dist` — Netlify or Cloudflare Pages, either of which can
-build from the Bitbucket remote.
-
-**Done when:** a URL serves the built docs, the build runs from the remote rather than from a local
-upload, and the README links to it. Drop the inlining step if a real host serving the assets makes
-it stop earning its keep.
-
 ---
 
 ## To Work

@@ -113,6 +113,9 @@ reactivity permanently, which also stops a cell slot from accidentally making on
 
 ## Docs
 
+**[brillliand.github.io/vue-table-chad](https://brillliand.github.io/vue-table-chad/)** — the docs
+site, with [the live demo](https://brillliand.github.io/vue-table-chad/demo/) beside it.
+
 Each page is one topic, and each has a matching view in `pnpm demo` where the same thing runs. The
 pages are also a VitePress site — `pnpm docs:dev` serves it locally, `pnpm docs:build` builds it.
 
@@ -179,6 +182,7 @@ pnpm bench       # pipeline and interaction benchmarks
 pnpm build       # library -> dist/
 pnpm size        # bundle-size budget over dist/
 pnpm docs:dev    # the VitePress docs site, locally
+pnpm build:site  # docs + demo, as published -> docs/.vitepress/dist/
 pnpm build:docs  # the demo, folded into one self-contained page
 make pack        # build + size check + npm pack -> the installable tarball
 ```

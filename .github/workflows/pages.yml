@@ -1,0 +1,70 @@
+# Publishes the docs site and the demo to GitHub Pages.
+#
+# This publishes; it does not gate. The gating CI is bitbucket-pipelines.yml,
+# which runs typecheck, test, build, the bundle budget and lint on every pushed
+# branch — GitHub is a mirror plus the host, and duplicating those checks here
+# would be two lists to keep in step for one answer.
+#
+# Manual only, on purpose. A push trigger would republish the site from whatever
+# landed on main, including a commit pushed to get CI to look at it; a release
+# is a deliberate act and so is the site that documents it.
+#
+# Run it from Actions -> Deploy site -> Run workflow, against main. Repo
+# Settings -> Pages must have Source set to GitHub Actions first, once.
+
+name: Deploy site
+
+on: workflow_dispatch
+
+# The three the deploy needs and nothing else: read the tree, write a Pages
+# deployment, and mint the OIDC token deploy-pages exchanges for it.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy in flight. A half-uploaded artifact is a broken site,
+# and two runs queued behind each other cost a minute.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Before setup-node, which needs pnpm on PATH to resolve the store it
+      # caches. The version comes from `packageManager` in package.json, the
+      # same pin the Bitbucket pipeline reads.
+      - name: Enable pnpm
+        run: corepack enable
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Docs at the root, demo under demo/, both prefixed with the repo name —
+      # see scripts/build-site.ts.
+      - run: pnpm build:site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
