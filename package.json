@@ -26,9 +26,6 @@
   "bugs": {
     "url": "https://github.com/BrilllianD/vue-table-chad/issues"
   },
-  "engines": {
-    "node": ">=24"
-  },
   "publishConfig": {
     "access": "public"
   },
