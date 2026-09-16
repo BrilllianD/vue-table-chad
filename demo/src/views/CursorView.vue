@@ -236,10 +236,10 @@ function onRowSaved(row: Employee): void {
       <kbd>Delete</kbd> or <kbd>Backspace</kbd> opens the cell empty. From inside an open editor
       both <kbd>Enter</kbd> and the arrows commit and open the cell they land on — so a column of
       numbers is typed straight down and a row across, with no keystroke between them. An arrow on
-      a closed cell only moves \u2014 a closed dropdown included, since it is a button with a label
-      on it; <kbd>Alt</kbd>+<kbd>\u2193</kbd> opens its panel and the arrows are the listbox's for as
+      a closed cell only moves — a closed dropdown included, since it is a button with a label
+      on it; <kbd>Alt</kbd>+<kbd>↓</kbd> opens its panel and the arrows are the listbox's for as
       long as it is up. A textarea keeps its own throughout. On a list column the typed character
-      typeaheads to the option it names \u2014 <kbd>R</kbd> on Department opens on Research \u2014
+      typeaheads to the option it names — <kbd>R</kbd> on Department opens on Research —
       rather than becoming a value the column's options do not contain.
       <kbd>Esc</kbd> puts the cell back and
       hands the focus to the cell. <kbd>Ctrl</kbd>+<kbd>C</kbd> copies the cell's text as it is

@@ -35,7 +35,7 @@
  * `select` cell used to edit in a native `<select>`, whose option list is drawn
  * by the operating system: it ignored every `--vtc-` token, so switching the
  * theme left it behind, and it reported no open state for the cursor to read.
- * Open Department and then Manager and look for the difference \u2014 there is
+ * Open Department and then Manager and look for the difference — there is
  * none, because `useStaticOptions` dresses the fixed list as a source that has
  * already finished loading and `StaticSelect` renders the same panel over it.
  * Only the search box, the status line and the "load more" belong to the async
