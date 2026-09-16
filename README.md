@@ -16,33 +16,32 @@ Deliberately **not** a god component. Three layers, each usable on its own:
 composable, and every region is a slot. When it stops fitting, drop one layer down and rebuild it
 differently. Nothing is hidden behind it.
 
-## Requirements
+Source, docs and the demo live at
+[bitbucket.org/BrilllianD/vue-table-chad](https://bitbucket.org/BrilllianD/vue-table-chad). The
+relative links below resolve there.
 
-Node **24** (`.nvmrc` is committed — run `nvm use`), pnpm, Vue 3.5+.
+## Install
 
 ```bash
-nvm use          # Node 24; pnpm crashes on Node 20 here
-pnpm install
-pnpm dev         # playground at http://localhost:5173
-pnpm demo        # full feature demo at http://localhost:5174
-pnpm test        # 1029 tests across 53 files
-pnpm typecheck
-pnpm bench       # pipeline and interaction benchmarks
-pnpm build       # library -> dist/
-pnpm size        # bundle-size budget over dist/
-pnpm docs:dev    # the VitePress docs site, locally
-pnpm build:docs  # the demo, folded into one self-contained page
-make pack        # build + size check + npm pack -> the installable tarball
+pnpm add @brillliand/vue-table-chad   # or npm install / yarn add
 ```
 
-`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 20 views, every export, one
-view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
+Vue **3.5+** is the one peer dependency; the library brings no runtime dependency of its own.
+ESM only — there is no CJS build. TypeScript is optional but is most of the value: the column
+definitions are where the types earn their keep.
 
-Released as a tarball, not published to npm: `make pack` produces
-`brillliand-vue-table-chad-<version>.tgz` (currently 0.4.1), which other projects install directly —
-see [Using it in another project](docs/getting-started.md). Inside this repo,
-`@brillliand/vue-table-chad` is an alias onto `src/index.ts`. [`RELEASING.md`](RELEASING.md) holds
-the release checklist; [`TASKS.md`](TASKS.md) tracks what an npm publish still needs.
+Four entry points, and nothing is imported that you did not ask for:
+
+| Import | What it is |
+| --- | --- |
+| `@brillliand/vue-table-chad` | Everything: `DataTable`, the primitives, the composables, the types. |
+| `@brillliand/vue-table-chad/style.css` | The preset's stylesheet. Only `DataTable` needs it; the primitives ship no CSS. |
+| `@brillliand/vue-table-chad/themes/<name>.css` | One of thirty opt-in palettes, switched on with `data-vtc-theme="<name>"`. See [Theme presets](docs/themes.md). |
+| `@brillliand/vue-table-chad/locales` | `es`, `ja`, `ru`, `zhCN` — complete label records, one `app.use` for the whole app. See [Labels and i18n](docs/labels.md). |
+
+[Using it in another project](docs/getting-started.md) covers the rest: the row type the
+components insist on, the `DataTable` props and slots, and the three levels you can build a table
+at. Not using TypeScript? [The same page without it](docs/getting-started-js.md).
 
 ## Quick start
 
@@ -146,26 +145,53 @@ pages are also a VitePress site — `pnpm docs:dev` serves it locally, `pnpm doc
 Also: [Porting an existing table](docs/examples/) — a real server-paginated Options API component
 moved onto `useTableState` + `useServerDataSource`, keeping its own markup, mixins and widgets.
 
-The full API — every export, with what it is for — is the **API reference** tab of `pnpm demo`.
-It is generated from the doc comments in `src/`, so it cannot fall behind the code.
-
-Also in the repo: [`demo/README.md`](demo/README.md) for how the demo is laid out,
-[`bench/BASELINE.md`](bench/BASELINE.md) for the benchmark numbers and the optimizations that
-turned out not to be worth it, [`TASKS.md`](TASKS.md) for what is planned and what is deferred, and
-[`CLAUDE.md`](CLAUDE.md) for the layer contracts and performance invariants.
+The full API — every export, with what it is for — is the **API reference** tab of the demo
+(`pnpm demo` in a checkout). It is generated from the doc comments in `src/`, so it cannot fall
+behind the code.
 
 ## Not included
 
 Tree rows (parent/child hierarchies, as opposed to the value-based grouping in
-[Grouping rows](docs/grouping.md)), pinned rows, and pivoting. Cell-level
-clipboard copy and paste *is* in — see [Keyboard navigation](docs/keyboard.md) — and so is CSV/TSV
-export of the whole result set, see [Local, server and infinite data](docs/data-sources.md). Aggregation covers `sum`/`avg`/`min`/`max` and no custom reducer.
+[Grouping rows](docs/grouping.md)), pinned rows, and pivoting. Aggregation covers
+`sum`/`avg`/`min`/`max` and no custom reducer. Cell-level clipboard copy and paste *is* in — see
+[Keyboard navigation](docs/keyboard.md) — and so is CSV/TSV export of the whole result set, see
+[Local, server and infinite data](docs/data-sources.md).
 
-Row virtualization has since landed — see [Virtual rows](docs/virtualization.md). Rows are taken
-to be one height unless `measure-rows` is on, which measures each rendered row at the cost of a
-layout per update. It did slot in at the rendering layer without touching the pipeline, but
-not through the hook this file used to predict: `filteredRows` on the local source would have meant
-a second row path, one the grouping, the selection and the cursor all read differently. What it
-took instead was a page size of everything, so there is still exactly one list.
-[`TASKS.md`](TASKS.md) carries the rest, and why each of these is a decision rather than an
-oversight.
+Row virtualization is in — see [Virtual rows](docs/virtualization.md). Rows are taken to be one
+height unless `measure-rows` is on, which measures each rendered row at the cost of a layout per
+update. It slotted in at the rendering layer as a page size of everything, so there is still
+exactly one list for grouping, selection and the cursor to read. [`TASKS.md`](TASKS.md) carries
+the rest, and why each of these is a decision rather than an oversight.
+
+## Developing
+
+Node **24** (`.nvmrc` is committed — run `nvm use`) and pnpm.
+
+```bash
+nvm use          # Node 24; pnpm crashes on Node 20 here
+pnpm install
+pnpm dev         # playground at http://localhost:5173
+pnpm demo        # full feature demo at http://localhost:5174
+pnpm test        # vitest
+pnpm typecheck
+pnpm lint
+pnpm bench       # pipeline and interaction benchmarks
+pnpm build       # library -> dist/
+pnpm size        # bundle-size budget over dist/
+pnpm docs:dev    # the VitePress docs site, locally
+pnpm build:docs  # the demo, folded into one self-contained page
+make pack        # build + size check + npm pack -> the installable tarball
+```
+
+`pnpm dev` is four short examples. `pnpm demo` is the exhaustive one — 23 views, every export, one
+view per feature area, each listing the API it uses. See [`demo/README.md`](demo/README.md).
+Inside this repo, `@brillliand/vue-table-chad` is an alias onto `src/index.ts`.
+
+Also in the repo: [`bench/BASELINE.md`](bench/BASELINE.md) for the benchmark numbers and the
+optimizations that turned out not to be worth it, [`TASKS.md`](TASKS.md) for what is planned and
+what is deferred, [`CLAUDE.md`](CLAUDE.md) for the layer contracts and performance invariants, and
+[`RELEASING.md`](RELEASING.md) for the release checklist.
+
+## License
+
+[MIT](LICENSE).
