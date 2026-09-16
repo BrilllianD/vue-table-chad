@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick, shallowRef } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
@@ -412,7 +412,7 @@ describe('Enter', () => {
     wrapper.unmount()
   })
 
-  it('moves the cursor out of a select once its panel is closed', async () => {
+  it('moves the cursor out of a select on the first arrow', async () => {
     const { wrapper } = mountTable({
       editable: ['department', 'salary'],
       selectOptions: DEPARTMENTS,
@@ -422,17 +422,48 @@ describe('Enter', () => {
     await nextTick()
     await nextTick()
 
-    const trigger = cell(wrapper, 1, 'department').get('.vt-select-trigger')
-    // Escape closes the panel and leaves the edit open, which is exactly the
-    // state the arrows used to be dead in: the cell had no exit but Enter,
-    // Tab and a second Escape.
-    await trigger.trigger('keydown', { key: 'Escape' })
-    await nextTick()
-    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    // Opened on the value it held, with the list down: the panel used to open
+    // with the editor, and an Escape to close it was the only way to reach
+    // this arrow at all.
+    expect(document.querySelector('.vt-select-panel')).toBeNull()
+    await cell(wrapper, 1, 'department')
+      .get('.vt-select-trigger')
+      .trigger('keydown', { key: 'ArrowDown' })
     await nextTick()
     await nextTick()
 
     expect(ringAt(wrapper)).toBe('2:department')
+    wrapper.unmount()
+  })
+
+  it('opens the list for a select a click opened, since a click is not an arrow', async () => {
+    const { wrapper } = mountTable({
+      editable: ['department', 'salary'],
+      selectOptions: DEPARTMENTS,
+    })
+    await focusCell(wrapper, 1, 'department')
+    await cell(wrapper, 1, 'department').trigger('click')
+    await nextTick()
+
+    // Keeping the list down is for the cursor's arrows, and a pointer makes no
+    // claim on them — a click that produced a closed button with the list a
+    // second click away would spend the mouse's click to buy the keyboard's.
+    await vi.waitFor(() => expect(document.querySelector('.vt-select-panel')).not.toBeNull())
+    wrapper.unmount()
+  })
+
+  it('opens the list for a select the cursor seeded by typing', async () => {
+    const { wrapper } = mountTable({
+      editable: ['department', 'salary'],
+      selectOptions: DEPARTMENTS,
+    })
+    await focusCell(wrapper, 1, 'department')
+    await cell(wrapper, 1, 'department').trigger('keydown', { key: 'r' })
+    await nextTick()
+
+    // The letter chose "Research" — the list is what shows which option that
+    // was, and keeps the typeahead going for the next character.
+    await vi.waitFor(() => expect(document.querySelector('.vt-select-panel')).not.toBeNull())
     wrapper.unmount()
   })
 

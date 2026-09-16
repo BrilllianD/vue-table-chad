@@ -115,6 +115,16 @@ describe('StaticSelect', () => {
     wrapper.unmount()
   })
 
+  it('hands `openOnFocus` down, so a cell editor can open it with its list down', async () => {
+    const wrapper = select({ autofocus: true, openOnFocus: false })
+    await nextTick()
+    await nextTick()
+
+    expect(panel()).toBeNull()
+    expect(document.activeElement).toBe(wrapper.find('.vt-select-trigger').element)
+    wrapper.unmount()
+  })
+
   it('reports whether its panel is up, which is what an editor above reads', async () => {
     const wrapper = select()
     expect((wrapper.vm as unknown as { open: boolean }).open).toBe(false)

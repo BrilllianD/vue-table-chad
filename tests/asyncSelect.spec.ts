@@ -236,6 +236,46 @@ describe('AsyncSelect', () => {
       wrapper.unmount()
       dispose()
     })
+
+    it('takes Enter\'s own default while closed, and nothing else about it', async () => {
+      const { wrapper, dispose } = select()
+      const trigger = wrapper.find('.vt-select-trigger')
+      const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+      trigger.element.dispatchEvent(event)
+      await nextTick()
+
+      // The trigger is a real `<button>`, and a button activates on Enter's
+      // *keydown* — left alone it would open the panel the editor above is
+      // about to commit and unmount. `preventDefault` is all that takes, and
+      // the key still goes up, where it is the commit it has always been.
+      expect(event.defaultPrevented).toBe(true)
+      expect(event.cancelBubble).toBe(false)
+      expect(panel()).toBeNull()
+      wrapper.unmount()
+      dispose()
+    })
+  })
+
+  describe('taking focus', () => {
+    it('opens the panel, which is what it is for on a page', async () => {
+      const { wrapper, dispose } = select({ autofocus: true })
+      await vi.waitFor(() => expect(panel()).not.toBeNull())
+      wrapper.unmount()
+      dispose()
+    })
+
+    it('focuses the trigger and leaves the list down when asked to', async () => {
+      const { wrapper, dispose } = select({ autofocus: true, openOnFocus: false })
+      await nextTick()
+      await nextTick()
+
+      // What a cell editor asks for: an open panel is teleported, takes focus
+      // and claims the arrows, which is the cell cursor's way out of the cell.
+      expect(panel()).toBeNull()
+      expect(document.activeElement).toBe(wrapper.find('.vt-select-trigger').element)
+      wrapper.unmount()
+      dispose()
+    })
   })
 
   describe('what counts as leaving', () => {

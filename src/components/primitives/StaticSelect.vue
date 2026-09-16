@@ -52,8 +52,10 @@ const props = withDefaults(
     searchable?: boolean
     /** Refuses the "no value" choice, the way a required column does. */
     required?: boolean
-    /** Open the panel as soon as this renders — the cell was just opened. */
+    /** Take focus as soon as this renders — the cell was just opened. */
     autofocus?: boolean
+    /** Whether taking focus also opens the panel. `AsyncSelect` explains why. */
+    openOnFocus?: boolean
     /**
      * Renders the panel into `<body>` so no ancestor's `overflow` can clip it.
      * Set `false` if you are positioning the panel yourself.
@@ -73,6 +75,7 @@ const props = withDefaults(
     searchable: false,
     required: false,
     autofocus: false,
+    openOnFocus: true,
     teleport: true,
   },
 )
@@ -118,6 +121,7 @@ defineExpose({ open, focus: () => inner.value?.focus() })
     :searchable="searchable"
     :required="required"
     :autofocus="autofocus"
+    :open-on-focus="openOnFocus"
     :teleport="teleport"
     @update:value="emit('update:value', $event)"
     @pick="emit('pick', $event)"

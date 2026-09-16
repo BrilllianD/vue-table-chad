@@ -44,6 +44,14 @@
  * is the gesture that opens the panel, and from there the arrows are the
  * listbox's until it closes.
  *
+ * **Press Enter on a Department cell, then ↓.** The editor opens with its list
+ * *down*, so that arrow is already the cursor's: it commits and moves, and the
+ * cell below opens the same way — a column of lists is walked as fast as a
+ * column of numbers. Opening the panel with the editor left the rule above
+ * answering "the listbox's" every time, which is the old trap wearing the new
+ * rule's clothes. A *click* opens the list with the editor, and so does a typed
+ * character: neither gesture has a claim on the arrows to protect.
+ *
  * **Sort by Salary while the cursor is somewhere.** The ring keeps the height
  * it had — third row before, third row after. A sort sends the table back to
  * page 1, so the row it was on is usually not on the page that comes back, and
@@ -163,8 +171,9 @@ function onRowSaved(row: Employee): void {
            cell that has one — the character you typed becomes the value. Enter again
            commits and opens the cell below, Shift above, Ctrl right, Ctrl+Shift left, and an
            arrow out of an open editor commits and opens the cell that way. On a list column
-           the character typeaheads to the option it names instead, and the arrows stay the
-           cursor's until Alt+down opens the panel. Shift and a horizontal
+           the character typeaheads to the option it names instead, and an editor the keyboard
+           opened keeps its list down, so the arrows stay the cursor's until Alt+down opens
+           the panel. Shift and a horizontal
            arrow scrolls the box instead, leaving the ring where it is, and Ctrl with a vertical
            one scrolls it a screenful. One tab stop for the
            whole grid, and the cursor reaches the row pipeline not at all."
@@ -237,8 +246,10 @@ function onRowSaved(row: Employee): void {
       both <kbd>Enter</kbd> and the arrows commit and open the cell they land on — so a column of
       numbers is typed straight down and a row across, with no keystroke between them. An arrow on
       a closed cell only moves — a closed dropdown included, since it is a button with a label
-      on it; <kbd>Alt</kbd>+<kbd>↓</kbd> opens its panel and the arrows are the listbox's for as
-      long as it is up. A textarea keeps its own throughout. On a list column the typed character
+      on it, and an editor <kbd>Enter</kbd> opened over a list opens with its list down for that
+      same reason; <kbd>Alt</kbd>+<kbd>↓</kbd> opens its panel and the arrows are the listbox's for
+      as long as it is up. A click, or the character that typeaheads, opens the list with the
+      editor. A textarea keeps its own throughout. On a list column the typed character
       typeaheads to the option it names — <kbd>R</kbd> on Department opens on Research —
       rather than becoming a value the column's options do not contain.
       <kbd>Esc</kbd> puts the cell back and

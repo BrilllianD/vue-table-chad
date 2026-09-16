@@ -57,8 +57,17 @@ const props = withDefaults(
     searchable?: boolean
     /** Refuses the "no value" choice, the way a required column does. */
     required?: boolean
-    /** Open the panel as soon as this renders — the cell was just opened. */
+    /** Take focus as soon as this renders — the cell was just opened. */
     autofocus?: boolean
+    /**
+     * Whether taking focus also opens the panel.
+     *
+     * On a page the panel is the point of the control, so this defaults to on.
+     * Inside a grid cell it is a liability: the panel is teleported and takes
+     * focus, and the arrows it claims are the cell cursor's way out of the
+     * cell. `CellEditor` turns it off for every dropdown but a seeded one.
+     */
+    openOnFocus?: boolean
     /**
      * Renders the panel into `<body>` so no ancestor's `overflow` can clip it.
      * Set `false` if you are positioning the panel yourself.
@@ -76,6 +85,7 @@ const props = withDefaults(
     searchable: true,
     required: false,
     autofocus: false,
+    openOnFocus: true,
     teleport: true,
   },
 )
@@ -312,13 +322,26 @@ function onKeydown(event: KeyboardEvent): void {
      * have no way out of the cell this control is in. `Alt`+`↓`/`↑` opens
      * instead: the ARIA combobox convention, and the gesture `editorMoveFor`
      * has always rejected, so the two cannot both answer the same key. Enter,
-     * Tab and Escape go up as they always did.
+     * Tab and Escape still go up; only Enter's own default is taken, below.
      */
     if (event.altKey && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault()
       event.stopPropagation()
       openPanel()
+      return
     }
+    /*
+     * Enter is not ours, but the trigger is a real `<button>`, and a button
+     * activates on Enter *keydown* — so left alone it would open the panel on
+     * the way past. `preventDefault` suppresses that activation and nothing
+     * else: no `stopPropagation`, so the key still reaches the editor above,
+     * which commits and moves the cursor down as it does for every other kind.
+     *
+     * Space is deliberately not here. A button activates on its *keyup*, after
+     * this keydown has already gone up unclaimed, and opening the list is what
+     * Space over a focused combobox should do.
+     */
+    if (event.key === 'Enter') event.preventDefault()
     return
   }
 
@@ -403,7 +426,7 @@ watch(
     if (!on) return
     void nextTick(() => {
       trigger.value?.focus()
-      openPanel()
+      if (props.openOnFocus) openPanel()
     })
   },
   { immediate: true },

@@ -75,6 +75,20 @@ const props = withDefaults(
      * navigation rather than a decision to retype — a whole row open at once.
      */
     selectOnFocus?: boolean
+    /**
+     * Open a dropdown's panel as soon as it takes focus.
+     *
+     * **Off** by default, the opposite of the dropdowns' own default, and for
+     * the reason they are in a cell rather than on a page: an open panel is
+     * teleported, takes focus and claims the arrows, which is the cell cursor's
+     * only way out of the cell. Closed, the control is a button with a label on
+     * it and the first arrow commits and moves — `Alt`+`↓`, `Space` or a click
+     * opens the list deliberately.
+     *
+     * Turn it on for an editor opened by *typing*: the character has already
+     * chosen an option, and the list is what shows which one.
+     */
+    openOnFocus?: boolean
     /** Labels the control for assistive tech. Defaults to the column header. */
     label?: string
     /**
@@ -101,6 +115,7 @@ const props = withDefaults(
     disabled: false,
     autofocus: true,
     selectOnFocus: true,
+    openOnFocus: false,
     label: undefined,
     trapTab: true,
     arrowMove: false,
@@ -320,6 +335,7 @@ function onKeydown(event: KeyboardEvent): void {
         :label="label"
         :required="column.required"
         :autofocus="autofocus"
+        :open-on-focus="openOnFocus"
         @update:value="emit('update:value', $event)"
         @blur="emit('blur')"
         @keydown="onKeydown"
@@ -344,6 +360,7 @@ function onKeydown(event: KeyboardEvent): void {
         :label="label"
         :required="column.required"
         :autofocus="autofocus"
+        :open-on-focus="openOnFocus"
         @update:value="emit('update:value', $event)"
         @blur="emit('blur')"
         @keydown="onKeydown"

@@ -1047,6 +1047,19 @@ function cellAt(
 const seededCell = shallowRef<CellPosition | null>(null)
 
 /**
+ * The cell whose editor a *pointer* opened, which a dropdown reads to know
+ * whether to open its list with itself.
+ *
+ * A keyboard-opened select keeps its list down, so the cursor's arrows are
+ * still the cursor's. A click has no such claim on them — and a click on a list
+ * cell that produced a closed button, with the list a second click away, would
+ * be taking a click away from the mouse to give a key back to the keyboard.
+ *
+ * Overwritten rather than cleared, for the reason `seededCell` is.
+ */
+const pointerCell = shallowRef<CellPosition | null>(null)
+
+/**
  * What a typed character means for this column's control, or `undefined` when
  * it means nothing and the editor should open on the value that was there.
  *
@@ -1109,6 +1122,7 @@ function onActivate(
     const seed = 'key' in event ? editSeedFor(event as unknown as KeyboardEvent) : undefined
     const value = seed === undefined ? undefined : seedValueFor(column, seed)
     seededCell.value = value === undefined ? null : position
+    pointerCell.value = 'key' in event ? null : position
     if (value !== undefined) session.setValue(row, column, value)
     return
   }
@@ -1193,6 +1207,7 @@ function onPaste(
   // was there, so a commit that fails must leave that text unselected rather
   // than one keystroke from being wiped.
   seededCell.value = position
+  pointerCell.value = null
   session.setValue(row, column, text.replace(/\r?\n$/, ''))
   // Not awaited: a save is the source's business and may take as long as it
   // likes. A failure is reported through the draft, which stays open.
@@ -1432,6 +1447,7 @@ function onPaste(
               :row-click-select="rowClickSelect"
               :row-mode="rowMode"
               :seeded-cell="seededCell"
+              :pointer-cell="pointerCell"
               :actions-column="actionsColumn"
               :extra-columns="extraColumns"
               :empty-message="emptyText"

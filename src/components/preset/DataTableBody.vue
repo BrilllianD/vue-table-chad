@@ -91,6 +91,11 @@ const props = defineProps<{
    * `DataTable` says why it is passed down rather than kept in the draft.
    */
   seededCell: CellPosition | null
+  /**
+   * The cell whose editor a pointer opened, if any. Its dropdown opens its list
+   * with itself — `DataTable` says why a click and a key part company here.
+   */
+  pointerCell: CellPosition | null
   actionsColumn: boolean
   /** Leading and trailing cells, for the rows that have to span them all. */
   extraColumns: number
@@ -312,19 +317,52 @@ function cellError(row: TRow, column: ResolvedColumn<TRow>): string | null {
 }
 
 /**
+ * Whether this cell's draft was seeded — by typing over a closed cell, or by a
+ * paste — rather than opened on the value that was already there.
+ *
+ * Two editor props are built on it and neither is the other's inverse, which is
+ * why it is its own function.
+ */
+function isSeeded(row: TRow, column: ResolvedColumn<TRow>): boolean {
+  return isAt(props.seededCell, row, column)
+}
+
+/** Whether this cell's editor was opened by a pointer rather than by a key. */
+function openedByPointer(row: TRow, column: ResolvedColumn<TRow>): boolean {
+  return isAt(props.pointerCell, row, column)
+}
+
+function isAt(position: CellPosition | null, row: TRow, column: ResolvedColumn<TRow>): boolean {
+  if (!position || !props.editing) return false
+  return position.rowId === props.editing.getRowId(row) && position.columnId === column.id
+}
+
+/**
+ * Whether this cell's dropdown should open its list as it renders.
+ *
+ * Only to protect the cursor's arrows, so only where there are arrows to
+ * protect: with no cursor over the table nothing is competing for them and the
+ * control behaves as it does on a page. A cell opened by typing opens its list
+ * too — the character has already picked an option and the list is what shows
+ * which — and so does one opened by a click, which is not a gesture the cursor
+ * has any claim on.
+ */
+function openOnFocus(row: TRow, column: ResolvedColumn<TRow>): boolean {
+  if (!props.cursor) return true
+  return isSeeded(row, column) || openedByPointer(row, column)
+}
+
+/**
  * Whether this cell's editor should open with its value selected.
  *
- * Not when the draft was seeded — by typing over a closed cell, or by a paste
- * — since the text in the box is then what the user just produced. Not in row
- * mode either: with a whole row open at once, Tab between its fields is
- * navigation, and selecting each value on the way past would put every one of
- * them a keystroke from being replaced.
+ * Not when the draft was seeded, since the text in the box is then what the
+ * user just produced. Not in row mode either: with a whole row open at once,
+ * Tab between its fields is navigation, and selecting each value on the way
+ * past would put every one of them a keystroke from being replaced.
  */
 function selectOnFocus(row: TRow, column: ResolvedColumn<TRow>): boolean {
   if (props.rowMode) return false
-  const seeded = props.seededCell
-  if (!seeded || !props.editing) return true
-  return !(seeded.rowId === props.editing.getRowId(row) && seeded.columnId === column.id)
+  return !isSeeded(row, column)
 }
 
 function rowState(row: TRow): 'dirty' | 'saving' | 'error' | undefined {
@@ -744,6 +782,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               :arrow-move="Boolean(cursor) && !rowMode"
               :autofocus="props.editing.stateFor(props.editing.getRowId(row))?.activeColumnId === column.id"
               :select-on-focus="selectOnFocus(row, column)"
+              :open-on-focus="openOnFocus(row, column)"
               @update:value="props.editing.setValue(row, column, $event)"
               @commit="(next) => commitCell(row, next, cursor)"
               @cancel="cancelCell(row, cursor)"

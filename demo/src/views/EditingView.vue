@@ -40,7 +40,9 @@
  * already finished loading and `StaticSelect` renders the same panel over it.
  * Only the search box, the status line and the "load more" belong to the async
  * one alone, and they simply never render over a list that is complete. Type a
- * letter with the panel up and it typeaheads, on both. The trade is the
+ * letter with the panel up and it typeaheads, on both. A click opens the list
+ * with the editor; over a cell cursor, `Enter` opens the editor with the list
+ * down, so the arrows out of it are still the cursor's. The trade is the
  * operating system's own picker on a touch device.
  *
  * **Manager is a list nobody could send whole.** Any of 10,000 people can be

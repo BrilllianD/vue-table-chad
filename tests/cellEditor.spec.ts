@@ -268,10 +268,37 @@ describe('what it emits', () => {
     const list = editor(enumeration, { arrowMove: true })
     await nextTick()
     await nextTick()
-    // Opened by `autofocus`, and an open listbox is what the arrows walk.
+    // Opened on purpose: an editor now opens with its list down, so the panel
+    // the arrows belong to has to be asked for. `Alt` is the gesture that asks.
+    await list.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown', altKey: true })
+    await nextTick()
+    // An open listbox is what the arrows walk.
     await list.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown' })
     expect(list.emitted('commit')).toBeUndefined()
     list.unmount()
+  })
+
+  it('opens with its list down, so the first arrow is already the cursor\'s', async () => {
+    const wrapper = editor(enumeration, { arrowMove: true })
+    await nextTick()
+    await nextTick()
+
+    expect(document.querySelector('.vt-select-panel')).toBeNull()
+    await wrapper.find('.vt-select-trigger').trigger('keydown', { key: 'ArrowDown' })
+    // The panel used to open with the editor, so this arrow reached the listbox
+    // and an Escape was the only way out of the cell.
+    expect(wrapper.emitted('commit')).toEqual([[{ kind: 'by', rows: 1, columns: 0 }]])
+    wrapper.unmount()
+  })
+
+  it('opens its list for an editor that was seeded by typing', async () => {
+    const wrapper = editor(enumeration, { arrowMove: true, openOnFocus: true })
+    await nextTick()
+    await nextTick()
+
+    // The character has already chosen an option; the list is what shows which.
+    await vi.waitFor(() => expect(document.querySelector('.vt-select-panel')).not.toBeNull())
+    wrapper.unmount()
   })
 
   it('takes them back the moment the panel is closed', async () => {

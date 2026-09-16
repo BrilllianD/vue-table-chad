@@ -113,6 +113,14 @@ What that buys at the keyboard is in [Keyboard navigation](keyboard.md); the sho
 typing walks the list, `↑`/`↓` move the active option, and the arrows belong to the cursor again the
 moment the panel closes.
 
+Which is why an editor the keyboard opened opens with the list **down**: an open panel is
+teleported, takes focus and claims the arrows, so a cell that opened its list would be a cell the
+cursor cannot arrow out of. `Alt`+`↓`, `Space` or a click asks for the list. A cell opened by
+*typing* opens it anyway — the character has already picked an option, and the list is what shows
+which one — and so does a cell opened by a **click**, which is not a gesture the arrows are at stake
+in. Under no cursor the control opens as it does on a page. `openOnFocus` is the prop underneath, on
+`CellEditor` and on both dropdowns.
+
 The same control is available on its own as the `StaticSelect` primitive, and the adapter under it as
 `useStaticOptions` — a fixed list dressed as the source a paged dropdown reads, which is the whole
 of how one panel serves both.
@@ -344,7 +352,7 @@ Tab:
 | `Ctrl`/`Cmd` + `Enter` | commit, and move right (`Shift`: left) |
 | `Esc` | cancel, putting the cell back and handing focus to the cell itself |
 | `Tab` | commit, and open the next editable cell (`Shift`: the previous one) |
-| `↑` `↓` `←` `→` | commit, and move that way — only with `arrowMove`, and never in a `select`, an `async-select` or a `textarea` |
+| `↑` `↓` `←` `→` | commit, and move that way — only with `arrowMove`, and not in a `textarea` or a dropdown whose panel is up |
 | blur | reported, not decided — a commit in cell mode, nothing in row mode |
 
 A cell opened by a click, `Enter` or `F2` opens with its value **selected**, so retyping it is one
@@ -434,6 +442,7 @@ Standalone like every primitive: given a `column`, a `value` and a listener it n
 | `error` | `null` | Announced through an element of its own and mirrored into `title`, because `.vt-td` clips and a message under the input would be sheared off. |
 | `disabled` | `false` | |
 | `autofocus` | `true` | Focus the control as soon as it renders. |
+| `openOnFocus` | `false` | Open a dropdown's panel as soon as it takes focus. Off, so a bare arrow over a select is the cell cursor's; the preset turns it on for a cell opened by typing or by a click, and wherever there is no cursor. The dropdowns' own default is the opposite — on a page the panel is the point of the control. |
 | `selectOnFocus` | `true` | Select the whole value when the control takes focus, so the first keystroke replaces it. The preset turns it off for a cell opened by typing or by a paste — the value is then the text the user just produced — and in row mode, where Tab between fields is navigation. |
 | `label` | column header | Labels the control for assistive tech. |
 | `trapTab` | `true` | Take Tab over and report it as `move`. Off in row mode, where Tab already reaches the next editor. |

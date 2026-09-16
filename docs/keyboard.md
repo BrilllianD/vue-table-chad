@@ -110,10 +110,19 @@ listbox and the arrows walk it; closed, the control is a button with a label on 
 belong to the cursor again. `Alt`+`↓` and `Alt`+`↑` open and close it — the ARIA combobox
 convention, and the one arrow gesture the cursor has never claimed.
 
+So an editor the *keyboard* opened opens with its list **down**, and an arrow over a select cell
+moves the cursor on the first press like an arrow over any other. The list is asked for: `Alt`+`↓`,
+`Space` — the trigger is a real button — or a click. Two editors open with the list up, because
+neither gesture has a claim on the arrows to protect: one opened by *typing*, where the character
+has already picked an option and the list is what shows which, and one opened by a **click**, which
+would otherwise spend a second click buying the first one back. With no cell cursor over the table
+at all, nothing is competing for the arrows and the control opens as it does on a page.
+
 That used to be an exemption by control *kind*, which meant a select trapped the cursor: with every
 arrow swallowed, the only ways out of the cell were `Enter`, `Ctrl`/`Cmd`+`Enter`, `Tab` and `Esc`.
 A native `<select>` reports no open state — there is no API for it — so making openness the
-discriminator is what the custom dropdown bought.
+discriminator is what the custom dropdown bought. Opening the panel with the editor left that rule
+answering "the listbox's" every time, which is the same trap wearing the better rule's clothes.
 
 `Enter` on a cell with **no** editor still moves down. Enter always means "move on", and
 additionally opens an editor first when the cell has one. `F2` means only "edit", so a read-only
