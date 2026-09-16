@@ -54,11 +54,21 @@ if (!existsSync(resolve(DEMO_DIST, 'index.html'))) {
 cpSync(DEMO_DIST, resolve(DOCS_DIST, 'demo'), { recursive: true })
 
 /*
- * Pages runs Jekyll over an artifact that does not opt out, and Jekyll drops
- * every path starting with an underscore. VitePress emits none today, but it is
- * one upstream change away from doing so, and the failure would be a 404 on an
- * asset rather than anything this script could catch.
+ * Not needed by the deploy we have: an artifact uploaded by the Pages action is
+ * served verbatim, and Jekyll never runs over it. It is here for the deploy we
+ * might have — a branch-based Pages source does run Jekyll, which drops every
+ * path starting with an underscore, and the failure would be a 404 on an asset
+ * with nothing in this script in a position to complain. An empty file is a
+ * cheap price for a mode switch made in a settings page, far from this code.
  */
 writeFileSync(resolve(DOCS_DIST, '.nojekyll'), '')
 
 console.log(`build-site: docs/.vitepress/dist/ ready, served from ${BASE}`)
+/*
+ * With the base printed, because `pnpm docs:preview` alone serves from `/` while
+ * every asset URL in the build carries the prefix — the preview would look
+ * broken for a reason that has nothing to do with the build. VitePress mounts
+ * the preview under whatever base the config resolves to, so the variable has to
+ * be set for it too.
+ */
+console.log(`build-site: preview with  DOCS_BASE=${BASE} pnpm docs:preview`)

@@ -32,21 +32,31 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Job-wide rather than on the corepack step: `corepack enable` only writes
+    # shims, and the download that would stop for a prompt happens later, on the
+    # first actual pnpm invocation.
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
     steps:
       - uses: actions/checkout@v4
-
-      # Before setup-node, which needs pnpm on PATH to resolve the store it
-      # caches. The version comes from `packageManager` in package.json, the
-      # same pin the Bitbucket pipeline reads.
-      - name: Enable pnpm
-        run: corepack enable
-        env:
-          COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: pnpm
+
+      # After setup-node, not before: corepack writes its shims beside the node
+      # binary that runs it, so enabling it under the runner's preinstalled Node
+      # puts pnpm somewhere this job's Node need not be looking. The version
+      # comes from `packageManager` in package.json, the same pin the Bitbucket
+      # pipeline reads.
+      #
+      # No `cache: pnpm` on setup-node, which reads its key by shelling out to
+      # `pnpm store path` and so would have to run after this step, i.e. a second
+      # setup-node purely to pass one input. This workflow is run by hand a few
+      # times a year; a cold install costs less than the ceremony does.
+      - run: corepack enable
 
       - run: pnpm install --frozen-lockfile
 

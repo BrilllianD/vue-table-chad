@@ -10,7 +10,11 @@ hero:
       link: /getting-started
     - theme: alt
       text: See it running
+      # `_self` for the same reason the nav's Demo link carries one — see
+      # `.vitepress/config.ts`. The demo is not a VitePress page, and the router
+      # intercepts every internal link that does not carry a target.
       link: /demo/
+      target: _self
 features:
   - title: core/
     details: Composables + pure functions. No components. You want the logic and none of the markup.
