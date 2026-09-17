@@ -49,6 +49,11 @@ function relativeLinks(): Link[] {
       for (const match of matches) {
         const target = match[1]!
         if (/^(https?:|mailto:|#)/.test(target)) continue
+        // `/demo/` is the one site-absolute target here, and it resolves to no
+        // file on purpose: the demo is a separate Vite build served under the
+        // docs, not a VitePress page — see `.vitepress/config.ts`. Exempted by
+        // name rather than by pattern, so a mistyped `/page` still fails.
+        if (target === '/demo/') continue
         links.push({ file, line: index + 1, target })
       }
     })

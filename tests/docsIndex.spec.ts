@@ -85,6 +85,12 @@ describe('docs index', () => {
           for (const match of line.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
             const target = match[1]!
             if (/^(https?:|mailto:|#)/.test(target)) continue
+            // `/demo/` is the one site-absolute target here, and it resolves to
+            // no file on purpose: the demo is a separate Vite build served
+            // under the docs, not a VitePress page — see `.vitepress/config.ts`.
+            // Exempted by name rather than by pattern, so a mistyped `/page`
+            // still fails.
+            if (target === '/demo/') continue
             const clean = target.split('#')[0]!
             if (!clean) continue
             if (!existsSync(resolve(dirname(file), clean))) {

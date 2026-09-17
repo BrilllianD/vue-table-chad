@@ -32,7 +32,7 @@ export default defineConfig({
      * carrying a `target` attribute, which is what turns this back into an
      * ordinary navigation — in the same tab, as before.
      */
-    nav: [{ text: 'Demo', link: '/demo/', target: '_self' }],
+    nav: [{ text: 'Full Demo', link: '/demo/', target: '_self' }],
     socialLinks: [{ icon: 'github', link: 'https://github.com/BrilllianD/vue-table-chad' }],
   },
   vite: {

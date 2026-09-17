@@ -9,8 +9,8 @@ hero:
       text: Documentation
       link: /getting-started
     - theme: alt
-      text: Demo
-      # `_self` for the same reason the nav's Demo link carries one — see
+      text: Full Demo
+      # `_self` for the same reason the nav's link carries one — see
       # `.vitepress/config.ts`. The demo is not a VitePress page, and the router
       # intercepts every internal link that does not carry a target.
       link: /demo/
@@ -23,3 +23,24 @@ features:
   - title: preset/
     details: DataTable + a stylesheet, assembled from the primitives. You want a table right now.
 ---
+
+<script setup>
+import Example from './.vitepress/examples/home.vue'
+</script>
+
+## One component, most of the library
+
+Click a header to sort, shift-click a second to stack it. Open a header's menu for an Excel-style
+filter, or search every column at once. Tick rows, group by Department, hide a column, drag a
+header somewhere else, turn a page. None of it re-reads the dataset unless it has to.
+
+<Demo :is="Example" />
+
+::: details The whole thing, in one file
+<<< @/.vitepress/examples/home.vue
+:::
+
+Over a server endpoint it is the same component: swap `useLocalDataSource` for a source of your own
+and the filters, the sort and the pager become the query you send. The
+[Full Demo](/demo/){target="_self"} has a view per feature — editing, virtual rows, detail rows,
+header bands, the keyboard cell cursor — and names the exports each one uses.
