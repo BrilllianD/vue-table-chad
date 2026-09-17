@@ -77,8 +77,10 @@
  * VitePress sizes this hero for a page whose next screen is a feature grid and
  * nothing else. Here the argument is the live table, and a visitor who has to
  * scroll before learning there is one has been shown the least convincing part
- * first. Only spacing moves: the type scale is the default theme's, and
- * shrinking that would make the name read as a subheading.
+ * first. The name keeps the theme's 56px — it is the page's title, and
+ * shrinking it would make it read as a subheading — so the room comes out of
+ * the padding, including the band over the name, which the theme sizes to
+ * clear a fixed nav bar the page already offsets itself against.
  *
  * Restated at all three of VPHero's own breakpoints because each one rewrites
  * the whole `padding` shorthand — overriding only the base would be undone by
@@ -86,18 +88,18 @@
  * hero VitePress renders on any other page alone.
  */
 .VPHome .VPHero {
-  padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 24px) 24px 16px;
+  padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 8px) 24px 16px;
 }
 
 @media (min-width: 640px) {
   .VPHome .VPHero {
-    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 32px) 48px 24px;
+    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 12px) 48px 24px;
   }
 }
 
 @media (min-width: 960px) {
   .VPHome .VPHero {
-    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 40px) 64px 24px;
+    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 16px) 64px 24px;
   }
 }
 
