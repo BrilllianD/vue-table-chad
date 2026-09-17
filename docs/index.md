@@ -32,7 +32,18 @@ import Example from './.vitepress/examples/home.vue'
 
 Click a header to sort, shift-click a second to stack it. Open a header's menu for an Excel-style
 filter, or search every column at once. Tick rows, group by Department, hide a column, drag a
-header somewhere else, turn a page. None of it re-reads the dataset unless it has to.
+header somewhere else, right-click a cell, turn a page.
+
+The headers are banded, and every band starts open — fold **Location** and it keeps Country alone,
+fold **Organisation** and it keeps Department. Name is pinned left and unhideable, so folding
+**Identity** leaves it exactly where it is — and so **Personal details** and **Identity** each
+appear twice, once over the pinned side and once over the scrolling one. A band cannot straddle
+that boundary; scroll sideways and the reason is visible.
+
+Click a cell and the keyboard takes over: arrows move, `Enter` opens the cell for editing, a second
+`Enter` commits it and steps down, `Esc` abandons the draft. None of it re-reads the dataset unless
+it has to — not paging, not selecting, not folding a band, and not an edit until the moment a save
+succeeds.
 
 <Demo :is="Example" />
 
