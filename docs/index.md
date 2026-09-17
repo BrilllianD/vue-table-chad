@@ -3,7 +3,7 @@ layout: home
 hero:
   name: vue-table-chad
   text: Headless table primitives for Vue 3
-  tagline: Sorting, Excel-style filters, pagination, selection, grouping, column layout, header bands, inline editing and a keyboard cell cursor — over local arrays or server endpoints, interchangeably.
+  tagline: Sorting, filters, grouping, editing and a keyboard cell cursor — over local arrays or server endpoints, interchangeably.
   actions:
     - theme: brand
       text: Documentation
@@ -30,6 +30,10 @@ import Example from './.vitepress/examples/home.vue'
 
 ## One component, most of the library
 
+One `<DataTable>` over 400 rows, with most of what the library does turned on:
+
+<Demo :is="Example" />
+
 Click a header to sort, shift-click a second to stack it. Open a header's menu for an Excel-style
 filter, or search every column at once. Tick rows, group by Department, hide a column, drag a
 header somewhere else, right-click a cell, turn a page.
@@ -44,8 +48,6 @@ Click a cell and the keyboard takes over: arrows move, `Enter` opens the cell fo
 `Enter` commits it and steps down, `Esc` abandons the draft. None of it re-reads the dataset unless
 it has to — not paging, not selecting, not folding a band, and not an edit until the moment a save
 succeeds.
-
-<Demo :is="Example" />
 
 ::: details The whole thing, in one file
 <<< @/.vitepress/examples/home.vue

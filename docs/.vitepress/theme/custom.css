@@ -70,3 +70,64 @@
 .VPHero .actions {
   align-items: center;
 }
+
+/*
+ * The home page's hero, compressed so the table below it is on screen at load.
+ *
+ * VitePress sizes this hero for a page whose next screen is a feature grid and
+ * nothing else. Here the argument is the live table, and a visitor who has to
+ * scroll before learning there is one has been shown the least convincing part
+ * first. Only spacing moves: the type scale is the default theme's, and
+ * shrinking that would make the name read as a subheading.
+ *
+ * Restated at all three of VPHero's own breakpoints because each one rewrites
+ * the whole `padding` shorthand — overriding only the base would be undone by
+ * the next width up. `.VPHome` scopes it to the home layout, leaving the
+ * hero VitePress renders on any other page alone.
+ */
+.VPHome .VPHero {
+  padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 24px) 24px 16px;
+}
+
+@media (min-width: 640px) {
+  .VPHome .VPHero {
+    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 32px) 48px 24px;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHome .VPHero {
+    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 40px) 64px 24px;
+  }
+}
+
+/* The gap over the buttons is the one piece of hero spacing that reads as
+   deliberate rather than as padding, so it is trimmed least: 16px against the
+   theme's 24px and 32px. */
+.VPHome .VPHero .actions {
+  padding-top: 16px;
+}
+
+/* The first heading of the body carries the same 48px + 24px that separates
+   two sections mid-document, one screen after the feature grid has already
+   separated it. The rule above it stays — it is what marks the end of the
+   home layout. */
+.VPHome .vp-doc h2:first-child {
+  margin-top: 24px;
+  padding-top: 16px;
+}
+
+/* The line introducing the table, and the frame around it, each bring their
+   own margin to a join that needs one. */
+.VPHome .vp-doc h2:first-child + p {
+  margin-bottom: 4px;
+}
+
+/* The tagline's 576px is the width the theme picks so a hero with an image
+   beside it still wraps sensibly. This hero has no image and its column is
+   two thirds of 1152, so the cap costs a third line for nothing. */
+@media (min-width: 960px) {
+  .VPHome .VPHero .tagline {
+    max-width: 720px;
+  }
+}
