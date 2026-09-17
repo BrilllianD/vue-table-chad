@@ -15,13 +15,6 @@ hero:
       # intercepts every internal link that does not carry a target.
       link: /demo/
       target: _self
-features:
-  - title: core/
-    details: Composables + pure functions. No components. You want the logic and none of the markup.
-  - title: primitives/
-    details: Headless components. Slots, data-* attributes, no CSS. You want your own markup.
-  - title: preset/
-    details: DataTable + a stylesheet, assembled from the primitives. You want a table right now.
 ---
 
 <script setup>
