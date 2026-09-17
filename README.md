@@ -1,6 +1,6 @@
 # vue-table-chad
 
-**Live demo: [brillliand.github.io/vue-table-chad/demo/](https://brillliand.github.io/vue-table-chad/demo/)**
+**[brillliand.github.io/vue-table-chad](https://brillliand.github.io/vue-table-chad/)** — docs, and the demo under `/demo/`.
 
 Composable table building blocks for Vue 3 — sorting, Excel-style filters, pagination, row
 selection, row grouping, column layout, multi-row header bands, inline editing and a keyboard cell
