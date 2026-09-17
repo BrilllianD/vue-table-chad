@@ -156,15 +156,22 @@ behind the code.
 
 Tree rows (parent/child hierarchies, as opposed to the value-based grouping in
 [Grouping rows](docs/grouping.md)), pinned rows, and pivoting. Aggregation covers
-`sum`/`avg`/`min`/`max` and no custom reducer. Cell-level clipboard copy and paste *is* in — see
-[Keyboard navigation](docs/keyboard.md) — and so is CSV/TSV export of the whole result set, see
-[Local, server and infinite data](docs/data-sources.md).
+`sum`/`avg`/`min`/`max` and no custom reducer: the reducer shape that lands will be an incremental
+one, because a whole-array `(rows) => value` callback would mean materializing per-group row arrays
+and a second pass over the dataset.
 
-Row virtualization is in — see [Virtual rows](docs/virtualization.md). Rows are taken to be one
+Selection is per row, not per cell range. There is a cell cursor, and it copies and pastes a single
+cell — see [Keyboard navigation](docs/keyboard.md) — but `Shift`+arrow does not extend a block, and
+block paste and fill-down are both waiting on that range rather than on themselves. Editing keeps no
+undo stack: a save goes through the data source, so the server stays the record. CSV/TSV export of
+the whole result set *is* in, see [Local, server and infinite data](docs/data-sources.md).
+
+Virtualization is rows only — see [Virtual rows](docs/virtualization.md). Rows are taken to be one
 height unless `measure-rows` is on, which measures each rendered row at the cost of a layout per
 update. It slotted in at the rendering layer as a page size of everything, so there is still
-exactly one list for grouping, selection and the cursor to read. [`TASKS.md`](TASKS.md) carries
-the rest, and why each of these is a decision rather than an oversight.
+exactly one list for grouping, selection and the cursor to read. Columns are not windowed; 34 of
+them show no need today, and a bench decides that rather than a design. [`TASKS.md`](TASKS.md)
+carries the rest, and why each of these is a decision rather than an oversight.
 
 ## Developing
 
