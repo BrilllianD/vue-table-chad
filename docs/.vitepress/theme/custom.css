@@ -1,0 +1,40 @@
+/*
+ * The nav's Demo link, painted as the hero's brand button.
+ *
+ * Targeted by href, not by label: `themeConfig.nav` gives its items no class of
+ * their own, and `*=` rather than `^=` because `DOCS_BASE` prefixes the href on
+ * Pages (`/vue-table-chad/demo/`) but not under `pnpm docs:dev` (`/demo/`).
+ *
+ * The tokens are the ones VPButton's brand variant uses, so this follows the
+ * hero button through a theme change instead of drifting from it.
+ */
+.VPNavBarMenu .VPNavBarMenuLink[href*='/demo/'] {
+  /* The default nav link centers itself with line-height: var(--vp-nav-height),
+     which a pill cannot use — 55px of line box around 30px of background. */
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 14px;
+  line-height: 1;
+  border-radius: 15px;
+  border: 1px solid var(--vp-button-brand-border);
+  background-color: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+  transition:
+    background-color 0.25s,
+    border-color 0.25s;
+}
+
+.VPNavBarMenu .VPNavBarMenuLink[href*='/demo/']:hover {
+  border-color: var(--vp-button-brand-hover-border);
+  background-color: var(--vp-button-brand-hover-bg);
+  color: var(--vp-button-brand-hover-text);
+}
+
+/* The hamburger menu renders the same item through a different component. Left
+   unpilled there, where it is a full-width row and the pill would read as a
+   stray box; brand colour alone carries it. */
+.VPNavScreenMenuLink[href*='/demo/'] {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}

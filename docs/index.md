@@ -6,10 +6,10 @@ hero:
   tagline: Sorting, Excel-style filters, pagination, selection, grouping, column layout, header bands, inline editing and a keyboard cell cursor — over local arrays or server endpoints, interchangeably.
   actions:
     - theme: brand
-      text: Get started
+      text: Documentation
       link: /getting-started
     - theme: alt
-      text: See it running
+      text: Demo
       # `_self` for the same reason the nav's Demo link carries one — see
       # `.vitepress/config.ts`. The demo is not a VitePress page, and the router
       # intercepts every internal link that does not carry a target.
