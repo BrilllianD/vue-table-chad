@@ -137,9 +137,11 @@ theme and column-width decisions live in `src/components/preset/CLAUDE.md`, the 
 - **The site is published from GitHub, the gates stay on Bitbucket.**
   `.github/workflows/pages.yml` is the only GitHub workflow and it deploys `pnpm build:site` —
   VitePress docs at the root, the demo under `/demo/`, both prefixed with the repo name — to
-  https://brillliand.github.io/vue-table-chad/. Manual (`workflow_dispatch`) on purpose: a push
-  trigger republishes the site for any commit that lands, and a published site is a deliberate act.
-  `bitbucket-pipelines.yml` stays the one list of gates, un-mirrored. The base prefix is passed
+  https://brillliand.github.io/vue-table-chad/. It fires on every push to `main`, keeping
+  `workflow_dispatch` beside it for a republish without a commit: the site tracks `main`, not the
+  releases, because a landed docs fix missing from the site is the failure that actually happens and
+  it is quieter than a stale page. Publishing is not gating — `bitbucket-pipelines.yml` stays the one
+  list of gates, un-mirrored, and it passes judgement after the fact whichever way the site went. The base prefix is passed
   through the environment (`DOCS_BASE`, `DEMO_BASE`) rather than written into either config, because
   `pnpm demo`, `pnpm docs:dev` and `demo/inline.mjs` all serve from `/`. **`build:docs` is kept**
   even though a real host now exists: it targets a Claude Artifact, whose CSP blocks every external

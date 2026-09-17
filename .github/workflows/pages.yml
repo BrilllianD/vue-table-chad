@@ -5,16 +5,24 @@
 # branch — GitHub is a mirror plus the host, and duplicating those checks here
 # would be two lists to keep in step for one answer.
 #
-# Manual only, on purpose. A push trigger would republish the site from whatever
-# landed on main, including a commit pushed to get CI to look at it; a release
-# is a deliberate act and so is the site that documents it.
+# Every push to main republishes, and the manual trigger is kept beside it. The
+# site tracks main rather than the releases: a docs fix that has landed and is
+# not yet on the site is the failure mode that actually happens, and it is
+# quieter than a stale page because nobody notices a page that is merely old.
 #
-# Run it from Actions -> Deploy site -> Run workflow, against main. Repo
-# Settings -> Pages must have Source set to GitHub Actions first, once.
+# Nothing here gates, so a red commit publishes too — Bitbucket is what says a
+# commit is good, and it says so after the fact either way.
+#
+# The manual run stays for republishing without a commit: Actions -> Deploy site
+# -> Run workflow, against main. Repo Settings -> Pages must have Source set to
+# GitHub Actions first, once.
 
 name: Deploy site
 
-on: workflow_dispatch
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 # The three the deploy needs and nothing else: read the tree, write a Pages
 # deployment, and mint the OIDC token deploy-pages exchanges for it.
@@ -54,9 +62,21 @@ jobs:
       #
       # No `cache: pnpm` on setup-node, which reads its key by shelling out to
       # `pnpm store path` and so would have to run after this step, i.e. a second
-      # setup-node purely to pass one input. This workflow is run by hand a few
-      # times a year; a cold install costs less than the ceremony does.
+      # setup-node purely to pass one input. The store is cached directly below
+      # instead, which is the same saving with one action rather than two.
       - run: corepack enable
+
+      # Worth it now the workflow runs per push rather than by hand a few times
+      # a year. Keyed on the lockfile, with the loose prefix as a fallback so a
+      # dependency bump warms from the previous store instead of from nothing.
+      - id: store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
 
       - run: pnpm install --frozen-lockfile
 
