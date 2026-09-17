@@ -108,19 +108,25 @@
   padding-top: 16px;
 }
 
-/* The first heading of the body carries the same 48px + 24px that separates
-   two sections mid-document, one screen after the feature grid has already
-   separated it. The rule above it stays — it is what marks the end of the
-   home layout. */
-.VPHome .vp-doc h2:first-child {
-  margin-top: 24px;
-  padding-top: 16px;
-}
-
-/* The line introducing the table, and the frame around it, each bring their
-   own margin to a join that needs one. */
-.VPHome .vp-doc h2:first-child + p {
-  margin-bottom: 4px;
+/*
+ * The table, unframed on the home page.
+ *
+ * `Demo.vue`'s border says "this is an example, the page resumes after it" —
+ * true on a docs page, where prose surrounds it. Here the table *is* the page,
+ * and a box drawn around the whole width reads as a second window inside the
+ * first. The element itself stays: its unscoped rules are what stop VitePress
+ * styling the live table as a `.vp-doc` table, and dropping it would collapse
+ * the fixed-layout table to nothing.
+ *
+ * Three classes deep because `Demo.vue`'s own rule is scoped, which compiles
+ * to `.vt-demo-frame[data-v-*]` — a tie at two, decided by whichever
+ * stylesheet the bundler happened to emit second.
+ */
+.VPHome .vp-doc .vt-demo-frame {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
 }
 
 /* The tagline's 576px is the width the theme picks so a hero with an image
@@ -129,5 +135,33 @@
 @media (min-width: 960px) {
   .VPHome .VPHero .tagline {
     max-width: 720px;
+  }
+}
+
+/*
+ * The hero's second line, sized as a subtitle rather than a second headline.
+ *
+ * VitePress gives `.name` and `.text` one rule and one size, which fits a
+ * product name over a sentence describing it. The line below is short and
+ * jokes, so at 56px it competed with the name above it for the same job.
+ * Restated at the theme's own three breakpoints, which is where the pair is
+ * sized.
+ */
+.VPHome .VPHero .text {
+  line-height: 32px;
+  font-size: 24px;
+}
+
+@media (min-width: 640px) {
+  .VPHome .VPHero .text {
+    line-height: 40px;
+    font-size: 30px;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHome .VPHero .text {
+    line-height: 44px;
+    font-size: 34px;
   }
 }

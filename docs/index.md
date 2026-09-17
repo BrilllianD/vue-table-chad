@@ -2,7 +2,7 @@
 layout: home
 hero:
   name: vue-table-chad
-  text: Headless table primitives for Vue 3
+  text: Vue 3 table on steroids :)
   tagline: Sorting, filters, grouping, editing and a keyboard cell cursor — over local arrays or server endpoints, interchangeably.
   actions:
     - theme: brand
@@ -20,8 +20,6 @@ hero:
 <script setup>
 import Example from './.vitepress/examples/home.vue'
 </script>
-
-## One component, most of the library
 
 One `<DataTable>` over 400 rows, with most of what the library does turned on:
 
