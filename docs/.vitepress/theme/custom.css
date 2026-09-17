@@ -38,3 +38,35 @@
   color: var(--vp-c-brand-1);
   font-weight: 600;
 }
+
+/*
+ * The hero's Demo button, one size up and outlined in brand.
+ *
+ * The numbers are not invented: they are VitePress's own `.VPButton.big`
+ * metrics, the size the default theme already offers and the hero does not use.
+ * Borrowing them keeps this inside the design system instead of beside it.
+ *
+ * Border only, fill left alone — the brand fill belongs to Documentation beside
+ * it, and two filled buttons would be two primary actions.
+ */
+.VPHero .actions .VPButton.alt[href*='/demo/'] {
+  border-radius: 24px;
+  padding: 0 24px;
+  line-height: 46px;
+  font-size: 16px;
+  border-width: 2px;
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+.VPHero .actions .VPButton.alt[href*='/demo/']:hover {
+  border-color: var(--vp-c-brand-2);
+  color: var(--vp-c-brand-1);
+  background-color: var(--vp-c-default-soft);
+}
+
+/* The default is `stretch`, which top-aligns two buttons of different heights
+   against each other. Centred, the taller one grows around the shorter. */
+.VPHero .actions {
+  align-items: center;
+}
