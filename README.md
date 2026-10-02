@@ -175,8 +175,9 @@ Virtualization is rows only — see [Virtual rows](docs/virtualization.md). Rows
 height unless `measure-rows` is on, which measures each rendered row at the cost of a layout per
 update. It slotted in at the rendering layer as a page size of everything, so there is still
 exactly one list for grouping, selection and the cursor to read. Columns are not windowed; 34 of
-them show no need today, and a bench decides that rather than a design. [`TASKS.md`](TASKS.md)
-carries the rest, and why each of these is a decision rather than an oversight.
+them show no need today, and a bench decides that rather than a design. The repo's task tracker
+(`yman ls` in a checkout) carries the rest, and why each of these is a decision rather than an
+oversight.
 
 ## Developing
 
@@ -205,8 +206,9 @@ export, one view per feature area, each listing the API it uses. See
 `src/index.ts`.
 
 Also in the repo: [`bench/BASELINE.md`](bench/BASELINE.md) for the benchmark numbers and the
-optimizations that turned out not to be worth it, [`TASKS.md`](TASKS.md) for what is planned and
-what is deferred, [`CLAUDE.md`](CLAUDE.md) for the layer contracts and performance invariants, and
+optimizations that turned out not to be worth it, the `yman` task tracker (`.yman/` in a checkout,
+a git worktree outside the branches, so it is not browsable here) for what is planned and what is
+deferred, [`CLAUDE.md`](CLAUDE.md) for the layer contracts and performance invariants, and
 [`RELEASING.md`](RELEASING.md) for the release checklist.
 
 ## License

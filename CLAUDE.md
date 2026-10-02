@@ -1,12 +1,14 @@
 # vue-table-chad
 
 Headless table primitives for Vue 3, published to npm as `@brillliand/vue-table-chad` (the
-release is still cut by hand — `TASKS.md` T2 holds the automated half). The point of the project
+release is still cut by hand — yman task #1 holds the automated half). The point of the project
 is a universal table with a flexible config that **renders fast, without much overhead** — so
 performance is a correctness property here, not a nice-to-have.
 
-Open work lives in [`TASKS.md`](TASKS.md) and nowhere else; what has shipped is read from the git
-history. This file is the standing contracts, each stated once. The reasoning behind one lives in the
+Open work lives in the `yman` tracker (`.yman/`, a git worktree on `refs/yman/local`, excluded from
+the code tree, synced to `refs/tasks/main` on origin — see **Tasks** below) and nowhere else; what
+has shipped is read from the git history. This file is the standing contracts, each stated once.
+The reasoning behind one lives in the
 directory-scoped file next to the code it governs, which loads when you open that directory:
 
 | File | Governs |
@@ -38,6 +40,30 @@ make pack          # build + size + npm pack -> the installable tarball
 ```
 
 Node 24 (`.nvmrc`). pnpm, not npm.
+
+## Tasks
+
+The work queue is `yman`, not a file. `.yman/` is a linked worktree on `refs/yman/local`, listed in
+`.git/info/exclude` so the code tree stays clean, and published to `refs/tasks/main` on origin — a
+ref outside `refs/heads/`, so CI and the branch pickers never see it. Every clone runs `yman init`
+once (it adds the fetch refspec and adopts the published history); after that:
+
+```bash
+yman ls -n 10 --assignee -                        # pick: unassigned, best priority first
+yman show <id> -n 3                               # read: header, body, last 3 comments
+yman sync                                         # before a status change: take in other clones' work
+yman set <id> --status doing -a <me> -m "on it"   # claim: status, assignee, note, one commit
+yman done <id> -m "<sha>: what changed" && yman sync   # close, point at the commit, publish
+yman add "Title" -m "body" --relate <id>          # follow-up, linked to its parent
+```
+
+Never `edit` or `-e` — both open an editor; change a body with `yman set <id> --body "..."`. `rm`
+needs `-f`. Asked for the task list: `yman ls -l -n 20`, rendered as a table (P ID Status Title
+Tags), then `show <id> -n 0` the best one to three and recommend one. Statuses are `todo`, `doing`,
+`blocked` (waits on another open task — the body says `Waits on #<id>` and the task relates to it,
+so `yman ls --related <id>` finds what a close unblocks), `deferred` (a decision recorded so it is
+not rediscovered as an oversight), `done` and `cancelled`. Every task carries a **Done when**, so
+whether it can be closed has an answer.
 
 ## The three layers, and the rules between them
 
@@ -98,15 +124,15 @@ Two habits keep the pipeline honest, both argued out with their numbers in `src/
 - **One task, one commit.** No batching, no work-in-progress commits spanning tasks. `pnpm test`
   green, `pnpm typecheck` and `pnpm lint` clean before each. A task whose done-when is not met does not get
   committed; it gets finished, or split into a smaller task that is complete. The subject names the
-  task by ID, in the imperative mood the history already uses — `P1-4: Depend on query fields, not on
-  the query object`, with the body saying what was wrong.
-- **`TASKS.md` is the work queue, kept current as the work moves, not after it.** Flip a task to
-  `[~]` when starting it, and **delete it outright once it is committed** — there is no "done" flag
-  on purpose, since the commit is the record and a checked-off list drifts from it. Flags: `[ ]` not
-  started, `[~]` in progress, `[?]` blocked, `[-]` deliberately deferred. New work gets an ID and an
-  explicit **Done when**, so whether it can be deleted has an answer. A decision reached while
-  finishing a task goes to **Settled decisions** below or to the nested file for the directory it
-  governs — not into the deleted entry.
+  task by its yman id, in the imperative mood the history already uses — `#16: Make the locale
+  configurable` — with the body saying what was wrong. Commits before October 2026 name the
+  `TASKS.md` ids the tracker replaced (`F27:`, `T3:`); they read the same way.
+- **The tracker is kept current as the work moves, not after it.** `yman start <id>` when starting,
+  `yman done <id> -m "<sha>: …"` right after the commit lands, `yman sync` after both. The commit
+  is the record; a closed task is filed under `.yman/done/` and never edited again. New work gets a
+  `yman add` with an explicit **Done when**. A decision reached while finishing a task goes to
+  **Settled decisions** below or to the nested file for the directory it governs — not into the
+  closed task's body.
 
 ## Settled decisions
 

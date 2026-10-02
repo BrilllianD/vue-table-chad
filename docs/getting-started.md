@@ -511,8 +511,8 @@ Tree rows, pinned rows, and pivoting. Cell-level clipboard copy and paste
 [Local, server and infinite data](data-sources.md). Aggregation covers
 `sum`/`avg`/`min`/`max` with no custom reducer. i18n *is* in: every string the table renders comes
 off one `labels` record, four locales ship complete, and a spec keeps new literals out — see
-[Labels and i18n](labels.md). [`TASKS.md`](https://github.com/BrilllianD/vue-table-chad/blob/main/TASKS.md) has the
-reasoning for each of the rest.
+[Labels and i18n](labels.md). The repo's task tracker (`yman ls` in a checkout) has the reasoning
+for each of the rest.
 
 Row virtualization *is* included — see [Virtual rows](virtualization.md). Note what it means for a
 **server** source: `virtual` sets the page size to the size of the result set, so every request
