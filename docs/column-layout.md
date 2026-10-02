@@ -100,8 +100,9 @@ const columns = useColumns(defs, {
 columns.clearStored()   // forget the saved entry, keep the live layout
 ```
 
-- All four parts of the layout are saved by default. Narrow it with `fields` when something is
-  per-screen rather than per-user — widths are the usual candidate.
+- All five parts of the layout — `hidden`, `order`, `widths`, `pinned`, `collapsedGroups` — are saved
+  by default. Narrow it with `fields` when something is per-screen rather than per-user — widths are
+  the usual candidate.
 - A saved layout wins over `initialLayout`, field by field — `initialLayout` remains the first-visit
   default for anything not saved.
 - Both are read once at setup, so changing `storage-key` on a mounted table does nothing; `:key`

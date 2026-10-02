@@ -66,7 +66,10 @@ const props = withDefaults(
     initialLayout?: Partial<ColumnLayoutState>
     /** Saves the column layout under this key in `localStorage`. */
     storageKey?: string
-    /** Which parts of the layout `storageKey` saves. Defaults to all four. */
+    /**
+     * Which parts of the layout `storageKey` saves. Defaults to every field in
+     * `DEFAULT_COLUMN_LAYOUT_FIELDS`: hidden, order, widths, pinned, collapsedGroups.
+     */
     storageFields?: ColumnLayoutField[]
     /** Rows per page. Ignored when a `state` is supplied — that state decides. */
     pageSize?: number

@@ -207,7 +207,7 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `columnGroups` | `ColumnGroupDef[]` | — | Header bands. Optional even when columns declare `group`. |
 | `initialLayout` | `Partial<ColumnLayoutState>` | — | Read once at setup. |
 | `storageKey` | `string` | — | Remembers the column layout in `localStorage`. |
-| `storageFields` | `ColumnLayoutField[]` | all four | Which of visibility/order/width/pin to remember. |
+| `storageFields` | `ColumnLayoutField[]` | all five | Which of visibility/order/width/pin/folded bands to remember. |
 | `pageSize` | `number` | `10` | Ignored when `state` is supplied — that state is the authority. |
 | `virtual` | `boolean` | `false` | Every row as one continuous scroll, only the visible ones in the DOM. Mutually exclusive with paging: the page size becomes the whole result set and no pager is rendered. |
 | `rowHeight` | `number` | `38` | Row height in CSS px. Read only in `virtual` mode, where it also becomes `--vtc-row-height` — change the prop, never the token. |

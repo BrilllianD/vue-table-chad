@@ -63,7 +63,10 @@ export interface UseTableOptions<TRow> {
    * layout wins over it.
    */
   storageKey?: string
-  /** Which parts of the layout `storageKey` saves. Defaults to all four. */
+  /**
+   * Which parts of the layout `storageKey` saves. Defaults to every field in
+   * `DEFAULT_COLUMN_LAYOUT_FIELDS`: hidden, order, widths, pinned, collapsedGroups.
+   */
   storageFields?: ColumnLayoutField[]
   /**
    * Rows per page. Left undefined here rather than defaulted, so the number
