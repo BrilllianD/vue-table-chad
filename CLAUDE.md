@@ -21,6 +21,8 @@ directory-scoped file next to the code it governs, which loads when you open tha
 | [`Makefile`](Makefile) | `make pack` / `pack-check` / `release-check` — the checklist's commands, runnable |
 | [`docs/nav.ts`](docs/nav.ts) | the one source for the README docs index, the VitePress sidebar and the demo links — `tests/docsIndex.spec.ts` guards it |
 
+Knowledge base: ~/mem/projects/packages/README.md (search: qmd search "<terms>" -c mem -n 8). Read it before non-trivial work; record decisions there.
+
 ## Commands
 
 ```bash
