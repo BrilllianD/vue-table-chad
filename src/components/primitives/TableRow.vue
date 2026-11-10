@@ -120,6 +120,8 @@ const emit = defineEmits<{
    * which is a `mousedown` decision, not a `click` one.
    */
   mousedown: [event: MouseEvent]
+  /** Declared for the same reason `click` is: an undeclared listener would fall through and re-create the root vnode. */
+  dblclick: [event: MouseEvent]
 }>()
 
 const context = useTableContext<TRow>()
@@ -234,6 +236,7 @@ function cursorFor(columnId: string): CellCursorMark | undefined {
     :aria-rowindex="rowIndex"
     @click="emit('click', $event)"
     @mousedown="emit('mousedown', $event)"
+    @dblclick="emit('dblclick', $event)"
   >
     <!--
       The selection checkbox's cell, when the caller has one to put there. The

@@ -1084,6 +1084,43 @@ describe('rowClick', () => {
   })
 })
 
+describe('rowDblclick', () => {
+  it('emits the row that was double-clicked', async () => {
+    const seen: string[] = []
+    const isMouseEvent: boolean[] = []
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(DataTable as never, {
+            columns,
+            source,
+            state,
+            onRowDblclick: (row: Person, event: MouseEvent) => {
+              seen.push(row.name)
+              isMouseEvent.push(event instanceof MouseEvent)
+            },
+          })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    await wrapper.findAll('tbody tr')[1]!.trigger('dblclick')
+    expect(seen).toEqual(['Grace Hopper'])
+    expect(isMouseEvent).toEqual([true])
+    wrapper.unmount()
+  })
+
+  it('selects nothing', async () => {
+    const wrapper = mountTable({ selectable: true, rowClickSelect: true })
+
+    await wrapper.findAll('tbody tr')[0]!.trigger('dblclick')
+    expect(wrapper.findAll('tbody tr[data-selected]')).toHaveLength(0)
+    wrapper.unmount()
+  })
+})
+
 describe('DataTable loading state', () => {
   /*
    * `useLocalDataSource` hard-wires `loading` to `false`, so `mountTable` can
@@ -1450,6 +1487,19 @@ describe('DataTable detail rows', () => {
 
   const toggles = (wrapper: ReturnType<typeof mountExpandable>) =>
     wrapper.findAll('tbody .vt-detail-toggle')
+
+  it('a double click on the toggle reports no rowDblclick', async () => {
+    const onRowDblclick = vi.fn()
+    const onRowClick = vi.fn()
+    const wrapper = mountExpandable({ onRowDblclick, onRowClick })
+
+    await toggles(wrapper)[0]!.trigger('dblclick')
+    expect(onRowDblclick).not.toHaveBeenCalled()
+
+    await wrapper.findAll('tbody tr.vt-tr')[0]!.trigger('dblclick')
+    expect(onRowDblclick).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
 
   it('opens a panel under the row and shuts it again', async () => {
     const wrapper = mountExpandable()

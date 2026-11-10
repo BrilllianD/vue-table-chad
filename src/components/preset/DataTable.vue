@@ -388,6 +388,8 @@ const emit = defineEmits<{
   'update:selectedRows': [rows: TRow[]]
   'update:columnOrder': [order: string[]]
   rowClick: [row: TRow, event: MouseEvent]
+  /** A body row was double-clicked. Same payload as `rowClick`; the two clicks still each report `rowClick`. */
+  rowDblclick: [row: TRow, event: MouseEvent]
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]
   rowSaveError: [row: TRow, error: unknown]
@@ -1452,6 +1454,7 @@ function onPaste(
               :extra-columns="extraColumns"
               :empty-message="emptyText"
               @row-click="(row, event) => $emit('rowClick', row, event)"
+              @row-dblclick="(row, event) => $emit('rowDblclick', row, event)"
               @row-saved="(row) => $emit('rowSaved', row)"
               @row-save-error="(row, err) => $emit('rowSaveError', row, err)"
             >

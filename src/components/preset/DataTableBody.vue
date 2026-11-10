@@ -125,6 +125,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   rowClick: [row: TRow, event: MouseEvent]
+  /**
+   * A body row was double-clicked. A report like `rowClick`. Not `event.detail === 2`
+   * on `rowClick`: that fires after the second click's selection already ran and
+   * cannot be told apart from a slow pair.
+   */
+  rowDblclick: [row: TRow, event: MouseEvent]
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]
   rowSaveError: [row: TRow, error: unknown]
@@ -433,6 +439,11 @@ function onRowMouseDown(event: MouseEvent): void {
   event.preventDefault()
 }
 
+/** Fires unconditionally and selects nothing: a report of what the user did. */
+function onRowDblclick(row: TRow, event: MouseEvent): void {
+  emit('rowDblclick', row, event)
+}
+
 /**
  * `rowClick` fires first and unconditionally — it is a report of what the user
  * did, and a table that also selects on it has not stopped reporting.
@@ -726,6 +737,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           :cursor="cursor"
           :hover-column-id="hoverColumnId"
           @click="onRowClick(item.row, $event)"
+          @dblclick="onRowDblclick(item.row, $event)"
           @mousedown="onRowMouseDown"
         >
           <template v-if="leadingColumn" #leading>
@@ -755,6 +767,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               :aria-expanded="expansion.isExpanded(item.row)"
               :aria-label="expansion.isExpanded(item.row) ? labels.collapseRow : labels.expandRow"
               @click.stop="expansion.toggle(item.row)"
+              @dblclick.stop
             >
               <span class="vt-detail-caret" aria-hidden="true">▸</span>
             </button>

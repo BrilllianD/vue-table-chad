@@ -237,8 +237,10 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `autofocusCursor` | `boolean` | `false` | Take the caret on load. Only for pages where the table is the point. |
 
 Events: `update:query(query)`, `update:selection(ids)`, `update:selectionState(state)`,
-`update:selectedRows(rows)`, `update:columnOrder(order)`, `rowClick(row, event)`, `rowSaved(row)`,
-`rowSaveError(row, error)`, `endReached()`, `export(payload)`.
+`update:selectedRows(rows)`, `update:columnOrder(order)`, `rowClick(row, event)`,
+`rowDblclick(row, event)`, `rowSaved(row)`, `rowSaveError(row, error)`, `endReached()`, `export(payload)`.
+
+`rowDblclick` fires once per double click, after the two `rowClick`s.
 
 `export` fires *before* the download, carrying the serialised text; `preventDefault()` on the
 payload cancels it, for a consumer who would rather POST the text or name the file from the query.
