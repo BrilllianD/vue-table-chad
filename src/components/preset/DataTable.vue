@@ -92,9 +92,8 @@ const props = withDefaults(
      *
      * The table turns whatever it gets into one string before it reaches the
      * row, because a fresh array or object per render would make every row
-     * look changed and re-render all of them on every body render. For the
-     * same reason the function runs per rendered row per render, so keep it
-     * cheap. Rows live in a `shallowRef`: mutating a row object in place does
+     * look changed and re-render all of them on every body render. The
+     * function runs per rendered row per render, so keep it cheap. Rows live in a `shallowRef`: mutating a row object in place does
      * not re-run it; replacing the rows does, and so does a change to the
      * function's own reactive inputs.
      *

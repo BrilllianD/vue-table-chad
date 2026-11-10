@@ -1175,7 +1175,7 @@ describe('rowClass', () => {
     empty.unmount()
   })
 
-  it('adds nothing to the message row', () => {
+  it('adds nothing to the message row', async () => {
     const Host = defineComponent({
       setup() {
         const state = useTableState({ pageSize: 3 })
@@ -1185,7 +1185,9 @@ describe('rowClass', () => {
       },
     })
     const wrapper = mount(Host, { attachTo: document.body })
+    await nextTick()
     expect(wrapper.findAll('tbody tr').length).toBeGreaterThan(0)
+    expect(wrapper.find('tbody').text()).toContain('No Data')
     expect(wrapper.find('tbody .is-hot').exists()).toBe(false)
     wrapper.unmount()
   })
