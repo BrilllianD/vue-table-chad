@@ -346,6 +346,17 @@ const props = withDefaults(
      * way to own the state.
      */
     expansion?: UseRowExpansion<TRow>
+    /**
+     * Whether the disclosure button exists. Off, the button goes, the leading
+     * column it brought goes with it (the checkbox keeps it when `selectable`),
+     * and `Alt`+`↓`/`↑` does nothing. For tables where code decides which rows
+     * are open: a row that is always open, a panel opened by a row click.
+     *
+     * A prop on the table and not an option on `useRowExpansion`: the
+     * composable is the "code drives it" half and knows nothing of rendering.
+     * Without `expandable` or `expansion` it does nothing.
+     */
+    showDetailToggle?: boolean
   }>(),
   {
     // Vue casts an absent boolean prop to `false`, which would make "not
@@ -359,6 +370,7 @@ const props = withDefaults(
     cellCursor: false,
     autofocusCursor: false,
     expandable: false,
+    showDetailToggle: true,
     reorderable: true,
     virtual: false,
     rowHeight: 38,
@@ -459,9 +471,12 @@ const expansion = computed<UseRowExpansion<TRow> | undefined>(() =>
 
 /**
  * Whether the leading narrow column exists. Either feature brings it, and both
- * share it — see `DataTableBody`.
+ * share it — see `DataTableBody`. The toggle half can be switched off with
+ * `showDetailToggle`.
  */
-const leadingColumn = computed(() => selectable.value || expansion.value !== undefined)
+const leadingColumn = computed(
+  () => selectable.value || (expansion.value !== undefined && props.showDetailToggle),
+)
 
 /*
  * An open panel makes its row taller than `rowHeight`, and a window that trusts
@@ -689,6 +704,8 @@ function bandFold(fold: BandFold, cursor: UseCellCursor<TRow> | undefined): void
  * cannot be on one.
  */
 function detailToggle(rowId: RowId, toggle: DetailToggle, rows: TRow[]): void {
+  // A key the user cannot see must not close a panel code opened.
+  if (!props.showDetailToggle) return
   const api = expansion.value
   if (!api) return
   const row = rows.find((entry) => api.getRowId(entry) === rowId)
@@ -1470,6 +1487,7 @@ function onPaste(
               :selectable="selectable"
               :row-click-select="rowClickSelect"
               :row-class="rowClass"
+              :show-detail-toggle="showDetailToggle"
               :row-mode="rowMode"
               :seeded-cell="seededCell"
               :pointer-cell="pointerCell"

@@ -1722,6 +1722,61 @@ describe('DataTable detail rows', () => {
     wrapper.unmount()
   })
 
+  it('showDetailToggle off renders open panels with no toggle and no leading column', async () => {
+    const outside = useRowExpansion<Person>({ initial: [1] })
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        return () =>
+          h(
+            DataTable as never,
+            { columns, source, state, expansion: outside, showDetailToggle: false },
+            { detail: ({ row }: { row: Person }) => h('p', `detail for ${row.name}`) },
+          )
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+
+    expect(wrapper.find('.vt-detail-toggle').exists()).toBe(false)
+    expect(wrapper.find('td.vt-td-selection').exists()).toBe(false)
+    expect(wrapper.find('th.vt-th-selection').exists()).toBe(false)
+    expect(wrapper.get('tbody tr.vt-tr').attributes('data-expanded')).toBe('true')
+    expect(wrapper.get('.vt-detail-row').text()).toBe('detail for Ada Lovelace')
+    expect(wrapper.get('td.vt-detail-cell').attributes('colspan')).toBe(String(columns.length))
+
+    outside.toggle(people[1]!)
+    await nextTick()
+    expect(wrapper.findAll('.vt-detail-row')).toHaveLength(2)
+    wrapper.unmount()
+  })
+
+  it('showDetailToggle off keeps the checkbox column when selectable', () => {
+    const wrapper = mountExpandable({ selectable: true, showDetailToggle: false })
+    expect(wrapper.find('.vt-detail-toggle').exists()).toBe(false)
+    expect(wrapper.get('tbody tr td').classes()).toContain('vt-td-selection')
+    expect(wrapper.find('tbody tr td input[type="checkbox"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('showDetailToggle off ignores Alt+arrows', async () => {
+    const wrapper = mountExpandable({ cellCursor: true, showDetailToggle: false })
+    const cell = wrapper.get('tbody tr[data-row-id="1"] td[data-column="name"]')
+    await cell.trigger('click')
+    await nextTick()
+    await cell.trigger('keydown', { key: 'ArrowDown', altKey: true })
+    await nextTick()
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('showDetailToggle off is a no-op without an expansion', () => {
+    const wrapper = mountExpandable({ expandable: false, showDetailToggle: false })
+    expect(wrapper.find('.vt-detail-toggle').exists()).toBe(false)
+    expect(wrapper.find('td.vt-td-selection').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('hands the detail slot its load state and a way to retry', async () => {
     let fail = true
     let settle!: () => void

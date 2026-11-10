@@ -200,6 +200,7 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `selectable` | `boolean \| 'single' \| 'multiple'` | `false` | `true` means multiple. |
 | `expandable` | `boolean` | `false` | A disclosure column, and a detail panel under each open row. The panel's content is the `#detail` slot. Under `virtual` it needs `measureRows` — see [Expandable detail rows](detail-rows.md). |
 | `expansion` | `UseRowExpansion<TRow>` | table-owned | An expansion from `useRowExpansion`, for a caller that wants to open, read or store which rows are open. Implies `expandable`. |
+| `showDetailToggle` | `boolean` | `true` | The disclosure button and `Alt`+`↓`/`↑`. Off, panels open only from code through the expansion — see [Expandable detail rows](detail-rows.md#detail-rows-without-the-toggle). |
 | `getRowId` | `(row) => RowId` | `row.id` | Identity for selection, drafts, cursor and render keys. |
 | `isRowSelectable` | `(row) => boolean` | all | Greys out the checkbox for rows it refuses. |
 | `rowClickSelect` | `boolean` | `false` | Shift- and Ctrl/Cmd-click on the row itself, not only on its checkbox. An unmodified click still never changes the selection, so `@row-click` keeps working. |

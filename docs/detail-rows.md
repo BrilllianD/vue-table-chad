@@ -74,11 +74,35 @@ to survive one. It survives a page turn for the same reason.
 table.value?.expansion?.collapseAll()
 ```
 
+## Detail rows without the toggle
+
+When code decides which rows are open, the disclosure button is noise. Turn it off and pass your
+own expansion:
+
+```vue
+<DataTable
+  :columns="columns"
+  :source="source"
+  :expansion="expansion"
+  :show-detail-toggle="false"
+  @row-click="(row) => expansion.toggle(row)"
+>
+  <template #detail="{ row }">{{ row.error }}</template>
+</DataTable>
+```
+
+Gone: the button, the leading column it brought (a `selectable` table keeps it for the checkbox),
+and `Alt` + `↓`/`↑`. Stays: the `#detail` slot, `data-expanded` on an open row, `loadDetail`, and the
+`measure-rows` rule under `virtual`. Rows open through `expansion.toggle`, `expanded` or `initial`,
+so the example above opens a panel on a row click. Without `expandable` or `expansion` the prop does
+nothing.
+
 ## Keyboard
 
 With `cell-cursor` on, `Alt` + `↓` opens the cursor's row and `Alt` + `↑` shuts it. The direction
 is explicit rather than a toggle, so a held key does not flap the panel. No other cursor gesture
-uses `Alt`, which is why that pair is the one this spends.
+uses `Alt`, which is why that pair is the one this spends. With `show-detail-toggle` off the pair
+does nothing.
 
 The disclosure button is a real button, reachable by <kbd>Tab</kbd> and announcing its state
 through `aria-expanded`. Its accessible name comes from the `expandRow` / `collapseRow`
@@ -220,7 +244,8 @@ after it out of place, which is why the count includes the leading disclosure co
 
 `detailToggleFor(event)` is the keyboard half — it returns `'expand'`, `'collapse'` or
 `undefined` for a key event, so a hand-assembled table gets the same `Alt` + `↓`/`↑` without
-reimplementing the decision.
+reimplementing the decision. It is the keyboard half only: a hand-built table decides itself
+whether to wire it.
 
 ---
 

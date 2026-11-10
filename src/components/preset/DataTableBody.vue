@@ -77,6 +77,8 @@ const props = defineProps<{
    */
   contextMenu: boolean
   selectable: boolean
+  /** See DataTable. */
+  showDetailToggle: boolean
   /** Shift- and Ctrl/Cmd-click on the row itself, not just on its checkbox. */
   rowClickSelect: boolean
   /** Normalised to a string by `rowClassFor`, see `DataTable`. */
@@ -188,7 +190,9 @@ const body = ref<VirtualBodyView | null>(null)
  * disclosure toggle are both "this row, not its data", and a second narrow
  * column would cost every table that turns both on a column of whitespace.
  */
-const leadingColumn = computed(() => props.selectable || props.expansion !== undefined)
+const leadingColumn = computed(
+  () => props.selectable || (props.expansion !== undefined && props.showDetailToggle),
+)
 
 const items = computed<DisplayRow<TRow>[]>(() => {
   const expansion = props.expansion
@@ -780,7 +784,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               the panel is shut.
             -->
             <button
-              v-if="expansion"
+              v-if="expansion && showDetailToggle"
               type="button"
               class="vt-detail-toggle"
               :aria-expanded="expansion.isExpanded(item.row)"
