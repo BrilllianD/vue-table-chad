@@ -85,7 +85,7 @@ own expansion:
   :source="source"
   :expansion="expansion"
   :show-detail-toggle="false"
-  @row-click="(row) => expansion.toggle(row)"
+  @row-dblclick="(row) => expansion.toggle(row)"
 >
   <template #detail="{ row }">{{ row.error }}</template>
 </DataTable>
@@ -94,7 +94,8 @@ own expansion:
 Gone: the button, the leading column it brought (a `selectable` table keeps it for the checkbox),
 and `Alt` + `↓`/`↑`. Stays: the `#detail` slot, `data-expanded` on an open row, `loadDetail`, and the
 `measure-rows` rule under `virtual`. Rows open through `expansion.toggle`, `expanded` or `initial`,
-so the example above opens a panel on a row click. Without `expandable` or `expansion` the prop does
+so the example above opens a panel on a row double click. Toggle on `@row-click` instead and a double
+click sends two `rowClick`s, which open the panel and shut it again. Without `expandable` or `expansion` the prop does
 nothing.
 
 ## Keyboard
