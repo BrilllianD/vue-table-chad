@@ -18,7 +18,7 @@
  * carry a column id in the name, which is why that forwarding is a generic
  * `v-for` over the slots rather than a list of names.
  */
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, normalizeClass, ref, watch } from 'vue'
 import CellEditor from '../primitives/CellEditor.vue'
 import VirtualBody from '../primitives/VirtualBody.vue'
 import TableRow from '../primitives/TableRow.vue'
@@ -79,6 +79,12 @@ const props = defineProps<{
   selectable: boolean
   /** Shift- and Ctrl/Cmd-click on the row itself, not just on its checkbox. */
   rowClickSelect: boolean
+  /** Normalised to a string by `rowClassFor`, see `DataTable`. */
+  rowClass?:
+    | string
+    | string[]
+    | Record<string, boolean>
+    | ((row: TRow) => string | string[] | Record<string, boolean> | undefined)
   /**
    * Row mode against cell mode. Passed rather than derived: `DataTable` needs
    * it too, for the header and the footer, and one computed in two files is one
@@ -369,6 +375,18 @@ function openOnFocus(row: TRow, column: ResolvedColumn<TRow>): boolean {
 function selectOnFocus(row: TRow, column: ResolvedColumn<TRow>): boolean {
   if (props.rowMode) return false
   return !isSeeded(row, column)
+}
+
+/**
+ * The class for one data row, as a string.
+ *
+ * A string and not the raw array or object: a function returning a fresh array
+ * each call would otherwise make every row's props look changed and re-render
+ * it. Nothing to say gives `undefined`, so the `<tr>` stays `class="vt-tr"`.
+ */
+function rowClassFor(row: TRow): string | undefined {
+  const value = typeof props.rowClass === 'function' ? props.rowClass(row) : props.rowClass
+  return normalizeClass(value) || undefined
 }
 
 function rowState(row: TRow): 'dirty' | 'saving' | 'error' | undefined {
@@ -734,6 +752,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
           :selected="selection ? selection.isSelected(item.row) : false"
           :expanded="expansion ? expansion.isExpanded(item.row) : false"
           :state="rowState(item.row)"
+          :class="rowClassFor(item.row)"
           :cursor="cursor"
           :hover-column-id="hoverColumnId"
           @click="onRowClick(item.row, $event)"

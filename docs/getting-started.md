@@ -203,6 +203,7 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `getRowId` | `(row) => RowId` | `row.id` | Identity for selection, drafts, cursor and render keys. |
 | `isRowSelectable` | `(row) => boolean` | all | Greys out the checkbox for rows it refuses. |
 | `rowClickSelect` | `boolean` | `false` | Shift- and Ctrl/Cmd-click on the row itself, not only on its checkbox. An unmodified click still never changes the selection, so `@row-click` keeps working. |
+| `rowClass` | `string \| string[] \| Record<string, boolean> \| (row) => …` | — | Classes on each body data row's `<tr>`; a function of the row for per-row state. Not on group or detail rows. See [Styling](styling.md#per-row-classes). |
 | `selectionState` | `SelectionState` | table-owned | `v-model:selection-state` — the whole selection, for a caller that wants to seed, store or restore it. See [Selection](selection.md#owning-the-selection-yourself). |
 | `columnGroups` | `ColumnGroupDef[]` | — | Header bands. Optional even when columns declare `group`. |
 | `initialLayout` | `Partial<ColumnLayoutState>` | — | Read once at setup. |

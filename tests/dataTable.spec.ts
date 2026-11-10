@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, type VueWrapper } from '@vue/test-utils'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import TableRoot from '../src/components/primitives/TableRoot.vue'
@@ -1121,6 +1121,76 @@ describe('rowDblclick', () => {
   })
 })
 
+describe('rowClass', () => {
+  it('adds a static string to every data row', () => {
+    const wrapper = mountTable({ rowClass: 'is-hot' })
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) expect(row.classes()).toEqual(['vt-tr', 'is-hot'])
+    wrapper.unmount()
+  })
+
+  it('takes a function of the row', () => {
+    const target = people[1]!.name
+    const wrapper = mountTable({
+      rowClass: (row: Person) => (row.name === target ? ['a', 'b'] : undefined),
+    })
+    const rows = wrapper.findAll('tbody tr')
+    const hit = rows.filter((row) => row.text().includes(target))
+    expect(hit).toHaveLength(1)
+    expect(hit[0]!.classes()).toEqual(expect.arrayContaining(['vt-tr', 'a', 'b']))
+    for (const row of rows.filter((r) => !r.text().includes(target))) {
+      expect(row.attributes('class')).toBe('vt-tr')
+    }
+    wrapper.unmount()
+  })
+
+  it('takes an object', () => {
+    const wrapper = mountTable({ rowClass: { 'is-on': true, 'is-off': false } })
+    for (const row of wrapper.findAll('tbody tr')) {
+      expect(row.classes()).toContain('is-on')
+      expect(row.classes()).not.toContain('is-off')
+    }
+    wrapper.unmount()
+  })
+
+  it('hands the row a string even when the function returns an array', () => {
+    const wrapper = mountTable({ rowClass: () => ['a', 'b'] })
+    const first = wrapper.findAllComponents(TableRow)[0]! as unknown as VueWrapper
+    expect(first.find('tr').attributes('class')).toBe('vt-tr a b')
+    expect(typeof first.vm.$attrs.class).toBe('string')
+    wrapper.unmount()
+  })
+
+  it('leaves the markup unchanged when there is nothing to add', () => {
+    const plain = mountTable()
+    const undef = mountTable({ rowClass: () => undefined })
+    const empty = mountTable({ rowClass: () => ({}) })
+    // The body only: the scroll box's measured style differs between mounts.
+    const body = (w: typeof plain) => w.find('tbody').html()
+    expect(body(undef)).toBe(body(plain))
+    expect(body(empty)).toBe(body(plain))
+    plain.unmount()
+    undef.unmount()
+    empty.unmount()
+  })
+
+  it('adds nothing to the message row', () => {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, columns, state.query, { debounceMs: 0 })
+        state.setSearch('nothing matches this')
+        return () => h(DataTable as never, { columns, source, state, rowClass: 'is-hot' })
+      },
+    })
+    const wrapper = mount(Host, { attachTo: document.body })
+    expect(wrapper.findAll('tbody tr').length).toBeGreaterThan(0)
+    expect(wrapper.find('tbody .is-hot').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
+
 describe('DataTable loading state', () => {
   /*
    * `useLocalDataSource` hard-wires `loading` to `false`, so `mountTable` can
@@ -1498,6 +1568,18 @@ describe('DataTable detail rows', () => {
 
     await wrapper.findAll('tbody tr.vt-tr')[0]!.trigger('dblclick')
     expect(onRowDblclick).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('puts rowClass on the data row and not on its panel', async () => {
+    const wrapper = mountExpandable({ rowClass: 'is-hot' })
+
+    await toggles(wrapper)[0]!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.vt-detail-row').exists()).toBe(true)
+    expect(wrapper.find('.vt-detail-row').classes()).not.toContain('is-hot')
+    expect(wrapper.findAll('tbody tr.vt-tr')[0]!.classes()).toContain('is-hot')
     wrapper.unmount()
   })
 

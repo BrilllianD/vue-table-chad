@@ -82,6 +82,24 @@ describe('DataTable in virtual mode', () => {
     wrapper.unmount()
   })
 
+  it('puts rowClass on data rows and not on the spacers', () => {
+    const wrapper = mountTable({
+      virtual: true,
+      rowClass: (row: Row) => (row.team === 'Alpha' ? 'alpha' : undefined),
+    })
+
+    const rows = bodyRows(wrapper)
+    expect(rows.length).toBeGreaterThan(10)
+    for (const row of rows) {
+      expect(row.classes().includes('alpha')).toBe(row.text().includes('Alpha'))
+    }
+    for (const spacer of wrapper.findAll('.vt-virtual-spacer')) {
+      expect(spacer.classes()).not.toContain('alpha')
+    }
+
+    wrapper.unmount()
+  })
+
   it('renders no pager in virtual mode', () => {
     const paged = mountTable()
     expect(paged.find('.vt-pagination').exists()).toBe(true)

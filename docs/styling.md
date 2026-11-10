@@ -412,6 +412,34 @@ view, and the browser's idea of "in view" knows nothing about a sticky header, s
 
 Only override it if you are assembling a header of your own from primitives.
 
+## Per-row classes
+
+`rowClass` puts classes on each body data row's `<tr>`. Pass a string, an array, an object of
+`{ class: boolean }`, or a function of the row returning one of those, which is the form that styles a row by
+its data:
+
+```vue
+<DataTable :row-class="(row) => ({ 'row-overdue': row.overdue })" ... />
+```
+
+Cells paint the row background, not the `<tr>`, so a `background` on the row is hidden behind them. Set the
+two stripe variables on the row instead; they inherit into the cells, and the hover and selection layers
+still stack above them (see [Hover, selection, and how cell backgrounds stack](#hover-selection-and-how-cell-backgrounds-stack)):
+
+```css
+.vt-tr.row-overdue {
+  --vtc-row-odd-bg: rgb(254 226 226);
+  --vtc-row-even-bg: rgb(254 226 226);
+  color: rgb(153 27 27);
+}
+```
+
+Keep the colour opaque: pinned cells are sticky, per the section above.
+
+The function runs for every rendered row on every body render, so keep it cheap. Rows live in a
+`shallowRef`, so replace the rows array rather than mutating a row in place, or the function does not run
+again. Data rows only: group rows, detail rows and message rows get no class.
+
 ## Per-column background
 
 `background` and `headerBackground` on the column def, because *which column* is not something a

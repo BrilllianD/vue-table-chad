@@ -84,6 +84,29 @@ const props = withDefaults(
      */
     rowClickSelect?: boolean
     /**
+     * Classes for each body data row's `<tr>`, never for group, detail or
+     * message rows: a string, an array, an object of `{ class: boolean }`, or
+     * a function of the row returning one of those (or `undefined`). The
+     * function form is the useful one — the class usually depends on the row,
+     * say an overdue flag.
+     *
+     * The table turns whatever it gets into one string before it reaches the
+     * row, because a fresh array or object per render would make every row
+     * look changed and re-render all of them on every body render. For the
+     * same reason the function runs per rendered row per render, so keep it
+     * cheap. Rows live in a `shallowRef`: mutating a row object in place does
+     * not re-run it; replacing the rows does, and so does a change to the
+     * function's own reactive inputs.
+     *
+     * A prop rather than a slot or a change to `TableRow`: the row markup
+     * stays the primitive's, and the caller only adds classes to it.
+     */
+    rowClass?:
+      | string
+      | string[]
+      | Record<string, boolean>
+      | ((row: TRow) => string | string[] | Record<string, boolean> | undefined)
+    /**
      * The selection itself, for a caller that wants to own it —
      * `v-model:selection-state`. Left out, the table owns it.
      *
@@ -1447,6 +1470,7 @@ function onPaste(
               :context-menu="props.contextMenu ?? false"
               :selectable="selectable"
               :row-click-select="rowClickSelect"
+              :row-class="rowClass"
               :row-mode="rowMode"
               :seeded-cell="seededCell"
               :pointer-cell="pointerCell"
