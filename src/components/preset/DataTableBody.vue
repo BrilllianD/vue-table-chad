@@ -457,11 +457,6 @@ function onRowMouseDown(event: MouseEvent): void {
   event.preventDefault()
 }
 
-/** Fires unconditionally and selects nothing: a report of what the user did. */
-function onRowDblclick(row: TRow, event: MouseEvent): void {
-  emit('rowDblclick', row, event)
-}
-
 /**
  * `rowClick` fires first and unconditionally — it is a report of what the user
  * did, and a table that also selects on it has not stopped reporting.
@@ -471,6 +466,11 @@ function onRowClick(row: TRow, event: MouseEvent): void {
   if (!props.rowClickSelect || !props.selection) return
   if (ownsItsClick(event) || opensEditor(event)) return
   props.selection.selectFromClick(row, event)
+}
+
+/** Fires unconditionally and selects nothing: a report of what the user did. */
+function onRowDblclick(row: TRow, event: MouseEvent): void {
+  emit('rowDblclick', row, event)
 }
 
 /**

@@ -1565,6 +1565,7 @@ describe('DataTable detail rows', () => {
 
     await toggles(wrapper)[0]!.trigger('dblclick')
     expect(onRowDblclick).not.toHaveBeenCalled()
+    expect(onRowClick).not.toHaveBeenCalled()
 
     await wrapper.findAll('tbody tr.vt-tr')[0]!.trigger('dblclick')
     expect(onRowDblclick).toHaveBeenCalledTimes(1)

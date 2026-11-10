@@ -239,7 +239,8 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 
 Events: `update:query(query)`, `update:selection(ids)`, `update:selectionState(state)`,
 `update:selectedRows(rows)`, `update:columnOrder(order)`, `rowClick(row, event)`,
-`rowDblclick(row, event)`, `rowSaved(row)`, `rowSaveError(row, error)`, `endReached()`, `export(payload)`.
+`rowDblclick(row, event)`, `rowSaved(row)`, `rowSaveError(row, error)`, `endReached()`,
+`export(payload)`.
 
 `rowDblclick` fires once per double click, after the two `rowClick`s.
 
