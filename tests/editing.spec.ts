@@ -261,6 +261,24 @@ describe('applyCellValue', () => {
     expect(employee.location.city).toBe('Berlin')
   })
 
+  it('keeps a class-instance row\'s prototype, so its getters still read', () => {
+    class Named {
+      constructor(
+        public first: string,
+        public last: string,
+      ) {}
+      get full() {
+        return `${this.first} ${this.last}`
+      }
+    }
+    const row = new Named('Ada', 'Lovelace')
+    const col: ColumnDef<Named> = { id: 'first' }
+    const next = applyCellValue(row, col, 'Augusta')
+    expect(next).toBeInstanceOf(Named)
+    expect(next.full).toBe('Augusta Lovelace')
+    expect(row.first).toBe('Ada')
+  })
+
   it('refuses to guess where an accessor column writes back', () => {
     const noSetter: ColumnDef<Employee> = { id: 'city', accessor: (row) => row.location.city }
     expect(() => applyCellValue(employee, noSetter, 'Lisbon')).toThrow(/accessor/)

@@ -205,6 +205,17 @@ function harness(groupBy: string[] = []) {
   return built
 }
 
+/** A save whose answer the test hands over by hand. */
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
 /** Every column writable, so an edit has somewhere to land. */
 const editableColumns = employeeColumns.map((column) => ({ ...column, editable: true }))
 
@@ -217,6 +228,7 @@ function editingHarness(
   save: (change: { nextRow: Employee }) => Promise<Employee | void> = async ({ nextRow }) =>
     nextRow,
   groupBy: string[] = ['department'],
+  optimistic = false,
 ) {
   const scope = effectScope()
   const data = shallowRef<Employee[]>([...rows])
@@ -233,6 +245,7 @@ function editingHarness(
     })
     const editing = useRowEditing<Employee>(source, editableColumns, {
       save,
+      optimistic,
       apply: (next) => {
         data.value = replaceRowIn(data.value, next, (row) => row.id)
       },
@@ -413,6 +426,54 @@ describe('what editing is allowed to recompute', () => {
     // menu's.
     expect(counters.filter).toBe(1)
     expect(counters.sort).toBe(1)
+    h.stop()
+  })
+
+  // `optimistic` is the stated exception to "exactly once": one pass when the
+  // edit is applied, one more when the server returns a different row or when
+  // the save fails and the row is put back. Each pass is one filter and two
+  // sorts here: the grouping stage sorts again beside the source's own sort.
+  it('an optimistic save the server corrects costs two passes', async () => {
+    const gate = deferred<Employee>()
+    const h = editingHarness(() => gate.promise, ['department'], true)
+    const row = h.source.rows.value[0]!
+
+    h.editing.begin(row, 'salary')
+    h.editing.setValue(row, salary, '92000')
+    const pending = h.editing.commit(row)
+    h.source.rows.value
+    h.grouping.displayRows.value
+    expect(counters.filter).toBe(1)
+    expect(counters.sort).toBe(2)
+
+    gate.resolve({ ...row, salary: 93000 })
+    await expect(pending).resolves.toBe(true)
+    h.source.rows.value
+    h.grouping.displayRows.value
+    expect(counters.filter).toBe(2)
+    expect(counters.sort).toBe(4)
+    h.stop()
+  })
+
+  it('an optimistic save that fails costs two passes, the edit and the rollback', async () => {
+    const gate = deferred<Employee>()
+    const h = editingHarness(() => gate.promise, ['department'], true)
+    const row = h.source.rows.value[0]!
+
+    h.editing.begin(row, 'salary')
+    h.editing.setValue(row, salary, '92000')
+    const pending = h.editing.commit(row)
+    h.source.rows.value
+    h.grouping.displayRows.value
+    expect(counters.filter).toBe(1)
+    expect(counters.sort).toBe(2)
+
+    gate.reject(new Error('nope'))
+    await expect(pending).resolves.toBe(false)
+    h.source.rows.value
+    h.grouping.displayRows.value
+    expect(counters.filter).toBe(2)
+    expect(counters.sort).toBe(4)
     h.stop()
   })
 })

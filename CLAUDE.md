@@ -97,7 +97,9 @@ move. Treat a failure there as a broken feature, not a slow one.
   folding a header band, the cell cursor (a clamped move writes no state), collapsing a group
   (`buildGroupTree` / `flattenTree` are separate; only the second reads collapse state), and editing
   up to the moment a save succeeds — an open draft, typing, a failed validation and a rejected save
-  all leave the dataset alone. A save that *succeeds* does redo the pipeline, exactly once.
+  all leave the dataset alone. A save that *succeeds* does redo the pipeline, exactly once. `optimistic` mode is the stated
+  exception: one pass when the edit is applied, one more when the server returns a different row or
+  when a failed or cancelled save rolls it back.
 - **Scrolling a virtual window redoes nothing.** A scroll that does not move the window propagates
   nothing at all — `start` and `end` are floored integers. This matters more than the paging
   equivalent it mirrors: `virtual` is a page size of *everything*, so each pass it must not trigger

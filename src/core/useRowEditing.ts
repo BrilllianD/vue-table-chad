@@ -37,13 +37,14 @@ export interface RowChange<TRow> {
   row: TRow
   /**
    * Only the fields that changed, keyed by **column id** and already parsed to
-   * the column's own type. A plain object, detached from the reactive draft, so
+   * the column's own type. A field whose parsed value is `Object.is`-equal to
+   * what the row holds is left out. A plain object, detached from the reactive draft, so
    * a `save` can hold it or serialise it without it shifting underneath.
    */
   patch: Record<string, unknown>
   /** The row as it would be — `patch` applied through each column's `setValue`. */
   nextRow: TRow
-  /** Aborted when a newer save for the same row starts, or the scope goes away. */
+  /** Aborted by `cancel`, `cancelAll`, a newer save for the same row, or scope disposal; never by the save's own success. */
   signal: AbortSignal
 }
 
@@ -87,7 +88,8 @@ export interface UseRowEditingOptions<TRow> {
    * Apply the edit before the server answers, and roll it back if the save
    * fails. Off by default: waiting lets the row adopt whatever the server
    * returns — a normalised value, a computed field — in one visible change
-   * rather than two.
+   * rather than two. A save aborted by `cancel`, `cancelAll` or scope disposal
+   * rolls the row back too.
    */
   optimistic?: boolean
   /** Rows the user may not edit at all, whatever their columns say. */
@@ -162,7 +164,12 @@ export interface UseRowEditing<TRow> {
   setValue: (row: TRow, column: ColumnDef<TRow>, input: unknown) => void
   cancel: (row: TRow) => void
   cancelAll: () => void
-  /** Validates, saves, applies. Resolves `true` only when the row was persisted. */
+  /**
+   * Validates, saves, applies. Resolves `true` when the row was persisted or
+   * nothing changed; `false` on a validation failure, a rejected save or an
+   * abort. Rejects only when `onSaved` throws: the row is already applied and
+   * the draft closed by then.
+   */
   commit: (row: TRow) => Promise<boolean>
   getRowId: (row: TRow) => RowId
 }
@@ -285,6 +292,9 @@ export function useRowEditing<TRow>(
   }
 
   function setValue(row: TRow, column: ColumnDef<TRow>, input: unknown): void {
+    // A saving row takes no keystrokes: a successful save closes the draft, and
+    // `close` would discard them silently.
+    if (drafts.value.get(getRowId(row))?.status === 'saving') return
     const state = open(getRowId(row))
     state.inputs[column.id] = input
     state.draft[column.id] = parseCellInput(input, column, row)
@@ -354,6 +364,13 @@ export function useRowEditing<TRow>(
     // the reason `useServerDataSource` clones its query: a caller must be able
     // to hold or serialise this without it shifting underneath.
     const patch = { ...state.draft }
+    // Only what differs from the row. Retyping a cell to the value it holds is
+    // not a change, and sending it would cost a save and a pipeline pass. A key
+    // with no column stays, so validation reports it as it always has.
+    for (const key of Object.keys(patch)) {
+      const column = columnsOf().find((c) => c.id === key)
+      if (column && Object.is(patch[key], readValue(row, column))) delete patch[key]
+    }
     if (Object.keys(patch).length === 0) {
       close(id)
       return true
@@ -375,24 +392,28 @@ export function useRowEditing<TRow>(
     state.status = 'saving'
     if (options.optimistic) apply(nextRow, row)
 
+    let finalRow: TRow
     try {
       const saved = await options.save({ id, row, patch, nextRow, signal: controller.signal })
-      if (controller.signal.aborted) return false
+      if (controller.signal.aborted) {
+        // Cancelled mid-save: the optimistic edit was never going to be kept.
+        if (options.optimistic) apply(row, nextRow)
+        return false
+      }
 
       // The server's row wins when it sent one back: it may have normalised a
       // value or filled a field only it can compute.
-      const finalRow = (saved as TRow | undefined | void) ?? nextRow
+      finalRow = (saved as TRow | undefined | void) ?? nextRow
       if (options.optimistic) {
-        if (finalRow !== nextRow) apply(finalRow as TRow, nextRow)
+        if (finalRow !== nextRow) apply(finalRow, nextRow)
       } else {
-        apply(finalRow as TRow, row)
+        apply(finalRow, row)
       }
-
-      close(id)
-      options.onSaved?.(finalRow as TRow)
-      return true
     } catch (caught) {
-      if (controller.signal.aborted) return false
+      if (controller.signal.aborted) {
+        if (options.optimistic) apply(row, nextRow)
+        return false
+      }
       // Put the row back the way it was before anyone saw the optimistic edit.
       if (options.optimistic) apply(row, nextRow)
 
@@ -409,6 +430,14 @@ export function useRowEditing<TRow>(
       // must not clear the controller of one still in flight.
       if (controllers.get(id) === controller) controllers.delete(id)
     }
+
+    // Outside the try on purpose. The `finally` has already released the
+    // controller, so `close` aborts nothing and the signal of a save that
+    // succeeded stays unaborted; and a throw from `onSaved` reaches the caller
+    // instead of being taken for a failed save (the row is already persisted).
+    close(id)
+    options.onSaved?.(finalRow)
+    return true
   }
 
   onScopeDispose(() => {

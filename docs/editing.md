@@ -239,7 +239,7 @@ const editing = useRowEditing(source, columns, options)   // `options`: the call
 | `apply(next, previous)` | `source.refresh()` | Writes the saved row back into the data, because the table does not own it. |
 | `mode` | `'cell'` | `'cell'` or `'row'`. Takes a ref or getter, so a table can switch without remounting. |
 | `getRowId(row)` | `row.id` | Stable identity. Drafts are keyed by it. |
-| `optimistic` | `false` | Apply before the server answers, and roll back if it refuses. |
+| `optimistic` | `false` | Apply before the server answers, and roll back if it refuses or the save is cancelled. |
 | `isEditable(row)` | — | Rows the user may not edit at all, whatever their columns say. |
 | `validate(next, draft)` | — | The cross-field rule, handed the row **as it would be**. Return per-field messages, a string, or `null`. |
 | `mapError(error)` | reads `error.fields` / `error.message` | Turns a rejection into messages. |
@@ -340,6 +340,13 @@ never written, not even into a throwaway copy.
 Only the newest save for a row may finish: `commit` refuses to start a second save for a row
 already saving, and every other route to a new save goes through the close path, which aborts
 first. A straggler resolving late finds `signal.aborted` and does nothing.
+
+The signal is aborted only by `cancel`, `cancelAll`, a newer save or the scope going away, never by
+the save's own success. In `optimistic` mode an aborted save puts the row back as it was. `commit`
+resolves `true` when the row was persisted or nothing changed, `false` on a validation failure, a
+rejected save or an abort, and **rejects** only when `onSaved` throws: by then the row is applied
+and the draft closed, so the error is yours to handle. A row that is saving takes no further
+`setValue`.
 
 ## The keyboard
 

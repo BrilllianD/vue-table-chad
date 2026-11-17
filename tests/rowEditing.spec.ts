@@ -588,3 +588,86 @@ describe('an edit that changes which rows match', () => {
     h.dispose()
   })
 })
+
+describe('the save lifecycle', () => {
+  it('rejects commit with what onSaved threw, the row already applied and the draft closed', async () => {
+    const boom = new Error('onSaved broke')
+    const h = setup({
+      onSaved: () => {
+        throw boom
+      },
+    })
+    h.editing.begin(first, 'salary')
+    h.editing.setValue(first, columns[2]!, '92000')
+    await expect(h.editing.commit(first)).rejects.toBe(boom)
+    expect(h.rowFor(first.id).salary).toBe(92000)
+    expect(h.editing.isEditing(first.id)).toBe(false)
+    h.dispose()
+  })
+
+  it('leaves the signal of a save that succeeded unaborted', async () => {
+    const h = setup()
+    h.editing.begin(first, 'salary')
+    h.editing.setValue(first, columns[2]!, '92000')
+    await expect(h.editing.commit(first)).resolves.toBe(true)
+    expect(h.saves[0]!.signal.aborted).toBe(false)
+    h.dispose()
+  })
+
+  it('makes no save for a value equal to the one the row holds', async () => {
+    const h = setup()
+    h.editing.begin(first, 'salary')
+    h.editing.setValue(first, columns[2]!, String(first.salary))
+    await expect(h.editing.commit(first)).resolves.toBe(true)
+    expect(h.saves).toHaveLength(0)
+    expect(h.editing.isEditing(first.id)).toBe(false)
+    h.dispose()
+  })
+
+  it('sends only the fields that differ', async () => {
+    const h = setup()
+    h.editing.begin(first, 'salary')
+    h.editing.setValue(first, columns[0]!, first.name)
+    h.editing.setValue(first, columns[2]!, '92000')
+    await h.editing.commit(first)
+    expect(Object.keys(h.saves[0]!.patch)).toEqual(['salary'])
+    h.dispose()
+  })
+
+  it('ignores typing into a row that is saving', async () => {
+    const gate = deferred<void>()
+    const h = setup({ save: () => gate.promise })
+    h.editing.begin(first, 'salary')
+    h.editing.setValue(first, columns[2]!, '92000')
+    const pending = h.editing.commit(first)
+    h.editing.setValue(first, columns[2]!, '1')
+    expect(h.editing.inputFor(first, columns[2]!)).toBe('92000')
+    gate.resolve()
+    await pending
+    h.dispose()
+  })
+})
+
+describe('optimistic, cancelled while the save is pending', () => {
+  for (const outcome of ['resolves', 'rejects'] as const) {
+    for (const how of ['cancel', 'cancelAll'] as const) {
+      it(`restores the row when ${how} comes first and the save ${outcome}`, async () => {
+        const gate = deferred<void>()
+        const h = setup({ optimistic: true, save: () => gate.promise })
+        h.editing.begin(first, 'salary')
+        h.editing.setValue(first, columns[2]!, '92000')
+        const pending = h.editing.commit(first)
+        expect(h.rowFor(first.id).salary).toBe(92000)
+
+        if (how === 'cancel') h.editing.cancel(first)
+        else h.editing.cancelAll()
+        if (outcome === 'resolves') gate.resolve()
+        else gate.reject(new Error('nope'))
+
+        await expect(pending).resolves.toBe(false)
+        expect(h.rowFor(first.id).salary).toBe(first.salary)
+        h.dispose()
+      })
+    }
+  }
+})

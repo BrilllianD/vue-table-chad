@@ -213,7 +213,17 @@ export function applyCellValue<TRow>(row: TRow, column: ColumnDef<TRow>, value: 
         'where to write an edit back. Give the column a `setValue`.',
     )
   }
-  return { ...(row as Record<string, unknown>), [column.id]: value } as TRow
+  // The prototype is carried over, so a class-instance row keeps its getters and
+  // `instanceof`. `defineProperty`, not assignment: a getter-only accessor of the
+  // same name up the chain would make an assignment throw.
+  const next = Object.assign(Object.create(Object.getPrototypeOf(row)), row) as TRow
+  Object.defineProperty(next, column.id, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  })
+  return next
 }
 
 /** Looks a column up, or says which id had no column rather than dropping the field. */
