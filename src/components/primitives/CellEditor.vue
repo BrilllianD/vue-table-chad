@@ -1,4 +1,4 @@
-`<script setup lang="ts" generic="TRow extends Record<string, unknown>">
+<script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /**
  * The control that edits one cell, and the keyboard contract around it.
  *
@@ -40,16 +40,19 @@
  * Standalone like every primitive: given `column`, `value` and a listener it
  * needs no `<TableRoot>` above it.
  */
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 import { editorFor, optionLabelFor } from '../../core/editing'
 import {
   caretForSignificant,
+  deleteForwardAcrossSeparator,
+  plainNumberString,
   significantBefore,
   toDisplayNumber,
   toMachineNumber,
 } from '../../core/numberMask'
 import { commitMoveFor, editorMoveFor, type CursorMove } from '../../core/cellCursor'
 import type { ColumnDef } from '../../core/types'
+import { toBoolean, toIsoDate } from '../../core/utils/values'
 import AsyncSelect from './AsyncSelect.vue'
 import StaticSelect from './StaticSelect.vue'
 
@@ -170,7 +173,7 @@ const label = computed(() => props.label ?? props.column.header ?? props.column.
  * one, so blanks are flattened here rather than at every call site.
  */
 const text = computed(() => (props.value === null || props.value === undefined ? '' : String(props.value)))
-const checked = computed(() => props.value === true)
+const checked = computed(() => toBoolean(props.value) === true)
 
 /**
  * What a number box shows: the same value, grouped into thousands.
@@ -179,7 +182,16 @@ const checked = computed(() => props.value === true)
  * `parseCellInput` and any `column.parse` are handed exactly what a native
  * number box used to hand them. Only the characters on screen change.
  */
-const display = computed(() => (kind.value === 'number' ? toDisplayNumber(text.value) : text.value))
+const display = computed(() => {
+  if (kind.value === 'date') return toIsoDate(props.value) ?? ''
+  if (kind.value !== 'number') return text.value
+  // A number the table holds is printed without an exponent first; a string is
+  // the draft's own machine string and goes through as it is.
+  if (typeof props.value === 'number' && Number.isFinite(props.value)) {
+    return toDisplayNumber(plainNumberString(props.value))
+  }
+  return toDisplayNumber(text.value)
+})
 
 /**
  * The error is announced through a element of its own rather than the control's
@@ -187,7 +199,8 @@ const display = computed(() => (kind.value === 'number' ? toDisplayNumber(text.v
  * cut off by the row height. `title` carries it for a pointer, this carries it
  * for a screen reader.
  */
-const errorId = computed(() => (props.error ? `vt-cell-error-${props.column.id}` : undefined))
+const uid = useId()
+const errorId = computed(() => (props.error ? `vt-cell-error-${uid}` : undefined))
 
 watch(
   () => props.autofocus,
@@ -229,7 +242,7 @@ function onInput(event: Event): void {
     return
   }
   if (kind.value === 'number') {
-    onNumberInput(target)
+    onNumberInput(target, event)
     return
   }
   emit('update:value', target.value)
@@ -248,13 +261,21 @@ function onInput(event: Event): void {
  * inserting a digit can push a separator in ahead of it. `numberMask.ts` says
  * what that means.
  */
-function onNumberInput(target: HTMLInputElement): void {
-  const typed = target.value
+function onNumberInput(target: HTMLInputElement, event: Event): void {
+  let typed = target.value
   const caret = target.selectionStart ?? typed.length
+  // A forward Delete in front of a group separator removes only the separator,
+  // which regrouping would put straight back and the key would seem dead.
+  if (
+    (event as InputEvent).inputType === 'deleteContentForward' &&
+    toMachineNumber(typed) === toMachineNumber(text.value)
+  ) {
+    typed = deleteForwardAcrossSeparator(typed, caret)
+  }
   const machine = toMachineNumber(typed)
   const shown = toDisplayNumber(machine)
 
-  if (typed !== shown) {
+  if (typed !== shown || target.value !== shown) {
     const significant = significantBefore(typed, caret)
     target.value = shown
     const next = caretForSignificant(shown, significant)
@@ -265,6 +286,9 @@ function onNumberInput(target: HTMLInputElement): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
+  // The key that confirms an IME composition is not the user's Enter or Escape;
+  // 229 is what Safari sends for it.
+  if (event.isComposing || event.keyCode === 229) return
   if (event.key === 'Enter') {
     const next = commitMoveFor(event, kind.value)
     // `undefined` means this Enter is not a commit in this control at all — the

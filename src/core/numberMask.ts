@@ -148,6 +148,46 @@ export function toDisplayNumber(text: string, separators = numberSeparators()): 
 }
 
 /**
+ * A finite number as plain decimal digits, never in exponent form.
+ *
+ * `String(1e-7)` is `1e-7`, which `toMachineNumber` would read as `17`. The
+ * digits are shifted as a string rather than printed with `toFixed`, so they
+ * stay the shortest ones that round-trip instead of the binary expansion.
+ */
+export function plainNumberString(value: number): string {
+  const text = String(value)
+  const match = /^(-?)(\d+)(?:\.(\d+))?e([+-]\d+)$/.exec(text)
+  if (!match) return text
+  const sign = match[1]!
+  const whole = match[2]!
+  const fraction = match[3] ?? ''
+  const exponent = Number(match[4])
+  const digits = whole + fraction
+  const point = whole.length + exponent
+  if (point <= 0) return `${sign}0.${'0'.repeat(-point)}${digits}`
+  if (point >= digits.length) return sign + digits + '0'.repeat(point - digits.length)
+  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`
+}
+
+/**
+ * What a forward Delete does when the browser's own edit only removed a group
+ * separator: removes the first significant character (a digit or the decimal
+ * mark) at or after the caret instead. `text` is returned unchanged when there
+ * is none.
+ */
+export function deleteForwardAcrossSeparator(
+  text: string,
+  caret: number,
+  separators = numberSeparators(),
+): string {
+  for (let i = Math.max(caret, 0); i < text.length; i += 1) {
+    const char = text[i]!
+    if (isDigit(char) || isDecimal(char, separators)) return text.slice(0, i) + text.slice(i + 1)
+  }
+  return text
+}
+
+/**
  * How many of a string's first `index` characters survive into the machine
  * string — the caret's position, measured in characters that mean something.
  *

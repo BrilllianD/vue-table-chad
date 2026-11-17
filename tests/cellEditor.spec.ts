@@ -489,3 +489,76 @@ describe('focus and substitution', () => {
     expect(wrapper.emitted('commit')).toHaveLength(1)
   })
 })
+
+describe('opening on the value the cell holds', () => {
+  it('opens a date column on a Date the table reads fine', () => {
+    const wrapper = editor(date, { value: new Date(2024, 0, 2) })
+    expect((wrapper.find('input').element as HTMLInputElement).value).toBe('2024-01-02')
+  })
+
+  it('opens a boolean column checked on 1 and on "yes"', () => {
+    for (const value of [1, 'yes']) {
+      const wrapper = editor(boolean, { value })
+      expect((wrapper.find('input').element as HTMLInputElement).checked).toBe(true)
+    }
+    expect((editor(boolean, { value: 0 }).find('input').element as HTMLInputElement).checked).toBe(false)
+  })
+
+  it('shows a number that prints with an exponent as the number it is', () => {
+    for (const value of [0.0000001, 1e21]) {
+      const wrapper = editor(number, { value })
+      const shown = (wrapper.find('input').element as HTMLInputElement).value
+      expect(Number(toMachineNumber(shown))).toBe(value)
+    }
+  })
+})
+
+describe('keys while composing, and Delete over a separator', () => {
+  it('does not commit on the Enter that confirms an IME composition', async () => {
+    const wrapper = editor(text, { value: 'x' })
+    await wrapper.find('input').trigger('keydown', { key: 'Enter', isComposing: true })
+    await wrapper.find('input').trigger('keydown', { key: 'Enter', keyCode: 229 })
+    expect(wrapper.emitted('commit')).toBeUndefined()
+  })
+
+  it('does not cancel on an Escape while composing', async () => {
+    const wrapper = editor(text, { value: 'x' })
+    await wrapper.find('input').trigger('keydown', { key: 'Escape', isComposing: true })
+    expect(wrapper.emitted('cancel')).toBeUndefined()
+  })
+
+  it('forward Delete in front of a separator removes the next digit', async () => {
+    const wrapper = editor(number, { value: '1234' })
+    const input = wrapper.find('input')
+    const element = input.element as HTMLInputElement
+    await nextTick()
+
+    // The browser removed only the separator: "1<sep>234" became "1234".
+    element.value = '1234'
+    element.setSelectionRange(1, 1)
+    element.dispatchEvent(new InputEvent('input', { inputType: 'deleteContentForward' }))
+    await nextTick()
+
+    expect(element.value).toBe(display('134'))
+    expect(wrapper.emitted('update:value')!.at(-1)).toEqual(['134'])
+  })
+})
+
+describe('error message ids', () => {
+  it('gives two editors of the same column distinct ids, each matching its own message', () => {
+    const pair = mount(
+      {
+        components: { CellEditor },
+        setup: () => ({ number }),
+        template: `<div><CellEditor :column="number" value="abc" error="Nope" /><CellEditor :column="number" value="abc" error="Nope" /></div>`,
+      },
+      { attachTo: document.body },
+    )
+    const [a, b] = pair.findAllComponents(CellEditor)
+    const idA = a!.find('input').attributes('aria-errormessage')
+    const idB = b!.find('input').attributes('aria-errormessage')
+    expect(idA).not.toBe(idB)
+    expect(a!.find('[role="alert"]').attributes('id')).toBe(idA)
+    expect(b!.find('[role="alert"]').attributes('id')).toBe(idB)
+  })
+})

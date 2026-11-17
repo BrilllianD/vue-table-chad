@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  deleteForwardAcrossSeparator,
+  plainNumberString,
   caretForSignificant,
   numberSeparators,
   significantBefore,
@@ -103,5 +105,29 @@ describe('the locale', () => {
     const de = numberSeparators('de-DE')
     expect(toDisplayNumber('1234567.8', de)).toBe('1.234.567,8')
     expect(toMachineNumber('1.234.567,8', de)).toBe('1234567.8')
+  })
+})
+
+describe('plainNumberString', () => {
+  it('prints no exponent, with the shortest round-trip digits', () => {
+    expect(plainNumberString(1e-7)).toBe('0.0000001')
+    expect(plainNumberString(1e21)).toBe('1000000000000000000000')
+    expect(plainNumberString(-1.5e-7)).toBe('-0.00000015')
+    expect(plainNumberString(1.5e22)).toBe('15000000000000000000000')
+    expect(plainNumberString(0.1)).toBe('0.1')
+    expect(plainNumberString(1234.5)).toBe('1234.5')
+  })
+})
+
+describe('deleteForwardAcrossSeparator', () => {
+  it('removes the first digit or point at or after the caret', () => {
+    expect(deleteForwardAcrossSeparator('1234', 1, anglo)).toBe('134')
+    expect(deleteForwardAcrossSeparator('1,234', 1, anglo)).toBe('1,34')
+    expect(deleteForwardAcrossSeparator('1234.5', 4, anglo)).toBe('12345')
+  })
+
+  it('leaves the text alone when nothing significant follows', () => {
+    expect(deleteForwardAcrossSeparator('1234', 4, anglo)).toBe('1234')
+    expect(deleteForwardAcrossSeparator('12 ', 2, spaced)).toBe('12 ')
   })
 })
