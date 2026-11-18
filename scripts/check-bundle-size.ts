@@ -45,11 +45,11 @@ interface Budget {
 const BUDGETS: Budget[] = [
   { file: 'dist/vue-table-chad.js', budgetKb: 63, measuredKb: 44.3 },
   { file: 'dist/vue-table-chad.css', budgetKb: 7.5, measuredKb: 4.9 },
-  // Its own entry point, so its own line: four complete locales are ~5.7 kB of
+  // Its own entry point, so its own line: five complete locales are ~7.3 kB of
   // strings that a consumer importing none never downloads. The budget has
-  // room for roughly two more languages before it wants revisiting, which is
+  // room for roughly one more language before it wants revisiting, which is
   // the decision it exists to force.
-  { file: 'dist/locales.js', budgetKb: 9, measuredKb: 5.5 },
+  { file: 'dist/locales.js', budgetKb: 9, measuredKb: 7.3 },
   // Opt-in and never in the shared stylesheet, so this is not a download
   // budget — a consumer takes one palette, around 0.2 kB. It is a shape check:
   // a preset is nine colour declarations, and the day one grows a `box-shadow`

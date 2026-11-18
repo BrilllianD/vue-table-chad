@@ -7,7 +7,7 @@ import {
   type ColumnDef,
   type TableLabels,
 } from '@brillliand/vue-table-chad'
-import { es, ja, ru, zhCN } from '@brillliand/vue-table-chad/locales'
+import { es, ja, ru, tr, zhCN } from '@brillliand/vue-table-chad/locales'
 import '@brillliand/vue-table-chad/style.css'
 
 type Person = { id: number; name: string; department: string; salary: number }
@@ -47,7 +47,7 @@ const source = useLocalDataSource(rows, columns, state.query)
 // The shipped locales are whole records, so there is nothing to merge and
 // nothing left in English — including the filter operators and the parse
 // messages the core owns.
-const locales = { en: undefined, ru, es, ja, zhCN }
+const locales = { en: undefined, ru, tr, es, ja, zhCN }
 type Locale = keyof typeof locales | 'de'
 const locale = ref<Locale>('ru')
 
@@ -75,6 +75,7 @@ const labels = computed(() => (locale.value === 'de' ? german : locales[locale.v
         <select v-model="locale">
           <option value="en">English (default)</option>
           <option value="ru">Русский</option>
+          <option value="tr">Türkçe</option>
           <option value="es">Español</option>
           <option value="ja">日本語</option>
           <option value="zhCN">简体中文</option>

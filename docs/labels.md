@@ -147,8 +147,8 @@ result.
 
 ## One string, two knobs
 
-Seven props and options predate the label record, and each sets one string that a
-`TableLabels` key also sets.
+Eight props and options set a string that a `TableLabels` key also sets; the last one has no
+key.
 
 | Prop or option | Label key | Which wins |
 | --- | --- | --- |
@@ -158,11 +158,14 @@ Seven props and options predate the label record, and each sets one string that 
 | `DataTable`, `TableRoot` and `useTable` `blankGroupLabel` | `blankGroup` | The prop. |
 | `RowGroupMenu` `label` | `groupBy` | The prop. |
 | `ColumnVisibilityMenu` `label` | `columns` | The prop. |
+| `AsyncSelect` and `StaticSelect` `placeholder` | `selectPlaceholder` | The prop. |
 | `useRowGrouping` `blankLabel` | none | The option. Unset, it falls back to the English `BLANK_GROUP_LABEL`, not to the table's labels. |
 
 The prop wins in every row. A string set through a prop stays put when the locale
-switches, so leave the prop unset and set the key to have it translate.
-`blankGroupLabel` is read once, when the table is set up.
+switches, so leave the prop unset and set the key to have it translate. The
+exception is `blankGroup`: both the `blankGroupLabel` prop and the `blankGroup` key
+are read once, when the table is set up, so a locale switch does not move the
+blank group caption. The other rows follow a locale switch.
 
 ## Number format and sort order
 
@@ -275,9 +278,10 @@ validateCell(value, column, row, labels)
 built before the table it belongs to and handed in.
 
 One label is not purely presentational: `blankGroup`, the caption on the group
-holding rows whose grouped value is empty. It is a grouping *key*, so changing it
-rebuilds the group tree — work that was asked for, not a leak. `useTable`'s
-`blankGroupLabel` option still outranks it.
+holding rows whose grouped value is empty. It is a grouping *key*, and
+`useTable` reads it once, when the table is set up, together with `blankGroupLabel`,
+which outranks it. Changing the `blankGroup` key afterwards does not rebuild the
+group tree and does not change the caption.
 
 ## What keeps it honest
 

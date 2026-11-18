@@ -74,11 +74,11 @@ The automated half (changesets) is tracked in yman 1.
   Vue 3.5 plus Node 24 makes the CJS consumer largely theoretical, and a second format is a cost
   paid on every release. `attw --profile esm-only` is the invocation that reflects this — the
   profile is what stops the deliberate gap being reported as a failure.
-- **The locales are a second entry point, not part of the main bundle.** `src/locales/` is four
+- **The locales are a second entry point, not part of the main bundle.** `src/locales/` is five
   complete `TableLabels` records and nothing else — no runtime import from `core/`, only the type —
   so `vite.config.ts` builds it as its own chunk and `exports` maps `./locales` at it. A consumer
   importing no locale therefore downloads none, which no amount of trusting a downstream bundler to
-  shake four frozen objects out of the main chunk would guarantee. `pnpm size` budgets it on its own
+  shake five frozen objects out of the main chunk would guarantee. `pnpm size` budgets it on its own
   line for the same reason: adding a language is visible.
 - **Rolling up the types renamed them.** With two entries, `vite-plugin-dts` names each rolled-up
   declaration after its entry, so the main one is `dist/vue-table-chad.d.ts` rather than
