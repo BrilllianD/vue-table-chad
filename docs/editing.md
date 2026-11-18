@@ -330,8 +330,9 @@ throw { message: 'Could not save employee', fields: { email: 'Already taken' } }
 The message lands on the row and `'Already taken'` lands on that cell — the same slot a validator's
 message would occupy. The default `mapError` duck-types `fields` and `message`, because the common
 case is not an `Error` at all but a parsed response body thrown as it arrived. A rejection carrying
-neither falls back to `SAVE_FAILED_MESSAGE` (`'Could not save'`); a blank `required` cell reports
-`REQUIRED_MESSAGE` (`'Required'`).
+neither falls back to the session's `saveFailed` label, and a blank `required` cell reports its
+`required` label; both are English by default (`'Could not save'`, `'Required'`, also exported as
+`SAVE_FAILED_MESSAGE` and `REQUIRED_MESSAGE`).
 
 Validation runs field rules first and stops the draft dead if any fails, so the cross-field rule is
 only ever handed a row it could actually be given — and a value that did not survive validation is

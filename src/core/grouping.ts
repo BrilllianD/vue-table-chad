@@ -24,10 +24,11 @@ import { facetKey, toFilterValue } from './utils/values'
 const KEY_SEPARATOR = '\u001F'
 
 /**
- * What a blank group is called when the column says nothing better.
+ * The English caption of a blank group.
  *
- * An alias onto the label record, so a table that translates its labels and a
- * caller that imports this constant read the same word.
+ * It does not follow `labels`, a shipped locale or `createTableLabels`: a table
+ * captions the band with `labels.blankGroup`. This is what `useRowGrouping`
+ * and `buildGroupTree` fall back to when given no `blankLabel`.
  */
 export const BLANK_GROUP_LABEL = DEFAULT_LABELS.blankGroup
 

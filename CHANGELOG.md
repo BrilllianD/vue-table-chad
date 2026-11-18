@@ -5,6 +5,9 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- Changed: the doc comments of `OPERATOR_LABELS`, `BLANK_GROUP_LABEL`, `REQUIRED_MESSAGE` and
+  `SAVE_FAILED_MESSAGE` now say they are the English values and do not follow `labels` or a locale;
+  read the table's labels instead. (#33)
 - Fix: the caption of the blank group now follows a labels switch (a `labels` prop or a
   `createTableLabels` ref) instead of keeping the language the table was set up with;
   `useRowGrouping`'s `blankLabel` also takes a ref or getter. (#33)

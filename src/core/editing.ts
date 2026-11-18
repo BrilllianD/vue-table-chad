@@ -37,10 +37,11 @@ export interface DraftValidation<TRow> {
 }
 
 /**
- * Shown when a `required` column is left blank.
+ * The English message for a blank `required` cell.
  *
- * An alias onto the label record rather than a literal of its own, so the
- * message a caller imports and the message a table renders cannot drift apart.
+ * It does not follow `labels`, a shipped locale or `createTableLabels`. It is
+ * what `validateCell` reports with no `labels` argument; a table reports its
+ * `labels.required`.
  */
 export const REQUIRED_MESSAGE = DEFAULT_LABELS.required
 

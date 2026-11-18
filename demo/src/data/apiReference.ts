@@ -118,7 +118,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'UseCellCursorOptions', layer: 'core', kind: 'type', summary: 'Row identity, the columns to walk, and where to start.' },
 
   { name: 'useRowEditing', layer: 'core', kind: 'composable', summary: 'Inline editing: a draft per row, validated, persisted, and written back.' },
-  { name: 'SAVE_FAILED_MESSAGE', layer: 'core', kind: 'constant', summary: 'Shown when a save rejected with nothing that could be turned into a message.' },
+  { name: 'SAVE_FAILED_MESSAGE', layer: 'core', kind: 'constant', summary: 'The English message for a save rejected with nothing usable.' },
   { name: 'UseRowEditing', layer: 'core', kind: 'type', summary: 'Draft state, cell predicates, and the begin/cancel/commit mutators.' },
   { name: 'UseRowEditingOptions', layer: 'core', kind: 'type', summary: 'getRowId, mode, optimistic, validate, save, apply, mapError and the two callbacks.' },
   { name: 'EditMode', layer: 'core', kind: 'type', summary: "`'cell'` commits each field on its own; `'row'` commits a whole draft at once." },
@@ -173,7 +173,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'applyCellValue', layer: 'core', kind: 'function', summary: 'Writes one value into a row, returning the next row.' },
   { name: 'applyPatch', layer: 'core', kind: 'function', summary: 'Applies a whole patch — values keyed by column id — and returns the next row.' },
   { name: 'replaceRowIn', layer: 'core', kind: 'function', summary: 'A copy of `rows` with one row swapped for its saved version, matched by id.' },
-  { name: 'REQUIRED_MESSAGE', layer: 'core', kind: 'constant', summary: 'Shown when a `required` column is left blank.' },
+  { name: 'REQUIRED_MESSAGE', layer: 'core', kind: 'constant', summary: 'The English message for a blank `required` cell.' },
   { name: 'CellErrors', layer: 'core', kind: 'type', summary: 'Error messages by column id — the shape both validators and a rejected save produce.' },
   { name: 'DraftValidation', layer: 'core', kind: 'type', summary: 'What a draft would produce: per-field errors, a row-level error, and the row itself.' },
 
@@ -210,7 +210,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'pruneFilters', layer: 'filters', kind: 'function', summary: 'Removes no-op entries so `QueryState.filters` only holds real filters.' },
   { name: 'operatorsFor', layer: 'filters', kind: 'function', summary: 'Which operators the condition builder should offer for a column type.' },
   { name: 'defaultOperator', layer: 'filters', kind: 'function', summary: 'The operator a fresh rule on this type starts with.' },
-  { name: 'OPERATOR_LABELS', layer: 'filters', kind: 'constant', summary: 'Human-readable names for every operator.' },
+  { name: 'OPERATOR_LABELS', layer: 'filters', kind: 'constant', summary: 'The English name of every operator.' },
 
   { name: 'matchesFilter', layer: 'filters', kind: 'function', summary: 'Does one raw cell value survive one column filter?' },
   { name: 'matchesRule', layer: 'filters', kind: 'function', summary: 'Does one value satisfy one condition rule, at this type?' },
@@ -244,7 +244,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'groupPathKey', layer: 'grouping', kind: 'function', summary: 'Stable identity for a band, built from every level above it.' },
   { name: 'groupKeys', layer: 'grouping', kind: 'function', summary: 'Every group key at every depth, ignoring collapse — what "collapse all" needs.' },
   { name: 'countGroups', layer: 'grouping', kind: 'function', summary: 'Rows per group key, at every depth. Run over a full dataset it gives group headers a count that does not shrink to whatever fits on the current page.' },
-  { name: 'BLANK_GROUP_LABEL', layer: 'grouping', kind: 'constant', summary: 'What a blank group is called when the column says nothing better.' },
+  { name: 'BLANK_GROUP_LABEL', layer: 'grouping', kind: 'constant', summary: 'The English caption of a blank group.' },
   { name: 'ROOT_GROUP_KEY', layer: 'grouping', kind: 'constant', summary: 'The key an empty group path produces — `groupPathKey([])` — and so the key anything covering the whole set rather than one band is filed under.' },
   { name: 'GroupingOptions', layer: 'grouping', kind: 'type', summary: 'Collapse predicate, supplied totals and aggregates, and the blank label.' },
   { name: 'GroupTreeOptions', layer: 'grouping', kind: 'type', summary: 'Everything `flattenGroups` takes except the part that folds bands shut.' },

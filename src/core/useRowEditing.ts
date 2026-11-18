@@ -23,10 +23,11 @@ import { defaultRowId } from './useRowSelection'
 export type EditMode = 'cell' | 'row'
 
 /**
- * Shown when a save rejected with nothing that could be turned into a message.
+ * The English message for a save rejected with nothing usable.
  *
- * An alias onto the label record for the reason `REQUIRED_MESSAGE` is one: the
- * message a caller imports and the one a table renders must not drift apart.
+ * It does not follow a shipped locale or `createTableLabels`. `useRowEditing`
+ * reports its own `labels.saveFailed`, which is this unless a `labels` option
+ * says otherwise.
  */
 export const SAVE_FAILED_MESSAGE = DEFAULT_LABELS.saveFailed
 

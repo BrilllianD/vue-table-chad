@@ -122,10 +122,12 @@ export function operatorsFor(type: ColumnDataType): ConditionOperator[] {
 }
 
 /**
- * Human-readable names for every operator.
+ * The English name of every operator.
  *
- * An alias onto the label record, so a table that translates its operators and
- * a caller that imports this map cannot end up wording them differently.
+ * This is `DEFAULT_LABELS.operators`. It stays English under any `labels`,
+ * shipped locale or `createTableLabels`; a filter UI beside a table reads
+ * `useTableLabels().value.operators` (or the record it passed as `labels`) to
+ * word the operators as the table does.
  */
 export const OPERATOR_LABELS: Record<ConditionOperator, string> = DEFAULT_LABELS.operators
 
