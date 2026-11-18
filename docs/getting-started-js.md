@@ -365,7 +365,7 @@ thing runs against real data.
 | [Header bands](column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. |
 | [Styling](styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. |
 | [Theme presets](themes.md) | Thirty named palettes as opt-in stylesheets, switched by one attribute — and why a palette is only nine colours. |
-| [Labels and i18n](labels.md) | The four shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out. |
+| [Labels and i18n](labels.md) | The five shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out. |
 | [Virtual rows](virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. |
 | [Composing your own](composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. |
 | [Performance](performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. |

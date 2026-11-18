@@ -42,7 +42,7 @@ Four entry points, and nothing is imported that you did not ask for:
 | `@brillliand/vue-table-chad` | Everything: `DataTable`, the primitives, the composables, the types. |
 | `@brillliand/vue-table-chad/style.css` | The preset's stylesheet. Only `DataTable` needs it; the primitives ship no CSS. |
 | `@brillliand/vue-table-chad/themes/<name>.css` | One of thirty opt-in palettes, switched on with `data-vtc-theme="<name>"`. See [Theme presets](docs/themes.md). |
-| `@brillliand/vue-table-chad/locales` | `es`, `ja`, `ru`, `zhCN` — complete label records, one `app.use` for the whole app; each also sets `locale`, so numbers and text sort follow the app, not the browser. See [Labels and i18n](docs/labels.md). |
+| `@brillliand/vue-table-chad/locales` | `es`, `ja`, `ru`, `tr`, `zhCN` — complete label records, one `app.use` for the whole app; each also sets `locale`, so numbers and text sort follow the app, not the browser. See [Labels and i18n](docs/labels.md). |
 
 [Using it in another project](docs/getting-started.md) covers the rest: the row type the
 components insist on, the `DataTable` props and slots, and the three levels you can build a table
@@ -143,7 +143,7 @@ pages are also a VitePress site — `npm run docs:dev` serves it locally, `npm r
 | [Header bands](docs/column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. | Header bands |
 | [Styling](docs/styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. | Theming |
 | [Theme presets](docs/themes.md) | Thirty named palettes as opt-in stylesheets, switched by one attribute — and why a palette is only nine colours. | Themes |
-| [Labels and i18n](docs/labels.md) | The four shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out. | Labels |
+| [Labels and i18n](docs/labels.md) | The five shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out. | Labels |
 | [Virtual rows](docs/virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. | Virtual rows |
 | [Composing your own](docs/composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. | Composed, Hoisted state |
 | [Performance](docs/performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. | Performance |

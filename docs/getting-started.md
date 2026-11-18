@@ -233,7 +233,7 @@ The preset owns no logic; every prop here is forwarded to a composable or a prim
 | `stickyHeader` | `boolean` | `true` | |
 | `theme` | `'light' \| 'dark' \| 'system'` | `'system'` | Which palette to paint. `'system'` emits nothing and follows `prefers-color-scheme`; the other two write `data-theme`, on the teleported popover and drag ghost as well. See [Styling](styling.md#picking-a-palette). |
 | `emptyMessage` / `loadingMessage` | `string` | see below | `'No Data'` / `'Loading…'` |
-| `labels` | `Partial<TableLabels>` | English | Wording for every string the table renders, `aria-label`s included. Four locales ship — see [Labels and i18n](labels.md). `emptyMessage`, `loadingMessage` and `footerLabel` win over it where both are given. |
+| `labels` | `Partial<TableLabels>` | English | Wording for every string the table renders, `aria-label`s included. Five locales ship — see [Labels and i18n](labels.md). `emptyMessage`, `loadingMessage` and `footerLabel` win over it where both are given. |
 | `locale` | `string` | the labels' `locale`, else the browser's | BCP 47 tag for number reading, aggregate numbers and text sort order. See [Labels and i18n](labels.md#number-format-and-sort-order). |
 | `editing` | `UseRowEditing<TRow>` | — | A session from `useRowEditing`. Absent means read-only. |
 | `cellCursor` | `boolean` | `false` | Off means off: no `role="grid"`, no `tabindex`, no cursor attributes. |
@@ -522,7 +522,7 @@ Tree rows, pinned rows, and pivoting. Cell-level clipboard copy and paste
 *is* in — see [Keyboard navigation](keyboard.md) — and so is CSV/TSV export, see
 [Local, server and infinite data](data-sources.md). Aggregation covers
 `sum`/`avg`/`min`/`max` with no custom reducer. i18n *is* in: every string the table renders comes
-off one `labels` record, four locales ship complete, and a spec keeps new literals out — see
+off one `labels` record, five locales ship complete, and a spec keeps new literals out — see
 [Labels and i18n](labels.md). The repo's task tracker (`yman ls` in a checkout) has the reasoning
 for each of the rest.
 
@@ -552,7 +552,7 @@ Every page below has a matching view in `pnpm demo`, where the same thing runs a
 | [Header bands](column-groups.md) | Multi-row headers: banding columns under a shared header, nesting them, and folding a band shut. |
 | [Styling](styling.md) | The `--vtc-*` variables, striping, and how cell backgrounds stack. |
 | [Theme presets](themes.md) | Thirty named palettes as opt-in stylesheets, switched by one attribute — and why a palette is only nine colours. |
-| [Labels and i18n](labels.md) | The four shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out. |
+| [Labels and i18n](labels.md) | The five shipped locales, one `app.use` for the whole app, overriding every string the table renders, and the spec that keeps new literals out. |
 | [Virtual rows](virtualization.md) | Windowing a fixed-height list, and the whole-result-set caveat over a server source. |
 | [Composing your own](composing.md) | Building a different table from the same parts, and hoisting state into a URL or store. |
 | [Performance](performance.md) | The `shallowRef` rule, the invalidation invariants, and the benchmark numbers behind them. |

@@ -62,7 +62,7 @@ demo/
 | Wide table | preset | 34 columns, zero declared widths — each measured once and clamped |
 | Hoisted state | preset | `QueryState` owned by a ref, mirrored into the URL, driven imperatively |
 | Theming | preset | The `--vtc-*` palette and the `data-*` state hooks |
-| Labels | preset | Every rendered string off one record, and the four shipped locales |
+| Labels | preset | Every rendered string off one record, and the five shipped locales |
 | Virtual rows | preset | 100k rows as one continuous scroll; the page size is everything |
 | Performance | preset | The whole 10k rows, timed in the browser to the frame after the paint |
 | API reference | preset | Every export, rendered by the table they belong to |

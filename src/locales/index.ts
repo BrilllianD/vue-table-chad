@@ -5,7 +5,7 @@
  * package root, so a consumer who imports none ships none: the locales are
  * strings and nothing else, they import no runtime value from `src/core`, and a
  * second bundle entry keeps them out of the main chunk instead of relying on a
- * bundler to tree-shake four frozen objects out of it.
+ * bundler to tree-shake five frozen objects out of it.
  *
  * Each is a *whole* `TableLabels`, never a `Partial`. A locale covering nine
  * tenths of the record would render the last tenth in English with nothing
@@ -22,6 +22,7 @@
  * ```
  */
 export { ru } from './ru'
+export { tr } from './tr'
 export { es } from './es'
 export { ja } from './ja'
 export { zhCN } from './zhCN'

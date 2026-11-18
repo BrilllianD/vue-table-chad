@@ -35,20 +35,21 @@ reactive, and swapping it re-renders in place — no remount, no key trick.
 
 ## Shipped locales
 
-Four languages ship complete, behind their own entry point:
+Five languages ship complete, behind their own entry point:
 
 ```ts
-import { es, ja, ru, zhCN } from '@brillliand/vue-table-chad/locales'
+import { es, ja, ru, tr, zhCN } from '@brillliand/vue-table-chad/locales'
 ```
 
 | Export | Language |
 | --- | --- |
 | `ru` | Russian |
+| `tr` | Turkish |
 | `es` | Spanish |
 | `ja` | Japanese |
 | `zhCN` | Simplified Chinese |
 
-Each bundle also sets `locale` (`ru-RU`, `es-ES`, `ja-JP`, `zh-CN`), which drives number reading and
+Each bundle also sets `locale` (`ru-RU`, `es-ES`, `ja-JP`, `tr-TR`, `zh-CN`), which drives number reading and
 sort order; see [Number format and sort order](#number-format-and-sort-order).
 
 Each is a whole `TableLabels`, not a `Partial`, so there is nothing to merge and

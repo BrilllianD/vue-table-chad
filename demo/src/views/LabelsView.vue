@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Every string the table renders, in one overridable record — four complete
+ * Every string the table renders, in one overridable record — five complete
  * locales shipped, and a hand-written partial beside them.
  *
  * Two things are worth watching as the locale flips. The table below takes the
@@ -29,7 +29,7 @@ import {
   type TableLabels,
   type TableState,
 } from '@brillliand/vue-table-chad'
-import { es, ja, ru, zhCN } from '@brillliand/vue-table-chad/locales'
+import { es, ja, ru, tr, zhCN } from '@brillliand/vue-table-chad/locales'
 import { employeeColumns } from '../columns'
 import { employees, type Employee } from '../data/dataset'
 import DemoSection from '../components/DemoSection.vue'
@@ -40,12 +40,12 @@ const state: TableState = useTableState({ pageSize: 10 })
 const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query)
 
 /**
- * The four shipped locales, imported from the package's own `locales` entry
+ * The five shipped locales, imported from the package's own `locales` entry
  * point. Each is a *whole* `TableLabels`, so nothing falls back — flip to
  * Русский and the condition-filter panel is Russian too, down to the operator
  * names the core owns.
  */
-const SHIPPED = { ru, es, ja, zhCN }
+const SHIPPED = { ru, tr, es, ja, zhCN }
 
 /**
  * And a hand-written partial beside them, deliberately six keys long: what a
@@ -68,6 +68,7 @@ const GERMAN: Partial<TableLabels> = {
 const locales = [
   { id: 'en', label: 'English (built-in default)', labels: undefined },
   { id: 'ru', label: 'Русский (shipped)', labels: SHIPPED.ru },
+  { id: 'tr', label: 'Türkçe (shipped)', labels: SHIPPED.tr },
   { id: 'es', label: 'Español (shipped)', labels: SHIPPED.es },
   { id: 'ja', label: '日本語 (shipped)', labels: SHIPPED.ja },
   { id: 'zh', label: '简体中文 (shipped)', labels: SHIPPED.zhCN },
@@ -172,7 +173,7 @@ const sampled = computed(() => [
           </select>
         </label>
         <template #hint>
-          The four shipped locales are complete records, so nothing falls back — open the
+          The five shipped locales are complete records, so nothing falls back — open the
           Conditions tab of a column filter and the operator names are translated too. Deutsch is a
           six-key <code>Partial</code> for contrast: what it leaves out falls back to
           <code>DEFAULT_LABELS</code> rather than rendering blank.
@@ -242,7 +243,7 @@ const sampled = computed(() => [
           <code>operators</code> and <code>parse</code> are merged one level deeper than the rest,
           so a `Partial` overriding one operator keeps the other fifteen — English
           <code>{{ DEFAULT_LABELS.operators.contains }}</code> under Deutsch, translated under any
-          of the shipped four.
+          of the shipped five.
         </p>
       </div>
     </section>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_LABELS, type TableLabels } from '../src/core/labels'
-import { es, ja, ru, zhCN } from '../src/locales'
+import { compareText } from '../src/core/sorting'
+import { numberSeparators, toDisplayNumber, toMachineNumber } from '../src/core/numberMask'
+import { es, ja, ru, tr, zhCN } from '../src/locales'
 
 /**
  * The ratchet on the shipped locales: each one is a *whole* record.
@@ -18,6 +20,7 @@ import { es, ja, ru, zhCN } from '../src/locales'
 
 const LOCALES: Array<[name: string, labels: TableLabels]> = [
   ['ru', ru],
+  ['tr', tr],
   ['es', es],
   ['ja', ja],
   ['zhCN', zhCN],
@@ -154,5 +157,23 @@ describe('shipped locales', () => {
     }
 
     expect(untranslated, 'locales rendering an English pin side').toEqual([])
+  })
+})
+
+describe('the Turkish bundle', () => {
+  it('sets its locale tag', () => {
+    expect(tr.locale).toBe('tr-TR')
+  })
+
+  it('reads and writes numbers with a decimal comma', () => {
+    const separators = numberSeparators(tr.locale)
+
+    expect(toMachineNumber('5,5', separators)).toBe('5.5')
+    expect(toDisplayNumber('1234.5', separators)).toBe('1.234,5')
+  })
+
+  it('sorts dotless i before i, unlike en-US', () => {
+    expect(compareText('ı', 'i', tr.locale)).toBeLessThan(0)
+    expect(compareText('ı', 'i', 'en-US')).toBeGreaterThan(0)
   })
 })
