@@ -6,22 +6,26 @@ rather than leaving both — the same rule the **Settled decisions** section of
 
 ## Before a release
 
-`make release-check` runs all of this except `pnpm size` (which `make pack` runs); the commands
-are listed so a failure can be re-run alone:
+`make release-check` runs all of this (`make consumer-check` last) except `pnpm size` (which
+`make pack` runs); the commands are listed so a failure can be re-run alone:
 
 ```bash
 pnpm build && pnpm size
 npm pack --dry-run          # right name, LICENSE and README in the tarball
 pnpm dlx publint
 pnpm dlx @arethetypeswrong/cli --pack . --profile esm-only --exclude-entrypoints style.css
+make consumer-check         # the tarball, compiled as a consumer sees it
 ```
 
 `--exclude-entrypoints style.css` because a stylesheet has no type declarations to resolve and attw
-reports the subpath as a failure on those grounds alone. The import itself is exercised by the other
-half of this check, worth repeating every release: install the tarball into a scratch Vite app,
-import `DataTable`, `@brillliand/vue-table-chad/style.css` and a locale from
-`@brillliand/vue-table-chad/locales`, and typecheck it under both `bundler` and `nodenext`
-resolution.
+reports the subpath as a failure on those grounds alone.
+
+`make consumer-check` (`scripts/consumer-check.sh`) is the other half: it builds, packs the tarball
+into a temporary directory, installs it into a scratch app there and typechecks a `.ts` file and an
+SFC that import `DataTable`, `StaticSelect`, a locale and `style.css`, under both `bundler` and
+`nodenext` resolution with `skipLibCheck: false`. It writes nothing into the repository except the
+ignored `dist/`, needs the npm registry for the scratch install, and `CONSUMER_KEEP=1` keeps the
+scratch directory.
 
 ## Settled decisions
 
@@ -48,3 +52,11 @@ resolution.
   specifiers, which TypeScript cannot follow under `node16`/`nodenext` — a consumer set to `nodenext`
   saw every accessor parameter degrade to `any` while its build stayed green. `rollupTypes: true`
   leaves no relative specifier in the shipped types.
+- **Declarations are checked as a consumer sees them.** `vite-plugin-dts` bundles an older
+  `@vue/language-core` than `vue-tsc` does, and that one types a static `ref="x"` on a child
+  component into `__typeRefs`, so the rolled-up declaration printed the child's instance type with
+  a bare `GlobalComponents`, which fails `skipLibCheck: false` (TS2344, yman 65). TypeScript does
+  not typecheck its own emitted text, so only a consumer compile finds it, which is
+  `make consumer-check`; `afterDiagnostic` in `vite.config.ts` also fails the build on any
+  declaration diagnostic. Rule: a primitive takes a child component's instance through a function
+  ref, never a static `ref`, until the dts build uses the language-core `vue-tsc` uses.

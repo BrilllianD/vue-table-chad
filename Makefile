@@ -2,7 +2,7 @@
 # target here builds before it packs — `npm pack` runs no lifecycle script that would
 # do it for us, and `prepublishOnly` fires on publish only.
 
-.PHONY: pack pack-check release-check
+.PHONY: pack pack-check release-check consumer-check
 
 ## Build and write brillliand-vue-table-chad-<version>.tgz into the repo root.
 pack:
@@ -21,3 +21,9 @@ pack-check:
 release-check: pack-check
 	pnpm dlx publint
 	pnpm dlx @arethetypeswrong/cli --pack . --profile esm-only --exclude-entrypoints style.css
+	$(MAKE) consumer-check
+
+## Install the tarball into a scratch app and typecheck it as a consumer with
+## `skipLibCheck: false`, under bundler and nodenext resolution. Needs the npm registry.
+consumer-check:
+	bash scripts/consumer-check.sh

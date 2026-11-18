@@ -22,7 +22,7 @@
  * Standalone like every primitive: given `options` and `value` it needs no
  * `<TableRoot>` above it, and it ships no CSS.
  */
-import { computed, ref } from 'vue'
+import { computed, ref, type ComponentPublicInstance } from 'vue'
 import { useStaticOptions } from '../../core/useStaticOptions'
 import type { AsyncOption, FilterValue } from '../../core/types'
 import AsyncSelect from './AsyncSelect.vue'
@@ -91,6 +91,16 @@ const emit = defineEmits<{
 const inner = ref<InstanceType<typeof AsyncSelect> | null>(null)
 
 /*
+  A function ref, not `ref="inner"`: a static ref on a child component makes the
+  declaration build print the child's instance type with a bare
+  `GlobalComponents`, which fails a consumer compiling with `skipLibCheck:
+  false` (TS2344, yman 65).
+*/
+function setInner(el: Element | ComponentPublicInstance | null): void {
+  inner.value = el as InstanceType<typeof AsyncSelect> | null
+}
+
+/*
   The two callbacks are read through the props on every call rather than
   captured once, so a caller that swaps a label function gets a relabelled list
   instead of the one the source was built with.
@@ -111,7 +121,7 @@ defineExpose({ open, focus: () => inner.value?.focus() })
 
 <template>
   <AsyncSelect
-    ref="inner"
+    :ref="setInner"
     :source="source"
     :value="value"
     :disabled="disabled"
