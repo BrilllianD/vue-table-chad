@@ -40,8 +40,8 @@ export interface DraftValidation<TRow> {
  * The English message for a blank `required` cell.
  *
  * It does not follow `labels`, a shipped locale or `createTableLabels`. It is
- * what `validateCell` reports with no `labels` argument; a table reports its
- * `labels.required`.
+ * what `validateCell` reports with no `labels` argument; an editing session
+ * reports the `required` key of its own `labels` option.
  */
 export const REQUIRED_MESSAGE = DEFAULT_LABELS.required
 

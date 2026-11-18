@@ -163,7 +163,7 @@ key.
 
 The prop wins in every row. A string set through a prop stays put when the locale
 switches, so leave the prop unset and set the key to have it translate. Every key
-follows a locale switch, `blankGroup` included. One prop is also read only once:
+in the table above follows a locale switch, `blankGroup` included. One prop is also read only once:
 `blankGroupLabel` is read when the table is set up, so changing it later does not
 change the blank group caption.
 
