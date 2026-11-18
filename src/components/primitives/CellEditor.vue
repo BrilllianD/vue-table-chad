@@ -34,8 +34,11 @@
  * `type: 'number'` gets a number box without saying so twice — and a column
  * whose options arrive a portion at a time gets `AsyncSelect`, which claims
  * the arrows and, while its panel is up, Enter and Escape as well. Anything more
- * particular goes in the default slot, which is handed everything it needs to
- * behave the same way.
+ * particular goes in the default slot, which is handed `update`, `commit`,
+ * `cancel` and `blur` — the same report a built-in control makes when focus
+ * leaves it. A slotted control with a panel of its own must call `blur` only
+ * once focus has left the panel as well (as `AsyncSelect` does), and wires
+ * Escape itself: the slot carries no key handling.
  *
  * Standalone like every primitive: given `column`, `value` and a listener it
  * needs no `<TableRoot>` above it.
@@ -341,6 +344,7 @@ function onKeydown(event: KeyboardEvent): void {
       :update="(next: unknown) => emit('update:value', next)"
       :commit="() => emit('commit')"
       :cancel="() => emit('cancel')"
+      :blur="() => emit('blur')"
     >
       <!--
         The one control that is a component rather than an element, because a

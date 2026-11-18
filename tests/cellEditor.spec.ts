@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { effectScope, nextTick } from 'vue'
+import { effectScope, h, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import CellEditor from '../src/components/primitives/CellEditor.vue'
 import { useAsyncOptions } from '../src/core/useAsyncOptions'
@@ -219,6 +219,19 @@ describe('what it emits', () => {
     // that focus left.
     const wrapper = editor(text, { value: 'Ada' })
     await wrapper.find('input').trigger('blur')
+    expect(wrapper.emitted('blur')).toHaveLength(1)
+    expect(wrapper.emitted('commit')).toBeUndefined()
+  })
+
+  it('hands a slotted control blur(), which reports the same blur and decides nothing', async () => {
+    const wrapper = mount(CellEditor, {
+      props: { column: text, value: 'Ada' },
+      slots: {
+        default: (props: { blur: () => void }) =>
+          h('button', { type: 'button', onClick: () => props.blur() }, 'x'),
+      },
+    })
+    await wrapper.find('button').trigger('click')
     expect(wrapper.emitted('blur')).toHaveLength(1)
     expect(wrapper.emitted('commit')).toBeUndefined()
   })

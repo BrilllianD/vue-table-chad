@@ -17,6 +17,10 @@ Releases up to 0.6.0 are described in their `Release version` commits
   them (preventDefault and stopPropagation), as the right-click menu now also does, so a table
   inside a modal or dialog window no longer closes the window on the same key. An Escape that closes
   nothing, or ends an IME composition, still reaches the page. (#37)
+- Added: the cell editor slot (`CellEditor` default slot and `#editor:<id>`) is handed `blur()`, the
+  same report a built-in control makes when focus leaves it; in cell mode it commits the row, in row
+  mode it does nothing. A slotted control with a teleported panel (a `StaticSelect`, a widgets
+  select) can now commit on leave; `docs/editing.md` shows the recipe, including Escape. (#70)
 
 ## 0.6.1
 

@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, effectScope, h, nextTick, ref, shallowRef } from 'vue'
+import { defineComponent, effectScope, h, nextTick, ref, shallowRef, type VNode } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
+import StaticSelect from '../src/components/primitives/StaticSelect.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { useRowEditing, type EditMode, type RowChange } from '../src/core/useRowEditing'
 import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import { replaceRowIn } from '../src/core/editing'
 import { toDisplayNumber, toMachineNumber } from '../src/core/numberMask'
-import type { ColumnDef } from '../src/core/types'
+import type { ColumnDef, FilterValue } from '../src/core/types'
 import { people, personColumns, type Person } from './fixtures'
 
 /**
@@ -27,9 +28,22 @@ const columns: ColumnDef<Person>[] = personColumns.map((column) => {
   return column
 })
 
+/** What `#editor:<id>` is handed, as far as these cases read it. */
+type EditorSlotProps = {
+  column: ColumnDef<Person>
+  value: unknown
+  update: (next: unknown) => void
+  cancel: () => void
+  blur: () => void
+}
+
 type SessionOptions = Partial<Parameters<typeof useRowEditing<Person>>[2]>
 
-function mountEditable(sessionOptions: SessionOptions = {}, mode: EditMode = 'cell') {
+function mountEditable(
+  sessionOptions: SessionOptions = {},
+  mode: EditMode = 'cell',
+  slots?: Record<string, (props: EditorSlotProps) => VNode>,
+) {
   const rows = shallowRef<Person[]>([...people])
   const editMode = ref<EditMode>(mode)
   const saves: RowChange<Person>[] = []
@@ -49,7 +63,7 @@ function mountEditable(sessionOptions: SessionOptions = {}, mode: EditMode = 'ce
         },
         ...sessionOptions,
       })
-      return () => h(DataTable as never, { columns, source, state, editing: session })
+      return () => h(DataTable as never, { columns, source, state, editing: session }, slots)
     },
   })
 
@@ -619,5 +633,88 @@ describe('a column whose options arrive in portions', () => {
     expect(panel()).not.toBeNull()
     table.wrapper.unmount()
     table.dispose()
+  })
+})
+
+describe('a slotted editor', () => {
+  const slots: Record<string, (props: EditorSlotProps) => VNode> = {
+    'editor:department': (props) =>
+      h(StaticSelect, {
+        options: props.column.options ?? [],
+        value: props.value as FilterValue,
+        autofocus: true,
+        'onUpdate:value': props.update,
+        onBlur: props.blur,
+        onKeydown: (event: KeyboardEvent) => {
+          if (event.defaultPrevented || event.isComposing) return
+          event.preventDefault()
+          event.stopPropagation()
+          props.cancel()
+        },
+      }),
+  }
+
+  function leave(table: ReturnType<typeof mountEditable>, relatedTarget: Element) {
+    cell(table.wrapper, 'department')
+      .find('.vt-select')
+      .element.dispatchEvent(new FocusEvent('focusout', { relatedTarget, bubbles: true }))
+  }
+
+  function outside(): HTMLElement {
+    const node = document.createElement('button')
+    document.body.appendChild(node)
+    return node
+  }
+
+  async function pick(table: ReturnType<typeof mountEditable>) {
+    await openEditor(table.wrapper, 'department')
+    await vi.waitFor(() => expect(document.querySelector('.vt-select-panel')).not.toBeNull())
+    pickOption('Research')
+    await nextTick()
+  }
+
+  it('commits in cell mode when focus leaves trigger and panel', async () => {
+    const table = mountEditable({}, 'cell', slots)
+    await pick(table)
+    leave(table, outside())
+    await vi.waitFor(() => expect(table.saves).toHaveLength(1))
+    expect(table.saves[0]!.patch).toEqual({ department: 'Research' })
+    table.wrapper.unmount()
+  })
+
+  it('does not commit when focus moves into the panel', async () => {
+    const table = mountEditable({}, 'cell', slots)
+    await openEditor(table.wrapper, 'department')
+    await vi.waitFor(() => expect(document.querySelector('.vt-select-panel')).not.toBeNull())
+    leave(table, document.querySelector('.vt-select-panel') as Element)
+    await nextTick()
+    expect(table.saves).toHaveLength(0)
+    table.wrapper.unmount()
+  })
+
+  it('cancels on Escape from the closed trigger, with defaultPrevented', async () => {
+    const table = mountEditable({}, 'cell', slots)
+    await pick(table)
+    const trigger = cell(table.wrapper, 'department').find('.vt-select-trigger').element
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    trigger.dispatchEvent(event)
+    await nextTick()
+    expect(event.defaultPrevented).toBe(true)
+    expect(table.saves).toHaveLength(0)
+    expect(cell(table.wrapper, 'department').find('.vt-cell-editor').exists()).toBe(false)
+    table.wrapper.unmount()
+  })
+
+  it('saves nothing in row mode when focus leaves', async () => {
+    const table = mountEditable({}, 'row', slots)
+    await openEditor(table.wrapper, 'salary')
+    await cell(table.wrapper, 'department').find('.vt-select-trigger').trigger('click')
+    await nextTick()
+    pickOption('Research')
+    await nextTick()
+    leave(table, outside())
+    await nextTick()
+    expect(table.saves).toHaveLength(0)
+    table.wrapper.unmount()
   })
 })

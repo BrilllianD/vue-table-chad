@@ -55,6 +55,7 @@
 import { computed, ref, shallowRef } from 'vue'
 import {
   DataTable,
+  StaticSelect,
   replaceRowIn,
   useAsyncOptions,
   useLocalDataSource,
@@ -201,6 +202,7 @@ const editableColumns = computed(() =>
       'Give a row an email another row already has — that is the server refusing, after the latency.',
       'Switch mode to row, change two cells, then press Escape: the whole draft is cancelled, not just the cell.',
       'Open Department, then Manager: one panel over two sources, a fixed list and a paged one.',
+      'Country is a slotted editor: click away to save it, Escape to put it back.',
     ]"
     blurb="Click any cell with a value to edit it. Every column is opt-in — Tags stays read-only
            because a list needs an editor of its own. Watch the request log: a save is one request,
@@ -211,7 +213,8 @@ const editableColumns = computed(() =>
            Department, Role and Country are lists, and Manager is the other shape of one: 10,000
            possible values, fetched 25 at a time as the dropdown is scrolled or searched. Both
            edit in the same themed panel rather than a native select, so a letter typed into
-           either typeaheads against the label on screen."
+           either typeaheads against the label on screen. Country is the same list handed to the
+           editor slot, which commits on leave through the `blur` it is given."
     :api="[
       'useRowEditing',
       'CellEditor',
@@ -283,7 +286,25 @@ const editableColumns = computed(() =>
       :page-size="8"
       show-footer
       @row-saved="onRowSaved"
-    />
+    >
+      <template #editor:country="{ value, update, cancel, blur }">
+        <StaticSelect
+          :options="columns.find((c) => c.id === 'country')?.options ?? []"
+          :value="value"
+          autofocus
+          @update:value="update"
+          @blur="blur"
+          @keydown.esc="
+            (event: KeyboardEvent) => {
+              if (event.defaultPrevented || event.isComposing) return
+              event.preventDefault()
+              event.stopPropagation()
+              cancel()
+            }
+          "
+        />
+      </template>
+    </DataTable>
 
     <div class="panels">
       <StateInspector label="Open drafts" :value="openDrafts" open />

@@ -417,7 +417,7 @@ it meant.
 | `:editing` | The session. Absent means every cell is read-only. |
 | `@rowSaved="(row) => …"` | A row reached the server, carrying the row as it now stands. |
 | `@rowSaveError="(row, error) => …"` | A save was refused. |
-| `#editor:<id>` | Replaces the control for one column. Handed `value`, `error`, `disabled`, `kind`, `update`, `commit`, `cancel`, plus `row` and `column`. |
+| `#editor:<id>` | Replaces the control for one column. Handed `value`, `error`, `disabled`, `kind`, `update`, `commit`, `cancel`, `blur`, plus `row` and `column`. |
 | `#cell:<id>` | The read-only rendering, still yours — it renders *inside* the edit trigger rather than replacing it. |
 | `#rowActions` | Replaces Save/Cancel in row mode. Handed `row`, `state` and `editing`. |
 
@@ -464,7 +464,33 @@ Standalone like every primitive: given a `column`, a `value` and a listener it n
 | `blur` | Focus left. What that means is the table's decision, not the cell's. |
 
 The default slot replaces the control entirely and is handed `value`, `error`, `disabled`, `kind`,
-`update`, `commit` and `cancel` — enough to behave the same way.
+`update`, `commit`, `cancel` and `blur`. `blur()` reports the same thing a built-in control reports
+when focus leaves it, and the table decides what that means: a commit in cell mode, nothing in row
+mode. What the slot does not give is key handling: Enter, Tab and the arrows are not wired for a
+slotted control, and Escape is the control's own to bind to `cancel`.
+
+### A non-native editor in a cell
+
+A control with a panel of its own (a `StaticSelect`, a widgets select) calls `blur` only once focus
+has left the panel as well as the trigger, which `StaticSelect` already does:
+
+```vue
+<DataTable :columns="columns" :source="source" :state="state" :editing="editing">
+  <template #editor:country="{ value, column, update, cancel, blur }">
+    <StaticSelect
+      :options="column.options"
+      :value="value"
+      autofocus
+      @update:value="update"
+      @blur="blur"
+      @keydown.esc="(event: KeyboardEvent) => { if (event.defaultPrevented || event.isComposing) return; event.preventDefault(); event.stopPropagation(); cancel() }"
+    />
+  </template>
+</DataTable>
+```
+
+The `defaultPrevented` guard lets an open panel that already consumed Escape keep the edit. A
+widgets `WSelect` goes in the same way once it emits `blur`.
 
 ## The pure functions
 
