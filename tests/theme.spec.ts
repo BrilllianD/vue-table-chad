@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, nextTick, ref, type Plugin } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
+import { createTable, createTableLabels } from '../src/core/plugin'
+import { ru } from '../src/locales'
 import { defineTheme, themeProperties } from '../src/core/theme'
 import { people, personColumns, type Person } from './fixtures'
 
@@ -33,8 +35,8 @@ const Host = defineComponent({
   },
 })
 
-function mountTable(theme?: string) {
-  return mount(Host, { props: { theme }, attachTo: document.body })
+function mountTable(theme?: string, plugins: Plugin[] = []) {
+  return mount(Host, { props: { theme }, attachTo: document.body, global: { plugins } })
 }
 
 const themeOf = (wrapper: ReturnType<typeof mountTable>) =>
@@ -94,6 +96,57 @@ describe('theme', () => {
     expect(panel!.hasAttribute('data-theme')).toBe(false)
 
     wrapper.unmount()
+  })
+
+  describe('the app-wide default from createTable', () => {
+    it('paints a table with no theme prop, and its teleported filter panel', async () => {
+      const wrapper = mountTable(undefined, [createTable({ theme: 'dark' })])
+      expect(themeOf(wrapper)).toBe('dark')
+
+      await wrapper.find('.vt-filter-trigger').trigger('click')
+      const panel = document.body.querySelector('.vt-filter-panel.vt-portal')
+      expect(panel, 'the filter panel, teleported to <body>').not.toBeNull()
+      expect(panel!.getAttribute('data-theme')).toBe('dark')
+
+      wrapper.unmount()
+    })
+
+    it('yields to an explicit prop, and an explicit system is a choice', () => {
+      const light = mountTable('light', [createTable({ theme: 'dark' })])
+      expect(themeOf(light)).toBe('light')
+      light.unmount()
+
+      const system = mountTable('system', [createTable({ theme: 'dark' })])
+      expect(themeOf(system)).toBeUndefined()
+      system.unmount()
+    })
+
+    it('follows a ref live, and drops the attribute when it empties', async () => {
+      const theme = ref<'light' | 'dark' | undefined>('dark')
+      const wrapper = mountTable(undefined, [createTable({ theme })])
+      expect(themeOf(wrapper)).toBe('dark')
+
+      theme.value = 'light'
+      await nextTick()
+      expect(themeOf(wrapper)).toBe('light')
+
+      theme.value = undefined
+      await nextTick()
+      expect(themeOf(wrapper)).toBeUndefined()
+      wrapper.unmount()
+    })
+
+    it('sits beside createTableLabels without a duplicate-provide warning', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const wrapper = mountTable(undefined, [createTable({ theme: 'dark' }), createTableLabels(ru)])
+
+      expect(themeOf(wrapper)).toBe('dark')
+      expect(wrapper.get('input.vt-search').attributes('placeholder')).toBe(ru.search)
+      expect(warn.mock.calls.some((c) => String(c[0]).includes('already provides'))).toBe(false)
+
+      warn.mockRestore()
+      wrapper.unmount()
+    })
   })
 
   /**

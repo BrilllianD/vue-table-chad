@@ -124,6 +124,7 @@ import { createApp } from 'vue'
 import {
   DataTable,
   StaticSelect,
+  createTable,
   createTableLabels,
   type ColumnDef,
 } from '@brillliand/vue-table-chad'
@@ -134,6 +135,7 @@ import App from './App.vue'
 export const columns: ColumnDef<{ id: number }>[] = [{ id: 'id', type: 'number' }]
 export const components = { DataTable, StaticSelect }
 export const labels = createTableLabels(ru)
+export const plugin = createTable({ labels: ru, locale: 'ru-RU', theme: 'dark' })
 
 createApp(App).mount('#app')
 EOF

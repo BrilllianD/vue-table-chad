@@ -41,7 +41,7 @@ import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
-import { provideTableTheme, type TableTheme } from '../../core/context'
+import { provideTableTheme, useDefaultTableTheme, type TableTheme } from '../../core/context'
 import { mergeLabels, type TableLabels } from '../../core/labels'
 import { useTableLabels } from '../../core/context'
 import type { UseRowSelection } from '../../core/useRowSelection'
@@ -257,8 +257,8 @@ const props = withDefaults(
     /**
      * Which palette to paint, instead of following `prefers-color-scheme`.
      *
-     * `'system'`, the default, emits no attribute and leaves the media query in
-     * charge. `'light'` and `'dark'` write `data-theme` on the table — and on
+     * `'system'` emits no attribute and leaves the media query in charge. Left
+     * out, the `createTable` theme applies, else `'system'`. `'light'` and `'dark'` write `data-theme` on the table — and on
      * the filter popover and the drag ghost, which teleport to `<body>` and
      * would otherwise be left behind under the OS setting.
      */
@@ -272,7 +272,7 @@ const props = withDefaults(
     loadingMessage?: string
     /**
      * Wording for every string the table renders, over the inherited record:
-     * what `createTableLabels` installed, or English with no plugin.
+     * what `createTable` (or `createTableLabels`) installed, or English with no plugin.
      *
      * Forwarded to `<TableRoot>`, which publishes it for the primitives; this
      * component reads the same record for the toolbar and the banner it renders
@@ -393,7 +393,7 @@ const props = withDefaults(
     exportFilename: 'table.csv',
     exportFetchAll: undefined,
     stickyHeader: true,
-    theme: 'system',
+    theme: undefined,
     emptyMessage: undefined,
     loadingMessage: undefined,
     labels: undefined,
@@ -511,7 +511,9 @@ watchEffect(() => {
  * in the attribute would be one more thing every future selector has to
  * remember to exclude.
  */
-const themeAttribute = computed(() => (props.theme === 'system' ? undefined : props.theme))
+const appTheme = useDefaultTableTheme()
+const resolvedTheme = computed<TableTheme>(() => props.theme ?? appTheme?.value ?? 'system')
+const themeAttribute = computed(() => (resolvedTheme.value === 'system' ? undefined : resolvedTheme.value))
 
 /*
   Published for the two components that teleport a `.vt-portal` wrapper to
@@ -519,7 +521,7 @@ const themeAttribute = computed(() => (props.theme === 'system' ? undefined : pr
   no longer under the table, so without this a forced theme would stop at the
   table's edge and the filter popover would open in the OS's colours.
 */
-provideTableTheme(computed(() => props.theme))
+provideTableTheme(resolvedTheme)
 
 /*
   The same record `<TableRoot>` publishes below, merged a second time here.
@@ -531,7 +533,7 @@ provideTableTheme(computed(() => props.theme))
   both calls are computeds over the same prop, so the second costs one object
   per change of wording rather than one per render.
 
-  What it *does* inherit is the app-wide record `createTableLabels` publishes at
+  What it *does* inherit is the app-wide record `createTable` (or `createTableLabels`) publishes at
   the app root — above this component, not below it — with the prop merged over
   it per key. The full record then goes down to `<TableRoot>` as its `labels`
   prop, so the primitives are handed the same wording this component resolved

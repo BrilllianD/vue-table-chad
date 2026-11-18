@@ -603,6 +603,7 @@ watch([theme, themeStyle], async () => {
       '--vtc-* custom properties',
       'defineTheme',
       'DataTable.theme',
+      'createTable',
       'data-* state attributes',
       'ColumnDef.background',
       'ColumnDef.headerBackground',
@@ -632,7 +633,8 @@ watch([theme, themeStyle], async () => {
           controls started on the preset's {{ prefersDark ? 'dark' : 'light' }} palette.
           <code>theme</code> overrules it: the table gets <code>data-theme</code>, the controls
           move to the matching palette, and the teleported filter panel follows the table rather
-          than the browser.
+          than the browser. App-wide, the same default is
+          <code>app.use(createTable({ theme: 'dark' }))</code>.
         </template>
       </ControlGroup>
     </template>

@@ -150,7 +150,9 @@ export const apiReference: ApiEntry[] = [
   { name: 'mergeLabels', layer: 'core', kind: 'function', summary: '`DEFAULT_LABELS` with an override laid over it.' },
   { name: 'TableLabels', layer: 'core', kind: 'type', summary: 'The strings a table renders, overridable per table.' },
 
-  { name: 'createTableLabels', layer: 'core', kind: 'function', summary: 'A Vue plugin that sets the wording for every table in the app at once.' },
+  { name: 'createTable', layer: 'core', kind: 'function', summary: 'A Vue plugin that configures every table in the app at once: wording, locale and default theme.' },
+  { name: 'createTableLabels', layer: 'core', kind: 'function', summary: 'A Vue plugin that sets the wording for every table in the app at once: the labels-only form of `createTable`, `createTableLabels(x)` being `createTable({ labels: x })`.' },
+  { name: 'TablePluginOptions', layer: 'core', kind: 'type', summary: 'What `createTable` takes. Each option is a plain value, a ref or a getter.' },
 
   { name: 'defineTheme', layer: 'core', kind: 'function', summary: 'Turns a `Theme` into the custom properties that carry it, ready to bind.' },
   { name: 'Theme', layer: 'core', kind: 'type', summary: "A theme: any subset of the preset's tokens, camelCased." },

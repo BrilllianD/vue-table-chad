@@ -125,6 +125,13 @@ overrules it:
 <DataTable theme="system" />   <!-- the default: no attribute, media query decides -->
 ```
 
+To set it once for the whole app, give `createTable` a `theme`. It becomes the default of every
+`DataTable` left without a `theme` prop; a prop still wins, `"system"` included:
+
+```ts
+createApp(App).use(createTable({ theme: 'dark' })).mount('#app')
+```
+
 It writes `data-theme` on `.vt-datatable`, so a stylesheet can key off the same attribute:
 
 ```css

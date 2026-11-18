@@ -121,6 +121,25 @@ export function useTableTheme(): Readonly<Ref<TableTheme>> | undefined {
 }
 
 /**
+ * The app-wide default theme `createTable` publishes, on a key of its own and
+ * not on `TableThemeKey`.
+ *
+ * `TableThemeKey` is what the teleported panels read. Providing it from the app
+ * root would turn the popovers of a hand-built table (`TableRoot`, no
+ * `DataTable`, so no `data-theme` on its body) dark while its body follows the
+ * OS. This key is read by `DataTable` alone, which resolves it against its own
+ * `theme` prop and re-publishes the result on `TableThemeKey`.
+ */
+export const TableDefaultThemeKey: InjectionKey<Readonly<Ref<TableTheme | undefined>>> = Symbol(
+  'vue-table-chad:default-theme',
+)
+
+/** The app default `createTable` set, or `undefined` when it set none. */
+export function useDefaultTableTheme(): Readonly<Ref<TableTheme | undefined>> | undefined {
+  return inject(TableDefaultThemeKey, undefined)
+}
+
+/**
  * The label record, published on its own key rather than as a field on
  * `TableContext`, for the reason the theme is: a hand-built context has to
  * satisfy that interface in full, and a caller assembling a table out of

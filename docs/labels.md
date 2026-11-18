@@ -89,6 +89,11 @@ import App from './App.vue'
 createApp(App).use(createTableLabels(ru)).mount('#app')
 ```
 
+`createTable({ labels: ru })` is the same thing, and one `createTable` call can also carry `locale`
+(which outranks the locale inside `labels`) and `theme` (the default palette of every `DataTable`
+without a `theme` prop). Do not install both `createTable({ labels })` and `createTableLabels`:
+they provide the same key, Vue warns, and the later one wins.
+
 Every `<DataTable>`, every `<TableRoot>` and every bare primitive in the app now
 renders Russian with nothing passed down:
 

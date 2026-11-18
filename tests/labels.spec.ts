@@ -6,13 +6,13 @@ import { describe, expect, it } from 'vitest'
 import DataTable from '../src/components/preset/DataTable.vue'
 import TablePagination from '../src/components/primitives/TablePagination.vue'
 import { DEFAULT_LABELS, mergeLabels, type TableLabels } from '../src/core/labels'
-import { createTableLabels } from '../src/core/plugin'
+import { createTable, createTableLabels } from '../src/core/plugin'
 import { es, ru } from '../src/locales'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { useTable } from '../src/core/useTable'
 import { useRowEditing } from '../src/core/useRowEditing'
-import { provideTableContext } from '../src/core/context'
+import { provideTableContext, useTableLabels } from '../src/core/context'
 import { people, personColumns, type Person } from './fixtures'
 
 /**
@@ -358,6 +358,67 @@ describe('createTableLabels', () => {
     })
 
     expect(wrapper.get('nav').attributes('aria-label')).toBe(ru.pagination)
+    wrapper.unmount()
+  })
+})
+
+describe('createTable', () => {
+  /** Reads the record a table-less component sees, through `useTableLabels()`. */
+  function readRecord(plugin: Plugin) {
+    let seen!: ReturnType<typeof useTableLabels>
+    const Probe = defineComponent({
+      setup() {
+        seen = useTableLabels()
+        return () => null
+      },
+    })
+    const wrapper = mount(Probe, { global: { plugins: [plugin] } })
+    return { record: seen, wrapper }
+  }
+
+  it('renders what createTableLabels renders', () => {
+    const wrapper = mount(TablePagination, {
+      props: { page: 1, pageSize: 10, total: 0 },
+      global: { plugins: [createTable({ labels: ru })] },
+    })
+
+    expect(wrapper.get('nav').attributes('aria-label')).toBe(ru.pagination)
+    expect(wrapper.text()).toContain(ru.noRows)
+    wrapper.unmount()
+  })
+
+  it('carries a bare locale over English strings', () => {
+    const { record, wrapper } = readRecord(createTable({ locale: 'de-DE' }))
+
+    expect(record.value.locale).toBe('de-DE')
+    expect(record.value.search).toBe(DEFAULT_LABELS.search)
+    wrapper.unmount()
+  })
+
+  it('lets locale outrank the one inside labels', () => {
+    const { record, wrapper } = readRecord(createTable({ labels: ru, locale: 'en-GB' }))
+
+    expect(record.value.locale).toBe('en-GB')
+    expect(record.value.search).toBe(ru.search)
+    wrapper.unmount()
+  })
+
+  it('provides no labels when given only a theme', () => {
+    const { record, wrapper } = readRecord(createTable({ theme: 'dark' }))
+
+    expect(record.value).toBe(DEFAULT_LABELS)
+    wrapper.unmount()
+  })
+
+  it('switches locale live through a ref', async () => {
+    const locale = shallowRef('de-DE')
+    const { record, wrapper } = readRecord(createTable({ locale }))
+    expect(record.value.locale).toBe('de-DE')
+
+    locale.value = 'fr-FR'
+    await nextTick()
+
+    expect(record.value.locale).toBe('fr-FR')
     wrapper.unmount()
   })
 })

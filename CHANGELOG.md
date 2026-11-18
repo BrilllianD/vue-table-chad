@@ -5,6 +5,7 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- Added: `createTable({ labels, locale, theme })`, one app plugin like `createForms` and `createWidgets`: its `theme` is the default for every `DataTable` without a `theme` prop, so an app no longer writes `DataTable.props.theme.default`; `locale` outranks the labels' own; each option takes a ref or getter. `createTableLabels(x)` stays and equals `createTable({ labels: x })`. `DataTable`'s `theme` prop now defaults to `undefined` (resolved to the plugin theme, else `'system'`). (#74)
 - **Breaking:** `TableLabels` gains a required `selectRow` key, the accessible name of a row's
   selection checkbox, which was the English literal "Select row" in every locale; all five shipped
   bundles translate it. A record declared as a whole `TableLabels` must add it; a
