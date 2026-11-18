@@ -62,8 +62,10 @@ import DataTableFooter from './DataTableFooter.vue'
 import { useAutoColumnWidth } from './useAutoColumnWidth'
 import { downloadText, type TableExportPayload } from './tableExport'
 
-// The preset owns the preset theme, so `DataTable` is styled out of the box
-// while the primitives stay CSS-free.
+// This import serves the source builds (demo, playground, docs site, tests).
+// The lib build extracts the CSS to `dist/vue-table-chad.css`, which a consumer
+// imports as `@brillliand/vue-table-chad/style.css`; the published JS keeps no
+// import, so the primitives stay CSS-free.
 import './table.css'
 
 const props = withDefaults(

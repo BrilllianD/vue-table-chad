@@ -181,9 +181,10 @@ Four things are load-bearing there:
   for dates).
 - **`columns` is a plain array**, defined outside any `computed`, so its identity is stable. Build
   it in a `computed` only if it genuinely changes.
-- **The stylesheet is a separate import.** `DataTable` imports it itself, so this line is redundant
-  when you use the preset — but it is not tree-shaken away and it is what a primitives-only table
-  needs. Importing it twice costs nothing.
+- **The stylesheet is a separate import, and the line is required.** The published JS does not
+  import its CSS, so without `import '@brillliand/vue-table-chad/style.css'` once in your app
+  `DataTable` renders unstyled. A primitives-only table needs it too if you want the default
+  theme.
 
 Rows are identified by `row.id`. Pass `getRowId` when they are keyed by something else — it drives
 selection, editing drafts, the cursor position *and* the render keys.

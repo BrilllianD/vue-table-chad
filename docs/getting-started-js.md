@@ -84,9 +84,10 @@ Four things are load-bearing:
   nothing tells you — a `salary` column left at the default `'text'` sorts `100` before `99`.
 - **`columns` is a plain array defined outside any `computed`**, so its identity is stable across
   renders.
-- **The stylesheet is a separate import.** `DataTable` imports it itself, so the line is redundant
-  when you use the preset — but it is what a primitives-only table needs, and importing it twice
-  costs nothing.
+- **The stylesheet is a separate import, and the line is required.** The published JS does not
+  import its CSS, so without `import '@brillliand/vue-table-chad/style.css'` once in your app
+  `DataTable` renders unstyled. A primitives-only table needs it too if you want the default
+  theme.
 
 Rows are identified by `row.id`. Pass `getRowId` when yours are keyed by something else — it drives
 selection, editing drafts, the cursor position *and* the render keys.

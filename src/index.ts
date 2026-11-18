@@ -281,8 +281,10 @@ export { default as TablePagination } from './components/primitives/TablePaginat
 export { default as SelectionCheckbox } from './components/primitives/SelectionCheckbox.vue'
 
 /**
- * The preset. It imports `table.css` itself, so using `DataTable` pulls the
- * default theme in automatically.
+ * The preset: the full table, assembled from the primitives.
+ *
+ * Import `@brillliand/vue-table-chad/style.css` once in your app for its
+ * theme; the package's JS does not pull it in.
  *
  * Using only the primitives pulls in no CSS at all — that is the point of a
  * headless layer. To style them with the default theme anyway, import the

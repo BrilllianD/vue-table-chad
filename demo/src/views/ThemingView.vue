@@ -879,8 +879,8 @@ watch([theme, themeStyle], async () => {
     </div>
 
     <p class="hint">
-      Using only primitives and still want this theme? Import it yourself:
-      <code>import '@brillliand/vue-table-chad/style.css'</code>. It is deliberately not pulled in by the
+      The theme is <code>import '@brillliand/vue-table-chad/style.css'</code>, needed with
+      <code>DataTable</code> and with primitives alike; the published JS does not load it. It is deliberately not pulled in by the
       package barrel — <code>sideEffects</code> marks the JS modules side-effect-free, so a bare
       CSS import there would be tree-shaken away and you would silently get an unstyled table.
     </p>

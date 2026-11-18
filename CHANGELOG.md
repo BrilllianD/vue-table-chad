@@ -47,3 +47,6 @@ Releases up to 0.6.0 are described in their `Release version` commits
   to the blanks row, and ignores stale facet responses (#22).
 - Fix: the published declarations compile for a consumer with `skipLibCheck: false`; the
   rolled-up `dist/vue-table-chad.d.ts` no longer contains a bare `GlobalComponents` (#65).
+- Fix: the docs and the `DataTable` doc comment no longer call the `style.css` import redundant.
+  The published JS does not load the stylesheet, so
+  `import '@brillliand/vue-table-chad/style.css'` is required wherever `DataTable` is used. (#72)

@@ -27,7 +27,7 @@ and off `data-grouped` and a collapsible band's `data-collapsible`, because a he
 a click has to say so before the click. A column the rows are grouped by carries no
 `data-sortable` at all — its click folds the band instead.
 
-`DataTable` imports the default theme itself. If you use only primitives and still want that theme:
+The default theme is a separate import. It is required with `DataTable`, whose published JS does not load it, and optional for primitives:
 
 ```ts
 import '@brillliand/vue-table-chad/style.css'
