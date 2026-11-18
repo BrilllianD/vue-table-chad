@@ -38,7 +38,11 @@ Retheme by overriding the CSS variables on `.vt-datatable` (`--vtc-accent`, `--v
 [ask for a palette](#picking-a-palette).
 
 The table takes its font family from the page, as widgets and dialog do. Set `--vtc-font-family`
-(on `:root`, any ancestor or the table, or `defineTheme({ fontFamily })`) to pick another.
+on `:root` or `body` to pick another. The filter panel, the menus, the select list and the drag
+ghost are teleported to `<body>`, so they take the family from `body`, not from the table's
+ancestors: a family set only on a wrapper such as `#app`, an ancestor's `--vtc-font-family` and
+`defineTheme({ fontFamily })` reach the table but not its popups. Set the family on `body`, or put
+the token on `.vt-datatable, .vt-portal`.
 `--vtc-font` carries the size and line height only; the family inside it is ignored. The previous
 look is `--vtc-font-family: system-ui, -apple-system, "Segoe UI", sans-serif`.
 
