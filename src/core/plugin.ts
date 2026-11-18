@@ -42,7 +42,8 @@ export interface TablePluginOptions {
  *
  * An option left out provides nothing: `createTable({ theme })` publishes no
  * labels record, so it can sit beside `createTableLabels` without Vue warning
- * about a key provided twice. Do not install `labels` through both.
+ * about a key provided twice. `labels` and `locale` both publish that record,
+ * so neither goes beside `createTableLabels`.
  */
 export function createTable(options: TablePluginOptions = {}): Plugin {
   const { labels, locale, theme } = options

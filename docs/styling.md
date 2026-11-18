@@ -115,18 +115,19 @@ you can set from here.
 
 ## Picking a palette
 
-By default the table follows `prefers-color-scheme`, which is right until the app has a theme
+With nothing set the table follows `prefers-color-scheme`, which is right until the app has a theme
 switch of its own and the table is the one thing on the page still asking the OS. The `theme` prop
 overrules it:
 
 ```vue
 <DataTable theme="dark" />     <!-- dark, whatever the OS says -->
 <DataTable theme="light" />
-<DataTable theme="system" />   <!-- the default: no attribute, media query decides -->
+<DataTable theme="system" />   <!-- no attribute, media query decides -->
 ```
 
 To set it once for the whole app, give `createTable` a `theme`. It becomes the default of every
-`DataTable` left without a `theme` prop; a prop still wins, `"system"` included:
+`DataTable` left without a `theme` prop; a prop still wins, `"system"` included. A table built from
+`TableRoot` or bare primitives does not read it:
 
 ```ts
 createApp(App).use(createTable({ theme: 'dark' })).mount('#app')
