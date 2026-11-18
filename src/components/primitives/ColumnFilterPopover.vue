@@ -82,19 +82,26 @@ const conditionsModel = computed<ConditionsFilter | undefined>(() =>
   current.value?.kind === 'conditions' ? current.value : undefined,
 )
 
+/** Only the newest request may write: a slow earlier answer describes an old filter set. */
+let facetRequest = 0
+
 async function loadFacets(): Promise<void> {
   if (props.facets || !context) return
+  const request = ++facetRequest
   loading.value = true
   facetError.value = null
   try {
-    loadedFacets.value = await context.source.facets(props.columnId)
+    const result = await context.source.facets(props.columnId)
+    if (request !== facetRequest) return
+    loadedFacets.value = result
   } catch (caught) {
+    if (request !== facetRequest) return
     // A remote facet endpoint can fail. Surface it in the panel rather than
     // letting the rejection escape and leaving an empty checklist unexplained.
     facetError.value = caught
     loadedFacets.value = []
   } finally {
-    loading.value = false
+    if (request === facetRequest) loading.value = false
   }
 }
 

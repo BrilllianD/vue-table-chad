@@ -101,7 +101,7 @@ function toggle(value: FilterValue): void {
   checked.value = next
 }
 
-/** "Select All" applies only to what the search currently shows, like Excel. */
+/** "Select All" acts on the search matches only; Apply under a search applies just the checked matches (see `buildFilter`). */
 function toggleAll(): void {
   const next = new Set(checked.value)
   const shouldCheck = !allChecked.value
@@ -119,14 +119,32 @@ function isChecked(value: FilterValue): boolean {
 }
 
 function buildFilter(): ValuesFilter | undefined {
+  // Under a search, Apply applies only the checked matches, like Excel: the
+  // rows the search hid are not part of what the user just chose.
+  if (search.value.trim() !== '') {
+    return {
+      kind: 'values',
+      include: filtered.value.filter((f) => isChecked(f.value)).map((f) => f.value),
+      includeBlanks: blankVisible.value && blanksChecked.value,
+    }
+  }
+
+  // Facets are computed after the other filters and the global search, so the
+  // list can lack values the incoming filter still includes. Apply keeps them;
+  // rebuilding from the list alone would drop them (or drop the whole filter).
+  const listed = new Set(nonBlankFacets.value.map((f) => facetKey(f.value)))
+  const unseen = (props.modelValue?.include ?? []).filter(
+    (v) => v !== null && !listed.has(facetKey(v)),
+  )
   const everyValueChecked = nonBlankFacets.value.every((f) => isChecked(f.value))
   const blanksOk = !blankFacet.value || blanksChecked.value
   // Everything checked == no filter at all, so the query stays clean.
-  if (everyValueChecked && blanksOk) return undefined
+  if (everyValueChecked && blanksOk && unseen.length === 0) return undefined
 
-  const include = nonBlankFacets.value
-    .filter((facet) => isChecked(facet.value))
-    .map((facet) => facet.value)
+  const include = [
+    ...nonBlankFacets.value.filter((f) => isChecked(f.value)).map((f) => f.value),
+    ...unseen,
+  ]
   return { kind: 'values', include, includeBlanks: blanksChecked.value }
 }
 
@@ -168,7 +186,7 @@ defineExpose({ apply, clear })
       </label>
 
       <div class="vt-valuelist-items" role="group">
-        <p v-if="filtered.length === 0" class="vt-valuelist-status">
+        <p v-if="filtered.length === 0 && !blankVisible" class="vt-valuelist-status">
           {{ labels.noMatchingValues }}
         </p>
 
@@ -196,7 +214,7 @@ defineExpose({ apply, clear })
 
     <div class="vt-valuelist-actions">
       <button type="button" class="vt-btn" @click="clear">{{ labels.clear }}</button>
-      <button type="button" class="vt-btn vt-btn-primary" @click="apply">
+      <button type="button" class="vt-btn vt-btn-primary" :disabled="loading" @click="apply">
         {{ labels.apply }}
       </button>
     </div>
