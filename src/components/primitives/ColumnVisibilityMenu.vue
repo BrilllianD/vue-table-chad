@@ -2,12 +2,16 @@
 /**
  * Show/hide columns, reorder them, and pin them to either edge. Reordering is
  * button-driven rather than drag-only so it stays keyboard-accessible.
+ *
+ * The panel is teleported to `<body>` and positioned from the trigger's rect,
+ * so a scroll container or a window frame with `overflow: hidden` cannot clip it.
  */
-import { computed, ref } from 'vue'
-import { requireTableContext, useTableLabels } from '../../core/context'
+import { computed, nextTick, ref, watch } from 'vue'
+import { requireTableContext, useTableLabels, useTableTheme } from '../../core/context'
 import type { PinSide } from '../../core/types'
 import SelectionCheckbox from './SelectionCheckbox.vue'
 import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
+import { usePopoverPosition } from './usePopoverPosition'
 
 const props = defineProps<{
   /** The trigger's text. Defaults to the table's `columns` label. */
@@ -20,6 +24,19 @@ const labels = useTableLabels()
 const triggerLabel = computed(() => props.label ?? labels.value.columns)
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
+
+/** The CSS `min-width`, used until the panel is rendered and can be measured. */
+const PANEL_WIDTH = 260
+
+/*
+  The panel is teleported out of the table, so a forced theme has to be
+  stamped on it for the same reason `.vt-portal` re-declares the palette.
+*/
+const theme = useTableTheme()
+const themeAttribute = computed(() =>
+  !theme || theme.value === 'system' ? undefined : theme.value,
+)
 
 const columns = computed(() => context.columns.all.value)
 /** Never let the user hide the last visible column. */
@@ -45,7 +62,29 @@ function cyclePin(columnId: string, current: PinSide | false): void {
   context.columns.setPinned(columnId, next)
 }
 
-const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(node)))
+const onFocusOut = useMenuDismiss(open, (node) =>
+  Boolean(root.value?.contains(node) || panel.value?.contains(node)),
+)
+
+const { style: panelStyle, update: updatePosition } = usePopoverPosition({
+  root,
+  panel,
+  open,
+  enabled: true,
+  width: PANEL_WIDTH,
+  align: 'end',
+})
+
+watch(open, (isOpen) => {
+  if (!isOpen) return
+  updatePosition()
+  void nextTick(() => {
+    // Re-run now that the panel has a measurable height, then move focus in:
+    // the panel no longer follows the trigger in DOM order.
+    updatePosition()
+    panel.value?.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled)')?.focus()
+  })
+})
 </script>
 
 <template>
@@ -54,7 +93,18 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
       {{ triggerLabel }} ▾
     </button>
 
-    <div v-if="open" class="vt-columns-panel" role="dialog" :aria-label="labels.columnOptions">
+    <Teleport to="body">
+    <div
+      v-if="open"
+      ref="panel"
+      class="vt-columns-panel vt-portal"
+      :data-theme="themeAttribute"
+      :style="panelStyle"
+      role="dialog"
+      :aria-label="labels.columnOptions"
+      @focusout="onFocusOut"
+      @keydown.esc="open = false"
+    >
       <!-- The actions lead, because the row list below grows with the column count. -->
       <div class="vt-columns-actions">
         <button type="button" class="vt-btn vt-btn-link" @click="context.columns.showAll()">
@@ -104,5 +154,6 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
         </button>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>

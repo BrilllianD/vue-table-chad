@@ -86,14 +86,20 @@
     to clear all of them, and the loading scrim covers the lot. The last two
     leave the table's stacking context behind — a popover teleported to
     `<body>`, and the drag ghost that must stay above even that.
+
+    9999 is the overlay layer the widgets library (`DEFAULT_Z_INDEX`) also
+    uses, so a table panel opened inside a dialog window or above a modal still
+    lands on top. The ghost stays one above, because it is teleported too and
+    must clear an open popover. The in-table five stay small, because they only
+    order things inside the table's own box.
   */
   --vtc-z-pinned: 1;
   --vtc-z-sticky: 2;
   --vtc-z-sticky-pinned: 3;
   --vtc-z-drop: 4;
   --vtc-z-overlay: 5;
-  --vtc-z-popover: 20;
-  --vtc-z-ghost: 60;
+  --vtc-z-popover: 9999;
+  --vtc-z-ghost: 10000;
 
   /*
     Elevation. Both are drop shadows on something that has left the flow, and

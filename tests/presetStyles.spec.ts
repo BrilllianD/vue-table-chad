@@ -288,6 +288,29 @@ describe('preset stylesheet', () => {
    * reach here — `rules()` does not descend into the directory — and are held
    * to that shape by `tests/themePresets.spec.ts` instead.
    */
+  it('keeps the teleported layers above the in-table ladder and at the overlay layer', () => {
+    const names = ['pinned', 'sticky', 'sticky-pinned', 'drop', 'overlay', 'popover', 'ghost']
+    const body = rules()
+      .filter((r) => r.file === 'scales.css')
+      .map((r) => r.body)
+      .join('\n')
+    const z: Record<string, number> = {}
+    for (const name of names) {
+      const match = new RegExp(`--vtc-z-${name}\\s*:\\s*(\\d+)\\s*;`).exec(body)
+      expect(match, `--vtc-z-${name} is not declared as an integer in scales.css`).not.toBeNull()
+      z[name] = Number(match![1])
+    }
+
+    expect(z.popover, '--vtc-z-popover must be at the 9999 overlay layer').toBeGreaterThanOrEqual(9999)
+    expect(z.ghost, '--vtc-z-ghost must stay above --vtc-z-popover').toBeGreaterThan(z.popover!)
+    const ladder = ['pinned', 'sticky', 'sticky-pinned', 'drop', 'overlay', 'popover']
+    for (let i = 1; i < ladder.length; i++) {
+      const lower = ladder[i - 1]!
+      const upper = ladder[i]!
+      expect(z[lower], `--vtc-z-${lower} must be below --vtc-z-${upper}`).toBeLessThan(z[upper]!)
+    }
+  })
+
   it('declares public tokens only in the two theme partitions', () => {
     const offenders: string[] = []
     for (const r of rules()) {

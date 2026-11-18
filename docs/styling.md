@@ -131,8 +131,9 @@ It writes `data-theme` on `.vt-datatable`, so a stylesheet can key off the same 
 .vt-datatable[data-theme='dark'] { --vtc-accent: #7aa2ff; }
 ```
 
-**It also reaches the filter popover and the column drag ghost**, which are teleported to `<body>`
-and are no longer descendants of the table once they are open. Custom properties inherit through
+**It also reaches the filter popover, the context menu, the columns and group-by menus and the
+column drag ghost**, which are teleported to `<body>` and are no longer descendants of the table
+once they are open. Custom properties inherit through
 the DOM, so without that they would render in the OS's colours next to a table that is not — which
 is the same reason `.vt-portal` re-declares the whole palette in the first place.
 
@@ -472,6 +473,27 @@ Widths themselves are a column concern rather than a stylesheet one — see
 column that declares no width is measured from what it holds, so a rule that
 changes `--vtc-cell-padding-x` or the font changes what gets measured on the next
 mount.
+
+## A table inside a window or modal
+
+The filter panel, the select editor's list, the context menu and both toolbar menus (columns and
+group by) are teleported to `<body>` at `--vtc-z-popover` (`9999`), and the column drag ghost at
+`--vtc-z-ghost` (`10000`). A table inside a dialog window or above a modal therefore opens its
+panels on top, and no window frame with `overflow: hidden` can clip them.
+
+They read these tokens from `.vt-portal`, so an override goes on `.vt-datatable, .vt-portal`. A
+host that stacks above 9999 raises both values; for `@korneevecin/vue3-dialogs-lib` the highest
+z-index a window renders is `zIndexBase + 41 + 8 × N` for N open windows:
+
+```css
+.vt-datatable,
+.vt-portal {
+  --vtc-z-popover: 20000;
+  --vtc-z-ghost: 20001; /* keep the ghost one above the popovers */
+}
+```
+
+Neither side uses the browser top layer, so plain z-index is all that orders them.
 
 ## Scrollbars
 

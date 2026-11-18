@@ -715,10 +715,13 @@ describe('column layout', () => {
     await nextTick()
 
     const before = wrapper.findAll('thead th').length
-    const emailRow = wrapper
-      .findAll('.vt-columns-row')
-      .find((row) => row.text().includes('Department'))!
-    await emailRow.find('input[type="checkbox"]').trigger('click')
+    // The panel is teleported to `<body>`, out of the wrapper's reach.
+    const emailRow = [...document.body.querySelectorAll<HTMLElement>('.vt-columns-row')].find(
+      (row) => row.textContent!.includes('Department'),
+    )!
+    emailRow
+      .querySelector('input[type="checkbox"]')!
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await nextTick()
 
     expect(wrapper.findAll('thead th').length).toBe(before - 1)

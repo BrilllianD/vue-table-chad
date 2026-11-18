@@ -528,15 +528,17 @@ describe('DataTable grouping', () => {
     const wrapper = mountTable()
     await wrapper.find('.vt-group-menu .vt-btn').trigger('click')
 
-    const boxes = wrapper.findAll('.vt-group-option input')
+    // The panel is teleported to `<body>`, out of the wrapper's reach.
+    const boxes = [...document.body.querySelectorAll<HTMLElement>('.vt-group-option input')]
     // Grouping by Department — the second column.
-    await boxes[1]!.trigger('click')
+    boxes[1]!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await nextTick()
     expect(wrapper.findAll('.vt-group-row')).toHaveLength(4)
     expect(wrapper.find('.vt-group-badge').text()).toBe('1')
 
-    const clear = wrapper.findAll('.vt-group-actions .vt-btn').at(-1)!
-    await clear.trigger('click')
+    const clear = [...document.body.querySelectorAll<HTMLElement>('.vt-group-actions .vt-btn')].at(-1)!
+    clear.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await nextTick()
     expect(wrapper.findAll('.vt-group-row')).toHaveLength(0)
     wrapper.unmount()
   })

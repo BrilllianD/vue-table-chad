@@ -43,6 +43,12 @@ async function settle(): Promise<void> {
   await nextTick()
 }
 
+/**
+ * The panels are teleported to `<body>`, so a wrapper `find` cannot see them.
+ * Looks the same way the browser does: through the document.
+ */
+const inBody = (selector: string) => [...document.body.querySelectorAll<HTMLElement>(selector)]
+
 function openPanel(wrapper: ReturnType<typeof mountTable>, label: string) {
   const trigger = wrapper.findAll('button').find((button) => button.text().startsWith(label))
   return trigger!.trigger('click')
@@ -54,23 +60,23 @@ describe('ColumnVisibilityMenu dismissal', () => {
     return openPanel(wrapper, 'Columns').then(() => wrapper)
   }
 
-  function rows(wrapper: ReturnType<typeof mountTable>) {
-    return wrapper.findAll('.vt-columns-row')
+  function rows() {
+    return inBody('.vt-columns-row')
   }
 
-  function labels(wrapper: ReturnType<typeof mountTable>): string[] {
-    return rows(wrapper).map((row) => row.find('.vt-columns-label').text())
+  function labels(): string[] {
+    return rows().map((row) => row.querySelector('.vt-columns-label')!.textContent!.trim())
   }
 
   it('stays open when a move steals the button focus', async () => {
     const wrapper = await open()
-    expect(labels(wrapper)[1]).toBe('Department')
+    expect(labels()[1]).toBe('Department')
 
-    pressAndBlur(rows(wrapper)[1]!.find('[aria-label="Move up"]').element as HTMLElement)
+    pressAndBlur(rows()[1]!.querySelector<HTMLElement>('[aria-label="Move up"]')!)
     await settle()
 
-    expect(wrapper.find('.vt-columns-panel').exists()).toBe(true)
-    expect(labels(wrapper).slice(0, 2)).toEqual(['Department', 'Name'])
+    expect(inBody('.vt-columns-panel')).toHaveLength(1)
+    expect(labels().slice(0, 2)).toEqual(['Department', 'Name'])
     wrapper.unmount()
   })
 
@@ -78,21 +84,21 @@ describe('ColumnVisibilityMenu dismissal', () => {
     const wrapper = await open()
 
     // Third row: two moves up are available, so the button stays enabled.
-    const up = rows(wrapper)[2]!.find('[aria-label="Move up"]').element as HTMLElement
+    const up = rows()[2]!.querySelector<HTMLElement>('[aria-label="Move up"]')!
     pressAndBlur(up)
     await settle()
 
     expect(document.activeElement).toBe(up)
-    expect(labels(wrapper).slice(0, 3)).toEqual(['Name', 'Salary', 'Department'])
+    expect(labels().slice(0, 3)).toEqual(['Name', 'Salary', 'Department'])
     wrapper.unmount()
   })
 
   it('hands focus to the other arrow when the move disables the pressed one', async () => {
     const wrapper = await open()
 
-    const row = rows(wrapper)[1]!
-    const up = row.find('[aria-label="Move up"]').element as HTMLButtonElement
-    const down = row.find('[aria-label="Move down"]').element as HTMLElement
+    const row = rows()[1]!
+    const up = row.querySelector<HTMLButtonElement>('[aria-label="Move up"]')!
+    const down = row.querySelector<HTMLElement>('[aria-label="Move down"]')!
     pressAndBlur(up)
     await settle()
 
@@ -107,12 +113,12 @@ describe('ColumnVisibilityMenu dismissal', () => {
     const outside = document.createElement('button')
     document.body.append(outside)
 
-    await wrapper
-      .find('.vt-columns-panel')
-      .trigger('focusout', { relatedTarget: outside })
+    inBody('.vt-columns-panel')[0]!.dispatchEvent(
+      new FocusEvent('focusout', { bubbles: true, relatedTarget: outside }),
+    )
     await settle()
 
-    expect(wrapper.find('.vt-columns-panel').exists()).toBe(false)
+    expect(inBody('.vt-columns-panel')).toHaveLength(0)
     outside.remove()
     wrapper.unmount()
   })
@@ -123,18 +129,18 @@ describe('ColumnVisibilityMenu dismissal', () => {
     document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
     await settle()
 
-    expect(wrapper.find('.vt-columns-panel').exists()).toBe(false)
+    expect(inBody('.vt-columns-panel')).toHaveLength(0)
     wrapper.unmount()
   })
 
   it('ignores a pointerdown inside the panel', async () => {
     const wrapper = await open()
 
-    const panel = wrapper.find('.vt-columns-panel').element
+    const panel = inBody('.vt-columns-panel')[0]!
     panel.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
     await settle()
 
-    expect(wrapper.find('.vt-columns-panel').exists()).toBe(true)
+    expect(inBody('.vt-columns-panel')).toHaveLength(1)
     wrapper.unmount()
   })
 })
@@ -145,26 +151,26 @@ describe('RowGroupMenu dismissal', () => {
     return openPanel(wrapper, 'Group by').then(() => wrapper)
   }
 
-  function levels(wrapper: ReturnType<typeof mountTable>) {
-    return wrapper.findAll('.vt-group-level')
+  function levels() {
+    return inBody('.vt-group-level')
   }
 
-  function labels(wrapper: ReturnType<typeof mountTable>): string[] {
-    return levels(wrapper).map((level) => level.find('.vt-group-level-label').text())
+  function labels(): string[] {
+    return levels().map((level) => level.querySelector('.vt-group-level-label')!.textContent!.trim())
   }
 
   it('stays open when a move steals the button focus', async () => {
     const wrapper = await open()
-    expect(labels(wrapper)).toEqual(['Department', 'Active'])
+    expect(labels()).toEqual(['Department', 'Active'])
 
-    const row = levels(wrapper)[1]!
-    const up = row.find('[aria-label="Move up a level"]').element as HTMLButtonElement
-    const down = row.find('[aria-label="Move down a level"]').element as HTMLElement
+    const row = levels()[1]!
+    const up = row.querySelector<HTMLButtonElement>('[aria-label="Move up a level"]')!
+    const down = row.querySelector<HTMLElement>('[aria-label="Move down a level"]')!
     pressAndBlur(up)
     await settle()
 
-    expect(wrapper.find('.vt-group-panel').exists()).toBe(true)
-    expect(labels(wrapper)).toEqual(['Active', 'Department'])
+    expect(inBody('.vt-group-panel')).toHaveLength(1)
+    expect(labels()).toEqual(['Active', 'Department'])
     // Outermost level now, so ↑ is disabled and ↓ takes the focus.
     expect(up.disabled).toBe(true)
     expect(document.activeElement).toBe(down)
@@ -177,7 +183,59 @@ describe('RowGroupMenu dismissal', () => {
     document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
     await settle()
 
-    expect(wrapper.find('.vt-group-panel').exists()).toBe(false)
+    expect(inBody('.vt-group-panel')).toHaveLength(0)
     wrapper.unmount()
   })
+})
+
+describe('toolbar menus are teleported', () => {
+  const menus = [
+    { name: 'ColumnVisibilityMenu', trigger: 'Columns', panel: '.vt-columns-panel' },
+    { name: 'RowGroupMenu', trigger: 'Group by', panel: '.vt-group-panel' },
+  ]
+
+  for (const { name, trigger, panel } of menus) {
+    describe(name, () => {
+      it('renders the panel as a positioned vt-portal child of <body>', async () => {
+        const wrapper = mountTable()
+        await openPanel(wrapper, trigger)
+        await settle()
+
+        const el = inBody(panel)[0]!
+        expect(el.parentElement).toBe(document.body)
+        expect(el.classList.contains('vt-portal')).toBe(true)
+        expect(el.style.top.endsWith('px')).toBe(true)
+        expect(el.style.left.endsWith('px')).toBe(true)
+        wrapper.unmount()
+      })
+
+      it('moves focus into the panel on open', async () => {
+        const wrapper = mountTable()
+        await openPanel(wrapper, trigger)
+        await settle()
+
+        expect(inBody(panel)[0]!.contains(document.activeElement)).toBe(true)
+        wrapper.unmount()
+      })
+
+      it('carries a forced theme', async () => {
+        const wrapper = mountTable({ theme: 'dark' })
+        await openPanel(wrapper, trigger)
+        await settle()
+
+        expect(inBody(panel)[0]!.getAttribute('data-theme')).toBe('dark')
+        wrapper.unmount()
+      })
+
+      it('leaves nothing behind in <body> after unmount', async () => {
+        const wrapper = mountTable()
+        await openPanel(wrapper, trigger)
+        await settle()
+        expect(inBody(panel)).toHaveLength(1)
+
+        wrapper.unmount()
+        expect(inBody('.vt-columns-panel, .vt-group-panel')).toHaveLength(0)
+      })
+    })
+  }
 })

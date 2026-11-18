@@ -22,6 +22,8 @@
 
 .vt-scroll,
 .vt-filter-panel,
+.vt-group-panel,
+.vt-columns-panel,
 .vt-valuelist-items,
 .vt-select-list,
 .vt-context-menu {
@@ -36,6 +38,8 @@
 */
 .vt-scroll::-webkit-scrollbar,
 .vt-filter-panel::-webkit-scrollbar,
+.vt-group-panel::-webkit-scrollbar,
+.vt-columns-panel::-webkit-scrollbar,
 .vt-valuelist-items::-webkit-scrollbar,
 .vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar {
@@ -45,6 +49,8 @@
 
 .vt-scroll::-webkit-scrollbar-track,
 .vt-filter-panel::-webkit-scrollbar-track,
+.vt-group-panel::-webkit-scrollbar-track,
+.vt-columns-panel::-webkit-scrollbar-track,
 .vt-valuelist-items::-webkit-scrollbar-track,
 .vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar-track {
@@ -57,6 +63,8 @@
 */
 .vt-scroll::-webkit-scrollbar-corner,
 .vt-filter-panel::-webkit-scrollbar-corner,
+.vt-group-panel::-webkit-scrollbar-corner,
+.vt-columns-panel::-webkit-scrollbar-corner,
 .vt-valuelist-items::-webkit-scrollbar-corner,
 .vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar-corner {
@@ -70,6 +78,8 @@
 */
 .vt-scroll::-webkit-scrollbar-thumb,
 .vt-filter-panel::-webkit-scrollbar-thumb,
+.vt-group-panel::-webkit-scrollbar-thumb,
+.vt-columns-panel::-webkit-scrollbar-thumb,
 .vt-valuelist-items::-webkit-scrollbar-thumb,
 .vt-select-list::-webkit-scrollbar,
 .vt-context-menu::-webkit-scrollbar-thumb {
@@ -91,6 +101,8 @@
 */
 .vt-scroll:hover::-webkit-scrollbar-thumb,
 .vt-filter-panel:hover::-webkit-scrollbar-thumb,
+.vt-group-panel:hover::-webkit-scrollbar-thumb,
+.vt-columns-panel:hover::-webkit-scrollbar-thumb,
 .vt-valuelist-items:hover::-webkit-scrollbar-thumb,
 .vt-select-list:hover::-webkit-scrollbar-thumb {
   background: var(--vtc-scrollbar-thumb-hover);

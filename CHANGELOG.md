@@ -5,6 +5,13 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- Fix: table popovers, the context menu, the select editor's list and the drag ghost now sit on the
+  overlay layer (`--vtc-z-popover` 9999, `--vtc-z-ghost` 10000) instead of 20 and 60, so they open
+  above a dialog window or modal. The columns and group-by menus are teleported to `<body>` like
+  the filter panel, so a window frame no longer clips them. Consumer CSS scoped under
+  `.vt-datatable` (a descendant selector, or a token set only on `.vt-datatable`) no longer reaches
+  those two panels; style them through `.vt-portal` or `.vt-datatable, .vt-portal`. (#37)
+
 ## 0.6.1
 
 - Fix: the cell editor opens on the value the cell holds, and the number mask lets a Delete or

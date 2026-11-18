@@ -4,11 +4,15 @@
  *
  * Hidden columns are offered too: grouping by a column and then hiding it is
  * the usual way to stop repeating the same value in every row of a band.
+ *
+ * The panel is teleported to `<body>` and positioned from the trigger's rect,
+ * so a scroll container or a window frame with `overflow: hidden` cannot clip it.
  */
-import { computed, ref } from 'vue'
-import { requireTableContext, useTableLabels } from '../../core/context'
+import { computed, nextTick, ref, watch } from 'vue'
+import { requireTableContext, useTableLabels, useTableTheme } from '../../core/context'
 import SelectionCheckbox from './SelectionCheckbox.vue'
 import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
+import { usePopoverPosition } from './usePopoverPosition'
 
 const props = defineProps<{
   /** The trigger's text. Defaults to the table's `groupBy` label. */
@@ -21,6 +25,19 @@ const labels = useTableLabels()
 const triggerLabel = computed(() => props.label ?? labels.value.groupBy)
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
+
+/** The CSS `min-width`, used until the panel is rendered and can be measured. */
+const PANEL_WIDTH = 240
+
+/*
+  The panel is teleported out of the table, so a forced theme has to be
+  stamped on it for the same reason `.vt-portal` re-declares the palette.
+*/
+const theme = useTableTheme()
+const themeAttribute = computed(() =>
+  !theme || theme.value === 'system' ? undefined : theme.value,
+)
 
 const state = context.state
 
@@ -49,7 +66,29 @@ async function move(event: MouseEvent, columnId: string, delta: number): Promise
   await refocusAfterMove(event.currentTarget as HTMLElement, delta)
 }
 
-const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(node)))
+const onFocusOut = useMenuDismiss(open, (node) =>
+  Boolean(root.value?.contains(node) || panel.value?.contains(node)),
+)
+
+const { style: panelStyle, update: updatePosition } = usePopoverPosition({
+  root,
+  panel,
+  open,
+  enabled: true,
+  width: PANEL_WIDTH,
+  align: 'end',
+})
+
+watch(open, (isOpen) => {
+  if (!isOpen) return
+  updatePosition()
+  void nextTick(() => {
+    // Re-run now that the panel has a measurable height, then move focus in:
+    // the panel no longer follows the trigger in DOM order.
+    updatePosition()
+    panel.value?.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled)')?.focus()
+  })
+})
 </script>
 
 <template>
@@ -94,7 +133,18 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
       </button>
     </div>
 
-    <div v-if="open" class="vt-group-panel" role="dialog" :aria-label="labels.groupingOptions">
+    <Teleport to="body">
+    <div
+      v-if="open"
+      ref="panel"
+      class="vt-group-panel vt-portal"
+      :data-theme="themeAttribute"
+      :style="panelStyle"
+      role="dialog"
+      :aria-label="labels.groupingOptions"
+      @focusout="onFocusOut"
+      @keydown.esc="open = false"
+    >
       <!-- The actions lead, because the option list below grows with the column count. -->
       <div class="vt-group-actions">
         <button
@@ -168,5 +218,6 @@ const onFocusOut = useMenuDismiss(open, (node) => Boolean(root.value?.contains(n
         </div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
