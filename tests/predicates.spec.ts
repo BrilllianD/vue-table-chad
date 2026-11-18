@@ -92,6 +92,11 @@ describe('number conditions', () => {
 })
 
 describe('date conditions', () => {
+  it('runs west of Greenwich, where local midnight is not UTC midnight', () => {
+    // Fails if the TZ pin in vitest.config.ts stops reaching `Date` (a pool or config change).
+    expect(new Date(2021, 2, 5).getTimezoneOffset()).toBe(480)
+  })
+
   it('compares at calendar-day granularity', () => {
     const filter = conditionsFilter([{ operator: 'on', value: '2021-03-05' }])
     expect(matchesFilter('2021-03-05T23:59:00', filter, 'date')).toBe(true)

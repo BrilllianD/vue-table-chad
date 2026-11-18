@@ -20,6 +20,10 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     include: ['tests/**/*.spec.ts'],
+    // Date specs read local midnight, which differs from UTC only west of Greenwich;
+    // under a UTC zone they pass with or without the code they guard. Los Angeles
+    // also has DST.
+    env: { TZ: 'America/Los_Angeles' },
     benchmark: {
       include: ['bench/**/*.bench.ts'],
     },
