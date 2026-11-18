@@ -141,7 +141,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'requireTableContext', layer: 'core', kind: 'function', summary: 'The context, or a thrown error, for the primitives that genuinely need one.' },
   { name: 'TableContextKey', layer: 'core', kind: 'constant', summary: 'The injection key, exported so you can provide a context by hand.' },
   { name: 'provideTableLabels', layer: 'core', kind: 'function', summary: 'Publishes the labels, so every primitive beneath reads the same wording.' },
-  { name: 'useTableLabels', layer: 'core', kind: 'composable', summary: 'The labels a table above asked for, or the English defaults.' },
+  { name: 'useTableLabels', layer: 'core', kind: 'composable', summary: 'The labels a table above asked for, else the app-wide record, else English.' },
   { name: 'TableLabelsKey', layer: 'core', kind: 'constant', summary: 'The label record, published on its own key rather than as a field on `TableContext`, for the reason the theme is: a hand-built context has to satisfy that interface in full, and a caller assembling a table out of primitives should not have to hand over ~120 strings to render a pager.' },
   { name: 'TableContext', layer: 'core', kind: 'type', summary: 'Everything a primitive can reach: state, columns, source, selection, grouping, cell readers.' },
   { name: 'TableTheme', layer: 'core', kind: 'type', summary: 'A palette a table asks for outright, rather than following the OS.' },

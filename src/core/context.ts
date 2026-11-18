@@ -136,7 +136,7 @@ export function provideTableLabels(labels: Readonly<Ref<TableLabels>>): void {
 }
 
 /**
- * The labels a table above asked for, or the English defaults.
+ * The labels a table above asked for, else the app-wide record, else English.
  *
  * Never `undefined`, unlike `useTableContext` — which is what keeps every
  * primitive standalone: with no `<TableRoot>` above, a primitive still renders

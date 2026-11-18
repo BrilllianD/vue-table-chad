@@ -95,7 +95,7 @@ const props = withDefaults(
     groupsCollapsed?: boolean
     /** Header text for the bucket holding rows with no value. */
     blankGroupLabel?: string
-    /** Wording for every string the table renders, over the English defaults. */
+    /** Wording for every string the table renders, over the inherited record. */
     labels?: Partial<TableLabels>
     /** BCP 47 tag for number and text handling; outranks the labels' `locale`. */
     locale?: string

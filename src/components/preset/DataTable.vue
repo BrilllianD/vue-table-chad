@@ -271,7 +271,8 @@ const props = withDefaults(
      */
     loadingMessage?: string
     /**
-     * Wording for every string the table renders, over the English defaults.
+     * Wording for every string the table renders, over the inherited record:
+     * what `createTableLabels` installed, or English with no plugin.
      *
      * Forwarded to `<TableRoot>`, which publishes it for the primitives; this
      * component reads the same record for the toolbar and the banner it renders

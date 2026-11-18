@@ -130,14 +130,16 @@ whatever the getter returns:
 app.use(createTableLabels(() => (i18n.global.locale.value === 'ru' ? ru : DEFAULT_LABELS)))
 ```
 
-Building a table out of `useTable` rather than the preset? That composable takes
-its wording as an option and does not inherit on its own, so pass the app record
-through explicitly:
+Building a table out of `useTable` rather than the preset? Called in a
+component's setup, that composable inherits the app record too, and its `labels`
+option is merged over it per key:
 
 ```ts
-const inherited = useTableLabels()
-const table = useTable({ columns, source, state, labels: () => inherited.value })
+const table = useTable({ columns, source, state })
 ```
+
+Called outside a setup, where the plugin cannot be read, it merges over English;
+see [Below the preset](#below-the-preset).
 
 `TableLabelsKey` is exported for the same reason `TableContextKey` is: the
 plugin publishes on it, so a consumer with a reason to provide the record
