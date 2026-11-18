@@ -1,5 +1,6 @@
 import {
   computed,
+  hasInjectionContext,
   onScopeDispose,
   reactive,
   shallowRef,
@@ -16,6 +17,7 @@ import {
   type CellErrors,
 } from './editing'
 import { DEFAULT_LABELS, mergeLabels, type TableLabels } from './labels'
+import { useTableLabels } from './context'
 import { readValue } from './sorting'
 import { defaultRowId } from './useRowSelection'
 
@@ -124,9 +126,10 @@ export interface UseRowEditingOptions<TRow> {
    * Wording for the messages this session produces — the parse and required
    * messages and the fallback for a save that rejected with nothing to say.
    *
-   * Taken here rather than from the table because a session is built before
-   * one and handed in: `useTable` never sees this composable's inputs. Pass the
-   * same override both places to keep a locale in one piece.
+   * Merged over the app-wide `createTableLabels` record when the session is
+   * built in a component's setup, else over English. A table's own `labels`
+   * prop does not reach it, because a session is built above the table and
+   * handed in: pass the same override here to keep a locale in one piece.
    */
   labels?: MaybeRefOrGetter<Partial<TableLabels> | undefined>
   onSaved?: (row: TRow) => void
@@ -218,7 +221,8 @@ export function useRowEditing<TRow>(
   const mapError = options.mapError ?? defaultMapError
   const apply = options.apply ?? (() => source.refresh())
   const columnsOf = () => toValue(columns) ?? []
-  const labels = computed(() => mergeLabels(toValue(options.labels)))
+  const inherited = hasInjectionContext() ? useTableLabels() : undefined
+  const labels = computed(() => mergeLabels(toValue(options.labels), inherited?.value))
 
   /**
    * `shallowRef` around a Map of `reactive` states, and the split is the whole

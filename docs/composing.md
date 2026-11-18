@@ -92,6 +92,8 @@ What comes back is the `TableContext` every primitive reads, plus `headerRows`, 
 provideTableContext(table)
 ```
 
+It also publishes the table's labels, so the primitives beneath render the table's wording.
+
 Everything the preset does about grouping, selection gating, cursor seeding and layout persistence
 happens here, so a hand-built table gets those rules rather than reimplementing them. What stays
 with the component is what only a component can do: `provide`, and turning a change into an emit.

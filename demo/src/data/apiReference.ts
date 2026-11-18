@@ -136,7 +136,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'UseVirtualRows', layer: 'core', kind: 'type', summary: 'The window, the space standing in for what is outside it, and the scroll offset.' },
   { name: 'UseVirtualRowsOptions', layer: 'core', kind: 'type', summary: 'rowHeight, viewportHeight, and the two knobs that turn windowing off.' },
 
-  { name: 'provideTableContext', layer: 'core', kind: 'function', summary: 'Publishes a TableContext so primitives beneath can find it.' },
+  { name: 'provideTableContext', layer: 'core', kind: 'function', summary: "Publishes a TableContext, and a `useTable` result's labels, so primitives beneath can find them." },
   { name: 'useTableContext', layer: 'core', kind: 'composable', summary: 'The table context, or `undefined` — which is what lets a primitive work standalone.' },
   { name: 'requireTableContext', layer: 'core', kind: 'function', summary: 'The context, or a thrown error, for the primitives that genuinely need one.' },
   { name: 'TableContextKey', layer: 'core', kind: 'constant', summary: 'The injection key, exported so you can provide a context by hand.' },

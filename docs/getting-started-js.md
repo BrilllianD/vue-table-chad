@@ -269,7 +269,7 @@ const table = useTable({
   selectable: () => true,
 })
 
-provideTableContext(table)      // only if primitives beneath need to find it
+provideTableContext(table)      // only if primitives beneath need to find it; publishes table.labels too
 ```
 
 And below that, `core/` is pure functions with no Vue components anywhere near them — `filterRows`,

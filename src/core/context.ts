@@ -57,9 +57,19 @@ export interface TableContext<TRow = Record<string, unknown>> {
 /** The injection key, exported so you can provide a context by hand. */
 export const TableContextKey: InjectionKey<TableContext<never>> = Symbol('vue-table-chad')
 
-/** Publishes a TableContext so primitives beneath can find it. */
-export function provideTableContext<TRow>(context: TableContext<TRow>): void {
+/**
+ * Publishes a TableContext, and a `useTable` result's labels, so primitives
+ * beneath can find them.
+ *
+ * A hand-built table then needs this one call: its primitives render the
+ * wording its pipeline uses. A plain context object without `labels` publishes
+ * none, and primitives keep the record they inherited.
+ */
+export function provideTableContext<TRow>(
+  context: TableContext<TRow> & { labels?: Readonly<Ref<TableLabels>> },
+): void {
   provide(TableContextKey, context as unknown as TableContext<never>)
+  if (context.labels) provide(TableLabelsKey, context.labels)
 }
 
 /**

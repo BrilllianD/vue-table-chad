@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, shallowRef } from 'vue'
+import { defineComponent, effectScope, h, nextTick, shallowRef, type Plugin } from 'vue'
 import { describe, expect, it } from 'vitest'
 import DataTable from '../src/components/preset/DataTable.vue'
 import TablePagination from '../src/components/primitives/TablePagination.vue'
@@ -10,6 +10,9 @@ import { createTableLabels } from '../src/core/plugin'
 import { es, ru } from '../src/locales'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
+import { useTable } from '../src/core/useTable'
+import { useRowEditing } from '../src/core/useRowEditing'
+import { provideTableContext } from '../src/core/context'
 import { people, personColumns, type Person } from './fixtures'
 
 /**
@@ -349,6 +352,90 @@ describe('createTableLabels', () => {
 
     expect(wrapper.get('nav').attributes('aria-label')).toBe(ru.pagination)
     wrapper.unmount()
+  })
+})
+
+describe('a hand-built table', () => {
+  /** `useTable` and `provideTableContext` in a setup, `TablePagination` beneath, no props. */
+  function mountHandBuilt(labels?: () => Partial<TableLabels>, plugins: Plugin[] = []) {
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 10 })
+        const source = useLocalDataSource<Person>(shallowRef<Person[]>([]), personColumns, state.query)
+        const table = useTable<Person>({
+          columns: () => personColumns,
+          source: () => source,
+          state,
+          labels,
+        })
+        provideTableContext(table)
+        return () => h(TablePagination)
+      },
+    })
+    return mount(Host, { attachTo: document.body, global: { plugins } })
+  }
+
+  it('renders its own labels option in the primitives beneath', () => {
+    const wrapper = mountHandBuilt(() => ({ noRows: 'X' }))
+
+    expect(wrapper.text()).toContain('X')
+    wrapper.unmount()
+  })
+
+  it('inherits the app record when it is given no labels option', () => {
+    const wrapper = mountHandBuilt(undefined, [createTableLabels(ru)])
+
+    expect(wrapper.get('nav').attributes('aria-label')).toBe(ru.pagination)
+    expect(wrapper.text()).toContain(ru.noRows)
+    wrapper.unmount()
+  })
+
+  it('merges its option over the app record, per key', () => {
+    const wrapper = mountHandBuilt(() => ({ noRows: 'X' }), [createTableLabels(ru)])
+
+    expect(wrapper.text()).toContain('X')
+    expect(wrapper.get('nav').attributes('aria-label')).toBe(ru.pagination)
+    wrapper.unmount()
+  })
+
+  it('merges over English outside a component setup', () => {
+    const scope = effectScope()
+    const table = scope.run(() => {
+      const state = useTableState({ pageSize: 10 })
+      const source = useLocalDataSource<Person>(shallowRef<Person[]>([]), personColumns, state.query)
+      return useTable<Person>({
+        columns: () => personColumns,
+        source: () => source,
+        state,
+        labels: () => ({ noRows: 'X' }),
+      })
+    })!
+
+    expect(table.labels.value.noRows).toBe('X')
+    expect(table.labels.value.pagination).toBe(DEFAULT_LABELS.pagination)
+    scope.stop()
+  })
+
+  it('words an editing session outside a component setup in English', async () => {
+    const scope = effectScope()
+    const columns = personColumns.map((column) => ({
+      ...column,
+      editable: true,
+      required: column.id === 'name',
+    }))
+    const session = scope.run(() => {
+      const state = useTableState({ pageSize: 10 })
+      const source = useLocalDataSource<Person>(shallowRef([...people]), columns, state.query)
+      return useRowEditing<Person>(source, columns, { mode: 'cell', save: async () => {} })
+    })!
+    const row = people[0]!
+    const name = columns.find((column) => column.id === 'name')!
+    session.begin(row, 'name')
+    session.setValue(row, name, '')
+
+    await expect(session.commit(row)).resolves.toBe(false)
+    expect(session.errorFor(row.id, 'name')).toBe(DEFAULT_LABELS.required)
+    scope.stop()
   })
 })
 

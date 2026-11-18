@@ -2,7 +2,7 @@
  * The whole table, assembled — everything `<TableRoot>` used to do in a
  * component, with no component in it.
  */
-import { computed, onMounted, watch, watchEffect, type ComputedRef } from 'vue'
+import { computed, hasInjectionContext, onMounted, watch, watchEffect, type ComputedRef } from 'vue'
 import type {
   ColumnDef,
   ColumnGroupDef,
@@ -12,7 +12,7 @@ import type {
   RowId,
   SelectionMode,
 } from './types'
-import type { TableContext } from './context'
+import { useTableLabels, type TableContext } from './context'
 import { mergeLabels, type TableLabels } from './labels'
 import { useTableState, type TableState } from './useTableState'
 import { useColumns, type ColumnLayoutState } from './useColumns'
@@ -135,7 +135,9 @@ export interface UseTableOptions<TRow> {
    */
   blankGroupLabel?: string
   /**
-   * Wording for every string the table renders, over the English defaults.
+   * Wording for every string the table renders, over the app-wide
+   * `createTableLabels` record when called in a component's setup, else over
+   * the English defaults.
    *
    * A getter, like `columns` and `source`, so switching locale re-renders the
    * table rather than needing it remounted. Only the keys given are replaced.
@@ -209,13 +211,15 @@ export interface UseTable<TRow> extends TableContext<TRow> {
    */
   getRowKey: (row: TRow, index: number) => RowId
   /**
-   * The merged label record — the caller's overrides over the defaults.
+   * The merged label record — the caller's overrides over the app-wide record
+   * (or the English defaults outside a setup).
    *
    * On the return rather than on `TableContext` for the reason the theme is
    * published on its own key: a hand-built context must satisfy that interface
    * in full, and a full label record is not something a caller assembling
    * primitives should have to produce. `<TableRoot>` publishes this with
-   * `provideTableLabels`; a hand-built table can too.
+   * `provideTableLabels`; `provideTableContext` publishes it for a hand-built
+   * table.
    */
   labels: ComputedRef<TableLabels>
 }
@@ -237,7 +241,7 @@ export interface UseTable<TRow> extends TableContext<TRow> {
  *
  * ```ts
  * const table = useTable({ columns: () => columns, source: () => source })
- * provideTableContext(table)   // only if primitives beneath need to find it
+ * provideTableContext(table)   // only if primitives beneath need to find it; publishes table.labels too
  * ```
  *
  * `TRow` is unconstrained, like every other composable in `core/`.
@@ -256,8 +260,9 @@ export function useTable<TRow>(
    * through `blankGroupOf` below. That is work that was asked for, not an
    * accident of where the record sits.
    */
+  const inherited = hasInjectionContext() ? useTableLabels() : undefined
   const labels = computed(() => {
-    const merged = mergeLabels(options.labels?.())
+    const merged = mergeLabels(options.labels?.(), inherited?.value)
     const locale = options.locale?.()
     return locale === undefined ? merged : { ...merged, locale }
   })

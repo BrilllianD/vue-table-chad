@@ -479,7 +479,7 @@ const table = useTable<Person>({
   selectable: () => true,
 })
 
-provideTableContext(table)      // only if primitives beneath need to find it
+provideTableContext(table)      // only if primitives beneath need to find it; publishes table.labels too
 ```
 
 Options are **getters wherever the value can change** — a composable has no props to watch, so you

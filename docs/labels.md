@@ -237,11 +237,14 @@ const table = useTable({ columns, source, state, labels: () => fr })
 A getter, matching `columns` and `source`, so a locale switch is reactive at
 every layer.
 
-`DataTable` and `TableRoot` merge that prop over whatever `createTableLabels`
-installed, rather than over English — the app-wide record is the base, the prop
-is the override. `useTable` does not: it is a composable, its wording arrives as
-an option, and injecting behind the caller's back would make the option and the
-plugin disagree with no way to see which won.
+`DataTable`, `TableRoot` and `useTable` merge their labels over whatever
+`createTableLabels` installed, rather than over English: the app-wide record is
+the base, the prop or option is the override, per key. `useTable` and
+`useRowEditing` do so when they are called in a component's setup, where the
+plugin can be read; called outside one, they merge over English.
+`provideTableContext(table)` publishes the table's labels with its context, so
+the primitives beneath a hand-built table render the same wording as its
+pipeline.
 
 Primitives read the record out of an injection rather than a prop, on a key of
 their own — `provideTableLabels` / `useTableLabels` — for the reason the theme
@@ -275,7 +278,9 @@ validateCell(value, column, row, labels)
 ```
 
 `useRowEditing` takes a `labels` option of its own, because an editing session is
-built before the table it belongs to and handed in.
+built before the table it belongs to and handed in. It inherits the app-wide record
+like a table does; a `labels` prop on one `DataTable` does not reach it, so pass the
+same override to both.
 
 One label is not purely presentational: `blankGroup`, the caption on the group
 holding rows whose grouped value is empty. It is part of each blank group's header,

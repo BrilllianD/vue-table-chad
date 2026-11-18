@@ -5,6 +5,12 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- Fix: `useRowEditing` and `useTable` built in a component's setup merge their `labels` over the
+  `createTableLabels` record instead of English, so editing messages (`required`, the parse
+  messages, `saveFailed`) and a hand-built table follow the app's locale; `provideTableContext` now
+  also publishes a `useTable` result's labels, so primitives beneath a hand-built table render its
+  wording. A `provideTableLabels` call made before `provideTableContext` in the same component is
+  now replaced by the table's labels. (#33)
 - Changed: the doc comments of `OPERATOR_LABELS`, `BLANK_GROUP_LABEL`, `REQUIRED_MESSAGE` and
   `SAVE_FAILED_MESSAGE` now say they are the English values and do not follow `labels` or a locale;
   read the table's labels instead. (#33)

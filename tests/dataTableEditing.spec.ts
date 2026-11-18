@@ -1,12 +1,23 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, effectScope, h, nextTick, ref, shallowRef, type VNode } from 'vue'
+import {
+  defineComponent,
+  effectScope,
+  h,
+  nextTick,
+  ref,
+  shallowRef,
+  type Plugin,
+  type VNode,
+} from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import StaticSelect from '../src/components/primitives/StaticSelect.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { useRowEditing, type EditMode, type RowChange } from '../src/core/useRowEditing'
 import { useAsyncOptions } from '../src/core/useAsyncOptions'
+import { createTableLabels } from '../src/core/plugin'
+import { ru } from '../src/locales'
 import { replaceRowIn } from '../src/core/editing'
 import { toDisplayNumber, toMachineNumber } from '../src/core/numberMask'
 import type { ColumnDef, FilterValue } from '../src/core/types'
@@ -43,6 +54,7 @@ function mountEditable(
   sessionOptions: SessionOptions = {},
   mode: EditMode = 'cell',
   slots?: Record<string, (props: EditorSlotProps) => VNode>,
+  plugins: Plugin[] = [],
 ) {
   const rows = shallowRef<Person[]>([...people])
   const editMode = ref<EditMode>(mode)
@@ -67,7 +79,7 @@ function mountEditable(
     },
   })
 
-  const wrapper = mount(Host, { attachTo: document.body })
+  const wrapper = mount(Host, { attachTo: document.body, global: { plugins } })
   return { wrapper, rows, saves, editMode, session: () => session }
 }
 
@@ -92,6 +104,37 @@ function pickOption(label: string): void {
   if (!option) throw new Error(`no option ${label}`)
   ;(option as HTMLElement).click()
 }
+
+describe('under an app-wide locale', () => {
+  async function blankName(h: ReturnType<typeof mountEditable>) {
+    await openEditor(h.wrapper, 'name')
+    const input = cell(h.wrapper, 'name').find('input')
+    await input.setValue('')
+    await input.trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    await nextTick()
+  }
+
+  it('words a blank required cell from the app record', async () => {
+    const h = mountEditable({}, 'cell', undefined, [createTableLabels(ru)])
+    await blankName(h)
+
+    expect(h.saves).toHaveLength(0)
+    expect(cell(h.wrapper, 'name').find('input').attributes('title')).toBe(ru.required)
+    expect(cell(h.wrapper, 'name').find('[role="alert"]').text()).toBe(ru.required)
+    h.wrapper.unmount()
+  })
+
+  it('lets the session labels option win per key', async () => {
+    const h = mountEditable({ labels: { required: 'Нужно' } }, 'cell', undefined, [
+      createTableLabels(ru),
+    ])
+    await blankName(h)
+
+    expect(cell(h.wrapper, 'name').find('[role="alert"]').text()).toBe('Нужно')
+    h.wrapper.unmount()
+  })
+})
 
 describe('a table with no editing session', () => {
   it('renders each cell exactly as it always did — no wrapper, no trigger', () => {
