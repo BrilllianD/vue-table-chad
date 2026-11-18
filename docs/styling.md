@@ -137,6 +137,9 @@ once they are open. Custom properties inherit through
 the DOM, so without that they would render in the OS's colours next to a table that is not — which
 is the same reason `.vt-portal` re-declares the whole palette in the first place.
 
+The same goes for a `data-vtc-theme` palette: set on a wrapper element rather than on `<html>`, it
+reaches the table but not the teleported panels, so set it on `<html>`.
+
 Thirty ready-made palettes — Dracula, Nord, Catppuccin, Gruvbox and the rest — ship as opt-in
 stylesheets and need none of the above: see [Theme presets](themes.md). What follows is for a
 palette of your own.

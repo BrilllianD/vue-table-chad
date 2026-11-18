@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, mount, type VueWrapper } from '@vue/test-utils'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import TableRoot from '../src/components/primitives/TableRoot.vue'
@@ -18,6 +18,13 @@ import {
   personColumns,
   type Person,
 } from './fixtures'
+
+// A failed assertion skips the case's own `wrapper.unmount()`; without this the
+// teleported panel stays in <body> and the next case's lookup finds it.
+enableAutoUnmount(afterEach)
+afterEach(() => {
+  document.body.querySelectorAll('.vt-portal').forEach((node) => node.remove())
+})
 
 const columns = personColumns.map((column) =>
   column.id === 'name' ? { ...column, accessor: (row: Person) => row.name } : column,

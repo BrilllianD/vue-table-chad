@@ -1,10 +1,17 @@
-import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { afterEach, describe, expect, it } from 'vitest'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { people, personColumns, type Person } from './fixtures'
+
+// A failed assertion skips the case's own `wrapper.unmount()`; without this the
+// teleported panel stays in <body> and the next case's lookup finds it.
+enableAutoUnmount(afterEach)
+afterEach(() => {
+  document.body.querySelectorAll('.vt-portal').forEach((node) => node.remove())
+})
 
 /**
  * Reordering inside a dropdown panel used to close it: the browser sends a

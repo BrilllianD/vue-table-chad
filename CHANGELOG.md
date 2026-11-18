@@ -10,7 +10,9 @@ Releases up to 0.6.0 are described in their `Release version` commits
   above a dialog window or modal. The columns and group-by menus are teleported to `<body>` like
   the filter panel, so a window frame no longer clips them. Consumer CSS scoped under
   `.vt-datatable` (a descendant selector, or a token set only on `.vt-datatable`) no longer reaches
-  those two panels; style them through `.vt-portal` or `.vt-datatable, .vt-portal`. (#37)
+  those two panels; style them through `.vt-portal` or `.vt-datatable, .vt-portal`. A
+  `data-vtc-theme` palette set on a wrapper element other than `<html>` no longer reaches them
+  either; set it on `<html>`. (#37)
 
 ## 0.6.1
 

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { afterEach, describe, expect, it } from 'vitest'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { defineComponent, effectScope, h, nextTick, ref } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
@@ -13,6 +13,13 @@ import {
   personColumns,
   type Person,
 } from './fixtures'
+
+// A failed assertion skips the case's own `wrapper.unmount()`; without this the
+// teleported panel stays in <body> and the next case's lookup finds it.
+enableAutoUnmount(afterEach)
+afterEach(() => {
+  document.body.querySelectorAll('.vt-portal').forEach((node) => node.remove())
+})
 
 describe('useTableState grouping', () => {
   it('starts ungrouped and reports no levels', () => {
