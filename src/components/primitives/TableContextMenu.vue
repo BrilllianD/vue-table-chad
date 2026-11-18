@@ -19,7 +19,7 @@ import { requireTableContext, useTableLabels, useTableTheme } from '../../core/c
 import { valuesFilter } from '../../core/filters/model'
 import { isBlank, toFilterValue } from '../../core/utils/values'
 import type { ColumnDataType, ResolvedColumn, RowId } from '../../core/types'
-import { useMenuDismiss } from './useMenuDismiss'
+import { closeOnEscape, useMenuDismiss } from './useMenuDismiss'
 import { usePopoverPosition } from './usePopoverPosition'
 
 const props = withDefaults(
@@ -288,6 +288,12 @@ function contains(node: Node): boolean {
   return Boolean(panel.value?.contains(node))
 }
 
+// The root and the teleported panel both need it: a key pressed in the panel bubbles through
+// <body>, not through the root.
+function onEscape(event: KeyboardEvent): void {
+  closeOnEscape(event, open)
+}
+
 const onFocusOut = useMenuDismiss(open, contains)
 
 /** The items as elements, in document order — what the arrow keys walk. */
@@ -358,7 +364,7 @@ watch(column, (current) => {
       role="menu"
       :aria-label="labels.contextMenu"
       @focusout="onFocusOut"
-      @keydown.esc.stop="close"
+      @keydown.esc="onEscape"
       @keydown="onKeydown"
     >
       <button

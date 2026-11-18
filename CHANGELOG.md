@@ -13,6 +13,10 @@ Releases up to 0.6.0 are described in their `Release version` commits
   those two panels; style them through `.vt-portal` or `.vt-datatable, .vt-portal`. A
   `data-vtc-theme` palette set on a wrapper element other than `<html>` no longer reaches them
   either; set it on `<html>`. (#37)
+- Fix: the columns menu, the group-by menu and the filter popover now stop the Escape that closes
+  them (preventDefault and stopPropagation), as the right-click menu now also does, so a table
+  inside a modal or dialog window no longer closes the window on the same key. An Escape that closes
+  nothing, or ends an IME composition, still reaches the page. (#37)
 
 ## 0.6.1
 

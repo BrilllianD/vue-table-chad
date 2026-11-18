@@ -1,6 +1,7 @@
 /**
  * Dismissal for the dropdown panels (`ColumnVisibilityMenu`, `RowGroupMenu`),
- * and the focus bookkeeping their ↑/↓ reorder buttons need.
+ * and the focus bookkeeping their ↑/↓ reorder buttons need. `ColumnFilterPopover`
+ * and `TableContextMenu` share `closeOnEscape` from here too.
  *
  * Internal to `components/primitives/` — not part of the public API.
  */
@@ -42,6 +43,26 @@ export function useMenuDismiss(
     if (!next || contains(next)) return
     open.value = false
   }
+}
+
+/**
+ * The Escape rule for a table overlay: close it, and consume the key that closed it.
+ *
+ * Returns without touching the event when
+ * - the overlay is closed: the key belongs to whatever hosts the table;
+ * - `defaultPrevented`: a control inside the panel already used it;
+ * - the key ends an IME composition: that Escape cancels the composition, the same guard
+ *   `CellEditor.vue` `onKeydown` uses.
+ *
+ * Otherwise it calls both `preventDefault` and `stopPropagation`. `preventDefault` is what a
+ * capture-phase host checks; `stopPropagation` keeps a bubble-phase ancestor (a modal, an app
+ * shortcut) from closing on the same press.
+ */
+export function closeOnEscape(event: KeyboardEvent, open: Ref<boolean>): void {
+  if (!open.value || event.defaultPrevented || event.isComposing || event.keyCode === 229) return
+  event.preventDefault()
+  event.stopPropagation()
+  open.value = false
 }
 
 /**

@@ -16,6 +16,7 @@ import type {
   FilterValue,
   ValuesFilter,
 } from '../../core/types'
+import { closeOnEscape } from './useMenuDismiss'
 import { usePopoverPosition } from './usePopoverPosition'
 import ValueListFilter from './ValueListFilter.vue'
 import ConditionFilter from './ConditionFilter.vue'
@@ -175,6 +176,12 @@ function contains(node: Node): boolean {
   return Boolean(root.value?.contains(node) || panel.value?.contains(node))
 }
 
+// The root and the teleported panel both need it: a key pressed in the panel bubbles through
+// <body>, not through the root.
+function onEscape(event: KeyboardEvent): void {
+  closeOnEscape(event, open)
+}
+
 /**
  * Close when focus leaves for somewhere else. A null `relatedTarget` means the
  * click landed on something unfocusable — often the panel's own padding — so
@@ -189,7 +196,7 @@ function onFocusOut(event: FocusEvent): void {
 </script>
 
 <template>
-  <div ref="root" class="vt-filter" @focusout="onFocusOut" @keydown.esc="open = false">
+  <div ref="root" class="vt-filter" @focusout="onFocusOut" @keydown.esc="onEscape">
     <button
       type="button"
       class="vt-filter-trigger"
@@ -221,7 +228,7 @@ function onFocusOut(event: FocusEvent): void {
         role="dialog"
         :aria-label="labels.filterColumn(label ?? columnId)"
         @focusout="onFocusOut"
-        @keydown.esc="open = false"
+        @keydown.esc="onEscape"
       >
       <div class="vt-filter-tabs" role="tablist">
         <button

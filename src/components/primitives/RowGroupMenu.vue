@@ -11,7 +11,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { requireTableContext, useTableLabels, useTableTheme } from '../../core/context'
 import SelectionCheckbox from './SelectionCheckbox.vue'
-import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
+import { closeOnEscape, refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
 import { usePopoverPosition } from './usePopoverPosition'
 
 const props = defineProps<{
@@ -66,6 +66,12 @@ async function move(event: MouseEvent, columnId: string, delta: number): Promise
   await refocusAfterMove(event.currentTarget as HTMLElement, delta)
 }
 
+// The root and the teleported panel both need it: a key pressed in the panel bubbles through
+// <body>, not through the root.
+function onEscape(event: KeyboardEvent): void {
+  closeOnEscape(event, open)
+}
+
 const onFocusOut = useMenuDismiss(open, (node) =>
   Boolean(root.value?.contains(node) || panel.value?.contains(node)),
 )
@@ -92,7 +98,7 @@ watch(open, (isOpen) => {
 </script>
 
 <template>
-  <div ref="root" class="vt-group-menu" @focusout="onFocusOut" @keydown.esc="open = false">
+  <div ref="root" class="vt-group-menu" @focusout="onFocusOut" @keydown.esc="onEscape">
     <div class="vt-group-trigger">
       <button
         type="button"
@@ -143,7 +149,7 @@ watch(open, (isOpen) => {
       role="dialog"
       :aria-label="labels.groupingOptions"
       @focusout="onFocusOut"
-      @keydown.esc="open = false"
+      @keydown.esc="onEscape"
     >
       <!-- The actions lead, because the option list below grows with the column count. -->
       <div class="vt-group-actions">

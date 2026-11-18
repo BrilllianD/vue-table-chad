@@ -195,6 +195,18 @@ dropdown to open on: the two rules can never both answer one key. `Alt`+`‚Üê`/`‚
 keyboard reorder gesture on a header (see [Column layout](column-layout.md)), and in the body most
 browsers spend it on history navigation.
 
+## Escape inside a window or modal
+
+The columns menu, the group-by menu, the filter popover and the right-click menu each close on
+`Esc`, and the `Esc` that closes one stops there: it is `preventDefault`ed and does not bubble. A
+table inside a dialog window or modal therefore closes the menu first, and the window only on the
+next `Esc`.
+
+An `Esc` that closes nothing, and one that ends an IME composition, is left alone for the page. A
+host's own Escape handler should ignore events with `defaultPrevented` set, which matters for one
+listening in the capture phase: it sees the key before the overlay can consume it. The cell editor
+and the select's list already worked this way (the row `Esc` in the table above is unchanged).
+
 ## One tab stop, not one per cell
 
 The grid uses a **roving tabindex**: exactly one cell carries `tabindex="0"` and every other cell

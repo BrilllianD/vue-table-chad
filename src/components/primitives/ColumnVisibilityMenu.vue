@@ -10,7 +10,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { requireTableContext, useTableLabels, useTableTheme } from '../../core/context'
 import type { PinSide } from '../../core/types'
 import SelectionCheckbox from './SelectionCheckbox.vue'
-import { refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
+import { closeOnEscape, refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
 import { usePopoverPosition } from './usePopoverPosition'
 
 const props = defineProps<{
@@ -62,6 +62,12 @@ function cyclePin(columnId: string, current: PinSide | false): void {
   context.columns.setPinned(columnId, next)
 }
 
+// The root and the teleported panel both need it: a key pressed in the panel bubbles through
+// <body>, not through the root.
+function onEscape(event: KeyboardEvent): void {
+  closeOnEscape(event, open)
+}
+
 const onFocusOut = useMenuDismiss(open, (node) =>
   Boolean(root.value?.contains(node) || panel.value?.contains(node)),
 )
@@ -88,7 +94,7 @@ watch(open, (isOpen) => {
 </script>
 
 <template>
-  <div ref="root" class="vt-columns-menu" @focusout="onFocusOut" @keydown.esc="open = false">
+  <div ref="root" class="vt-columns-menu" @focusout="onFocusOut" @keydown.esc="onEscape">
     <button type="button" class="vt-btn" :aria-expanded="open" @click="open = !open">
       {{ triggerLabel }} ▾
     </button>
@@ -103,7 +109,7 @@ watch(open, (isOpen) => {
       role="dialog"
       :aria-label="labels.columnOptions"
       @focusout="onFocusOut"
-      @keydown.esc="open = false"
+      @keydown.esc="onEscape"
     >
       <!-- The actions lead, because the row list below grows with the column count. -->
       <div class="vt-columns-actions">
