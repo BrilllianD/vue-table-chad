@@ -11,8 +11,10 @@ Releases up to 0.6.0 are described in their `Release version` commits
   `onSaved` throw (`commit` now rejects), cancelling an optimistic save rolls the edit back, typing
   is refused while a row is saving, the patch carries only the fields that changed, parse errors
   are kept, and `applyCellValue` keeps a class row's prototype (#23).
-- Fix: selecting all matching rows honours `isSelectable`, `count` equals `selectedRows.length`,
-  and a range selection walks display order (#21).
+- Fix: selecting all matching rows honours `isSelectable`, and a range selection walks display
+  order. In all-matching mode over a local source `count` is now `selectedRows.length`, the
+  selectable matching rows; it used to be `total - excluded.length`, which also counted rows that
+  `isSelectable` refuses (#21).
 - Added: optional `rangeRows` in `UseRowSelectionOptions`, the rows a shift-range walks (#21).
 - Fix: the values filter's Apply keeps values the checklist could not show (hidden by other
   filters or the search), applies only the checked matches under a search, is disabled while
