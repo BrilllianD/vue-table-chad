@@ -130,10 +130,10 @@ Two habits keep the pipeline honest, both argued out with their numbers in `src/
   props and their defaults, emits, slots, exposed members, label keys, `--vtc-*` names). It is a
   floor: a diff there is a surface change, updated with `pnpm test publicApi -u` in the same commit,
   but a clean diff does not mean "not breaking". Check by hand what it cannot see: composable
-  options and return members, a prop, slot prop or type export retyped narrower, a changed object
-  or array default, the members of a `[dynamic]` slot family, `.vt-` classes and `data-*`
-  attributes, `exports` subpaths, the `vue` peer floor. The `RELEASING.md` list decides whether the
-  `CHANGELOG.md` bullet starts `**Breaking:**`.
+  options and return members, a prop, slot prop, emit payload, exposed member or type export
+  retyped narrower, a changed object or array default, the members of a `[dynamic]` slot family,
+  `.vt-` classes and `data-*` attributes, `exports` subpaths, the `vue` peer floor. The
+  `RELEASING.md` list decides whether the `CHANGELOG.md` bullet starts `**Breaking:**`.
 - **One task, one commit.** No batching, no work-in-progress commits spanning tasks. `pnpm test`
   green, `pnpm typecheck` and `pnpm lint` clean before each. A task whose done-when is not met does not get
   committed; it gets finished, or split into a smaller task that is complete. The subject names the
