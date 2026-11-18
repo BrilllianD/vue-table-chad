@@ -55,8 +55,8 @@ export function useMenuDismiss(
  *   `CellEditor.vue` `onKeydown` uses.
  *
  * Otherwise it calls both `preventDefault` and `stopPropagation`. `preventDefault` is what a
- * capture-phase host checks; `stopPropagation` keeps a bubble-phase ancestor (a modal, an app
- * shortcut) from closing on the same press.
+ * bubble-phase host checks (a capture-phase one runs first and cannot see it); `stopPropagation`
+ * keeps a bubble-phase ancestor (a modal, an app shortcut) from closing on the same press.
  */
 export function closeOnEscape(event: KeyboardEvent, open: Ref<boolean>): void {
   if (!open.value || event.defaultPrevented || event.isComposing || event.keyCode === 229) return

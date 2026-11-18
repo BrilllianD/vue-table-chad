@@ -145,6 +145,17 @@ describe.each(overlays)('$name Escape', ({ panel, trigger }) => {
     await settle()
     expect(document.body.querySelector(panel)).not.toBeNull()
   })
+
+  it('leaves an Escape with keyCode 229 alone', async () => {
+    await open()
+    const inside = document.body.querySelector(panel)!.querySelector('button')!
+    const { event, reachedDocument } = press(inside, { keyCode: 229 })
+    expect(event.defaultPrevented).toBe(false)
+    expect(event.cancelBubble).toBe(false)
+    expect(reachedDocument).toBe(true)
+    await settle()
+    expect(document.body.querySelector(panel)).not.toBeNull()
+  })
 })
 
 describe('TableContextMenu Escape', () => {

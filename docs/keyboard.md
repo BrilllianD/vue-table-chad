@@ -203,9 +203,10 @@ table inside a dialog window or modal therefore closes the menu first, and the w
 next `Esc`.
 
 An `Esc` that closes nothing, and one that ends an IME composition, is left alone for the page. A
-host's own Escape handler should ignore events with `defaultPrevented` set, which matters for one
-listening in the capture phase: it sees the key before the overlay can consume it. The cell editor
-and the select's list already worked this way (the row `Esc` in the table above is unchanged).
+host's own Escape handler should listen in the bubble phase and skip events with `defaultPrevented`
+(or `isComposing`) set. A capture-phase handler on `document` or `window` runs before the overlay
+and cannot see it consume the key. The cell editor and the select's list already worked this way
+(the `Esc` row in [The keys](#the-keys) is unchanged).
 
 ## One tab stop, not one per cell
 
