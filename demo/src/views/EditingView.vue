@@ -287,10 +287,13 @@ const editableColumns = computed(() =>
       show-footer
       @row-saved="onRowSaved"
     >
-      <template #editor:country="{ value, update, cancel, blur }">
+      <template #editor:country="{ value, column, error, disabled, update, cancel, blur }">
         <StaticSelect
-          :options="columns.find((c) => c.id === 'country')?.options ?? []"
+          :options="column.options"
           :value="value"
+          :error="error"
+          :disabled="disabled"
+          :label="column.header ?? column.id"
           autofocus
           @update:value="update"
           @blur="blur"

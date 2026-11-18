@@ -476,10 +476,13 @@ has left the panel as well as the trigger, which `StaticSelect` already does:
 
 ```vue
 <DataTable :columns="columns" :source="source" :state="state" :editing="editing">
-  <template #editor:country="{ value, column, update, cancel, blur }">
+  <template #editor:country="{ value, column, error, disabled, update, cancel, blur }">
     <StaticSelect
       :options="column.options"
       :value="value"
+      :error="error"
+      :disabled="disabled"
+      :label="column.header ?? column.id"
       autofocus
       @update:value="update"
       @blur="blur"

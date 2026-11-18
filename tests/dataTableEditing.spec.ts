@@ -646,6 +646,7 @@ describe('a slotted editor', () => {
         'onUpdate:value': props.update,
         onBlur: props.blur,
         onKeydown: (event: KeyboardEvent) => {
+          if (event.key !== 'Escape') return
           if (event.defaultPrevented || event.isComposing) return
           event.preventDefault()
           event.stopPropagation()
@@ -684,11 +685,15 @@ describe('a slotted editor', () => {
 
   it('does not commit when focus moves into the panel', async () => {
     const table = mountEditable({}, 'cell', slots)
-    await openEditor(table.wrapper, 'department')
+    await pick(table)
+    // Picking closes the panel; reopen it so there is a panel to move into.
+    await cell(table.wrapper, 'department').find('.vt-select-trigger').trigger('click')
     await vi.waitFor(() => expect(document.querySelector('.vt-select-panel')).not.toBeNull())
     leave(table, document.querySelector('.vt-select-panel') as Element)
     await nextTick()
     expect(table.saves).toHaveLength(0)
+    expect(cell(table.wrapper, 'department').find('.vt-cell-editor').exists()).toBe(true)
+    expect(document.querySelector('.vt-select-panel')).not.toBeNull()
     table.wrapper.unmount()
   })
 
@@ -715,6 +720,9 @@ describe('a slotted editor', () => {
     leave(table, outside())
     await nextTick()
     expect(table.saves).toHaveLength(0)
+    const open = [...table.session().drafts.value.values()][0]!
+    expect(open.draft.department).toBe('Research')
+    expect(open.status).toBe('editing')
     table.wrapper.unmount()
   })
 })
