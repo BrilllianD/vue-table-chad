@@ -26,7 +26,8 @@ Knowledge base: ~/mem/projects/packages/README.md (search: qmd search "<terms>" 
 ## Commands
 
 ```bash
-pnpm test          # vitest
+pnpm test          # vitest run: unit (happy-dom, TZ America/Los_Angeles) and browser (system Chromium; E2E_CHROMIUM overrides)
+pnpm test --project unit   # no browser needed
 pnpm test <name>   # one file, e.g. pnpm test sorting
 pnpm typecheck     # vue-tsc --noEmit
 pnpm lint          # eslint — gates in CI

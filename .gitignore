@@ -6,3 +6,5 @@ dist
 docs/.vitepress/dist
 docs/.vitepress/cache
 *.tgz
+tests/__screenshots__/
+.vitest-attachments/

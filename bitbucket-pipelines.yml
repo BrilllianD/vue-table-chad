@@ -34,6 +34,11 @@ pipelines:
           - corepack enable
           - pnpm install --frozen-lockfile
           - pnpm typecheck
+          # The browser project runs inside `pnpm test` and the image ships no
+          # browser, so install Debian's Chromium and point the config at it.
+          # `playwright install` is never used.
+          - apt-get update && apt-get install -y --no-install-recommends chromium
+          - export E2E_CHROMIUM=/usr/bin/chromium
           - pnpm test
           - pnpm build
           - pnpm size

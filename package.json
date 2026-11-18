@@ -80,10 +80,13 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitejs/plugin-vue": "6.0.8",
+    "@vitest/browser": "4.1.10",
+    "@vitest/browser-playwright": "4.1.10",
     "@vue/test-utils": "2.4.11",
     "eslint": "^10.9.1",
     "eslint-plugin-vue": "^10.10.0",
     "happy-dom": "^20.0.0",
+    "playwright": "1.62.1",
     "shiki": "2.5.0",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.68.0",
