@@ -5,6 +5,8 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+## 0.6.1
+
 - Fix: the cell editor opens on the value the cell holds, and the number mask lets a Delete or
   Backspace through on exponent numbers (#20, #23).
 - Fix: the save lifecycle. A successful save no longer aborts its own signal or swallows an
