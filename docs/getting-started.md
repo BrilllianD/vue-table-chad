@@ -247,8 +247,9 @@ Events: `update:query(query)`, `update:selection(ids)`, `update:selectionState(s
 `rowDblclick` fires once per double click, after the two `rowClick`s. It does not fire when the
 double click lands on a button, input, select, textarea, link, label or contenteditable element
 (an open editor included), or anywhere in the selection cell (its padding too). While `editing` is
-set it also does not fire for a plain double click on a cell that opens an editor; a double click
-with Shift, Ctrl, Cmd or Alt held on such a cell still fires it.
+set it also does not fire for a plain double click on a cell that opens an editor; in a table
+with a cell cursor a double click with Shift, Ctrl, Cmd or Alt held on such a cell still fires it
+(without a cursor the cell content is a button, which never does).
 
 `export` fires *before* the download, carrying the serialised text; `preventDefault()` on the
 payload cancels it, for a consumer who would rather POST the text or name the file from the query.
