@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { effectScope, h, nextTick } from 'vue'
+import { effectScope, h, nextTick, type Plugin } from 'vue'
 import { mount } from '@vue/test-utils'
 import CellEditor from '../src/components/primitives/CellEditor.vue'
 import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import type { ColumnDef } from '../src/core/types'
+import { createTableLabels } from '../src/core/plugin'
 import { toDisplayNumber, toMachineNumber } from '../src/core/numberMask'
 
 /**
@@ -27,9 +28,14 @@ type Row = Record<string, unknown>
  * cheapest way to test the keyboard rules, which are the point of the
  * component.
  */
-function editor(column: ColumnDef<Row>, props: Record<string, unknown> = {}) {
+function editor(
+  column: ColumnDef<Row>,
+  props: Record<string, unknown> = {},
+  global: { plugins?: Plugin[] } = {},
+) {
   return mount(CellEditor, {
     props: { column, value: null, ...props },
+    global,
     attachTo: document.body,
   })
 }
@@ -167,6 +173,18 @@ describe('what it emits', () => {
 
     await wrapper.setProps({ value: '1234000' })
     expect((input.element as HTMLInputElement).value).toBe(display('1234000'))
+  })
+
+  it('reads and shows a number by the labels locale', async () => {
+    const wrapper = editor(number, {}, { plugins: [createTableLabels({ locale: 'ru-RU' })] })
+    const input = wrapper.find('input')
+    await input.setValue('5,5')
+    expect(wrapper.emitted('update:value')![0]).toEqual(['5.5'])
+    expect((input.element as HTMLInputElement).value).toBe('5,5')
+
+    await input.setValue('1234,5')
+    expect(wrapper.emitted('update:value')!.at(-1)).toEqual(['1234.5'])
+    expect((input.element as HTMLInputElement).value).toBe('1\u00a0234,5')
   })
 
   it('keeps the caret where the typing was, not where the index was', async () => {

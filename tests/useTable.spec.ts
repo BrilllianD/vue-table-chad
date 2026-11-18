@@ -27,6 +27,22 @@ function setup(options: Partial<UseTableOptions<Person>> = {}) {
   return { table, dispose: () => scope.stop() }
 }
 
+describe('useTable locale', () => {
+  const ru = { locale: 'ru-RU' }
+
+  it('takes the labels locale, outranked by the option', () => {
+    const a = setup({ labels: () => ru })
+    expect(a.table.labels.value.locale).toBe('ru-RU')
+    a.dispose()
+    const b = setup({ labels: () => ru, locale: () => 'en-US' })
+    expect(b.table.labels.value.locale).toBe('en-US')
+    b.dispose()
+    const c = setup()
+    expect(c.table.labels.value.locale).toBeUndefined()
+    c.dispose()
+  })
+})
+
 describe('useTable without a component', () => {
   it('assembles a context from nothing but options', () => {
     const { table, dispose } = setup()

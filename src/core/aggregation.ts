@@ -12,8 +12,18 @@ import { isBlank, toNumber } from './utils/values'
  * the same code serve a band, a nested band and the footer.
  */
 
-/** Shared, because constructing a formatter per cell per render is not free. */
-const numberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 })
+const numberFormats = new Map<string, Intl.NumberFormat>()
+
+/** Shared per locale, because constructing a formatter per cell per render is not free. */
+function numberFormatFor(locale?: string): Intl.NumberFormat {
+  const key = locale ?? ''
+  let format = numberFormats.get(key)
+  if (!format) {
+    format = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })
+    numberFormats.set(key, format)
+  }
+  return format
+}
 
 function sumOrAverage<TRow>(
   rows: readonly TRow[],
@@ -199,12 +209,13 @@ export function aggregateGroups<TRow>(
 export function formatAggregate<TRow>(
   result: AggregateResult<TRow>,
   column: ColumnDef<TRow>,
+  locale?: string,
 ): string {
   if (column.aggregateFormat) return column.aggregateFormat(result)
   if (result.value === null || result.value === undefined) return ''
   if (column.format && result.row !== undefined) {
     return column.format(result.value, result.row)
   }
-  if (typeof result.value === 'number') return numberFormat.format(result.value)
+  if (typeof result.value === 'number') return numberFormatFor(locale).format(result.value)
   return String(result.value)
 }

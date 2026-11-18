@@ -278,6 +278,8 @@ const props = withDefaults(
      * itself. The three message props above win over it where both are given.
      */
     labels?: Partial<TableLabels>
+    /** BCP 47 tag for number and text handling; outranks the labels' `locale`. */
+    locale?: string
     /**
      * An editing session from `useRowEditing`. Without one every cell renders
      * read-only, and the table costs exactly what it always did.
@@ -394,6 +396,7 @@ const props = withDefaults(
     emptyMessage: undefined,
     loadingMessage: undefined,
     labels: undefined,
+    locale: undefined,
   },
 )
 
@@ -1300,6 +1303,7 @@ function onPaste(
     :groups-collapsed="groupsCollapsed"
     :blank-group-label="blankGroupLabel"
     :labels="words"
+    :locale="locale"
     :editing="editing"
     :cell-cursor="cellCursor"
     :initial-cursor="initialCursor"

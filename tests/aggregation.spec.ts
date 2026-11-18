@@ -164,6 +164,12 @@ describe('aggregateGroups', () => {
 })
 
 describe('formatAggregate', () => {
+  it('groups and separates by the given locale', () => {
+    const total = { id: 'total', header: 'Total', type: 'number', aggregate: 'sum' } as ColumnDef<Person>
+    const rows = [{ total: 1234.5 }] as unknown as Person[]
+    expect(formatAggregate(aggregateValue(rows, total)!, total, 'ru-RU')).toBe('1\u00a0234,5')
+  })
+
   it('prefers aggregateFormat', () => {
     const salary = column('salary', {
       aggregate: 'sum',

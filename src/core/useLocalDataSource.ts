@@ -1,5 +1,6 @@
 import {
   computed,
+  hasInjectionContext,
   onScopeDispose,
   ref,
   toValue,
@@ -18,9 +19,10 @@ import { computeFacets, filterRows } from './filters/facets'
 import { sortRows, type SortOptions } from './sorting'
 import { countGroups, groupedSort } from './grouping'
 import { aggregateGroups } from './aggregation'
+import { useTableLabels } from './context'
 
-/** nullsLast, and debounceMs to coalesce the global search. */
-export interface LocalDataSourceOptions extends SortOptions {
+/** nullsLast, the text locale, and debounceMs to coalesce the global search. */
+export interface LocalDataSourceOptions extends Omit<SortOptions, 'locale'> {
   /**
    * Coalesces the global search, in milliseconds. Every keystroke otherwise
    * re-filters and re-sorts the entire dataset synchronously, on the input
@@ -34,6 +36,14 @@ export interface LocalDataSourceOptions extends SortOptions {
    * right choice for small datasets and for tests that assert on the next line.
    */
   debounceMs?: number
+  /**
+   * BCP 47 tag that orders text and enum columns and the value checklist.
+   *
+   * Left out, a source created in a component's setup takes the `locale` of the
+   * labels above it (`createTableLabels(ru)` sets one), and otherwise the
+   * runtime's own locale orders. A ref or getter re-sorts once when it changes.
+   */
+  locale?: MaybeRefOrGetter<string | undefined>
 }
 
 /** One shared empty grouping, so an absent `groupBy` is a stable reference. */
@@ -101,6 +111,14 @@ export function useLocalDataSource<TRow>(
    * way and for the same reason.
    */
   const debounceMs = options.debounceMs ?? 150
+
+  // Read once here, in setup: `inject` has nothing to find later. A string
+  // computed, so rewording a label does not wake the sort.
+  const inherited =
+    options.locale === undefined && hasInjectionContext() ? useTableLabels() : undefined
+  const localeOf = computed(() =>
+    options.locale !== undefined ? toValue(options.locale) : inherited?.value.locale,
+  )
   const settledSearch = ref(searchOf.value)
   let searchTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -150,7 +168,10 @@ export function useLocalDataSource<TRow>(
   const effectiveSort = computed(() => groupedSort(sortOf.value, groupByOf.value))
 
   const sorted = computed<TRow[]>(() =>
-    sortRows(filtered.value, effectiveSort.value, allColumns.value, options),
+    sortRows(filtered.value, effectiveSort.value, allColumns.value, {
+      nullsLast: options.nullsLast,
+      locale: localeOf.value,
+    }),
   )
 
   const total = computed(() => filtered.value.length)
@@ -169,10 +190,13 @@ export function useLocalDataSource<TRow>(
     if (!column) return []
     // The settled term, not the typed one: a checklist counting rows the table
     // is not showing yet would contradict what is on screen.
-    return computeFacets(allRows.value, allColumns.value, column, {
-      filters: filtersOf.value,
-      globalSearch: settledSearch.value,
-    })
+    return computeFacets(
+      allRows.value,
+      allColumns.value,
+      column,
+      { filters: filtersOf.value, globalSearch: settledSearch.value },
+      { locale: localeOf.value },
+    )
   }
 
   /**

@@ -141,6 +141,11 @@ export interface UseTableOptions<TRow> {
    */
   labels?: () => Partial<TableLabels> | undefined
   /**
+   * BCP 47 tag for number and text handling. Outranks `labels().locale`; with
+   * neither, the runtime's own locale applies.
+   */
+  locale?: () => string | undefined
+  /**
    * An editing session, from `useRowEditing`. Passed in rather than built
    * here, unlike selection: editing carries a `save`, a `validate`, an `apply`
    * and a mode, and re-declaring all four here would duplicate that
@@ -249,7 +254,13 @@ export function useTable<TRow>(
    * header text, so translating it does re-derive the group tree. That is work
    * that was asked for, not an accident of where the record sits.
    */
-  const labels = computed(() => mergeLabels(options.labels?.()))
+  const labels = computed(() => {
+    const merged = mergeLabels(options.labels?.())
+    const locale = options.locale?.()
+    return locale === undefined ? merged : { ...merged, locale }
+  })
+  // A string computed: rewording a label must not wake the sort.
+  const localeOf = computed(() => labels.value.locale)
 
   /** The three defaulted options, read through one place each. */
   const selectableOf = (): boolean | SelectionMode => options.selectable?.() ?? false
@@ -406,6 +417,7 @@ export function useTable<TRow>(
           : undefined,
       collapsedByDefault: options.groupsCollapsed,
       blankLabel: options.blankGroupLabel ?? labels.value.blankGroup,
+      locale: () => localeOf.value,
     },
   )
 

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { aggregateValue } from '../src/core/aggregation'
-import { applySortRule, nextDirection, sortRows } from '../src/core/sorting'
+import {
+  applySortRule,
+  comparatorFor,
+  compareText,
+  nextDirection,
+  sortRows,
+} from '../src/core/sorting'
 import { names, people, personColumns, type Person } from './fixtures'
 
 describe('nextDirection', () => {
@@ -268,5 +274,25 @@ describe('aggregate extremes use the same ordering as the sort', () => {
       comparator: (a: unknown, b: unknown) => order.indexOf(String(a)) - order.indexOf(String(b)),
     }
     expect(aggregateValue(rows, column)?.value).toBe('medium')
+  })
+})
+
+describe('locale', () => {
+  const rowsOf = (values: string[]) => values.map((name) => ({ name }))
+  const column = [{ id: 'name', type: 'text' as const }]
+  const order = (locale: string) =>
+    sortRows(rowsOf(['z', 'a', 'я', 'а']), [{ columnId: 'name', direction: 'asc' }], column, {
+      locale,
+    }).map((row) => row.name)
+
+  it('orders Cyrillic before Latin under ru-RU and after it under en-US', () => {
+    expect(order('ru-RU')).toEqual(['а', 'я', 'a', 'z'])
+    expect(order('en-US')).toEqual(['a', 'z', 'а', 'я'])
+  })
+
+  it('hands back compareText itself when no locale is given, and one closure per locale', () => {
+    expect(comparatorFor('text')).toBe(compareText)
+    expect(comparatorFor('text', 'ru-RU')).toBe(comparatorFor('text', 'ru-RU'))
+    expect(compareText('я', 'a', 'ru-RU')).toBeLessThan(0)
   })
 })

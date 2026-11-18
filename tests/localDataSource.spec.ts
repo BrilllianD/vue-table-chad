@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { computed, effectScope, ref } from 'vue'
+import { computed, defineComponent, effectScope, h, ref, shallowRef } from 'vue'
+import { mount } from '@vue/test-utils'
+import { createTableLabels } from '../src/core/plugin'
+import type { ColumnDef } from '../src/core/types'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { computeFacets } from '../src/core/filters/facets'
@@ -286,5 +289,60 @@ describe('debounced search', () => {
     state.setSearch('research')
     expect(source.total.value).toBe(2)
     scope.stop()
+  })
+})
+
+describe('useLocalDataSource locale', () => {
+  interface Name {
+    name: string
+  }
+  const data = ['z', 'a', 'я', 'а'].map((name) => ({ name }))
+  const columns: ColumnDef<Name>[] = [{ id: 'name', type: 'text' }]
+
+  function ordered(locale: Parameters<typeof useLocalDataSource<Name>>[3] extends infer O ? O : never) {
+    const scope = effectScope()
+    const state = useTableState({ pageSize: 10 })
+    state.setSort('name', 'asc')
+    const source = scope.run(() =>
+      useLocalDataSource<Name>(data, columns, state.query, { debounceMs: 0, ...locale }),
+    )!
+    return { source, stop: () => scope.stop() }
+  }
+  const namesOf = (rows: Name[]) => rows.map((row) => row.name)
+
+  it('orders by an explicit locale, and re-orders when a ref changes', () => {
+    const fixed = ordered({ locale: 'ru-RU' })
+    expect(namesOf(fixed.source.rows.value)).toEqual(['а', 'я', 'a', 'z'])
+    fixed.stop()
+
+    const locale = shallowRef<string | undefined>('ru-RU')
+    const live = ordered({ locale })
+    expect(namesOf(live.source.rows.value)).toEqual(['а', 'я', 'a', 'z'])
+    locale.value = 'en-US'
+    expect(namesOf(live.source.rows.value)).toEqual(['a', 'z', 'а', 'я'])
+    live.stop()
+  })
+
+  function inSetup(options: { locale?: string }) {
+    let result: string[] = []
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 10 })
+        state.setSort('name', 'asc')
+        const source = useLocalDataSource<Name>(data, columns, state.query, {
+          debounceMs: 0,
+          ...options,
+        })
+        result = namesOf(source.rows.value)
+        return () => h('div')
+      },
+    })
+    mount(Host, { global: { plugins: [createTableLabels({ locale: 'ru-RU' })] } }).unmount()
+    return result
+  }
+
+  it('inherits the plugin locale when created in a setup, and an explicit one wins', () => {
+    expect(inSetup({})).toEqual(['а', 'я', 'a', 'z'])
+    expect(inSetup({ locale: 'en-US' })).toEqual(['a', 'z', 'а', 'я'])
   })
 })

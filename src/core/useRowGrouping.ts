@@ -9,6 +9,11 @@ import { sortRows } from './sorting'
  * state.
  */
 export interface UseRowGroupingOptions<TRow = Record<string, unknown>> {
+  /**
+   * BCP 47 tag that orders the bands of a text or enum column. Left out, the
+   * runtime's own locale orders.
+   */
+  locale?: MaybeRefOrGetter<string | undefined>
   /** Column ids to group by, outermost first. Usually `state.groupBy`. */
   groupBy: MaybeRefOrGetter<string[]>
   /**
@@ -124,10 +129,13 @@ export function useRowGrouping<TRow>(
    * When the source did order by the grouped columns (`groupMode: 'server'`),
    * this is a stable no-op.
    */
+  const localeOf = computed(() => toValue(options.locale))
   const orderedRows = computed<TRow[]>(() => {
     const ids = groupBy.value
     if (ids.length === 0) return allRows.value
-    return sortRows(allRows.value, groupSortRules(toValue(options.sort) ?? [], ids), allColumns.value)
+    return sortRows(allRows.value, groupSortRules(toValue(options.sort) ?? [], ids), allColumns.value, {
+      locale: localeOf.value,
+    })
   })
 
   /** Only the columns that declared one, so the common case costs a filter. */

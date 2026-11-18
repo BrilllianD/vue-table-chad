@@ -1,12 +1,46 @@
 import type { ColumnDataType, ColumnDef, SortDirection, SortRule } from './types'
 import { isBlank, toBoolean, toNumber, toTime } from './utils/values'
 
-/** Natural ordering: "item 2" sorts before "item 10". */
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+const collators = new Map<string, Intl.Collator>()
 
-/** Text ordering, natural and case-insensitive, through the shared collator. */
-export function compareText(a: unknown, b: unknown): number {
+/**
+ * Natural ordering ("item 2" sorts before "item 10") for one locale, built once
+ * per locale key. `undefined` is the runtime's own locale.
+ */
+function collatorFor(locale?: string): Intl.Collator {
+  const key = locale ?? ''
+  let collator = collators.get(key)
+  if (!collator) {
+    collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' })
+    collators.set(key, collator)
+  }
+  return collator
+}
+
+// Held apart from the Map: `sortRows` reaches `compareText` once per comparison,
+// and the default path should not pay a lookup for it.
+const defaultCollator = collatorFor()
+
+/**
+ * Text ordering, natural and case-insensitive, through a shared collator.
+ *
+ * `locale` is a BCP 47 tag; left out, the runtime's own locale orders.
+ */
+export function compareText(a: unknown, b: unknown, locale?: string): number {
+  const collator = locale === undefined ? defaultCollator : collatorFor(locale)
   return collator.compare(String(a), String(b))
+}
+
+const textComparators = new Map<string, (a: unknown, b: unknown) => number>()
+
+function textComparatorFor(locale: string): (a: unknown, b: unknown) => number {
+  let compare = textComparators.get(locale)
+  if (!compare) {
+    const collator = collatorFor(locale)
+    compare = (a, b) => collator.compare(String(a), String(b))
+    textComparators.set(locale, compare)
+  }
+  return compare
 }
 
 /** Numeric ordering; anything uncoercible sorts last. */
@@ -91,8 +125,16 @@ export function orderKeyFor(
   }
 }
 
-/** The comparator a column type sorts by. */
-export function comparatorFor(type: ColumnDataType = 'text'): (a: unknown, b: unknown) => number {
+/**
+ * The comparator a column type sorts by.
+ *
+ * `locale` only matters for text and enum columns; left out, `compareText`
+ * itself comes back and the runtime's locale orders.
+ */
+export function comparatorFor(
+  type: ColumnDataType = 'text',
+  locale?: string,
+): (a: unknown, b: unknown) => number {
   switch (type) {
     case 'number':
       return compareNumber
@@ -103,7 +145,7 @@ export function comparatorFor(type: ColumnDataType = 'text'): (a: unknown, b: un
     case 'enum':
     case 'text':
     default:
-      return compareText
+      return locale === undefined ? compareText : textComparatorFor(locale)
   }
 }
 
@@ -146,10 +188,15 @@ export function applySortRule(
   return next
 }
 
-/** Sort behaviour that is not per-column — currently just blank handling. */
+/** Sort behaviour that is not per-column: blank handling and the text locale. */
 export interface SortOptions {
   /** Blanks sink to the bottom in both directions when true (the default). */
   nullsLast?: boolean
+  /**
+   * BCP 47 tag that orders text and enum columns. Left out, the runtime's own
+   * locale orders. A column's own `comparator` ignores it.
+   */
+  locale?: string
 }
 
 /**
@@ -180,7 +227,7 @@ export function sortRows<TRow>(
         direction: rule.direction === 'desc' ? -1 : 1,
         compare: column.comparator
           ? (column.comparator as (a: unknown, b: unknown) => number)
-          : comparatorFor(column.type),
+          : comparatorFor(column.type, options.locale),
         // Present for number, date and boolean columns that did not override
         // the ordering. See below for why it is worth the extra pass.
         key: column.comparator ? undefined : sortKeyFor(column.type),

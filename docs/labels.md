@@ -48,6 +48,9 @@ import { es, ja, ru, zhCN } from '@brillliand/vue-table-chad/locales'
 | `ja` | Japanese |
 | `zhCN` | Simplified Chinese |
 
+Each bundle also sets `locale` (`ru-RU`, `es-ES`, `ja-JP`, `zh-CN`), which drives number reading and
+sort order; see [Number format and sort order](#number-format-and-sort-order).
+
 Each is a whole `TableLabels`, not a `Partial`, so there is nothing to merge and
 nothing left in English — the filter operators and the cell-editor parse messages
 the core owns are translated too:
@@ -140,6 +143,28 @@ plugin publishes on it, so a consumer with a reason to provide the record
 themselves — a micro-frontend with no root it owns, a Storybook decorator — can
 `app.provide(TableLabelsKey, shallowRef(mergeLabels(ru)))` and get the identical
 result.
+
+## Number format and sort order
+
+The table follows the app's language, not the browser's. A Russian app opened in an `en-US`
+browser would otherwise read `5,5` in a number cell as `55`, because `,` groups there. One
+`locale` (a BCP 47 tag) decides, and the first of these that is set wins:
+
+1. the `locale` option of `useTable` or prop of `TableRoot` and `DataTable`;
+2. `locale` in the labels (the prop merged over the plugin's bundle, so
+   `app.use(createTableLabels(ru))` sets `ru-RU` app-wide);
+3. the runtime's own locale.
+
+It drives how the cell editor reads and groups numbers, aggregate numbers without
+`aggregateFormat`, text and enum sort order on client grouping, and the order of the value
+checklist of a column without `options`. It is never rendered, and rewording a label does not
+re-sort.
+
+A `useLocalDataSource` created in a component's setup inherits the plugin's locale. A per-table
+`locale` prop does not reach a source the app built, so pass the same value there:
+`useLocalDataSource(rows, columns, state.query, { locale: 'ru-RU' })` (a ref or getter works, and
+re-sorts once when it changes). Text `min` and `max` aggregates still compare with the runtime's
+collation.
 
 ## Why some keys are functions
 

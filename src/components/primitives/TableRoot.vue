@@ -97,6 +97,8 @@ const props = withDefaults(
     blankGroupLabel?: string
     /** Wording for every string the table renders, over the English defaults. */
     labels?: Partial<TableLabels>
+    /** BCP 47 tag for number and text handling; outranks the labels' `locale`. */
+    locale?: string
     /** An editing session, from `useRowEditing`. Without one, cells are read-only. */
     editing?: UseRowEditing<TRow>
     /** A keyboard cell cursor: arrow keys move a focused cell. Off by default. */
@@ -163,6 +165,7 @@ const table = useTable<TRow>({
   groupsCollapsed: props.groupsCollapsed,
   blankGroupLabel: props.blankGroupLabel,
   labels: () => mergeLabels(props.labels, inheritedLabels.value),
+  locale: () => props.locale,
   editing: () => props.editing,
   cellCursor: () => props.cellCursor,
   initialCursor: props.initialCursor,

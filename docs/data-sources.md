@@ -28,6 +28,10 @@ smooth one. Clearing the box is instant too, since emptying it can only ever wid
 the query stays truthful while only the filtering lags. Pass `0` to switch the debounce off
 entirely — the right choice for small datasets and for tests that assert on the next line.
 
+`locale` (a BCP 47 tag, or a ref or getter of one) orders text and enum columns and the value
+checklist. Left out, a source created in a component's setup takes the labels' `locale`, else the
+browser's; changing it re-sorts once and filters nothing.
+
 ## Server data
 
 ```ts

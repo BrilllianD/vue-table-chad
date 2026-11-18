@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { computed, defineComponent, effectScope, h, nextTick, shallowRef, watch } from 'vue'
+import {
+  computed,
+  defineComponent,
+  effectScope,
+  h,
+  nextTick,
+  shallowRef,
+  watch,
+  type ShallowRef,
+} from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
 import { useColumns } from '../src/core/useColumns'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
@@ -149,7 +158,7 @@ function reset(): void {
  * computed warmed. Both matter — a pristine table short-circuits each stage, so
  * an invariant proved against one would prove nothing about the real thing.
  */
-function harness(groupBy: string[] = []) {
+function harness(groupBy: string[] = [], locale?: ShallowRef<string | undefined>) {
   const scope = effectScope()
   const built = scope.run(() => {
     const state = useTableState({ pageSize: 25, initialGroupBy: groupBy })
@@ -157,6 +166,7 @@ function harness(groupBy: string[] = []) {
     // it coalesces at all is asserted separately below.
     const source = useLocalDataSource<Employee>(rows, employeeColumns, () => state.query.value, {
       debounceMs: 0,
+      locale,
     })
     // Banded columns here, so the collapse invariant below has something to
     // fold. The bands are inert for every other case: `filterRows`, `sortRows`,
@@ -171,6 +181,7 @@ function harness(groupBy: string[] = []) {
       sort: () => state.sort.value,
       totals: () => source.groupCounts(state.groupBy.value),
       aggregates: () => source.groupAggregates(state.groupBy.value),
+      locale,
     })
     const selection = useRowSelection<Employee>(
       () => source.rows.value,
@@ -989,6 +1000,25 @@ describe('what an interaction is allowed to recompute', () => {
     h.stop()
   })
 
+  it('changing the locale re-sorts once and re-filters nothing', () => {
+    const locale = shallowRef<string | undefined>(undefined)
+    const h = harness([], locale)
+    locale.value = 'ru-RU'
+    h.source.rows.value
+
+    expect(counters.sort).toBe(1)
+    expect(counters.filter).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+
+    // The same value again is not a change.
+    reset()
+    locale.value = 'ru-RU'
+    h.source.rows.value
+    expect(counters.sort).toBe(0)
+    h.stop()
+  })
+
   /**
    * The same claim for a scroll.
    *
@@ -1467,6 +1497,68 @@ describe('what the context menu is allowed to recompute', () => {
     // The row set did not change, so the filter must not run again — the stages
     // depend on query *fields*, and only `sort` moved.
     expect(counters.filter).toBe(0)
+    wrapper.unmount()
+  })
+})
+
+describe('what a locale change is allowed to recompute', () => {
+  function mountTable() {
+    const labels = shallowRef<Record<string, string>>({})
+    const locale = shallowRef<string | undefined>(undefined)
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 25, initialGroupBy: ['department'] })
+        const source = useLocalDataSource<Employee>(rows, employeeColumns, state.query, {
+          debounceMs: 0,
+        })
+        return () =>
+          h(DataTable as never, {
+            columns: employeeColumns,
+            source,
+            state,
+            labels: labels.value,
+            locale: locale.value,
+          })
+      },
+    })
+    return { wrapper: mount(Host, { attachTo: document.body }), labels, locale }
+  }
+
+  async function settle(): Promise<void> {
+    await nextTick()
+    await nextTick()
+    await nextTick()
+  }
+
+  it('rewording a label reaches no stage', async () => {
+    const { wrapper, labels } = mountTable()
+    await settle()
+    reset()
+
+    labels.value = { search: 'Find' }
+    await settle()
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.aggregateRow).toBe(0)
+    expect(counters.tree).toBe(0)
+    expect(counters.walk).toBe(0)
+    wrapper.unmount()
+  })
+
+  it('setting the locale re-orders the bands once and filters nothing', async () => {
+    const { wrapper, locale } = mountTable()
+    await settle()
+    reset()
+
+    locale.value = 'ru-RU'
+    await settle()
+
+    expect(counters.filter).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.sort).toBe(1)
     wrapper.unmount()
   })
 })

@@ -20,6 +20,7 @@ const SIDES: Record<PinSide | 'none', string> = {
 }
 
 export const ja: TableLabels = Object.freeze({
+  locale: 'ja-JP',
   search: '検索…',
   searchAllColumns: 'すべての列を検索',
   searchValuesPlaceholder: '値を検索…',

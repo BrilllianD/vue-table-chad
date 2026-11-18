@@ -45,12 +45,14 @@
  */
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import { editorFor, optionLabelFor } from '../../core/editing'
+import { useTableLabels } from '../../core/context'
 import {
   caretForSignificant,
   deleteForwardAcrossSeparator,
   plainNumberString,
   significantBefore,
   toDisplayNumber,
+  numberSeparators,
   toMachineNumber,
 } from '../../core/numberMask'
 import { commitMoveFor, editorMoveFor, type CursorMove } from '../../core/cellCursor'
@@ -185,15 +187,18 @@ const checked = computed(() => toBoolean(props.value) === true)
  * `parseCellInput` and any `column.parse` are handed exactly what a native
  * number box used to hand them. Only the characters on screen change.
  */
+const labels = useTableLabels()
+const separators = computed(() => numberSeparators(labels.value.locale))
+
 const display = computed(() => {
   if (kind.value === 'date') return toIsoDate(props.value) ?? ''
   if (kind.value !== 'number') return text.value
   // A number the table holds is printed without an exponent first; a string is
   // the draft's own machine string and goes through as it is.
   if (typeof props.value === 'number' && Number.isFinite(props.value)) {
-    return toDisplayNumber(plainNumberString(props.value))
+    return toDisplayNumber(plainNumberString(props.value), separators.value)
   }
-  return toDisplayNumber(text.value)
+  return toDisplayNumber(text.value, separators.value)
 })
 
 /**
@@ -271,17 +276,17 @@ function onNumberInput(target: HTMLInputElement, event: Event): void {
   // which regrouping would put straight back and the key would seem dead.
   if (
     (event as InputEvent).inputType === 'deleteContentForward' &&
-    toMachineNumber(typed) === toMachineNumber(display.value)
+    toMachineNumber(typed, separators.value) === toMachineNumber(display.value, separators.value)
   ) {
-    typed = deleteForwardAcrossSeparator(typed, caret)
+    typed = deleteForwardAcrossSeparator(typed, caret, separators.value)
   }
-  const machine = toMachineNumber(typed)
-  const shown = toDisplayNumber(machine)
+  const machine = toMachineNumber(typed, separators.value)
+  const shown = toDisplayNumber(machine, separators.value)
 
   if (typed !== shown || target.value !== shown) {
-    const significant = significantBefore(typed, caret)
+    const significant = significantBefore(typed, caret, separators.value)
     target.value = shown
-    const next = caretForSignificant(shown, significant)
+    const next = caretForSignificant(shown, significant, separators.value)
     target.setSelectionRange(next, next)
   }
 

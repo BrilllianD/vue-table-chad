@@ -91,7 +91,7 @@ export const apiReference: ApiEntry[] = [
 
   { name: 'useLocalDataSource', layer: 'core', kind: 'composable', summary: 'Client-side pipeline: filter → sort → slice, each stage its own computed so paging does not redo the filter and sorting does not redo the search.' },
   { name: 'LocalDataSource', layer: 'core', kind: 'type', summary: 'A DataSource plus filteredRows, synchronous facets, and whole-set group counts.' },
-  { name: 'LocalDataSourceOptions', layer: 'core', kind: 'type', summary: 'nullsLast, and debounceMs to coalesce the global search.' },
+  { name: 'LocalDataSourceOptions', layer: 'core', kind: 'type', summary: 'nullsLast, the text locale, and debounceMs to coalesce the global search.' },
 
   { name: 'useServerDataSource', layer: 'core', kind: 'composable', summary: 'Server-backed rows. The component-facing surface is identical to `useLocalDataSource`, so swapping one for the other changes nothing above.' },
   { name: 'ServerDataSource', layer: 'core', kind: 'type', summary: 'A DataSource plus initialLoading, true only before anything has arrived.' },
@@ -218,7 +218,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'compileFilter', layer: 'filters', kind: 'function', summary: 'Pre-builds a filter into a predicate once, instead of rebuilding its value set per row.' },
   { name: 'compileSearch', layer: 'filters', kind: 'function', summary: 'The same test, with the needle lowered once instead of once per call.' },
 
-  { name: 'computeFacets', layer: 'filters', kind: 'function', summary: "Distinct values for one column, with row counts, computed against the rows that survive every *other* column's filter." },
+  { name: 'computeFacets', layer: 'filters', kind: 'function', summary: "Distinct values for one column, with row counts, computed against the rows that survive every *other* column's filter. `options.locale` orders the checklist of a column without declared options." },
   { name: 'filterRows', layer: 'filters', kind: 'function', summary: 'Rows surviving every filter *except* the ones listed in `skip`.' },
 
   /* --------------------------------------------------------------- sorting */
@@ -227,12 +227,12 @@ export const apiReference: ApiEntry[] = [
   { name: 'nextDirection', layer: 'sorting', kind: 'function', summary: 'Cycles a header through asc → desc → unsorted.' },
   { name: 'comparatorFor', layer: 'sorting', kind: 'function', summary: 'The comparator a column type sorts by.' },
   { name: 'sortKeyFor', layer: 'sorting', kind: 'function', summary: 'A number a value of this type can be ordered by, or `undefined` for the types that have none.' },
-  { name: 'compareText', layer: 'sorting', kind: 'function', summary: 'Text ordering, natural and case-insensitive, through the shared collator.' },
+  { name: 'compareText', layer: 'sorting', kind: 'function', summary: 'Text ordering, natural and case-insensitive, through a shared collator.' },
   { name: 'compareNumber', layer: 'sorting', kind: 'function', summary: 'Numeric ordering; anything uncoercible sorts last.' },
   { name: 'compareDate', layer: 'sorting', kind: 'function', summary: 'Chronological ordering, with bare YYYY-MM-DD read as local midnight.' },
   { name: 'compareBoolean', layer: 'sorting', kind: 'function', summary: 'false before true, with blanks last.' },
   { name: 'readValue', layer: 'sorting', kind: 'function', summary: "A column's value for a row: its accessor, or row[id]." },
-  { name: 'SortOptions', layer: 'sorting', kind: 'type', summary: 'Sort behaviour that is not per-column — currently just blank handling.' },
+  { name: 'SortOptions', layer: 'sorting', kind: 'type', summary: 'Sort behaviour that is not per-column: blank handling and the text locale.' },
 
   /* -------------------------------------------------------------- grouping */
   { name: 'groupedSort', layer: 'grouping', kind: 'function', summary: 'The sort a grouped table actually needs: the grouped columns first, in grouping order, then whatever the user sorted by.' },

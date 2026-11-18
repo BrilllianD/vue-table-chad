@@ -20,6 +20,14 @@ import type { ColumnDataType, ConditionOperator, PinSide } from './types'
  * `labels` prop; anything left out falls back to `DEFAULT_LABELS`.
  */
 export interface TableLabels {
+  // — formatting —
+  /**
+   * BCP 47 tag, not rendered. Drives how the cell editor reads and groups
+   * numbers, aggregate numbers without `aggregateFormat`, text and enum sort
+   * order on client grouping, and the value checklist order. `DEFAULT_LABELS`
+   * leaves it out so the runtime's own locale applies.
+   */
+  locale?: string
   // — toolbar and search —
   /** Placeholder for the toolbar's global search box. */
   search: string

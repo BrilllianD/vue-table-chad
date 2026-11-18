@@ -122,7 +122,7 @@ function resultFor(column: ResolvedColumn<TRow>): AggregateResult<TRow> | undefi
 
 function textFor(column: ResolvedColumn<TRow>): string {
   const result = resultFor(column)
-  return result ? formatAggregate(result, column) : ''
+  return result ? formatAggregate(result, column, labels.value.locale) : ''
 }
 
 function toggle(): void {

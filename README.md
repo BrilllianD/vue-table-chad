@@ -42,7 +42,7 @@ Four entry points, and nothing is imported that you did not ask for:
 | `@brillliand/vue-table-chad` | Everything: `DataTable`, the primitives, the composables, the types. |
 | `@brillliand/vue-table-chad/style.css` | The preset's stylesheet. Only `DataTable` needs it; the primitives ship no CSS. |
 | `@brillliand/vue-table-chad/themes/<name>.css` | One of thirty opt-in palettes, switched on with `data-vtc-theme="<name>"`. See [Theme presets](docs/themes.md). |
-| `@brillliand/vue-table-chad/locales` | `es`, `ja`, `ru`, `zhCN` — complete label records, one `app.use` for the whole app. See [Labels and i18n](docs/labels.md). |
+| `@brillliand/vue-table-chad/locales` | `es`, `ja`, `ru`, `zhCN` — complete label records, one `app.use` for the whole app; each also sets `locale`, so numbers and text sort follow the app, not the browser. See [Labels and i18n](docs/labels.md). |
 
 [Using it in another project](docs/getting-started.md) covers the rest: the row type the
 components insist on, the `DataTable` props and slots, and the three levels you can build a table

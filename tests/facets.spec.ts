@@ -49,6 +49,14 @@ describe('filterRows', () => {
     expect(filterRows(rows, columns, query).map((row) => row.name)).toEqual(['Grace'])
   })
 
+  it('orders the checklist of a column without options by the locale', () => {
+    const cyrillic = ['z', 'a', 'я', 'а'].map((name) => ({ name, department: 'x' }))
+    const columns: ColumnDef<Row>[] = [{ id: 'name' }, { id: 'department' }]
+    const query = { filters: {}, globalSearch: '' }
+    const facets = computeFacets(cyrillic, columns, columns[0]!, query, { locale: 'ru-RU' })
+    expect(facets.map((facet) => facet.value)).toEqual(['а', 'я', 'a', 'z'])
+  })
+
   it('scopes a column facets to every other column filter', () => {
     const columns: ColumnDef<Row>[] = [{ id: 'name' }, { id: 'department' }]
     const facets = computeFacets(rows, columns, columns[1]!, {

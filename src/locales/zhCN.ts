@@ -20,6 +20,7 @@ const SIDES: Record<PinSide | 'none', string> = {
 }
 
 export const zhCN: TableLabels = Object.freeze({
+  locale: 'zh-CN',
   search: '搜索…',
   searchAllColumns: '搜索所有列',
   searchValuesPlaceholder: '搜索值…',

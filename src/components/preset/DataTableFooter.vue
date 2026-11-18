@@ -9,6 +9,7 @@
  */
 import TableCell from '../primitives/TableCell.vue'
 import { formatAggregate } from '../../core/aggregation'
+import { useTableLabels } from '../../core/context'
 import type { BandEdge } from '../../core/columnGroups'
 import type { AggregateResult, ResolvedColumn } from '../../core/types'
 
@@ -35,9 +36,11 @@ const props = defineProps<{
   actionsColumn: boolean
 }>()
 
+const labels = useTableLabels()
+
 function footerText(column: ResolvedColumn<TRow>): string {
   const result = props.aggregates[column.id]
-  return result ? formatAggregate(result, column) : ''
+  return result ? formatAggregate(result, column, labels.value.locale) : ''
 }
 </script>
 

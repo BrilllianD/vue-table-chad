@@ -24,6 +24,7 @@ const SIDES: Record<PinSide | 'none', string> = {
 }
 
 export const ru: TableLabels = Object.freeze({
+  locale: 'ru-RU',
   search: 'Поиск…',
   searchAllColumns: 'Поиск по всем столбцам',
   searchValuesPlaceholder: 'Поиск значений…',

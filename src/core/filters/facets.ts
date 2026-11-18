@@ -1,7 +1,7 @@
 import type { ColumnDef, ColumnFilter, FacetValue, FilterValue, QueryState } from '../types'
 import { compileFilter, compileSearch } from './predicates'
 import { readValue } from '../sorting'
-import { compareDate, compareNumber, compareText } from '../sorting'
+import { compareDate, compareNumber, comparatorFor, type SortOptions } from '../sorting'
 import { facetKey, toFilterValue } from '../utils/values'
 
 /**
@@ -72,26 +72,31 @@ export function filterRows<TRow>(
   })
 }
 
-function facetComparator(column: ColumnDef<unknown>): (a: FilterValue, b: FilterValue) => number {
+function facetComparator(
+  column: ColumnDef<unknown>,
+  locale?: string,
+): (a: FilterValue, b: FilterValue) => number {
   switch (column.type) {
     case 'number':
       return compareNumber
     case 'date':
       return compareDate
     default:
-      return compareText
+      return comparatorFor('text', locale)
   }
 }
 
 /**
  * Distinct values for one column, with row counts, computed against the rows
- * that survive every *other* column's filter.
+ * that survive every *other* column's filter. `options.locale` orders the
+ * checklist of a column without declared options.
  */
 export function computeFacets<TRow>(
   rows: readonly TRow[],
   columns: readonly ColumnDef<TRow>[],
   column: ColumnDef<TRow>,
   query: Pick<QueryState, 'filters' | 'globalSearch'>,
+  options: Pick<SortOptions, 'locale'> = {},
 ): FacetValue[] {
   const scoped = filterRows(rows, columns, query, column.id)
   const type = column.type ?? 'text'
@@ -131,7 +136,7 @@ export function computeFacets<TRow>(
         (order.get(facetKey(a.value)) ?? undeclared) - (order.get(facetKey(b.value)) ?? undeclared),
     )
   } else {
-    const compare = facetComparator(column as ColumnDef<unknown>)
+    const compare = facetComparator(column as ColumnDef<unknown>, options.locale)
     values.sort((a, b) => compare(a.value, b.value))
   }
 

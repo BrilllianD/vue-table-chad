@@ -96,6 +96,11 @@ describe('the caret', () => {
 })
 
 describe('the locale', () => {
+  it('reads and shows numbers the way ru-RU writes them', () => {
+    expect(toMachineNumber('5,5', numberSeparators('ru-RU'))).toBe('5.5')
+    expect(toDisplayNumber('1234.5', numberSeparators('ru-RU'))).toBe('1\u00a0234,5')
+  })
+
   it('reads its separators from a formatted number', () => {
     expect(numberSeparators('de-DE')).toEqual({ group: '.', decimal: ',' })
     expect(numberSeparators('en-US')).toEqual({ group: ',', decimal: '.' })
