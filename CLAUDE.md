@@ -131,6 +131,8 @@ Two habits keep the pipeline honest, both argued out with their numbers in `src/
   task by its yman id, in the imperative mood the history already uses — `#16: Make the locale
   configurable` — with the body saying what was wrong. Commits before October 2026 name the
   `TASKS.md` ids the tracker replaced (`F27:`, `T3:`); they read the same way.
+  A commit that changes what the package ships adds its `CHANGELOG.md` bullet under
+  `## Unreleased`.
 - **The tracker is kept current as the work moves, not after it.** `yman start <id>` when starting,
   `yman done <id> -m "<sha>: …"` right after the commit lands, `yman sync` after both. The commit
   is the record; a closed task is filed under `.yman/done/` and never edited again. New work gets a

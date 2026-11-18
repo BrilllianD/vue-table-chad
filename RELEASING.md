@@ -27,6 +27,42 @@ SFC that import `DataTable`, `StaticSelect`, a locale and `style.css`, under bot
 ignored `dist/`, needs the npm registry for the scratch install, and `CONSUMER_KEEP=1` keeps the
 scratch directory.
 
+## Versioning
+
+While the package is 0.x, a breaking change bumps the minor (0.6.x to 0.7.0) and its `CHANGELOG.md`
+bullet starts `**Breaking:**`. Everything else bumps the patch, additions included. A minor may
+also be chosen for a feature release (0.6.0 was). Semver proper starts at 1.0, which waits on
+decision D5.
+
+Breaking is:
+
+- an export of `.` or `./locales` removed or renamed, or an `exports` subpath removed;
+- a prop, emit, slot, exposed member, or composable option or return member removed, renamed or
+  retyped narrower, or a prop default changed;
+- a `TableLabels` key removed or renamed;
+- a `.vt-` class, `data-*` attribute or `--vtc-*` token the preset documents, removed or renamed;
+- the `vue` peer floor raised.
+
+Not breaking: a fix that makes the package do what `docs/` says, even when an app relied on the
+old behaviour; a new export, optional prop or option; changed label wording; internals.
+
+Every unreleased change that ships is a bullet under `## Unreleased` in `CHANGELOG.md`, written
+in the commit that makes it.
+
+## Cutting a release
+
+1. Gates: `pnpm lint && pnpm typecheck && pnpm test && pnpm size`; `pnpm docs:api` leaves
+   `git status` clean; `make release-check`.
+2. Choose the version by the rules in **Versioning**.
+3. Bump `version` in `package.json`, rename `## Unreleased` in `CHANGELOG.md` to `## x.y.z` and
+   open a new empty `## Unreleased` above it.
+4. Commit `Release version x.y.z` with a prose body: what changed, whether it is additive, the
+   gates run (as `83ced6d` does).
+5. The owner then creates the annotated tag `vx.y.z`, pushes it by name, and runs `npm publish`
+   from a terminal (passkey 2FA). Agents stop after the release commit.
+
+The automated half (changesets) is tracked in yman 1.
+
 ## Settled decisions
 
 - **The package name is `@brillliand/vue-table-chad`.** Scoped, so `publishConfig: { access:
