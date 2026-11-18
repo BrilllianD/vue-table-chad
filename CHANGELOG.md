@@ -21,12 +21,15 @@ Releases up to 0.6.0 are described in their `Release version` commits
   same report a built-in control makes when focus leaves it; in cell mode it commits the row, in row
   mode it does nothing. A slotted control with a teleported panel (a `StaticSelect`, a widgets
   select) can now commit on leave; `docs/editing.md` shows the recipe, including Escape. (#70)
-- Fix: `rowDblclick` no longer fires for a double click on a control inside the row (the selection
-  checkbox, a button, link or input, an open editor) or on an editable cell (one that opens an
-  editor), so the detail-rows recipe no longer toggles a panel from them; a handler that relied on
-  those double clicks stops receiving them. A double click on an editable select cell leaves its
+- Fix: `rowDblclick` no longer fires for a double click on a control inside the row (a button,
+  input, link, label, an open editor, the selection cell) or, while `editing`, on a cell that opens
+  an editor (a plain double click only), so the detail-rows recipe no longer toggles a panel from
+  them; a handler that relied on those double clicks stops receiving them. A double click on an editable select cell leaves its
   list open: `AsyncSelect` and `StaticSelect` no longer close on the second click of a double
   click. (#71)
+- Fix: the docs and the `DataTable` doc comment no longer call the `style.css` import redundant.
+  The published JS does not load the stylesheet, so
+  `import '@brillliand/vue-table-chad/style.css'` is required wherever `DataTable` is used. (#72)
 
 ## 0.6.1
 
@@ -47,6 +50,3 @@ Releases up to 0.6.0 are described in their `Release version` commits
   to the blanks row, and ignores stale facet responses (#22).
 - Fix: the published declarations compile for a consumer with `skipLibCheck: false`; the
   rolled-up `dist/vue-table-chad.d.ts` no longer contains a bare `GlobalComponents` (#65).
-- Fix: the docs and the `DataTable` doc comment no longer call the `style.css` import redundant.
-  The published JS does not load the stylesheet, so
-  `import '@brillliand/vue-table-chad/style.css'` is required wherever `DataTable` is used. (#72)

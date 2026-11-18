@@ -55,6 +55,20 @@ async function open(wrapper: ReturnType<typeof mount>): Promise<void> {
 }
 
 describe('AsyncSelect', () => {
+  it.each([
+    [0, false],
+    [1, false],
+    [2, true],
+  ])('a trigger click with detail %i keeps the open panel open: %s', async (detail, stays) => {
+    const { wrapper, dispose } = select()
+    await open(wrapper)
+    await wrapper.find('.vt-select-trigger').trigger('click', { detail })
+    await nextTick()
+    expect(panel() !== null).toBe(stays)
+    wrapper.unmount()
+    dispose()
+  })
+
   it('renders standalone, with no table context above it', () => {
     const { wrapper, dispose } = select({ label: 'Manager' })
     expect(wrapper.find('.vt-select-trigger').exists()).toBe(true)

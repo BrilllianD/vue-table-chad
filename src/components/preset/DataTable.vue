@@ -1,8 +1,8 @@
 <script setup lang="ts" generic="TRow extends Record<string, unknown>">
 /**
- * The batteries-included preset: every region a named slot, and the one
- * component that imports the default stylesheet. Deliberately NOT a god
- * component.
+ * The batteries-included preset: every region a named slot. The consumer
+ * imports `@brillliand/vue-table-chad/style.css`; the published JS does not
+ * load it. Deliberately NOT a god component.
  *
  * It owns no logic of its own: every capability here comes from a primitive or
  * a composable, and every region is a named slot. If it does not fit, drop to
@@ -425,7 +425,7 @@ const emit = defineEmits<{
   'update:selectedRows': [rows: TRow[]]
   'update:columnOrder': [order: string[]]
   rowClick: [row: TRow, event: MouseEvent]
-  /** A body row was double-clicked. Same payload as `rowClick`; the two clicks still each report `rowClick`. Not fired when the double click lands on a control inside the row (checkbox, button, link, input, open editor) or on an editable cell. */
+  /** A body row was double-clicked. Same payload as `rowClick`; the two clicks still each report `rowClick`. Not fired for a double click on a control in the row, the selection cell, or (while `editing`) a cell that opens an editor; see `docs/getting-started.md`. */
   rowDblclick: [row: TRow, event: MouseEvent]
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]

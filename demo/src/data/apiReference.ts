@@ -317,7 +317,7 @@ export const apiReference: ApiEntry[] = [
   { name: 'SelectionCheckbox', layer: 'primitives', kind: 'component', summary: 'A checkbox that tracks the indeterminate state, and stays in step when the parent refuses a change.' },
 
   /* ---------------------------------------------------------------- preset */
-  { name: 'DataTable', layer: 'preset', kind: 'component', summary: 'The batteries-included preset: every region a named slot, and the one component that imports the default stylesheet. Deliberately NOT a god component.' },
+  { name: 'DataTable', layer: 'preset', kind: 'component', summary: 'The batteries-included preset: every region a named slot. The consumer imports `@brillliand/vue-table-chad/style.css`; the published JS does not load it. Deliberately NOT a god component.' },
 
   { name: 'downloadText', layer: 'preset', kind: 'function', summary: 'Saves text as a file the browser downloads.' },
   { name: 'TableExportPayload', layer: 'preset', kind: 'type', summary: "What `DataTable`'s `export` event carries." },

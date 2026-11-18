@@ -22,10 +22,12 @@ const SOURCES = [
   'src/index.ts',
   'src/components/preset/DataTable.vue',
   'demo/src/views/ThemingView.vue',
+  'demo/src/data/apiReference.ts',
 ]
 
 const FALSE_CLAIMS = [
   /imports (it|`table\.css`|the default theme) itself/i,
+  /imports (it|its|the default)\s+(stylesheet|theme|css)/i,
   /redundant when you use the preset/i,
   /styled out of the box/i,
 ]
@@ -33,7 +35,7 @@ const FALSE_CLAIMS = [
 const read = (file: string): string => readFileSync(join(ROOT, file), 'utf8')
 
 describe('stylesheet docs', () => {
-  it('scans the docs pages and the three source files', () => {
+  it('scans the docs pages and the source files', () => {
     expect(docsPages.length).toBeGreaterThan(5)
     expect(SOURCES).toContain('src/index.ts')
   })
