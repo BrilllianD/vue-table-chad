@@ -123,6 +123,7 @@ const THEME_TOKENS = [
   'cellPaddingX',
   'groupIndentStep',
   'font',
+  'fontFamily',
   'truncationMarker',
 
   // Scrollbars. Two size tokens because two mechanisms are in play: the

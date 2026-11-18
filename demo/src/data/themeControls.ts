@@ -215,7 +215,8 @@ export const TOKEN_CONTROLS: Record<ThemeToken, TokenControl> = {
   rowHeight: { group: 'Metrics', kind: 'length', unit: 'px', min: 20, max: 72, hint: 'every body row' },
   cellPaddingX: { group: 'Metrics', kind: 'length', unit: 'px', min: 0, max: 32, hint: 'cell padding, left and right' },
   groupIndentStep: { group: 'Metrics', kind: 'length', unit: 'px', min: 0, max: 48, hint: 'per level of grouping' },
-  font: { group: 'Metrics', kind: 'text', hint: 'the whole font shorthand — size, line height and family' },
+  font: { group: 'Metrics', kind: 'text', hint: 'size and line height; the family comes from --vtc-font-family' },
+  fontFamily: { group: 'Metrics', kind: 'text', hint: 'the typeface — inherit, or a family list' },
   truncationMarker: { group: 'Metrics', kind: 'text', hint: 'what a clipped cell ends with — Firefox only, others keep the ellipsis glyph' },
 
   /* --------------------------------------------------------- scrollbars */

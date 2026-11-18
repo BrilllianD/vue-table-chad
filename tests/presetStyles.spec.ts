@@ -73,6 +73,37 @@ describe('preset stylesheet', () => {
   })
 
   /**
+   * `inherit` is not valid inside the `font` shorthand, so the family is its
+   * own token: `--vtc-font-family` defaults to `inherit`, and every rule that
+   * paints `--vtc-font` follows it with a `font-family` longhand that wins over
+   * the family baked into the shorthand. Without that line the table pins
+   * `system-ui` while widgets and dialog inherit the app's family.
+   */
+  it('lets the font family inherit instead of pinning one', () => {
+    const all = rules()
+    const declaring = all.filter((r) => r.file === 'tokens.css' && /--vtc-font\s*:/.test(r.body))
+    expect(declaring.length, 'no rule in tokens.css declares --vtc-font').toBeGreaterThan(0)
+    const missingDefault = declaring
+      .filter((r) => !/--vtc-font-family\s*:\s*inherit\s*;/.test(r.body))
+      .map((r) => `${r.file} ${r.selector}`)
+    expect(missingDefault, 'a rule declaring --vtc-font does not declare --vtc-font-family: inherit').toEqual([])
+
+    const painting = all.filter((r) => /font:\s*var\(--vtc-font\)/.test(r.body))
+    expect(painting.length, 'no rule paints font: var(--vtc-font)').toBeGreaterThan(0)
+    const pinned = painting
+      .filter((r) => {
+        const at = r.body.search(/font:\s*var\(--vtc-font\)/)
+        const after = r.body.slice(at).search(/font-family:\s*var\(--vtc-font-family\)/)
+        return after < 0
+      })
+      .map((r) => `${r.file} ${r.selector}`)
+    expect(
+      pinned,
+      'a rule paints font: var(--vtc-font) without font-family: var(--vtc-font-family) after it, so it pins the shorthand family',
+    ).toEqual([])
+  })
+
+  /**
    * A `var()` with no value and no fallback is invalid at computed-value time,
    * and takes the whole declaration with it — every sibling layer included. So
    * a slot that is filled somewhere has to be reset on the cell.

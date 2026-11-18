@@ -37,6 +37,11 @@ Retheme by overriding the CSS variables on `.vt-datatable` (`--vtc-accent`, `--v
 `--vtc-header-bg`, `--vtc-row-height`, …). Dark mode follows `prefers-color-scheme` unless you
 [ask for a palette](#picking-a-palette).
 
+The table takes its font family from the page, as widgets and dialog do. Set `--vtc-font-family`
+(on `:root`, any ancestor or the table, or `defineTheme({ fontFamily })`) to pick another.
+`--vtc-font` carries the size and line height only; the family inside it is ignored. The previous
+look is `--vtc-font-family: system-ui, -apple-system, "Segoe UI", sans-serif`.
+
 > The stylesheet is intentionally not imported from the package barrel: `sideEffects` marks JS
 > modules side-effect-free, so a bare CSS import there gets tree-shaken away and consumers silently
 > get an unstyled table.

@@ -59,6 +59,11 @@ Releases up to 0.6.0 are described in their `Release version` commits
 - Fix: the docs and the `DataTable` doc comment no longer call the `style.css` import redundant.
   The published JS does not load the stylesheet, so
   `import '@brillliand/vue-table-chad/style.css'` is required wherever `DataTable` is used. (#72)
+- **Breaking:** the table no longer pins `system-ui`: a new `--vtc-font-family` token, default
+  `inherit`, gives the table, its popups and the drag ghost the page's font family, as widgets and
+  dialog already do, and a value set on `:root` or any ancestor reaches it. The family inside
+  `--vtc-font` is now ignored; set `--vtc-font-family` instead, or
+  `system-ui, -apple-system, "Segoe UI", sans-serif` to keep the old look. (#75)
 
 ## 0.6.1
 

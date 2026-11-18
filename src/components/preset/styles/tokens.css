@@ -230,6 +230,15 @@
   --vtc-cell-padding-x: var(--vtc-space-5);
   --vtc-font: var(--vtc-font-size-md) / 1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   /*
+    The family is its own token because `inherit` is not valid inside the
+    `font` shorthand. `inherit` here makes the property itself follow an
+    ancestor's value; with none set, `font-family: var(--vtc-font-family)` is
+    invalid at computed-value time and behaves as `unset`, which for this
+    inherited property means the page's family, as in widgets and dialog. The
+    family inside `--vtc-font` is filler that the paint rules override.
+  */
+  --vtc-font-family: inherit;
+  /*
     What a clipped cell ends with. Two dots read narrower than the single `…`
     glyph the `ellipsis` keyword paints, and which of the two is wanted is a
     taste call, so it is a token rather than a literal.
@@ -278,6 +287,7 @@
 .vt-datatable,
 .vt-portal {
   font: var(--vtc-font);
+  font-family: var(--vtc-font-family);
   color: var(--vtc-text);
 }
 

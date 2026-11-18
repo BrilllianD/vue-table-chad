@@ -184,6 +184,7 @@
      its colour for as long as the drag lasts. */
   color: var(--vtc-header-text);
   font: var(--vtc-font);
+  font-family: var(--vtc-font-family);
   font-weight: var(--vtc-weight-bold);
   white-space: nowrap;
   box-shadow: var(--vtc-elevation-ghost);
