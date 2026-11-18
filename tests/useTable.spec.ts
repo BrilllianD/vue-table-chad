@@ -103,6 +103,32 @@ describe('useTable grouping options', () => {
     expect(kinds).toContain('group')
     dispose()
   })
+
+  it('a shift-click range selects the display rows between the two clicks', () => {
+    const state = useTableState({ pageSize: 100 })
+    const { table, dispose } = setup({
+      state,
+      initialGroupBy: ['active'],
+      selectable: () => 'multiple',
+    })
+    const display = table.displayRows.value.flatMap((item) =>
+      item.kind === 'row' ? [item.row] : [],
+    )
+    const a = display[1]!
+    const b = display[3]!
+    table.rowSelection.toggle(a)
+    table.rowSelection.toggleRange(b)
+
+    const expected = display.slice(1, 4).map((row) => row.id)
+    expect(table.rowSelection.selectedIds.value.slice().sort()).toEqual(expected.slice().sort())
+    // A source row between a and b in `people` order but outside the display range.
+    const lo = people.indexOf(a)
+    const hi = people.indexOf(b)
+    const between = people.slice(Math.min(lo, hi) + 1, Math.max(lo, hi)).filter((row) => !expected.includes(row.id))
+    expect(between.length).toBeGreaterThan(0)
+    for (const row of between) expect(table.rowSelection.isSelected(row)).toBe(false)
+    dispose()
+  })
 })
 
 describe('useTable row identity', () => {

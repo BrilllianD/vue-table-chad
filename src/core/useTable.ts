@@ -446,26 +446,6 @@ export function useTable<TRow>(
     return (row as { id?: RowId }).id ?? index
   }
 
-  // Built unconditionally and gated on the way out: creating it lazily would
-  // freeze the answer at setup, so flipping `selectable` on later would render a
-  // checkbox column with nothing behind it.
-  const rowSelection = useRowSelection<TRow>(rows, () => options.source().total.value, {
-    mode: () => (selectableOf() === 'single' ? 'single' : 'multiple'),
-    getRowId,
-    isSelectable: (row) => options.isRowSelectable?.(row) ?? true,
-    /*
-     * `filteredRows` is a `LocalDataSource` field rather than a `DataSource`
-     * one, which is exactly the split `selectedRows` wants: only a source
-     * holding every row can name the selected ones beyond the current page, and
-     * a server source falling back to what is loaded is the honest answer
-     * rather than a degraded one. Optional-chained off the source for that
-     * reason — the same shape `groupCounts` and `groupAggregates` already have.
-     */
-    allRows: () => (options.source() as Partial<LocalDataSource<TRow>>).filteredRows?.value,
-  })
-
-  const selection = computed(() => (selectableOf() === false ? undefined : rowSelection))
-
   /**
    * The cells the cursor walks: the rows actually rendered, in the order they are
    * rendered in, under the columns actually on screen.
@@ -483,6 +463,27 @@ export function useTable<TRow>(
   const cursorRows = computed(() =>
     grouping.displayRows.value.flatMap((item) => (item.kind === 'row' ? [item.row] : [])),
   )
+
+  // Built unconditionally and gated on the way out: creating it lazily would
+  // freeze the answer at setup, so flipping `selectable` on later would render a
+  // checkbox column with nothing behind it.
+  const rowSelection = useRowSelection<TRow>(rows, () => options.source().total.value, {
+    mode: () => (selectableOf() === 'single' ? 'single' : 'multiple'),
+    getRowId,
+    isSelectable: (row) => options.isRowSelectable?.(row) ?? true,
+    /*
+     * `filteredRows` is a `LocalDataSource` field rather than a `DataSource`
+     * one, which is exactly the split `selectedRows` wants: only a source
+     * holding every row can name the selected ones beyond the current page, and
+     * a server source falling back to what is loaded is the honest answer
+     * rather than a degraded one. Optional-chained off the source for that
+     * reason — the same shape `groupCounts` and `groupAggregates` already have.
+     */
+    allRows: () => (options.source() as Partial<LocalDataSource<TRow>>).filteredRows?.value,
+    rangeRows: cursorRows,
+  })
+
+  const selection = computed(() => (selectableOf() === false ? undefined : rowSelection))
 
   // Built unconditionally and gated on the way out, for the reason the selection
   // is: creating it lazily would freeze the answer at setup, so turning the

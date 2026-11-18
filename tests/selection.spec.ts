@@ -240,4 +240,62 @@ describe('selectedRows', () => {
     expect(selection.selectedRows.value.map((row) => row.id)).toEqual([1, 3, 4, 5, 6, 7])
     dispose()
   })
+
+  it('all-matching never selects a row isSelectable refuses', () => {
+    const { selection, dispose } = setup(people, {
+      isSelectable: (row: Person) => row.active,
+      allRows: () => people,
+    })
+    selection.selectAllMatching()
+
+    const active = people.filter((row) => row.active)
+    expect(selection.selectedRows.value.every((row) => row.active)).toBe(true)
+    expect(selection.count.value).toBe(active.length)
+    expect(selection.isSelected(people[2]!)).toBe(false)
+    expect(selection.isSelected(people[0]!)).toBe(true)
+    dispose()
+  })
+
+  it('count matches selectedRows once the filtered set moves, all-matching', () => {
+    const all = ref(people)
+    const total = ref(people.length)
+    const scope = effectScope()
+    const selection = scope.run(() =>
+      useRowSelection<Person>(people, total, { allRows: all }),
+    )!
+    selection.selectAllMatching()
+    selection.toggle(people[0]!)
+    selection.toggle(people[1]!)
+
+    all.value = people.slice(3)
+    total.value = 4
+    expect(selection.selectedRows.value).toHaveLength(4)
+    expect(selection.count.value).toBe(selection.selectedRows.value.length)
+    scope.stop()
+  })
+
+  it('count matches selectedRows once the filtered set moves, ids', () => {
+    const all = ref(people)
+    const scope = effectScope()
+    const selection = scope.run(() =>
+      useRowSelection<Person>(people, () => people.length, { allRows: all }),
+    )!
+    selection.toggle(people[0]!)
+    selection.toggle(people[1]!)
+    all.value = people.slice(1)
+
+    expect(selection.selectedRows.value.map((row) => row.id)).toEqual([2])
+    expect(selection.count.value).toBe(1)
+    scope.stop()
+  })
+
+  it('a range walks rangeRows when given, not the page order', () => {
+    const shown = [0, 2, 4, 1, 3, 5, 6].map((index) => people[index]!)
+    const { selection, dispose } = setup(people, { rangeRows: () => shown })
+    selection.toggle(people[0]!)
+    selection.toggleRange(people[3]!)
+
+    expect(selection.selectedIds.value.slice().sort()).toEqual([1, 2, 3, 4, 5])
+    dispose()
+  })
 })

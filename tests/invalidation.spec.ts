@@ -740,6 +740,34 @@ describe('what an interaction is allowed to recompute', () => {
     scope.stop()
   })
 
+  it('a selection toggle costs no pass over allRows for its count', () => {
+    let idReads = 0
+    const scope = effectScope()
+    const selection = scope.run(() =>
+      useRowSelection<Employee>(
+        () => rows,
+        () => rows.length,
+        {
+          getRowId: (row) => {
+            idReads += 1
+            return row.id
+          },
+          allRows: () => rows,
+        },
+      ),
+    )!
+
+    selection.count.value
+    selection.headerState.value
+    expect(idReads).toBeLessThanOrEqual(2 * rows.length)
+    idReads = 0
+
+    selection.toggle(rows[0]!)
+    expect(selection.count.value).toBe(1)
+    expect(idReads).toBeLessThan(10)
+    scope.stop()
+  })
+
   it('a selection toggle never reaches the pipeline', () => {
     const h = harness()
     h.selection.toggle(h.source.rows.value[0]!)

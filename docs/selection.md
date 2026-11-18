@@ -59,7 +59,8 @@ delete.
 - **Shift-click a checkbox** to take every row between the last one you touched and this one.
   Excel's rule, not the naive one: the whole range moves to the state the *clicked* row is moving
   to, so shift-clicking an unselected row selects the run and shift-clicking a selected one clears
-  it. The anchor is then the row you just clicked.
+  it. The anchor is then the row you just clicked. The range walks the rows in the order the table
+  shows them (grouping reorders the page), which is what the `rangeRows` option carries.
 - **The header checkbox** is tri-state — `none`, `some`, `all` — over the *selectable* rows of the
   current page, and clicking it takes the page to whichever of all-on / all-off it is not already at.
 
@@ -139,7 +140,7 @@ The `toolbar` slot hands you the whole composable:
 | `selectedIds` | Ids explicitly selected. Empty in `all-matching`. |
 | `selectedOnPage` | Selected **rows**, among the loaded ones — a server page holds no more. |
 | `selectedRows` | Selected **rows**, across pages where the source holds them all. |
-| `count`, `isEmpty` | How many are selected, counting a predicate correctly. |
+| `count`, `isEmpty` | How many are selected. With `allRows` it equals `selectedRows.length` in both modes. |
 | `isAllMatching` | Whether the selection is a predicate rather than a list. |
 | `headerState` | `'none' \| 'some' \| 'all'` for the header checkbox. |
 | `isSelected`, `isSelectable` | Per row. |
@@ -213,8 +214,10 @@ type SelectionState =
 `DataTable` offers the escalation only once the visible page is fully checked *and* there is more
 behind it (`headerState === 'all' && total > rows.length`), which is the moment the user has
 demonstrably asked for more than they can see. Unticking a row afterwards records an exclusion
-rather than collapsing the predicate into twelve thousand ids, and `count` is
-`total - excluded.length`.
+rather than collapsing the predicate into twelve thousand ids. Rows `isSelectable` refuses are
+never in an all-matching selection. Where the source holds every row, `count` is the number of
+selectable matching rows minus the exclusions among them, so it always equals `selectedRows.length`;
+a server source cannot see rows it has not loaded, so there `count` is `total - excluded.length`.
 
 Two consequences worth stating plainly:
 

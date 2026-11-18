@@ -26,6 +26,13 @@ export interface UseRowSelectionOptions<TRow> {
    * Left out, `selectedRows` degrades to the rows that are loaded.
    */
   allRows?: MaybeRefOrGetter<TRow[] | undefined>
+  /**
+   * The rows in the order the user sees them; a shift-click range walks these.
+   *
+   * Left out, or `undefined`, the range walks the page rows, which is right
+   * until something reorders what is on screen (grouping bands the page).
+   */
+  rangeRows?: MaybeRefOrGetter<TRow[] | undefined>
 }
 
 /**
@@ -57,6 +64,13 @@ export interface UseRowSelection<TRow> {
    * dataset is charged to whoever wants rows out of it.
    */
   selectedRows: ComputedRef<TRow[]>
+  /**
+   * How many rows are selected. With `allRows` supplied it equals
+   * `selectedRows.length` in both modes: ids of rows the filter hides or that
+   * `isSelectable` refuses are not counted. Without it, `ids` mode is
+   * `ids.length` and `all-matching` is `max(0, total - excluded.length)`, since
+   * a server source cannot see the rows it has not loaded.
+   */
   count: ComputedRef<number>
   isEmpty: ComputedRef<boolean>
   /** True when the user asked for every row matching the current filters. */
@@ -129,7 +143,8 @@ export function useRowSelection<TRow>(
 
   function isSelected(row: TRow): boolean {
     const id = getRowId(row)
-    return state.value.mode === 'ids' ? idSet.value.has(id) : !idSet.value.has(id)
+    if (state.value.mode === 'ids') return idSet.value.has(id)
+    return isSelectable(row) && !idSet.value.has(id)
   }
 
   const selectedIds = computed<RowId[]>(() =>
@@ -151,10 +166,39 @@ export function useRowSelection<TRow>(
     return all ? all.filter(isSelected) : selectedOnPage.value
   })
 
+  /**
+   * The ids of every row matching the filters, and of the selectable ones.
+   *
+   * Depends on `allRows` alone, never on `state`, so a click does not re-run
+   * the walk: it is paid when the filtered set changes, the same split as
+   * `selectableIds` below. `undefined` when the source holds no whole set.
+   */
+  const matchingIndex = computed(() => {
+    const all = toValue(options.allRows)
+    if (!all) return undefined
+    const ids = new Set<RowId>()
+    const selectable = new Set<RowId>()
+    for (const row of all) {
+      const id = getRowId(row)
+      ids.add(id)
+      if (isSelectable(row)) selectable.add(id)
+    }
+    return { ids, selectable }
+  })
+
   const count = computed(() => {
     const current = state.value
-    if (current.mode === 'ids') return current.ids.length
-    return Math.max(0, totalCount.value - current.excluded.length)
+    const index = matchingIndex.value
+    if (current.mode === 'ids') {
+      if (!index) return current.ids.length
+      let counted = 0
+      for (const id of current.ids) if (index.ids.has(id)) counted += 1
+      return counted
+    }
+    if (!index) return Math.max(0, totalCount.value - current.excluded.length)
+    let excluded = 0
+    for (const id of current.excluded) if (index.selectable.has(id)) excluded += 1
+    return index.selectable.size - excluded
   })
 
   const isEmpty = computed(() => count.value === 0)
@@ -272,7 +316,7 @@ export function useRowSelection<TRow>(
       select(row)
       return
     }
-    const visible = rows.value
+    const visible = toValue(options.rangeRows) ?? rows.value
     const from = visible.findIndex((entry) => getRowId(entry) === anchorId)
     const to = visible.findIndex((entry) => getRowId(entry) === getRowId(row))
     if (from === -1 || to === -1) {
