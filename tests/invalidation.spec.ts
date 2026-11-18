@@ -1560,8 +1560,8 @@ describe('what a locale change is allowed to recompute', () => {
     expect(counters.count).toBe(0)
     expect(counters.sort).toBe(1)
     // The re-order moves the page's rows, so the page is gathered into bands
-    // once (one tree, one walk) and each band is totalled once: six bands here,
-    // and no whole-set aggregate or flatten.
+    // once (one tree, one walk) and each band is totalled once: six row totals
+    // as measured, and no whole-set aggregate or flatten.
     expect(counters.tree).toBe(1)
     expect(counters.walk).toBe(1)
     expect(counters.aggregateRow).toBe(6)
