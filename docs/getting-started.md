@@ -243,7 +243,9 @@ Events: `update:query(query)`, `update:selection(ids)`, `update:selectionState(s
 `rowDblclick(row, event)`, `rowSaved(row)`, `rowSaveError(row, error)`, `endReached()`,
 `export(payload)`.
 
-`rowDblclick` fires once per double click, after the two `rowClick`s.
+`rowDblclick` fires once per double click, after the two `rowClick`s, except for a double click on
+a control in the row (the checkbox, a button, a link, an input, an open editor) or on an editable
+cell.
 
 `export` fires *before* the download, carrying the serialised text; `preventDefault()` on the
 payload cancels it, for a consumer who would rather POST the text or name the file from the query.

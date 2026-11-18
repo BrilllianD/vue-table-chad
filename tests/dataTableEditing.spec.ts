@@ -522,7 +522,7 @@ describe('a column whose options arrive in portions', () => {
     { value: 11, label: 'Alan Turing' },
   ]
 
-  function mountAsyncColumn() {
+  function mountAsyncColumn(extra: Record<string, unknown> = {}) {
     const rows = shallowRef<Person[]>(people.map((person) => ({ ...person, managerId: 10 })))
     const saves: RowChange<Person>[] = []
     const scope = effectScope()
@@ -554,7 +554,13 @@ describe('a column whose options arrive in portions', () => {
           },
         })
         return () =>
-          h(DataTable as never, { columns: asyncColumns, source: local, state, editing: session })
+          h(DataTable as never, {
+            columns: asyncColumns,
+            source: local,
+            state,
+            editing: session,
+            ...extra,
+          })
       },
     })
 
@@ -631,6 +637,32 @@ describe('a column whose options arrive in portions', () => {
     // without the containment test this is a save fired mid-choice.
     expect(table.saves).toHaveLength(0)
     expect(panel()).not.toBeNull()
+    table.wrapper.unmount()
+    table.dispose()
+  })
+
+  it('a double click on a select cell leaves its list open', async () => {
+    const table = mountAsyncColumn()
+    await cell(table.wrapper, 'managerId').find('.vt-cell-trigger').trigger('click')
+    await vi.waitFor(() => expect(panel()).not.toBeNull())
+
+    await cell(table.wrapper, 'managerId').find('.vt-select-trigger').trigger('click', { detail: 2 })
+    await nextTick()
+
+    expect(panel()).not.toBeNull()
+    table.wrapper.unmount()
+    table.dispose()
+  })
+
+  it('a double click inside an open editor reports no rowDblclick', async () => {
+    const onRowDblclick = vi.fn()
+    const table = mountAsyncColumn({ onRowDblclick })
+    await cell(table.wrapper, 'managerId').find('.vt-cell-trigger').trigger('click')
+    await vi.waitFor(() => expect(panel()).not.toBeNull())
+
+    await cell(table.wrapper, 'managerId').find('.vt-select-trigger').trigger('dblclick')
+
+    expect(onRowDblclick).not.toHaveBeenCalled()
     table.wrapper.unmount()
     table.dispose()
   })

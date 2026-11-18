@@ -134,7 +134,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   rowClick: [row: TRow, event: MouseEvent]
   /**
-   * A body row was double-clicked. A report like `rowClick`. Not `event.detail === 2`
+   * A body row was double-clicked. Not fired for a double click on a control inside
+   * the row or on an editable cell (see `onRowDblclick`). Not `event.detail === 2`
    * on `rowClick`: that fires after the second click's selection already ran and
    * cannot be told apart from a slow pair.
    */
@@ -472,8 +473,15 @@ function onRowClick(row: TRow, event: MouseEvent): void {
   props.selection.selectFromClick(row, event)
 }
 
-/** Fires unconditionally and selects nothing: a report of what the user did. */
+/**
+ * Selects nothing. Skips the targets selection skips: a double click on a
+ * control (the checkbox, a button, an open editor) or on a cell that opens an
+ * editor is a double click on *it*, not on the row. Reported anyway, the
+ * detail-rows recipe (`@row-dblclick` toggles the panel) would flap a panel
+ * from an editor.
+ */
 function onRowDblclick(row: TRow, event: MouseEvent): void {
+  if (ownsItsClick(event) || opensEditor(event)) return
   emit('rowDblclick', row, event)
 }
 

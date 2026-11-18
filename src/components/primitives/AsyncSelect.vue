@@ -237,6 +237,21 @@ function openPanel(): void {
   })
 }
 
+/**
+ * A cell editor opened by the first click of a double click mounts this trigger
+ * under the pointer, so the second click lands on it. That click (`detail > 1`)
+ * must not shut the list the first one opened. A keyboard click has `detail` 0
+ * and still toggles.
+ */
+function onTriggerClick(event: MouseEvent): void {
+  if (open.value) {
+    if (event.detail > 1) return
+    closePanel()
+  } else {
+    openPanel()
+  }
+}
+
 function closePanel(focusTrigger = true): void {
   if (!open.value) return
   open.value = false
@@ -450,7 +465,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
       :aria-invalid="error ? 'true' : undefined"
       :title="error ?? undefined"
       :data-placeholder="chosenLabel ? undefined : ''"
-      @click="open ? closePanel() : openPanel()"
+      @click="onTriggerClick"
       @keydown="onKeydown"
     >
       {{ chosenLabel || placeholderText }}

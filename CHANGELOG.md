@@ -21,6 +21,12 @@ Releases up to 0.6.0 are described in their `Release version` commits
   same report a built-in control makes when focus leaves it; in cell mode it commits the row, in row
   mode it does nothing. A slotted control with a teleported panel (a `StaticSelect`, a widgets
   select) can now commit on leave; `docs/editing.md` shows the recipe, including Escape. (#70)
+- Fix: `rowDblclick` no longer fires for a double click on a control inside the row (the selection
+  checkbox, a button, link or input, an open editor) or on an editable cell (one that opens an
+  editor), so the detail-rows recipe no longer toggles a panel from them; a handler that relied on
+  those double clicks stops receiving them. A double click on an editable select cell leaves its
+  list open: `AsyncSelect` and `StaticSelect` no longer close on the second click of a double
+  click. (#71)
 
 ## 0.6.1
 

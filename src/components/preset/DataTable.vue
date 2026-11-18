@@ -423,7 +423,7 @@ const emit = defineEmits<{
   'update:selectedRows': [rows: TRow[]]
   'update:columnOrder': [order: string[]]
   rowClick: [row: TRow, event: MouseEvent]
-  /** A body row was double-clicked. Same payload as `rowClick`; the two clicks still each report `rowClick`. */
+  /** A body row was double-clicked. Same payload as `rowClick`; the two clicks still each report `rowClick`. Not fired when the double click lands on a control inside the row (checkbox, button, link, input, open editor) or on an editable cell. */
   rowDblclick: [row: TRow, event: MouseEvent]
   /** A row reached the server. Carries the row as it now stands. */
   rowSaved: [row: TRow]

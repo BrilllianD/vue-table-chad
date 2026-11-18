@@ -1129,6 +1129,19 @@ describe('rowDblclick', () => {
     expect(wrapper.findAll('tbody tr[data-selected]')).toHaveLength(0)
     wrapper.unmount()
   })
+
+  it('reports nothing from the selection checkbox, and still reports a plain cell', async () => {
+    const onRowDblclick = vi.fn()
+    const wrapper = mountTable({ selectable: true, onRowDblclick })
+    const row = wrapper.findAll('tbody tr')[0]!
+
+    await row.find('.vt-td-selection input').trigger('dblclick')
+    expect(onRowDblclick).toHaveBeenCalledTimes(0)
+
+    await row.findAll('td').at(-1)!.trigger('dblclick')
+    expect(onRowDblclick).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
 })
 
 describe('rowClass', () => {

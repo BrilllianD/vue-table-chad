@@ -95,8 +95,9 @@ Gone: the button, the leading column it brought (a `selectable` table keeps it f
 and `Alt` + `↓`/`↑`. Stays: the `#detail` slot, `data-expanded` on an open row, `loadDetail`, and the
 `measure-rows` rule under `virtual`. Rows open through `expansion.toggle`, `expanded` or `initial`,
 so the example above opens a panel on a row double click. Toggle on `@row-click` instead and a double
-click sends two `rowClick`s, which open the panel and shut it again. Without `expandable` or `expansion` the prop does
-nothing.
+click sends two `rowClick`s, which open the panel and shut it again. A double click on the
+checkbox, an editor, a button or link in the row, or an editable cell does not reach `rowDblclick`,
+so the panel does not flap from them. Without `expandable` or `expansion` the prop does nothing.
 
 ## Keyboard
 
