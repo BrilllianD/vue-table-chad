@@ -542,6 +542,21 @@ describe('keys while composing, and Delete over a separator', () => {
     expect(element.value).toBe(display('134'))
     expect(wrapper.emitted('update:value')!.at(-1)).toEqual(['134'])
   })
+
+  it('forward Delete over a separator works for a number that prints with an exponent', async () => {
+    const wrapper = editor(number, { value: 1e21 })
+    const element = wrapper.find('input').element as HTMLInputElement
+    await nextTick()
+
+    // Only the first separator is gone from "1<sep>000<sep>...".
+    const shown = element.value
+    element.value = shown.slice(0, 1) + shown.slice(2)
+    element.setSelectionRange(1, 1)
+    element.dispatchEvent(new InputEvent('input', { inputType: 'deleteContentForward' }))
+    await nextTick()
+
+    expect(wrapper.emitted('update:value')!.at(-1)).toEqual(['1' + '0'.repeat(20)])
+  })
 })
 
 describe('error message ids', () => {

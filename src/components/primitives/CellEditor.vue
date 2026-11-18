@@ -268,7 +268,7 @@ function onNumberInput(target: HTMLInputElement, event: Event): void {
   // which regrouping would put straight back and the key would seem dead.
   if (
     (event as InputEvent).inputType === 'deleteContentForward' &&
-    toMachineNumber(typed) === toMachineNumber(text.value)
+    toMachineNumber(typed) === toMachineNumber(display.value)
   ) {
     typed = deleteForwardAcrossSeparator(typed, caret)
   }

@@ -342,7 +342,8 @@ already saving, and every other route to a new save goes through the close path,
 first. A straggler resolving late finds `signal.aborted` and does nothing.
 
 The signal is aborted only by `cancel`, `cancelAll`, a newer save or the scope going away, never by
-the save's own success. In `optimistic` mode an aborted save puts the row back as it was. `commit`
+the save's own success. In `optimistic` mode an aborted save puts the row back as it was, at the moment of the abort rather
+than when the save settles, so a later edit of the same row is not overwritten by the stale save. `commit`
 resolves `true` when the row was persisted or nothing changed, `false` on a validation failure, a
 rejected save or an abort, and **rejects** only when `onSaved` throws: by then the row is applied
 and the draft closed, so the error is yours to handle. A row that is saving takes no further

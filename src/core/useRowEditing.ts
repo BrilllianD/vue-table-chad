@@ -89,7 +89,8 @@ export interface UseRowEditingOptions<TRow> {
    * fails. Off by default: waiting lets the row adopt whatever the server
    * returns — a normalised value, a computed field — in one visible change
    * rather than two. A save aborted by `cancel`, `cancelAll` or scope disposal
-   * rolls the row back too.
+   * rolls the row back at that moment, not when the save settles, so a later
+   * edit of the same row is never overwritten by the stale save.
    */
   optimistic?: boolean
   /** Rows the user may not edit at all, whatever their columns say. */
@@ -243,6 +244,8 @@ export function useRowEditing<TRow>(
    * `signal.aborted` catches every one of them.
    */
   const controllers = new Map<RowId, AbortController>()
+  /** Per row, the optimistic edit not yet settled: what to put back on cancel. */
+  const inflight = new Map<RowId, { row: TRow; nextRow: TRow }>()
 
   function stateFor(id: RowId): RowEditState | undefined {
     return drafts.value.get(id)
@@ -265,8 +268,21 @@ export function useRowEditing<TRow>(
     return state
   }
 
+  /**
+   * Puts back the row an optimistic save replaced, once. The entry is dropped
+   * with it, so a save that settles afterwards has nothing left to undo and
+   * cannot overwrite what a newer edit has put there since.
+   */
+  function rollback(id: RowId): void {
+    const entry = inflight.get(id)
+    if (!entry) return
+    inflight.delete(id)
+    apply(entry.row, entry.nextRow)
+  }
+
   function close(id: RowId): void {
     if (!drafts.value.has(id)) return
+    rollback(id)
     const next = new Map(drafts.value)
     next.delete(id)
     drafts.value = next
@@ -348,6 +364,7 @@ export function useRowEditing<TRow>(
 
   function cancelAll(): void {
     for (const id of drafts.value.keys()) {
+      rollback(id)
       controllers.get(id)?.abort()
       controllers.delete(id)
     }
@@ -369,6 +386,9 @@ export function useRowEditing<TRow>(
     // with no column stays, so validation reports it as it always has.
     for (const key of Object.keys(patch)) {
       const column = columnsOf().find((c) => c.id === key)
+      // An `undefined` that came from input that did not parse is not "the
+      // same as the cell": validation must still get to report it.
+      if (patch[key] === undefined && key in state.inputs) continue
       if (column && Object.is(patch[key], readValue(row, column))) delete patch[key]
     }
     if (Object.keys(patch).length === 0) {
@@ -390,32 +410,31 @@ export function useRowEditing<TRow>(
     controllers.set(id, controller)
 
     state.status = 'saving'
-    if (options.optimistic) apply(nextRow, row)
+    if (options.optimistic) {
+      inflight.set(id, { row, nextRow })
+      apply(nextRow, row)
+    }
 
     let finalRow: TRow
     try {
       const saved = await options.save({ id, row, patch, nextRow, signal: controller.signal })
-      if (controller.signal.aborted) {
-        // Cancelled mid-save: the optimistic edit was never going to be kept.
-        if (options.optimistic) apply(row, nextRow)
-        return false
-      }
+      // Cancelled mid-save: `cancel`, `cancelAll` and disposal have already
+      // put the optimistic edit back, and a newer edit may own the row now.
+      if (controller.signal.aborted) return false
 
       // The server's row wins when it sent one back: it may have normalised a
       // value or filled a field only it can compute.
       finalRow = (saved as TRow | undefined | void) ?? nextRow
       if (options.optimistic) {
+        inflight.delete(id)
         if (finalRow !== nextRow) apply(finalRow, nextRow)
       } else {
         apply(finalRow, row)
       }
     } catch (caught) {
-      if (controller.signal.aborted) {
-        if (options.optimistic) apply(row, nextRow)
-        return false
-      }
+      if (controller.signal.aborted) return false
       // Put the row back the way it was before anyone saw the optimistic edit.
-      if (options.optimistic) apply(row, nextRow)
+      rollback(id)
 
       const failure = mapError(caught)
       const fields = failure.fields ?? {}
@@ -441,6 +460,7 @@ export function useRowEditing<TRow>(
   }
 
   onScopeDispose(() => {
+    for (const id of [...inflight.keys()]) rollback(id)
     for (const controller of controllers.values()) controller.abort()
     controllers.clear()
   })

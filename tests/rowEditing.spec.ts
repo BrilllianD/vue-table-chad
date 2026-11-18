@@ -467,6 +467,20 @@ describe('a rejected save', () => {
   })
 })
 
+describe('an unchanged key that does not parse', () => {
+  it('still reports the parse error when the cell holds undefined', async () => {
+    const h = setup()
+    const row = { ...first, salary: undefined } as unknown as Person
+    h.editing.begin(row, 'salary')
+    h.editing.setValue(row, columns[2]!, 'abc')
+    await expect(h.editing.commit(row)).resolves.toBe(false)
+    expect(h.editing.errorFor(row.id, 'salary')).not.toBeNull()
+    expect(h.editing.isEditing(row.id)).toBe(true)
+    expect(h.saves).toHaveLength(0)
+    h.dispose()
+  })
+})
+
 describe('optimistic', () => {
   it('applies before the server answers, and keeps it when the save succeeds', async () => {
     const gate = deferred<void>()
@@ -645,6 +659,50 @@ describe('the save lifecycle', () => {
     gate.resolve()
     await pending
     h.dispose()
+  })
+})
+
+describe('a stale optimistic save', () => {
+  for (const outcome of ['resolves', 'rejects'] as const) {
+    it(`leaves the second edit alone when the first save ${outcome} late`, async () => {
+      const gates = [deferred<void>(), deferred<void>()]
+      let call = 0
+      const h = setup({ optimistic: true, save: () => gates[call++]!.promise })
+      h.editing.begin(first, 'salary')
+      h.editing.setValue(first, columns[2]!, '92000')
+      const firstSave = h.editing.commit(first)
+      expect(h.rowFor(first.id).salary).toBe(92000)
+
+      h.editing.cancel(first)
+      // Rolled back at once, not when the save settles.
+      expect(h.rowFor(first.id).salary).toBe(first.salary)
+
+      h.editing.begin(h.rowFor(first.id), 'salary')
+      h.editing.setValue(h.rowFor(first.id), columns[2]!, '77000')
+      const secondSave = h.editing.commit(h.rowFor(first.id))
+      expect(h.rowFor(first.id).salary).toBe(77000)
+
+      if (outcome === 'resolves') gates[0]!.resolve()
+      else gates[0]!.reject(new Error('late'))
+      await expect(firstSave).resolves.toBe(false)
+      expect(h.rowFor(first.id).salary).toBe(77000)
+
+      gates[1]!.resolve()
+      await expect(secondSave).resolves.toBe(true)
+      expect(h.rowFor(first.id).salary).toBe(77000)
+      h.dispose()
+    })
+  }
+
+  it('rolls back on dispose without waiting for the save', () => {
+    const gate = deferred<void>()
+    const h = setup({ optimistic: true, save: () => gate.promise })
+    h.editing.begin(first, 'salary')
+    h.editing.setValue(first, columns[2]!, '92000')
+    void h.editing.commit(first)
+    expect(h.rowFor(first.id).salary).toBe(92000)
+    h.dispose()
+    expect(h.rowFor(first.id).salary).toBe(first.salary)
   })
 })
 
