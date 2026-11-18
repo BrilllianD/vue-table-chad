@@ -148,7 +148,20 @@ function buildFilter(): ValuesFilter | undefined {
   return { kind: 'values', include, includeBlanks: blanksChecked.value }
 }
 
+/**
+ * Under a search with nothing checked among the matches, Apply would emit an
+ * empty include and hide every row; Excel greys out OK there. `apply()` honours
+ * the same rule, as it does while values load.
+ */
+const cannotApply = computed(() => {
+  if (props.loading) return true
+  if (search.value.trim() === '') return false
+  const anyValue = filtered.value.some((f) => isChecked(f.value))
+  return !anyValue && !(blankVisible.value && blanksChecked.value)
+})
+
 function apply(): void {
+  if (cannotApply.value) return
   emit('update:modelValue', buildFilter())
 }
 
@@ -214,7 +227,7 @@ defineExpose({ apply, clear })
 
     <div class="vt-valuelist-actions">
       <button type="button" class="vt-btn" @click="clear">{{ labels.clear }}</button>
-      <button type="button" class="vt-btn vt-btn-primary" :disabled="loading" @click="apply">
+      <button type="button" class="vt-btn vt-btn-primary" :disabled="cannotApply" @click="apply">
         {{ labels.apply }}
       </button>
     </div>

@@ -171,7 +171,9 @@ Four primitives, none of which ship any CSS:
   Apply keeps the values of the current filter that the list cannot show (hidden by other filters or
   the global search, or not loaded), and waits while values load. Under a search, Apply applies only
   the checked matches, like Excel: Select All acts on the matches, and values the search hides are
-  not part of the new filter.
+  not part of the new filter. When the search has text and none of the matches (nor a visible
+  "(Blanks)" row) is checked, Apply is disabled, as Excel greys out OK, rather than emit an empty
+  include that hides every row.
 - **`ConditionFilter`** — the rule builder alone. Props: `type`, `modelValue`, `maxRules`.
 - **`ActiveFilters`** — the chip row. It needs a table context (`requireTableContext`), because it
   reads the whole filter model rather than taking it as props. Without it, a filter left on a column

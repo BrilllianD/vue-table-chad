@@ -66,6 +66,38 @@ describe('ValueListFilter Apply', () => {
     expect(emitted(w)).toEqual({ kind: 'values', include: ['Alpha'], includeBlanks: false })
   })
 
+  it('disables Apply and emits nothing when a search matches nothing', async () => {
+    const w = mountList({ facets: [{ value: 'A', count: 1 }] })
+    await w.find('input[type="search"]').setValue('zzz')
+    expect(w.find('.vt-btn-primary').attributes('disabled')).toBeDefined()
+    await apply(w)
+    ;(w.vm as unknown as { apply(): void }).apply()
+    expect(w.emitted('update:modelValue')).toBeUndefined()
+  })
+
+  it('disables Apply and emits nothing for a search over an empty facet list', async () => {
+    const w = mountList({ facets: [], modelValue: incoming })
+    await w.find('input[type="search"]').setValue('a')
+    expect(w.find('.vt-btn-primary').attributes('disabled')).toBeDefined()
+    ;(w.vm as unknown as { apply(): void }).apply()
+    expect(w.emitted('update:modelValue')).toBeUndefined()
+  })
+
+  it('enables Apply under a search once a match is checked', async () => {
+    const w = mountList({ facets: [{ value: 'Alpha', count: 1 }] })
+    await w.find('input[type="search"]').setValue('alp')
+    await w.find('.vt-valuelist-all input').trigger('click')
+    expect(w.find('.vt-btn-primary').attributes('disabled')).toBeDefined()
+    await w.find('.vt-valuelist-all input').trigger('click')
+    expect(w.find('.vt-btn-primary').attributes('disabled')).toBeUndefined()
+  })
+
+  it('exposed apply() is a no-op while loading', () => {
+    const w = mountList({ facets: [], loading: true, modelValue: incoming })
+    ;(w.vm as unknown as { apply(): void }).apply()
+    expect(w.emitted('update:modelValue')).toBeUndefined()
+  })
+
   it('shows the blanks row, not the empty message, when searching the blanks label', async () => {
     const w = mountList({
       facets: [
