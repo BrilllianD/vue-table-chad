@@ -126,9 +126,13 @@ Two habits keep the pipeline honest, both argued out with their numbers in `src/
   is written once in `src/` and never in the demo. Every *value* export must also appear in `demo/`,
   in a view's `:api` list or imported by one — **`tests/apiSurface.spec.ts` names the offender:
   demonstrate it, or stop exporting it.** Types are exempt; a type cannot be used in a view visibly.
-  `tests/publicApi.spec.ts` snapshots the surface `RELEASING.md` calls breaking (exports, props and
-  their defaults, emits, slots, exposed members, label keys, `--vtc-*` names). A change there is
-  updated with `pnpm test publicApi -u` in the same commit, and the diff decides whether the
+  `tests/publicApi.spec.ts` snapshots part of the surface `RELEASING.md` calls breaking (exports,
+  props and their defaults, emits, slots, exposed members, label keys, `--vtc-*` names). It is a
+  floor: a diff there is a surface change, updated with `pnpm test publicApi -u` in the same commit,
+  but a clean diff does not mean "not breaking". Check by hand what it cannot see: composable
+  options and return members, a prop, slot prop or type export retyped narrower, a changed object
+  or array default, the members of a `[dynamic]` slot family, `.vt-` classes and `data-*`
+  attributes, `exports` subpaths, the `vue` peer floor. The `RELEASING.md` list decides whether the
   `CHANGELOG.md` bullet starts `**Breaking:**`.
 - **One task, one commit.** No batching, no work-in-progress commits spanning tasks. `pnpm test`
   green, `pnpm typecheck` and `pnpm lint` clean before each. A task whose done-when is not met does not get

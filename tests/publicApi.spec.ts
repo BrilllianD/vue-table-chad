@@ -25,12 +25,18 @@ import { themeProperties } from '../src/core/theme'
 const root = resolve(import.meta.dirname, '..')
 const indexSource = readFileSync(resolve(root, 'src/index.ts'), 'utf8')
 
+const componentExport = /^export \{ default as (\w+) \} from '(\.\/components\/[^']+\.vue)'/
+
 function componentFiles(): Map<string, string> {
   const files = new Map<string, string>()
-  for (const match of indexSource.matchAll(
-    /^export \{ default as (\w+) \} from '(\.\/components\/[^']+\.vue)'/gm,
-  )) {
-    files.set(match[1]!, resolve(root, 'src', match[2]!))
+  for (const [index, line] of indexSource.split('\n').entries()) {
+    const match = componentExport.exec(line)
+    if (match) files.set(match[1]!, resolve(root, 'src', match[2]!))
+    else if (line.includes('.vue')) {
+      throw new Error(
+        `src/index.ts:${index + 1} mentions a .vue file in a form the spec does not read: ${line.trim()}`,
+      )
+    }
   }
   return files
 }
@@ -144,7 +150,7 @@ function keyName(key: AstNode): string {
 function exposedOf(file: string): string[] {
   const { descriptor } = parse(readFileSync(file, 'utf8'), { filename: file })
   const content = descriptor.scriptSetup?.content
-  if (content === undefined) return []
+  if (content === undefined) throw new Error(`${file} has no <script setup> block`)
   const program = babelParse(content, { sourceType: 'module', plugins: ['typescript'] })
   const found = new Set<string>()
   const walk = (value: unknown): void => {
@@ -154,7 +160,10 @@ function exposedOf(file: string): string[] {
     if (node.type === 'CallExpression') {
       const callee = node.callee as AstNode
       const [arg] = node.arguments as AstNode[]
-      if (callee.type === 'Identifier' && callee.name === 'defineExpose' && arg?.type === 'ObjectExpression') {
+      if (callee.type === 'Identifier' && callee.name === 'defineExpose') {
+        if (arg?.type !== 'ObjectExpression') {
+          throw new Error(`${file}: defineExpose argument is not an object literal`)
+        }
         for (const prop of arg.properties as AstNode[]) {
           if (prop.type === 'SpreadElement') found.add('[spread]')
           else found.add(keyName(prop.key as AstNode))
