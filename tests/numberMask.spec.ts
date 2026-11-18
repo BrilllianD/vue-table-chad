@@ -136,3 +136,14 @@ describe('deleteForwardAcrossSeparator', () => {
     expect(deleteForwardAcrossSeparator('12 ', 2, spaced)).toBe('12 ')
   })
 })
+
+describe('the separators of a bundle locale', () => {
+  it('read a typed 5.5 as 55 under es-ES, where the full stop groups', () => {
+    const es = numberSeparators('es-ES')
+    expect(es).toEqual({ group: '.', decimal: ',' })
+    expect(toMachineNumber('5.5', es)).toBe('55')
+    expect(toMachineNumber('5,5', es)).toBe('5.5')
+    // en-US, the 0.6.1 reading in an en-US browser.
+    expect(toMachineNumber('5.5', numberSeparators('en-US'))).toBe('5.5')
+  })
+})

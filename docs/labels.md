@@ -155,6 +155,13 @@ browser would otherwise read `5,5` in a number cell as `55`, because `,` groups 
    `app.use(createTableLabels(ru))` sets `ru-RU` app-wide);
 3. the runtime's own locale.
 
+The value must be a well-formed BCP 47 tag. A malformed one (`'en_US'`) throws a `RangeError` from
+`Intl` while rendering; a well-formed tag the runtime does not support falls back silently.
+
+Number entry follows the locale's separators, so under the `es` bundle (`es-ES` groups with `.`,
+decimal `,`) a typed `5.5` reads as `55`, where 0.6.1 in an `en-US` browser read `5.5`. An app that
+wants the old reading passes its own `locale`.
+
 It drives how the cell editor reads and groups numbers, aggregate numbers without
 `aggregateFormat`, text and enum sort order on client grouping, and the order of the value
 checklist of a column without `options`. It is never rendered, and rewording a label does not

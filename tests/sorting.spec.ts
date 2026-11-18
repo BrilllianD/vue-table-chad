@@ -296,3 +296,16 @@ describe('locale', () => {
     expect(compareText('я', 'a', 'ru-RU')).toBeLessThan(0)
   })
 })
+
+describe('a malformed locale tag', () => {
+  it('throws a RangeError from Intl, while a well-formed unsupported one falls back', () => {
+    const rows = [{ name: 'b' }, { name: 'a' }]
+    const columns = [{ id: 'name', type: 'text' as const }]
+    const sort = [{ columnId: 'name', direction: 'asc' as const }]
+    expect(() => sortRows(rows, sort, columns, { locale: 'en_US' })).toThrow(RangeError)
+    expect(sortRows(rows, sort, columns, { locale: 'xx-YY' }).map((row) => row.name)).toEqual([
+      'a',
+      'b',
+    ])
+  })
+})

@@ -39,9 +39,10 @@ export interface LocalDataSourceOptions extends Omit<SortOptions, 'locale'> {
   /**
    * BCP 47 tag that orders text and enum columns and the value checklist.
    *
-   * Left out, a source created in a component's setup takes the `locale` of the
-   * labels above it (`createTableLabels(ru)` sets one), and otherwise the
-   * runtime's own locale orders. A ref or getter re-sorts once when it changes.
+   * Left out, or yielding `undefined`, a source created in a component's setup
+   * takes the `locale` of the labels above it (`createTableLabels(ru)` sets
+   * one), and otherwise the runtime's own locale orders. A ref or getter
+   * re-sorts once when it changes.
    */
   locale?: MaybeRefOrGetter<string | undefined>
 }
@@ -113,12 +114,11 @@ export function useLocalDataSource<TRow>(
   const debounceMs = options.debounceMs ?? 150
 
   // Read once here, in setup: `inject` has nothing to find later. A string
-  // computed, so rewording a label does not wake the sort.
-  const inherited =
-    options.locale === undefined && hasInjectionContext() ? useTableLabels() : undefined
-  const localeOf = computed(() =>
-    options.locale !== undefined ? toValue(options.locale) : inherited?.value.locale,
-  )
+  // computed, so rewording a label does not wake the sort. The labels are
+  // injected whatever the option is, as `useTable` does, so an option that
+  // yields `undefined` falls back to the plugin's locale by value.
+  const inherited = hasInjectionContext() ? useTableLabels() : undefined
+  const localeOf = computed(() => toValue(options.locale) ?? inherited?.value.locale)
   const settledSearch = ref(searchOf.value)
   let searchTimer: ReturnType<typeof setTimeout> | undefined
 

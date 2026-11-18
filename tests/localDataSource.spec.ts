@@ -3,7 +3,7 @@ import { computed, defineComponent, effectScope, h, ref, shallowRef } from 'vue'
 import { mount } from '@vue/test-utils'
 import { createTableLabels } from '../src/core/plugin'
 import type { ColumnDef } from '../src/core/types'
-import { useLocalDataSource } from '../src/core/useLocalDataSource'
+import { useLocalDataSource, type LocalDataSourceOptions } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { computeFacets } from '../src/core/filters/facets'
 import { conditionsFilter, valuesFilter } from '../src/core/filters/model'
@@ -323,7 +323,7 @@ describe('useLocalDataSource locale', () => {
     live.stop()
   })
 
-  function inSetup(options: { locale?: string }) {
+  function inSetup(options: { locale?: LocalDataSourceOptions['locale'] }) {
     let result: string[] = []
     const Host = defineComponent({
       setup() {
@@ -344,5 +344,44 @@ describe('useLocalDataSource locale', () => {
   it('inherits the plugin locale when created in a setup, and an explicit one wins', () => {
     expect(inSetup({})).toEqual(['а', 'я', 'a', 'z'])
     expect(inSetup({ locale: 'en-US' })).toEqual(['a', 'z', 'а', 'я'])
+  })
+
+  it('falls back to the plugin locale when the option yields undefined, and a tag wins', () => {
+    const tag = shallowRef<string | undefined>(undefined)
+    let source!: ReturnType<typeof useLocalDataSource<Name>>
+    const Host = defineComponent({
+      setup() {
+        const state = useTableState({ pageSize: 10 })
+        state.setSort('name', 'asc')
+        source = useLocalDataSource<Name>(data, columns, state.query, {
+          debounceMs: 0,
+          locale: () => tag.value,
+        })
+        return () => h('div')
+      },
+    })
+    const wrapper = mount(Host, { global: { plugins: [createTableLabels({ locale: 'ru-RU' })] } })
+    expect(namesOf(source.rows.value)).toEqual(['а', 'я', 'a', 'z'])
+    tag.value = 'en-US'
+    expect(namesOf(source.rows.value)).toEqual(['a', 'z', 'а', 'я'])
+    tag.value = undefined
+    expect(namesOf(source.rows.value)).toEqual(['а', 'я', 'a', 'z'])
+    wrapper.unmount()
+  })
+
+  it('still passes nullsLast: false to the sort when a locale is set', () => {
+    const blanks = [{ name: 'b' }, { name: '' }, { name: 'a' }]
+    const state = useTableState({ pageSize: 10 })
+    state.setSort('name', 'asc')
+    const scope = effectScope()
+    const source = scope.run(() =>
+      useLocalDataSource<Name>(blanks, columns, state.query, {
+        debounceMs: 0,
+        nullsLast: false,
+        locale: 'en-US',
+      }),
+    )!
+    expect(namesOf(source.rows.value)).toEqual(['', 'a', 'b'])
+    scope.stop()
   })
 })

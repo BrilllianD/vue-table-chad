@@ -30,7 +30,8 @@ entirely — the right choice for small datasets and for tests that assert on th
 
 `locale` (a BCP 47 tag, or a ref or getter of one) orders text and enum columns and the value
 checklist. Left out, a source created in a component's setup takes the labels' `locale`, else the
-browser's; changing it re-sorts once and filters nothing.
+browser's, and so does a ref or getter that yields `undefined`; changing it re-sorts once and
+filters nothing.
 
 ## Server data
 

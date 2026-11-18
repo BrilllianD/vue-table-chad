@@ -9,7 +9,10 @@ Releases up to 0.6.0 are described in their `Release version` commits
   `locale` field the `ru`, `es`, `ja` and `zhCN` bundles set. It drives number reading and grouping
   in the cell editor, aggregate numbers without `aggregateFormat`, text and enum sort order and
   the value checklist order, instead of the browser's locale: under `createTableLabels(ru)` in an
-  `en-US` browser, `5,5` now reads as `5.5`. `compareText`, `comparatorFor`, `computeFacets` and
+  `en-US` browser, `5,5` now reads as `5.5`. The other side: number entry follows the bundle's
+  separators, so an app on the `es` bundle (`es-ES` groups with `.`, decimal `,`) reads a typed
+  `5.5` as `55` where 0.6.1, in an `en-US` browser, read `5.5`; an app that wants the old reading
+  passes its own `locale`. `compareText`, `comparatorFor`, `computeFacets` and
   `formatAggregate` take an optional trailing locale, and `SortOptions` gains `locale`. (#16)
 - Fix: table popovers, the context menu, the select editor's list and the drag ghost now sit on the
   overlay layer (`--vtc-z-popover` 9999, `--vtc-z-ghost` 10000) instead of 20 and 60, so they open
