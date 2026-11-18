@@ -47,6 +47,7 @@ export const tr: TableLabels = Object.freeze({
   loadingOptions: 'Seçenekler yükleniyor',
 
   selectAllOnPage: 'Bu sayfadaki tüm satırları seç',
+  selectRow: 'Satırı seç',
   selectAllValues: 'Tümünü seç',
   selectAllRow: '(Tümünü seç)',
   blanksCheckbox: 'Boş',

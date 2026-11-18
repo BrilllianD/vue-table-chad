@@ -40,6 +40,7 @@ export const es: TableLabels = Object.freeze({
   loadingOptions: 'Cargando opciones',
 
   selectAllOnPage: 'Seleccionar todas las filas de esta página',
+  selectRow: 'Seleccionar fila',
   selectAllValues: 'Seleccionar todo',
   selectAllRow: '(Seleccionar todo)',
   blanksCheckbox: 'Vacíos',

@@ -776,7 +776,7 @@ function cancelCell(row: TRow, cursor: UseCellCursor<TRow> | undefined): void {
               v-if="selectable && selection"
               :checked="selection.isSelected(item.row)"
               :disabled="!selection.isSelectable(item.row)"
-              label="Select row"
+              :label="labels.selectRow"
               @change="
                 (_checked, event) =>
                   event.shiftKey

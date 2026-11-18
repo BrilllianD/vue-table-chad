@@ -45,6 +45,7 @@ export const zhCN: TableLabels = Object.freeze({
   loadingOptions: '正在加载选项',
 
   selectAllOnPage: '选择本页所有行',
+  selectRow: '选择行',
   selectAllValues: '全选',
   selectAllRow: '（全选）',
   blanksCheckbox: '空白',

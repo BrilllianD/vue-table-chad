@@ -134,7 +134,8 @@ function stripDevText(source: string): string {
 
 describe('label record', () => {
   /**
-   * The three attributes that carry a name to assistive tech or to a tooltip.
+   * The attributes, and the component `label` prop that is rendered as one,
+   * that carry a name to assistive tech or to a tooltip.
    * Written statically they are English by construction — the binding form is
    * the only one that can read the record.
    */
@@ -146,11 +147,11 @@ describe('label record', () => {
       const lines = template.split('\n')
 
       lines.forEach((line, index) => {
-        for (const m of line.matchAll(/(?<![:\w-])(aria-label|placeholder|title)="([^"]*)"/g)) {
+        for (const m of line.matchAll(/(?<![:\w-])(aria-label|placeholder|title|label)="([^"]*)"/g)) {
           if (hasWord(m[2]!)) offenders.push(`${file}:${index + 1} ${m[1]}="${m[2]}"`)
         }
         // The bound form, holding a literal rather than a read: `:title="'Filter'"`.
-        for (const m of line.matchAll(/:(?<![\w-]:)(aria-label|placeholder|title)="([^"]*)"/g)) {
+        for (const m of line.matchAll(/:(?<![\w-]:)(aria-label|placeholder|title|label)="([^"]*)"/g)) {
           for (const literal of m[2]!.matchAll(/'([^']*)'|`([^`]*)`/g)) {
             const text = literal[1] ?? literal[2] ?? ''
             // A space or a capital marks copy; a lowercase single word is a
@@ -164,7 +165,7 @@ describe('label record', () => {
 
     expect(
       offenders,
-      'an accessible name or a tooltip is a hardcoded literal; add a key to TableLabels and read it through useTableLabels()',
+      'an accessible name, a tooltip or a component label prop is a hardcoded literal; add a key to TableLabels and read it through useTableLabels()',
     ).toEqual([])
   })
 
@@ -269,6 +270,9 @@ describe('label overrides', () => {
     expect(wrapper.get('.vt-th-selection input').attributes('aria-label')).toBe(
       DEFAULT_LABELS.selectAllOnPage,
     )
+    expect(wrapper.get('tbody .vt-td-selection input').attributes('aria-label')).toBe(
+      DEFAULT_LABELS.selectRow,
+    )
     wrapper.unmount()
   })
 
@@ -319,6 +323,9 @@ describe('createTableLabels', () => {
     // out of the injection, so both halves have to move.
     expect(wrapper.get('input.vt-search').attributes('placeholder')).toBe(ru.search)
     expect(wrapper.get('.vt-th-selection input').attributes('aria-label')).toBe(ru.selectAllOnPage)
+    const rowBox = wrapper.get('tbody .vt-td-selection input')
+    expect(rowBox.attributes('aria-label')).toBe(ru.selectRow)
+    expect(rowBox.attributes('aria-label')).not.toBe('Select row')
     wrapper.unmount()
   })
 

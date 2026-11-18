@@ -5,6 +5,10 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- **Breaking:** `TableLabels` gains a required `selectRow` key, the accessible name of a row's
+  selection checkbox, which was the English literal "Select row" in every locale; all five shipped
+  bundles translate it. A record declared as a whole `TableLabels` must add it; a
+  `Partial<TableLabels>` passed to `labels` or `createTableLabels` is unaffected. (#33)
 - Fix: `useRowEditing` and `useTable` built in a component's setup merge their `labels` over the
   `createTableLabels` record instead of English, so editing messages (`required`, the parse
   messages, `saveFailed`) and a hand-built table follow the app's locale; `provideTableContext` now

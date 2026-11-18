@@ -49,6 +49,7 @@ export const ru: TableLabels = Object.freeze({
   loadingOptions: 'Загрузка вариантов',
 
   selectAllOnPage: 'Выбрать все строки на этой странице',
+  selectRow: 'Выбрать строку',
   selectAllValues: 'Выбрать все',
   selectAllRow: '(Выбрать все)',
   blanksCheckbox: 'Пустые',

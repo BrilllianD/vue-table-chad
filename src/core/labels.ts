@@ -69,6 +69,8 @@ export interface TableLabels {
   // — selection —
   /** Accessible name for the header checkbox. */
   selectAllOnPage: string
+  /** Accessible name of a row's selection checkbox. */
+  selectRow: string
   /** Accessible name for the value list's tri-state checkbox. */
   selectAllValues: string
   /** The value list's visible "everything" row. */
@@ -292,6 +294,7 @@ export const DEFAULT_LABELS: TableLabels = Object.freeze({
   loadingOptions: 'Loading options',
 
   selectAllOnPage: 'Select all rows on this page',
+  selectRow: 'Select row',
   selectAllValues: 'Select all',
   selectAllRow: '(Select All)',
   blanksCheckbox: 'Blanks',

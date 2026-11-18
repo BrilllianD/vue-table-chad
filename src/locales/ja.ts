@@ -45,6 +45,7 @@ export const ja: TableLabels = Object.freeze({
   loadingOptions: '選択肢を読み込み中',
 
   selectAllOnPage: 'このページのすべての行を選択',
+  selectRow: '行を選択',
   selectAllValues: 'すべて選択',
   selectAllRow: '（すべて選択）',
   blanksCheckbox: '空白',
