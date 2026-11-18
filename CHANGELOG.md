@@ -5,6 +5,7 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- The README points to the guide for using the table with the other chad libraries. (#79)
 - Added: `createTable({ labels, locale, theme })`, one app plugin like `createForms` and `createWidgets`: its `theme` is the default for every `DataTable` without a `theme` prop, so an app no longer writes `DataTable.props.theme.default`; `locale` outranks the labels' own; each option takes a ref or getter. `createTableLabels(x)` stays and equals `createTable({ labels: x })`. A table built from `TableRoot` or bare primitives does not read the plugin's `theme`. (#74)
 - **Breaking:** `DataTable`'s `theme` prop defaults to `undefined` instead of `'system'`; it resolves to the `createTable` theme, else `'system'`, so with no plugin installed a table renders as before. Code that reads `DataTable.props.theme.default` gets `undefined`, and `:theme="undefined"` follows the plugin; writing that default still works and outranks the plugin. (#74)
 - **Breaking:** `TableLabels` gains a required `selectRow` key, the accessible name of a row's

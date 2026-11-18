@@ -153,6 +153,8 @@ pages are also a VitePress site — `npm run docs:dev` serves it locally, `npm r
 Also: [Porting an existing table](docs/examples/) — a real server-paginated Options API component
 moved onto `useTableState` + `useServerDataSource`, keeping its own markup, mixins and widgets.
 
+Using it on one page with `@brillliand/vue-form-chad`, `@brillliand/vue-widgets-chad` and `@korneevecin/vue3-dialogs-lib`: see the guide `docs/together.md` in the `chad-together` repository (not published yet).
+
 The full API — every export, with what it is for — is the **API reference** tab of the demo
 (`npm run demo` in a checkout). It is generated from the doc comments in `src/`, so it cannot fall
 behind the code.
