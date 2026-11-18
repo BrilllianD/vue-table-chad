@@ -145,6 +145,25 @@ themselves — a micro-frontend with no root it owns, a Storybook decorator — 
 `app.provide(TableLabelsKey, shallowRef(mergeLabels(ru)))` and get the identical
 result.
 
+## One string, two knobs
+
+Seven props and options predate the label record, and each sets one string that a
+`TableLabels` key also sets.
+
+| Prop or option | Label key | Which wins |
+| --- | --- | --- |
+| `DataTable` `footerLabel` | `footerLabel` | The prop. |
+| `DataTable` `emptyMessage` | `emptyMessage` | The prop. |
+| `DataTable` `loadingMessage` | `loading` | The prop. |
+| `DataTable`, `TableRoot` and `useTable` `blankGroupLabel` | `blankGroup` | The prop. |
+| `RowGroupMenu` `label` | `groupBy` | The prop. |
+| `ColumnVisibilityMenu` `label` | `columns` | The prop. |
+| `useRowGrouping` `blankLabel` | none | The option. Unset, it falls back to the English `BLANK_GROUP_LABEL`, not to the table's labels. |
+
+The prop wins in every row. A string set through a prop stays put when the locale
+switches, so leave the prop unset and set the key to have it translate.
+`blankGroupLabel` is read once, when the table is set up.
+
 ## Number format and sort order
 
 The table follows the app's language, not the browser's. A Russian app opened in an `en-US`
