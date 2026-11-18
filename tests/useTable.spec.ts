@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick, shallowRef } from 'vue'
 import { useTable, type UseTableOptions } from '../src/core/useTable'
+import { ru } from '../src/locales'
+import type { TableLabels } from '../src/core/labels'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useServerDataSource } from '../src/core/useServerDataSource'
 import { useTableState } from '../src/core/useTableState'
@@ -40,6 +42,41 @@ describe('useTable locale', () => {
     const c = setup()
     expect(c.table.labels.value.locale).toBeUndefined()
     c.dispose()
+  })
+})
+
+describe('useTable blank group label', () => {
+  const groups = (table: ReturnType<typeof setup>['table']) =>
+    table.displayRows.value.flatMap((item) => (item.kind === 'group' ? [item.group] : []))
+
+  it('relabels the blank band on a labels switch, keys unchanged', () => {
+    const words = shallowRef<Partial<TableLabels> | undefined>(undefined)
+    const { table, dispose } = setup({
+      state: useTableState({ pageSize: 100, initialGroupBy: ['department'] }),
+      labels: () => words.value,
+    })
+    const before = groups(table)
+    expect(before.map((group) => group.label)).toContain('Blank')
+
+    words.value = ru
+    const after = groups(table)
+    expect(after.map((group) => group.label)).toContain('Пусто')
+    expect(after.map((group) => group.label)).not.toContain('Blank')
+    expect(after.map((group) => group.key)).toEqual(before.map((group) => group.key))
+    dispose()
+  })
+
+  it('keeps blankGroupLabel across the switch', () => {
+    const words = shallowRef<Partial<TableLabels> | undefined>(undefined)
+    const { table, dispose } = setup({
+      state: useTableState({ pageSize: 100, initialGroupBy: ['department'] }),
+      labels: () => words.value,
+      blankGroupLabel: 'None',
+    })
+    expect(groups(table).map((group) => group.label)).toContain('None')
+    words.value = ru
+    expect(groups(table).map((group) => group.label)).toContain('None')
+    dispose()
   })
 })
 

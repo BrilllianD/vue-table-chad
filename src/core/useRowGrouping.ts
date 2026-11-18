@@ -39,7 +39,12 @@ export interface UseRowGroupingOptions<TRow = Record<string, unknown>> {
   initialCollapsed?: string[]
   /** Fold every group on first sight instead. */
   collapsedByDefault?: boolean
-  blankLabel?: string
+  /**
+   * Caption of the bucket holding rows with no value. Left out, the English
+   * `BLANK_GROUP_LABEL`. A ref or getter re-labels the bands when it changes, at
+   * the cost of one tree rebuild.
+   */
+  blankLabel?: MaybeRefOrGetter<string | undefined>
 }
 
 /** displayRows, groups, overall aggregates and the collapse controls. */
@@ -151,6 +156,8 @@ export function useRowGrouping<TRow>(
    */
   const suppliedTotals = computed(() => toValue(options.totals))
   const suppliedAggregates = computed(() => toValue(options.aggregates))
+  // A string computed, so a getter returning the same text does not rebuild.
+  const blankLabelOf = computed(() => toValue(options.blankLabel))
 
   /**
    * The bands themselves. Deliberately free of any dependency on `collapsed`:
@@ -164,9 +171,7 @@ export function useRowGrouping<TRow>(
    */
   const tree = computed(() => {
     if (groupBy.value.length === 0) {
-      return buildGroupTree(orderedRows.value, groupBy.value, allColumns.value, {
-        blankLabel: options.blankLabel,
-      })
+      return buildGroupTree(orderedRows.value, groupBy.value, allColumns.value, {})
     }
     return buildGroupTree(orderedRows.value, groupBy.value, allColumns.value, {
       totals: suppliedTotals.value,
@@ -175,7 +180,7 @@ export function useRowGrouping<TRow>(
         aggregated.value.length > 0
           ? (rows) => aggregateRow(rows, aggregated.value)
           : undefined,
-      blankLabel: options.blankLabel,
+      blankLabel: blankLabelOf.value,
     })
   })
 

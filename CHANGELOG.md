@@ -5,6 +5,9 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- Fix: the caption of the blank group now follows a labels switch (a `labels` prop or a
+  `createTableLabels` ref) instead of keeping the language the table was set up with;
+  `useRowGrouping`'s `blankLabel` also takes a ref or getter. (#33)
 - Added: a Turkish bundle, `tr`, on the `@brillliand/vue-table-chad/locales` entry, with
   `locale: 'tr-TR'`, so numbers read `1.234,5` and text sorts the Turkish way under it. (#73)
 - Added: a `locale` option on `useTable`, `TableRoot`, `DataTable` and `useLocalDataSource`, and a

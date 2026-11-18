@@ -130,7 +130,8 @@ export interface UseTableOptions<TRow> {
   groupsCollapsed?: boolean
   /**
    * Header text for the bucket holding rows with no value. Defaults to
-   * `labels.blankGroup`, and outranks it when both are given.
+   * `labels.blankGroup`, and outranks it when both are given. Read once at
+   * setup, while the `labels.blankGroup` default follows a labels switch.
    */
   blankGroupLabel?: string
   /**
@@ -249,10 +250,11 @@ export function useTable<TRow>(
   options: UseTableOptions<TRow>,
 ): UseTable<TRow> {
   /**
-   * The wording, merged once. Nothing downstream of the pipeline reads it, with
-   * one deliberate exception: the blank-group label is part of a group's own
-   * header text, so translating it does re-derive the group tree. That is work
-   * that was asked for, not an accident of where the record sits.
+   * The wording, merged once. Nothing downstream of the pipeline reads the
+   * record, with one deliberate exception: the blank-group label is part of a
+   * group's own header text, so a changed `blankGroup` re-derives the group tree,
+   * through `blankGroupOf` below. That is work that was asked for, not an
+   * accident of where the record sits.
    */
   const labels = computed(() => {
     const merged = mergeLabels(options.labels?.())
@@ -261,6 +263,8 @@ export function useTable<TRow>(
   })
   // A string computed: rewording a label must not wake the sort.
   const localeOf = computed(() => labels.value.locale)
+  // Likewise a string computed: rewording another key must not rebuild the bands.
+  const blankGroupOf = computed(() => labels.value.blankGroup)
 
   /** The three defaulted options, read through one place each. */
   const selectableOf = (): boolean | SelectionMode => options.selectable?.() ?? false
@@ -416,7 +420,7 @@ export function useTable<TRow>(
           ? options.source().groupAggregates?.(state.groupBy.value)
           : undefined,
       collapsedByDefault: options.groupsCollapsed,
-      blankLabel: options.blankGroupLabel ?? labels.value.blankGroup,
+      blankLabel: options.blankGroupLabel ?? (() => blankGroupOf.value),
       locale: () => localeOf.value,
     },
   )

@@ -162,10 +162,10 @@ key.
 | `useRowGrouping` `blankLabel` | none | The option. Unset, it falls back to the English `BLANK_GROUP_LABEL`, not to the table's labels. |
 
 The prop wins in every row. A string set through a prop stays put when the locale
-switches, so leave the prop unset and set the key to have it translate. The
-exception is `blankGroup`: both the `blankGroupLabel` prop and the `blankGroup` key
-are read once, when the table is set up, so a locale switch does not move the
-blank group caption. The other rows follow a locale switch.
+switches, so leave the prop unset and set the key to have it translate. Every key
+follows a locale switch, `blankGroup` included. One prop is also read only once:
+`blankGroupLabel` is read when the table is set up, so changing it later does not
+change the blank group caption.
 
 ## Number format and sort order
 
@@ -278,10 +278,11 @@ validateCell(value, column, row, labels)
 built before the table it belongs to and handed in.
 
 One label is not purely presentational: `blankGroup`, the caption on the group
-holding rows whose grouped value is empty. It is a grouping *key*, and
-`useTable` reads it once, when the table is set up, together with `blankGroupLabel`,
-which outranks it. Changing the `blankGroup` key afterwards does not rebuild the
-group tree and does not change the caption.
+holding rows whose grouped value is empty. It is part of each blank group's header,
+so changing it, by a locale switch or a new `labels` record, rebuilds the group tree
+once, in place; the filter, the sort and the group counts are not redone, and
+rewording any other key rebuilds nothing. `useTable`'s `blankGroupLabel` option
+outranks it and is read once, when the table is set up.
 
 ## What keeps it honest
 

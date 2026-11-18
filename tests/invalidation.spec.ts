@@ -1548,6 +1548,25 @@ describe('what a locale change is allowed to recompute', () => {
     wrapper.unmount()
   })
 
+  it('rewording the blank group rebuilds the bands once and reaches no other stage', async () => {
+    const { wrapper, labels } = mountTable()
+    await settle()
+    reset()
+
+    labels.value = { blankGroup: 'Empty' }
+    await settle()
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    expect(counters.tree).toBe(1)
+    expect(counters.walk).toBe(1)
+    // The rebuilt tree totals each band once; the number is the bands on the page.
+    expect(counters.aggregateRow).toBe(wrapper.findAll('.vt-group-row').length)
+    wrapper.unmount()
+  })
+
   it('setting the locale re-orders the bands once and filters nothing', async () => {
     const { wrapper, locale } = mountTable()
     await settle()
