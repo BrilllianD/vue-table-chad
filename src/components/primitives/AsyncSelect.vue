@@ -35,7 +35,7 @@
  * `<TableRoot>` above it, and it ships no CSS.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { useTableLabels, useTableTheme } from '../../core/context'
+import { useTableLabels, useTableTheme, usePortalFontStyle } from '../../core/context'
 import type { AsyncOption, AsyncOptionSource, FilterValue } from '../../core/types'
 import { useMenuDismiss } from './useMenuDismiss'
 import { usePopoverPosition } from './usePopoverPosition'
@@ -127,6 +127,7 @@ const themeAttribute = computed(() =>
 
 /** Named apart from the `teleport` prop so the template cannot confuse them. */
 const teleported = computed(() => props.teleport)
+const fontStyle = usePortalFontStyle(() => open.value && teleported.value)
 
 /*
   `source` holds refs, and a prop is not a top-level binding, so the template
@@ -484,7 +485,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
         :class="{ 'vt-portal': teleported }"
         :data-theme="teleported ? themeAttribute : undefined"
         :data-inline="!teleported || undefined"
-        :style="panelStyle"
+        :style="[panelStyle, fontStyle]"
         @focusout="onFocusOut"
         @keydown="onKeydown"
       >

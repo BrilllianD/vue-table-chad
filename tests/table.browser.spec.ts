@@ -13,8 +13,9 @@ import { people, personColumns, type Person } from './fixtures'
 import '../src/components/preset/table.css'
 
 /**
- * What happy-dom cannot show: real stacking and clipping for the table's overlays, and the real
- * click, click, dblclick sequence of a double click.
+ * What happy-dom cannot show: real stacking and clipping for the table's overlays, the font family
+ * a teleported panel computes under a wrapper font, and the real click, click, dblclick sequence of
+ * a double click.
  */
 
 let wrapper: VueWrapper | undefined
@@ -65,6 +66,28 @@ function mountInWindow() {
   return mount(Host, { attachTo: document.body })
 }
 
+/** A table under a host that sets the font family, and nothing sets `--vtc-font-family`. */
+function mountUnderFont() {
+  const Host = defineComponent({
+    setup() {
+      const state = useTableState({ pageSize: 10 })
+      const source = useLocalDataSource<Person>(people, personColumns, state.query, {
+        debounceMs: 0,
+      })
+      return () =>
+        h('div', { style: 'font-family: "Courier New", monospace' }, [
+          h(DataTable as never, {
+            columns: personColumns,
+            source,
+            state,
+            contextMenu: true,
+          }),
+        ])
+    },
+  })
+  return mount(Host, { attachTo: document.body })
+}
+
 const overlays = [
   {
     name: 'ColumnVisibilityMenu',
@@ -107,6 +130,22 @@ describe.each(overlays)('$name', ({ panel, trigger }) => {
     const y = (windowRect.bottom + panelRect.bottom) / 2
     const hit = document.elementFromPoint(x, y)
     expect(hit && panelEl.contains(hit)).toBe(true)
+
+    panelEl.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    )
+    await vi.waitFor(() => expect(document.querySelector(panel)).toBeNull())
+  })
+
+  it('takes the font family of the table it opened from', async () => {
+    wrapper = mountUnderFont()
+    ;(trigger(wrapper) as HTMLElement).click()
+    await vi.waitFor(() => expect(document.querySelector(panel)).not.toBeNull())
+    const panelEl = document.querySelector<HTMLElement>(panel)!
+
+    const tableFamily = getComputedStyle(document.querySelector('.vt-datatable')!).fontFamily
+    expect(tableFamily).not.toBe(getComputedStyle(document.body).fontFamily)
+    expect(getComputedStyle(panelEl).fontFamily).toBe(tableFamily)
 
     panelEl.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),

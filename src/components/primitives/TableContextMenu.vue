@@ -15,7 +15,7 @@
  * again, spelled out by hand at every call site.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { requireTableContext, useTableLabels, useTableTheme } from '../../core/context'
+import { requireTableContext, useTableLabels, useTableTheme, usePortalFontStyle } from '../../core/context'
 import { valuesFilter } from '../../core/filters/model'
 import { isBlank, toFilterValue } from '../../core/utils/values'
 import type { ColumnDataType, ResolvedColumn, RowId } from '../../core/types'
@@ -82,6 +82,7 @@ const open = computed({
   get: () => props.open,
   set: (value: boolean) => emit('update:open', value),
 })
+const fontStyle = usePortalFontStyle(() => open.value && teleported.value)
 
 const anchorRef = computed(() => props.anchor)
 
@@ -360,7 +361,7 @@ watch(column, (current) => {
       :class="{ 'vt-portal': teleported }"
       :data-theme="teleported ? themeAttribute : undefined"
       :data-inline="!teleported || undefined"
-      :style="panelStyle"
+      :style="[panelStyle, fontStyle]"
       role="menu"
       :aria-label="labels.contextMenu"
       @focusout="onFocusOut"

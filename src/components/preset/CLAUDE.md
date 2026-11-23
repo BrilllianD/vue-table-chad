@@ -69,6 +69,10 @@ would let a bare CSS import there be tree-shaken away, silently shipping an unst
   the element itself, never on an ancestor — CSS cannot say "and nothing above said light", so an
   ancestor form costs a second copy of both palettes, and the teleported case it would have covered is
   covered by the `theme` prop reaching `.vt-portal` instead.
+- **The font family reaches `.vt-portal` through `usePortalFontStyle`.** It stamps `--vtc-font-family`
+  (the custom property, so the nested `.vt-select-panel` and `.vt-drag-ghost` rules resolve to it too)
+  with the table's computed family, read on open. It is the one value taken from computed style rather
+  than from a prop, because the family's source is the page, not the table.
 - **A palette preset is nine literals, and `styles/themes/` is the third partition.** Everything else
   colour-valued derives from `--vtc-bg`, `--vtc-header-bg`, `--vtc-text`, `--vtc-text-muted`,
   `--vtc-border`, `--vtc-border-strong`, `--vtc-accent`, `--vtc-accent-contrast` and `--vtc-danger`,

@@ -7,7 +7,7 @@
  * be clipped the moment it left the cell.
  */
 import { computed } from 'vue'
-import { useTableContext, useTableTheme } from '../../core/context'
+import { useTableContext, useTableTheme, usePortalFontStyle } from '../../core/context'
 
 const props = withDefaults(defineProps<{ offsetX?: number; offsetY?: number }>(), {
   offsetX: 14,
@@ -33,6 +33,8 @@ const column = computed(() => {
   return context?.columns.all.value.find((entry) => entry.id === id)
 })
 
+const fontStyle = usePortalFontStyle(() => column.value !== undefined)
+
 const style = computed(() => {
   const pointer = dnd.value?.pointer.value ?? { x: 0, y: 0 }
   return { transform: `translate(${pointer.x + props.offsetX}px, ${pointer.y + props.offsetY}px)` }
@@ -41,7 +43,7 @@ const style = computed(() => {
 
 <template>
   <Teleport v-if="column" to="body">
-    <div class="vt-portal" :data-theme="themeAttribute">
+    <div class="vt-portal" :data-theme="themeAttribute" :style="fontStyle">
       <div class="vt-drag-ghost" :style="style" aria-hidden="true">
         <slot :column="column">{{ column.header ?? column.id }}</slot>
       </div>

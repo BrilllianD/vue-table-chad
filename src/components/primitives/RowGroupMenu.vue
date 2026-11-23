@@ -9,7 +9,7 @@
  * so a scroll container or a window frame with `overflow: hidden` cannot clip it.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { requireTableContext, useTableLabels, useTableTheme } from '../../core/context'
+import { requireTableContext, useTableLabels, useTableTheme, usePortalFontStyle } from '../../core/context'
 import SelectionCheckbox from './SelectionCheckbox.vue'
 import { closeOnEscape, refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
 import { usePopoverPosition } from './usePopoverPosition'
@@ -38,6 +38,8 @@ const theme = useTableTheme()
 const themeAttribute = computed(() =>
   !theme || theme.value === 'system' ? undefined : theme.value,
 )
+
+const fontStyle = usePortalFontStyle(() => open.value)
 
 const state = context.state
 
@@ -145,7 +147,7 @@ watch(open, (isOpen) => {
       ref="panel"
       class="vt-group-panel vt-portal"
       :data-theme="themeAttribute"
-      :style="panelStyle"
+      :style="[panelStyle, fontStyle]"
       role="dialog"
       :aria-label="labels.groupingOptions"
       @focusout="onFocusOut"

@@ -7,7 +7,7 @@
  * so a scroll container or a window frame with `overflow: hidden` cannot clip it.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { requireTableContext, useTableLabels, useTableTheme } from '../../core/context'
+import { requireTableContext, useTableLabels, useTableTheme, usePortalFontStyle } from '../../core/context'
 import type { PinSide } from '../../core/types'
 import SelectionCheckbox from './SelectionCheckbox.vue'
 import { closeOnEscape, refocusAfterMove, useMenuDismiss } from './useMenuDismiss'
@@ -37,6 +37,8 @@ const theme = useTableTheme()
 const themeAttribute = computed(() =>
   !theme || theme.value === 'system' ? undefined : theme.value,
 )
+
+const fontStyle = usePortalFontStyle(() => open.value)
 
 const columns = computed(() => context.columns.all.value)
 /** Never let the user hide the last visible column. */
@@ -105,7 +107,7 @@ watch(open, (isOpen) => {
       ref="panel"
       class="vt-columns-panel vt-portal"
       :data-theme="themeAttribute"
-      :style="panelStyle"
+      :style="[panelStyle, fontStyle]"
       role="dialog"
       :aria-label="labels.columnOptions"
       @focusout="onFocusOut"

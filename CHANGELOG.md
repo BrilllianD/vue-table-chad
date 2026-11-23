@@ -68,6 +68,9 @@ Releases up to 0.6.0 are described in their `Release version` commits
   `:root` or on `.vt-datatable, .vt-portal`. The family inside `--vtc-font` is now ignored; set
   `--vtc-font-family` instead, or `system-ui, -apple-system, "Segoe UI", sans-serif` to keep the
   old look. (#75)
+- Fixed: a `DataTable`'s filter popover, select list, menus and column drag ghost take the
+  table's font family, so a family set on a wrapper such as `#app` reaches them as it reaches the
+  table; primitives used without a `DataTable` still take it from `body`. (#80)
 
 ## 0.6.1
 

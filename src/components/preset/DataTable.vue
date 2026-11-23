@@ -41,7 +41,7 @@ import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
-import { provideTableTheme, useDefaultTableTheme, type TableTheme } from '../../core/context'
+import { provideTableFontFamily, provideTableTheme, useDefaultTableTheme, type TableTheme } from '../../core/context'
 import { mergeLabels, type TableLabels } from '../../core/labels'
 import { useTableLabels } from '../../core/context'
 import type { UseRowSelection } from '../../core/useRowSelection'
@@ -522,6 +522,16 @@ const themeAttribute = computed(() => (resolvedTheme.value === 'system' ? undefi
   table's edge and the filter popover would open in the OS's colours.
 */
 provideTableTheme(resolvedTheme)
+
+/*
+  The font family travels the same way, as a reader and not a ref: it comes
+  from the page (a wrapper, an ancestor's token), which nothing here can
+  watch, so each teleported panel asks when it opens.
+*/
+const frame = ref<HTMLElement | null>(null)
+provideTableFontFamily(() =>
+  frame.value ? getComputedStyle(frame.value).fontFamily || undefined : undefined,
+)
 
 /*
   The same record `<TableRoot>` publishes below, merged a second time here.
@@ -1318,6 +1328,7 @@ function onPaste(
     @update:column-order="$emit('update:columnOrder', $event)"
   >
     <div
+      ref="frame"
       v-bind="$attrs"
       class="vt-datatable"
       :style="ruleStyle"

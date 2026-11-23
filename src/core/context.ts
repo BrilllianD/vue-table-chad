@@ -121,6 +121,43 @@ export function useTableTheme(): Readonly<Ref<TableTheme>> | undefined {
 }
 
 /**
+ * A reader of the font family the table computes, published on its own key.
+ *
+ * A teleported wrapper leaves the table, so the family the table inherited from
+ * its ancestors (a wrapper such as `#app`, an ancestor's `--vtc-font-family`)
+ * does not reach it. A function and not a ref: the family's source is the page,
+ * which no ref can watch, so it is read when a panel opens instead.
+ */
+export const TableFontFamilyKey: InjectionKey<() => string | undefined> = Symbol(
+  'vue-table-chad:font-family',
+)
+
+/** Publishes the reader, so teleported wrappers beneath can stamp the family on themselves. */
+export function provideTableFontFamily(read: () => string | undefined): void {
+  provide(TableFontFamilyKey, read)
+}
+
+/**
+ * The inline style that gives a teleported `.vt-portal` wrapper the table's
+ * font family, or `undefined` with no table above or while `active()` is false.
+ *
+ * Stamps the custom property, not `font-family`: the wrapper's own rule and the
+ * nested `.vt-select-panel` and `.vt-drag-ghost` rules all read the token, and
+ * an inline `font-family` would lose to those when `:root` sets another one.
+ * The computed depends only on `active()`, so the reader runs once per open.
+ */
+export function usePortalFontStyle(
+  active: () => boolean,
+): ComputedRef<{ '--vtc-font-family': string } | undefined> {
+  const read = inject(TableFontFamilyKey, undefined)
+  return computed(() => {
+    if (!read || !active()) return undefined
+    const family = read()
+    return family ? { '--vtc-font-family': family } : undefined
+  })
+}
+
+/**
  * The app-wide default theme `createTable` publishes, on a key of its own and
  * not on `TableThemeKey`.
  *

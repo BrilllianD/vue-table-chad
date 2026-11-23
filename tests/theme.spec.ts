@@ -2,10 +2,12 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, ref, type Plugin } from 'vue'
+import { defineComponent, effectScope, h, nextTick, ref, type Plugin } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
+import AsyncSelect from '../src/components/primitives/AsyncSelect.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
+import { useAsyncOptions } from '../src/core/useAsyncOptions'
 import { createTable, createTableLabels } from '../src/core/plugin'
 import { ru } from '../src/locales'
 import { defineTheme, themeProperties } from '../src/core/theme'
@@ -85,6 +87,63 @@ describe('theme', () => {
     expect(panel!.getAttribute('data-theme')).toBe('dark')
 
     wrapper.unmount()
+  })
+
+  /**
+   * A teleported panel is no longer under the table, so the family the table
+   * inherited from the page does not reach it. The table publishes a reader and
+   * the panel stamps the token when it opens; the second half pins "on open".
+   */
+  it("stamps the table's font family on a teleported filter panel, read on each open", async () => {
+    const real = getComputedStyle
+    let family = 'Georgia, serif'
+    const spy = vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(((
+      element: Element,
+      pseudo?: string | null,
+    ) =>
+      element.classList.contains('vt-datatable')
+        ? ({ fontFamily: family } as CSSStyleDeclaration)
+        : real(element, pseudo)) as typeof getComputedStyle)
+    const wrapper = mountTable()
+    try {
+      const trigger = wrapper.find('.vt-filter-trigger')
+      const stamped = () =>
+        document.body
+          .querySelector<HTMLElement>('.vt-filter-panel.vt-portal')
+          ?.style.getPropertyValue('--vtc-font-family')
+          .trim()
+
+      await trigger.trigger('click')
+      expect(stamped()).toBe('Georgia, serif')
+
+      await trigger.trigger('click')
+      expect(document.body.querySelector('.vt-filter-panel')).toBeNull()
+      family = 'monospace'
+      await trigger.trigger('click')
+      expect(stamped()).toBe('monospace')
+    } finally {
+      spy.mockRestore()
+      wrapper.unmount()
+    }
+  })
+
+  it('leaves a standalone teleported select unstamped', async () => {
+    const scope = effectScope()
+    const source = scope.run(() =>
+      useAsyncOptions(async () => ({ options: [{ value: 1, label: 'Anna' }], total: 1 }), {
+        debounceMs: 0,
+      }),
+    )!
+    const wrapper = mount(AsyncSelect, { props: { source }, attachTo: document.body })
+    await wrapper.find('.vt-select-trigger').trigger('click')
+
+    const panel = document.body.querySelector<HTMLElement>('.vt-select-panel')
+    expect(panel, 'the select panel, teleported to <body>').not.toBeNull()
+    expect(panel!.parentElement!.style.getPropertyValue('--vtc-font-family')).toBe('')
+    expect(panel!.style.getPropertyValue('--vtc-font-family')).toBe('')
+
+    wrapper.unmount()
+    scope.stop()
   })
 
   it('leaves the teleported panel alone when the table follows the OS', async () => {

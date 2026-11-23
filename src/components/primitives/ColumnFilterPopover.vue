@@ -7,7 +7,7 @@
  * wasted work, and pointless for a server source.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { useTableContext, useTableLabels, useTableTheme } from '../../core/context'
+import { useTableContext, useTableLabels, useTableTheme, usePortalFontStyle } from '../../core/context'
 import type {
   ColumnDataType,
   ColumnFilter,
@@ -67,6 +67,7 @@ const panel = ref<HTMLElement | null>(null)
 
 /** Named apart from the `teleport` prop so the template cannot confuse them. */
 const teleported = computed(() => props.teleport)
+const fontStyle = usePortalFontStyle(() => open.value && teleported.value)
 
 const type = computed<ColumnDataType>(() => props.type ?? 'text')
 const current = computed<ColumnFilter | undefined>(
@@ -224,7 +225,7 @@ function onFocusOut(event: FocusEvent): void {
         :class="{ 'vt-portal': teleported }"
         :data-theme="teleported ? themeAttribute : undefined"
         :data-inline="!teleported || undefined"
-        :style="panelStyle"
+        :style="[panelStyle, fontStyle]"
         role="dialog"
         :aria-label="labels.filterColumn(label ?? columnId)"
         @focusout="onFocusOut"
