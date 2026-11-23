@@ -62,15 +62,11 @@ Releases up to 0.6.0 are described in their `Release version` commits
   `import '@brillliand/vue-table-chad/style.css'` is required wherever `DataTable` is used. (#72)
 - **Breaking:** the table no longer pins `system-ui`: a new `--vtc-font-family` token, default
   `inherit`, gives the table, its popups and the drag ghost the page's font family, as widgets and
-  dialog already do. The popups and the ghost are teleported to `<body>` and take the family
-  from `body`: a page that sets its family on a wrapper such as `#app` gets the table in that
-  family and the popups in the browser default, so set it on `body`, or set `--vtc-font-family` on
-  `:root` or on `.vt-datatable, .vt-portal`. The family inside `--vtc-font` is now ignored; set
-  `--vtc-font-family` instead, or `system-ui, -apple-system, "Segoe UI", sans-serif` to keep the
-  old look. (#75)
-- Fixed: a `DataTable`'s filter popover, select list, menus and column drag ghost take the
-  table's font family, so a family set on a wrapper such as `#app` reaches them as it reaches the
-  table; primitives used without a `DataTable` still take it from `body`. (#80)
+  dialog already do. Inside a `DataTable` the popups and the drag ghost follow the table's family,
+  so a family set on a wrapper such as `#app` reaches them as it reaches the table; primitives
+  used without a `DataTable` take it from `body`, so set it there, or set `--vtc-font-family` on
+  `:root`. The family inside `--vtc-font` is now ignored; set `--vtc-font-family` instead, or
+  `system-ui, -apple-system, "Segoe UI", sans-serif` to keep the old look. (#75, #80)
 
 ## 0.6.1
 
