@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { effectScope, nextTick } from 'vue'
 import { useInfiniteDataSource } from '../src/core/useInfiniteDataSource'
 import { useTableState } from '../src/core/useTableState'
 import { valuesFilter } from '../src/core/filters/model'
@@ -54,6 +54,10 @@ function setup(
   })!
   return { ...result, dispose: () => scope.stop() }
 }
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 describe('useInfiniteDataSource', () => {
   it('loads the first page immediately, and asks for its own page size', async () => {
@@ -156,6 +160,7 @@ describe('useInfiniteDataSource', () => {
   })
 
   it('ignores the pager entirely', async () => {
+    vi.useFakeTimers()
     const { fetcher, calls } = pagedServer()
     const { state, source, dispose } = setup(fetcher)
     await vi.waitFor(() => expect(source.loading.value).toBe(false))
@@ -165,9 +170,11 @@ describe('useInfiniteDataSource', () => {
     // refetching on that would never stop.
     state.setPage(3)
     state.setPageSize(999)
-    await new Promise((resolve) => setTimeout(resolve, 60))
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(20)
 
     expect(calls).toHaveLength(1)
+    expect(vi.getTimerCount()).toBe(0)
     dispose()
   })
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import {
   computed,
@@ -274,6 +274,9 @@ function editingHarness(
 }
 
 beforeEach(reset)
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 describe('what editing is allowed to recompute', () => {
   /** The column every case below edits: a plain number, no accessor to invert. */
@@ -580,20 +583,24 @@ describe('what the export is allowed to recompute', () => {
 
 describe('what an interaction is allowed to recompute', () => {
   /*
-   * `it.fails` rather than a skip, and rather than asserting today's numbers.
-   *
-   * It states the invariant we intend to hold and records that it does not hold
-   * yet — and because vitest fails an `it.fails` that starts passing, the day
-   * P1-4 lands this file demands to be updated instead of silently agreeing
-   * with whatever the code now does. A skip would just rot.
+   * Every case states an interaction that must not reach (or must reach exactly
+   * once) the O(dataset) stages. Each "does nothing" case also asserts the
+   * effect it was asked for, so a table that ignored the call would fail
+   * instead of passing on zero counters.
    */
   it('setPage redoes neither the filter nor the sort', () => {
     const h = harness()
+    const pageOne = h.source.rows.value.map((row) => row.id)
     h.state.setPage(2)
     h.source.rows.value
 
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)
+    expect(h.state.page.value).toBe(2)
+    expect(h.source.rows.value).toHaveLength(25)
+    const pageTwo = h.source.rows.value.map((row) => row.id)
+    expect(pageTwo).not.toEqual(pageOne)
+    expect(pageTwo.some((id) => pageOne.includes(id))).toBe(false)
     h.stop()
   })
 
@@ -666,6 +673,7 @@ describe('what an interaction is allowed to recompute', () => {
 
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)
+    expect(h.columns.visible.value.find((column) => column.id === 'name')!.resolvedWidth).toBe(240)
     h.stop()
   })
 
@@ -688,6 +696,25 @@ describe('what an interaction is allowed to recompute', () => {
 
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)
+    expect(h.columns.visible.value.find((column) => column.id === 'email')!.pinned).toBe('left')
+    h.stop()
+  })
+
+  it('a column reorder never reaches the pipeline', () => {
+    const h = harness(['department', 'role'])
+    h.columns.moveColumnTo('email', 'name', 'before')
+    h.columns.visible.value
+    h.source.rows.value
+    h.grouping.displayRows.value
+
+    expect(counters.filter).toBe(0)
+    expect(counters.sort).toBe(0)
+    expect(counters.count).toBe(0)
+    expect(counters.aggregate).toBe(0)
+    // `name` is pinned left, so it still renders first; the reorder shows in
+    // `all` and in `order`.
+    expect(h.columns.all.value.map((column) => column.id).slice(0, 2)).toEqual(['email', 'name'])
+    expect(h.columns.visible.value.find((column) => column.id === 'email')!.order).toBe(0)
     h.stop()
   })
 
@@ -781,12 +808,15 @@ describe('what an interaction is allowed to recompute', () => {
 
   it('a selection toggle never reaches the pipeline', () => {
     const h = harness()
-    h.selection.toggle(h.source.rows.value[0]!)
+    const row = h.source.rows.value[0]!
+    h.selection.toggle(row)
     h.selection.selectedIds.value
     h.source.rows.value
 
     expect(counters.filter).toBe(0)
     expect(counters.sort).toBe(0)
+    expect(h.selection.isSelected(row)).toBe(true)
+    expect(h.selection.selectedIds.value).toEqual([row.id])
     h.stop()
   })
 
@@ -985,7 +1015,6 @@ describe('what an interaction is allowed to recompute', () => {
     expect(counters.filter).toBe(1)
 
     scope.stop()
-    vi.useRealTimers()
   })
 
   it('changing the sort does redo the sort, and only once', () => {

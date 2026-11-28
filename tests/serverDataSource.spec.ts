@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick } from 'vue'
 import { useServerDataSource } from '../src/core/useServerDataSource'
 import { useTableState } from '../src/core/useTableState'
@@ -32,6 +32,10 @@ function setup(
   })!
   return { ...result, dispose: () => scope.stop() }
 }
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 describe('useServerDataSource', () => {
   it('fetches immediately and exposes rows and total', async () => {
@@ -111,6 +115,7 @@ describe('useServerDataSource', () => {
   })
 
   it('debounces filter changes but never debounces paging', async () => {
+    vi.useFakeTimers()
     const fetcher = vi.fn(async () => ({ rows: [], total: 0 }))
     const { state, dispose } = setup(fetcher, { debounceMs: 50 })
     await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
@@ -119,7 +124,10 @@ describe('useServerDataSource', () => {
     state.setSearch('ab')
     state.setSearch('abc')
     // All three keystrokes coalesce into one request.
-    await new Promise((r) => setTimeout(r, 120))
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(49)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(1)
     expect(fetcher).toHaveBeenCalledTimes(2)
 
     // Paging fires on the next tick, long before the 50ms debounce would elapse.
@@ -192,10 +200,12 @@ describe('useServerDataSource', () => {
   })
 
   it('skips the initial fetch when immediate is false', async () => {
+    vi.useFakeTimers()
     const fetcher = vi.fn(async () => ({ rows: [], total: 0 }))
     const { dispose } = setup(fetcher, { immediate: false })
-    await new Promise((r) => setTimeout(r, 20))
+    await vi.advanceTimersByTimeAsync(50)
     expect(fetcher).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
     dispose()
   })
 
