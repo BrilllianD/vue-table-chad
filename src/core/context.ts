@@ -98,7 +98,8 @@ export type TableTheme = 'light' | 'dark' | 'system'
  *
  * A hand-built context has to satisfy that interface in full, and which palette
  * to paint is not something a caller assembling a table out of primitives
- * should have to answer. The consumers are the two components that teleport a
+ * should have to answer. `TableRoot` publishes it (so `DataTable` does, through
+ * the one it renders). The consumers are the primitives that teleport a
  * `.vt-portal` wrapper to `<body>`: once there they are no longer descendants
  * of the table, custom properties stop inheriting, and a forced theme would
  * stop at the table's edge.
@@ -113,7 +114,7 @@ export function provideTableTheme(theme: Readonly<Ref<TableTheme>>): void {
 }
 
 /**
- * The theme a `<DataTable>` above asked for, or `undefined` with no table above
+ * The theme a `<TableRoot>` above (a `DataTable` renders one) asked for, or `undefined` with no table above
  * — in which case a wrapper emits nothing and the media query decides.
  */
 export function useTableTheme(): Readonly<Ref<TableTheme>> | undefined {
@@ -162,10 +163,11 @@ export function usePortalFontStyle(
  * not on `TableThemeKey`.
  *
  * `TableThemeKey` is what the teleported panels read. Providing it from the app
- * root would turn the popovers of a hand-built table (`TableRoot`, no
- * `DataTable`, so no `data-theme` on its body) dark while its body follows the
- * OS. This key is read by `DataTable` alone, which resolves it against its own
- * `theme` prop and re-publishes the result on `TableThemeKey`.
+ * root would turn dark the popovers of a bare primitive with no `TableRoot`,
+ * which would then differ from a body that follows the OS. This key is read by
+ * `TableRoot` (and by `DataTable` for its own `data-theme`), which resolve it
+ * against their `theme` prop; `TableRoot` re-publishes the result on
+ * `TableThemeKey`. Bare primitives with no `TableRoot` keep following the OS.
  */
 export const TableDefaultThemeKey: InjectionKey<Readonly<Ref<TableTheme | undefined>>> = Symbol(
   'vue-table-chad:default-theme',

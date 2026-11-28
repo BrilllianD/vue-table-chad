@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, effectScope, h, nextTick, ref, type Plugin } from 'vue'
 import DataTable from '../src/components/preset/DataTable.vue'
+import ColumnFilterPopover from '../src/components/primitives/ColumnFilterPopover.vue'
+import TableRoot from '../src/components/primitives/TableRoot.vue'
 import AsyncSelect from '../src/components/primitives/AsyncSelect.vue'
 import { useLocalDataSource } from '../src/core/useLocalDataSource'
 import { useTableState } from '../src/core/useTableState'
@@ -170,6 +172,16 @@ describe('theme', () => {
       wrapper.unmount()
     })
 
+    it('keeps a DataTable prop ahead of the app theme on its teleported panel', async () => {
+      const wrapper = mountTable('light', [createTable({ theme: 'dark' })])
+      await wrapper.find('.vt-filter-trigger').trigger('click')
+      const panel = document.body.querySelector('.vt-filter-panel.vt-portal')
+      expect(panel, 'the filter panel, teleported to <body>').not.toBeNull()
+      expect(panel!.getAttribute('data-theme')).toBe('light')
+
+      wrapper.unmount()
+    })
+
     it('yields to an explicit prop, and an explicit system is a choice', () => {
       const light = mountTable('light', [createTable({ theme: 'dark' })])
       expect(themeOf(light)).toBe('light')
@@ -204,6 +216,53 @@ describe('theme', () => {
       expect(warn.mock.calls.some((c) => String(c[0]).includes('already provides'))).toBe(false)
 
       warn.mockRestore()
+      wrapper.unmount()
+    })
+  })
+
+  describe('a table built from TableRoot', () => {
+    const RootHost = defineComponent({
+      props: { theme: { type: String, default: undefined } },
+      setup(props) {
+        const state = useTableState({ pageSize: 3 })
+        const source = useLocalDataSource<Person>(people, personColumns, state.query)
+        return () =>
+          h(
+            TableRoot as never,
+            {
+              columns: personColumns,
+              source,
+              state,
+              ...(props.theme === undefined ? {} : { theme: props.theme }),
+            },
+            { default: () => h(ColumnFilterPopover, { columnId: 'department', type: 'enum' }) },
+          )
+      },
+    })
+
+    async function openPanel(theme?: string, plugins: Plugin[] = []) {
+      const wrapper = mount(RootHost, { props: { theme }, attachTo: document.body, global: { plugins } })
+      await wrapper.find('.vt-filter-trigger').trigger('click')
+      const panel = document.body.querySelector('.vt-filter-panel.vt-portal')
+      expect(panel, 'the filter panel, teleported to <body>').not.toBeNull()
+      return { wrapper, panel: panel! }
+    }
+
+    it('carries a forced theme onto a teleported filter panel', async () => {
+      const { wrapper, panel } = await openPanel('dark')
+      expect(panel.getAttribute('data-theme')).toBe('dark')
+      wrapper.unmount()
+    })
+
+    it('takes the createTable theme when it is given none', async () => {
+      const { wrapper, panel } = await openPanel(undefined, [createTable({ theme: 'dark' })])
+      expect(panel.getAttribute('data-theme')).toBe('dark')
+      wrapper.unmount()
+    })
+
+    it('stamps nothing for an explicit system', async () => {
+      const { wrapper, panel } = await openPanel('system', [createTable({ theme: 'dark' })])
+      expect(panel.hasAttribute('data-theme')).toBe(false)
       wrapper.unmount()
     })
   })

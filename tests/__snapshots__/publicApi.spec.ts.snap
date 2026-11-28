@@ -1197,6 +1197,10 @@ exports[`public API surface > describes every component 1`] = `
         "required": false,
         "type": "String",
       },
+      "theme": {
+        "required": false,
+        "type": "String",
+      },
       "virtual": {
         "required": false,
         "type": "Boolean",

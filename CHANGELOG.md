@@ -5,6 +5,8 @@ Releases up to 0.6.0 are described in their `Release version` commits
 
 ## Unreleased
 
+- Added: `TableRoot` takes a `theme` prop, resolved like `DataTable`'s (the prop, else the `createTable` theme, else `'system'`), and hands it to the primitives it holds that teleport to `<body>`, so a hand-built table with a forced theme no longer opens its filter popover, select, menus and drag ghost in the OS palette. `TableRoot` renders no element, so the table's own markup still needs its own `data-theme`; bare primitives with no `TableRoot` read no theme. This supersedes the 0.7.0 note that `TableRoot` does not read the plugin's `theme`. (#52)
+
 ## 0.7.0
 
 - The README points to the guide for using the table with the other chad libraries. (#79)

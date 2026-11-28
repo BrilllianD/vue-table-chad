@@ -22,7 +22,14 @@ import type {
   SelectionMode,
   SelectionState,
 } from '../../core/types'
-import { provideTableContext, provideTableLabels, useTableLabels } from '../../core/context'
+import {
+  provideTableContext,
+  provideTableLabels,
+  provideTableTheme,
+  useDefaultTableTheme,
+  useTableLabels,
+  type TableTheme,
+} from '../../core/context'
 import { mergeLabels, type TableLabels } from '../../core/labels'
 import { useTable } from '../../core/useTable'
 import type { TableState } from '../../core/useTableState'
@@ -97,6 +104,13 @@ const props = withDefaults(
     blankGroupLabel?: string
     /** Wording for every string the table renders, over the inherited record. */
     labels?: Partial<TableLabels>
+    /**
+     * Which palette the primitives that teleport to `<body>` paint: the filter
+     * popover, the select, the menus and the drag ghost. Left out, the
+     * `createTable` theme applies, else `'system'`. `TableRoot` renders no
+     * element, so the table's own markup needs its own `data-theme`.
+     */
+    theme?: TableTheme
     /** BCP 47 tag for number and text handling; outranks the labels' `locale`. */
     locale?: string
     /** An editing session, from `useRowEditing`. Without one, cells are read-only. */
@@ -186,6 +200,16 @@ const rows = table.rows
 
 provideTableContext(table)
 provideTableLabels(table.labels)
+
+/*
+  Published for the primitives that teleport a `.vt-portal` wrapper to
+  `<body>`. Custom properties inherit through the DOM and a teleported panel is
+  no longer under the table, so without this a forced theme would stop at the
+  table's edge and the filter popover would open in the OS's colours.
+*/
+const appTheme = useDefaultTableTheme()
+const resolvedTheme = computed<TableTheme>(() => props.theme ?? appTheme?.value ?? 'system')
+provideTableTheme(resolvedTheme)
 
 /**
  * What the slot receives, built here rather than listed on the `<slot>` itself

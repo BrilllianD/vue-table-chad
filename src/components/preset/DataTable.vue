@@ -41,7 +41,7 @@ import type { UseCellCursor } from '../../core/useCellCursor'
 import type { ColumnLayoutField } from '../../core/columnStorage'
 import type { TableState } from '../../core/useTableState'
 import type { UseRowEditing } from '../../core/useRowEditing'
-import { provideTableFontFamily, provideTableTheme, useDefaultTableTheme, type TableTheme } from '../../core/context'
+import { provideTableFontFamily, useDefaultTableTheme, type TableTheme } from '../../core/context'
 import { mergeLabels, type TableLabels } from '../../core/labels'
 import { useTableLabels } from '../../core/context'
 import type { UseRowSelection } from '../../core/useRowSelection'
@@ -260,7 +260,8 @@ const props = withDefaults(
      * `'system'` emits no attribute and leaves the media query in charge. Left
      * out, the `createTable` theme applies, else `'system'`. `'light'` and `'dark'` write `data-theme` on the table — and on
      * the filter popover and the drag ghost, which teleport to `<body>` and
-     * would otherwise be left behind under the OS setting.
+     * would otherwise be left behind under the OS setting. The resolved value
+     * is forwarded to `<TableRoot>`, which publishes it to those primitives.
      */
     theme?: TableTheme
     /** Text shown when nothing matched. Defaults to the `emptyMessage` label. */
@@ -514,14 +515,6 @@ watchEffect(() => {
 const appTheme = useDefaultTableTheme()
 const resolvedTheme = computed<TableTheme>(() => props.theme ?? appTheme?.value ?? 'system')
 const themeAttribute = computed(() => (resolvedTheme.value === 'system' ? undefined : resolvedTheme.value))
-
-/*
-  Published for the two components that teleport a `.vt-portal` wrapper to
-  `<body>`. Custom properties inherit through the DOM and a teleported panel is
-  no longer under the table, so without this a forced theme would stop at the
-  table's edge and the filter popover would open in the OS's colours.
-*/
-provideTableTheme(resolvedTheme)
 
 /*
   The font family travels the same way, as a reader and not a ref: it comes
@@ -1278,6 +1271,7 @@ function onPaste(
 <template>
   <TableRoot
     ref="root"
+    :theme="resolvedTheme"
     v-slot="{
       rows,
       columns: cols,

@@ -136,8 +136,10 @@ overrules it:
 ```
 
 To set it once for the whole app, give `createTable` a `theme`. It becomes the default of every
-`DataTable` left without a `theme` prop; a prop still wins, `"system"` included. A table built from
-`TableRoot` or bare primitives does not read it:
+`DataTable` left without a `theme` prop; a prop still wins, `"system"` included. `TableRoot` reads it too (and takes the
+same `theme` prop) but renders no element, so it themes only the panels its primitives teleport to
+`<body>`; put `data-theme` on your own wrapper for the rest. Bare primitives with no `TableRoot` do
+not read it:
 
 ```ts
 createApp(App).use(createTable({ theme: 'dark' })).mount('#app')

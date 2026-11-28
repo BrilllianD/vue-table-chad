@@ -8,7 +8,7 @@ export interface TablePluginOptions {
   labels?: MaybeRefOrGetter<Partial<TableLabels> | undefined>
   /** The locale tag. Outranks the `locale` inside `labels`. */
   locale?: MaybeRefOrGetter<string | undefined>
-  /** The palette of every `DataTable` that is given no `theme` prop. */
+  /** The palette of every `DataTable` and `TableRoot` that is given no `theme` prop. */
   theme?: MaybeRefOrGetter<TableTheme | undefined>
 }
 
@@ -28,6 +28,9 @@ export interface TablePluginOptions {
  * eventually forgotten. The labels record is published on `TableLabelsKey` from
  * the app root, above every table, so `DataTable`, `TableRoot` and any bare
  * primitive inherit it with nothing passed down.
+ *
+ * `TableRoot` hands the theme to its teleported primitives only, since it renders
+ * no element of its own.
  *
  * A `labels` prop still wins, and wins *per key*: it is merged over the
  * inherited record rather than over English, so overriding one string in one
